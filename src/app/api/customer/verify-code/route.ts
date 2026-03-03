@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
   createSession,
   getLatestValidCodeRow,
@@ -51,7 +51,11 @@ export async function POST(req: Request) {
 
     await markCodeUsed(row.id);
 
-    const sess = await createSession(tenantId, email, phoneHash);
+    const last4Plain = String((body as any).phone_last4 ?? (body as any).last4 ?? "").trim();
+    if (!/^\d{4}$/.test(last4Plain)) {
+      return NextResponse.json({ error: "phone_last4 required" }, { status: 400 });
+    }
+    const sess = await createSession(tenantId, email, phoneHash, last4Plain);
 
     const res = NextResponse.json({ ok: true });
 

@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
@@ -165,7 +165,11 @@ export async function GET(req: Request) {
 
   const buf = await renderToBuffer(PdfDocEl(cert, publicUrl, qrDataUrl));
 
-  return new NextResponse(buf, {
+  const ab = (buf as any).buffer
+    ? (buf as any).buffer.slice((buf as any).byteOffset ?? 0, ((buf as any).byteOffset ?? 0) + (buf as any).byteLength)
+    : buf;
+
+  return new NextResponse(ab as any, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",

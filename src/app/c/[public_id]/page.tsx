@@ -7,6 +7,7 @@ export const revalidate = 0;
 
 type PageProps = {
   params: Promise<{ public_id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 type CertPublic = {
@@ -117,7 +118,7 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
         </div>
       </header>
 
-      <CustomerActions pdfHref={pdfHref} returnTo={returnTo} logoutHref={logoutHref} />
+      <CustomerActions pdfHref={pdfHref} returnTo={returnTo ?? undefined} logoutHref={logoutHref ?? undefined} />
 <section style={{ display: "flex", gap: 16, alignItems: "center", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ width: 220, height: 220, border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", background: "#fff", display: "grid", placeItems: "center" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}

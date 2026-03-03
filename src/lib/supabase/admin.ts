@@ -6,3 +6,6 @@ export function createAdminClient() {
   if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
   return createClient(url, key, { auth: { persistSession: false } });
 }
+
+// Backward-compatible export used by older code paths
+export const supabaseAdmin = createAdminClient();

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 import { createClient as createSupabaseAnon } from "@supabase/supabase-js";
 // 既存の「セッション(cookie)で動く」サーバークライアントを使う（あなたの他APIが動いてる前提）
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
 
   // 1) 認証：cookieセッション（通常） or Authorization Bearer（PowerShell検証用）
   //    cookie側は既存の server client（他APIで動作済みの前提）
-  const serverSb = createSupabaseServer();
+  const serverSb = await createSupabaseServer();
   const { data: u1 } = await serverSb.auth.getUser();
 
   let user = u1?.user ?? null;
@@ -163,23 +163,22 @@ export async function POST(req: Request) {
     try {
       const email = r.email;
 
-      // getUserByEmail（存在確認）
-      const got = await adminSb.auth.admin.getUserByEmail(email);
-      if (got?.data?.user) {
-        existingAuth++;
-      } else {
-        const cr = await adminSb.auth.admin.createUser({
-          email,
-          email_confirm: true,
-        });
-        if (cr.error) {
-          // 既存等でコケる場合があるので、もう一回 getUserByEmail で最終確認
-          const got2 = await adminSb.auth.admin.getUserByEmail(email);
-          if (!got2?.data?.user) throw new Error(`createUser failed: ${cr.error.message}`);
+      // Authユーザー作成（存在確認APIが無い版のSDKなので、作成を試して既存ならスキップ）
+      const cr = await adminSb.auth.admin.createUser({
+        email,
+        email_confirm: true,
+      });
+
+      if ((cr as any)?.error) {
+        const msg = String((cr as any).error?.message ?? (cr as any).error ?? "");
+        // 既存ユーザーの場合は「既存扱い」にする（文言揺れを広めに拾う）
+        if (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("exists") || msg.toLowerCase().includes("duplicate")) {
           existingAuth++;
         } else {
-          createdAuth++;
+          throw new Error(`createUser failed: ${msg || "unknown"}`);
         }
+      } else {
+        createdAuth++;
       }
 
       const { error: upErr } = await adminSb.rpc("upsert_insurer_user", {
@@ -200,9 +199,10 @@ export async function POST(req: Request) {
   try {
     await logInsurerAccess({
       action: "export_csv",
-      insurer_id: insurerId,
-      actor_user_id: user.id,
+      certificateId: "import_users",
       meta: {
+        insurer_id: insurerId,
+        actor_user_id: user.id,
         op: "import_users",
         total_rows: rows.length,
         upserted,
@@ -210,8 +210,9 @@ export async function POST(req: Request) {
         existing_auth: existingAuth,
         error_count: errors.length,
       },
-    });
-  } catch (e: any) {
+      ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
+      userAgent: req.headers.get("user-agent") || null,
+    });} catch (e: any) {
     console.warn("[insurer-users-csv] audit log failed:", e?.message || e);
   }
 
@@ -225,3 +226,6 @@ export async function POST(req: Request) {
     errors,
   });
 }
+
+
+
