@@ -46,6 +46,9 @@ function daysLeft(unix?: number | null) {
 export default function BillingPage() {
   const supabase = useMemo(() => createClient(), []);
   const [status, setStatus] = useState<string | null>(null);
+  const [reason, setReason] = useState<string | null>(null);
+  const [action, setAction] = useState<string | null>(null);
+  const [ret, setRet] = useState<string | null>(null);
   const [fromPortal, setFromPortal] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -61,6 +64,9 @@ export default function BillingPage() {
     try {
       const qs = new URLSearchParams(window.location.search);
       setStatus(qs.get("status"));
+      setReason(qs.get("reason"));
+      setAction(qs.get("action"));
+      setRet(qs.get("return"));
       setFromPortal(qs.get("from") === "portal");
     } catch {
       setStatus(null);
@@ -244,6 +250,29 @@ const activeLabel =
         </div>
       )}
 
+      {(reason || action) && (
+        <div className="rounded border p-3 text-sm">
+          <div className="font-semibold">アクセスが制限されました</div>
+          <div className="mt-1 opacity-80">
+            {reason === "inactive"
+              ? "支払いが停止しているため、この操作は実行できません。下の「支払いを再開」から再開してください。"
+              : reason === "plan"
+              ? "現在のプランではこの機能は利用できません。プラン変更をご検討ください。"
+              : "この操作は制限されています。"}
+          </div>
+          {action && (
+            <div className="mt-2 opacity-80">
+              対象機能: <span className="font-mono">{action}</span>
+            </div>
+          )}
+          {ret && (
+            <div className="mt-2 opacity-80">
+              元の画面: <a className="underline" href={ret}>戻る</a>
+            </div>
+          )}
+        </div>
+      )}
+
       {loading && <div className="text-sm opacity-70">Loading…</div>}
 
       {err && (
@@ -336,6 +365,7 @@ const activeLabel =
     </main>
   );
 }
+
 
 
 
