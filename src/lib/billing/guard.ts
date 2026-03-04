@@ -47,6 +47,40 @@ function redirectToBilling(req: Request, reason: "inactive" | "plan") {
   });
 }
 
+async function tenantFromCertificateQuery(u: URL): Promise<string | null> {
+  const supabase = getSupabaseAdmin();
+
+  const cid =
+    u.searchParams.get("certificate_id") ??
+    u.searchParams.get("certificateId") ??
+    u.searchParams.get("id");
+  if (cid) {
+    const { data, error } = await supabase
+      .from("certificates")
+      .select("tenant_id")
+      .eq("id", cid)
+      .limit(1)
+      .maybeSingle();
+    if (!error && data?.tenant_id) return data.tenant_id as string;
+  }
+
+  const pid =
+    u.searchParams.get("public_id") ??
+    u.searchParams.get("publicId") ??
+    u.searchParams.get("pid");
+  if (pid) {
+    const { data, error } = await supabase
+      .from("certificates")
+      .select("tenant_id")
+      .eq("public_id", pid)
+      .limit(1)
+      .maybeSingle();
+    if (!error && data?.tenant_id) return data.tenant_id as string;
+  }
+
+  return null;
+}
+
 async function extractTenantId(req: Request): Promise<string | null> {
   // query
   try {
@@ -54,6 +88,9 @@ async function extractTenantId(req: Request): Promise<string | null> {
     const q = u.searchParams;
     const tid = q.get("tenant_id") ?? q.get("tenantId") ?? q.get("tenant") ?? null;
     if (tid) return tid;
+
+    const fromCert = await tenantFromCertificateQuery(u);
+    if (fromCert) return fromCert;
   } catch {}
 
   // body (clone)
@@ -70,6 +107,18 @@ async function extractTenantId(req: Request): Promise<string | null> {
         .from("certificates")
         .select("tenant_id")
         .eq("id", cid)
+        .limit(1)
+        .maybeSingle();
+      if (!error && data?.tenant_id) return data.tenant_id as string;
+    }
+
+    const pid = b?.public_id ?? b?.publicId ?? b?.pid ?? null;
+    if (typeof pid === "string" && pid) {
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("tenant_id")
+        .eq("public_id", pid)
         .limit(1)
         .maybeSingle();
       if (!error && data?.tenant_id) return data.tenant_id as string;
