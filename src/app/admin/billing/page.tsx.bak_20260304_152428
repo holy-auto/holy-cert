@@ -29,6 +29,7 @@ export default function BillingPage() {
 
   const [portalBusy, setPortalBusy] = useState(false);
 
+  // ✅ useSearchParams() を使わず、クライアントで query を読む（Suspense不要）
   useEffect(() => {
     try {
       const s = new URLSearchParams(window.location.search).get("status");
@@ -45,27 +46,34 @@ export default function BillingPage() {
       setTenant(null);
 
       try {
-        const sessionRes = await supabase.auth.getSession();
-        const access_token = sessionRes.data?.session?.access_token;
-        if (!access_token) {
+        const u = await supabase.auth.getUser();
+        if (!u.data?.user) {
           window.location.href = "/login";
           return;
         }
 
-        // ✅ Supabase REST直叩きはやめて、同一オリジンAPIへ
-        const res = await fetch("/api/admin/billing-state", {
-          method: "POST",
-          headers: { "content-type": "application/json; charset=utf-8" },
-          body: JSON.stringify({ access_token }),
-          cache: "no-store",
-        });
+        // 1) membership から tenant_id を取る（最短で1件）
+        const m = await supabase
+          .from("tenant_memberships")
+          .select("tenant_id")
+          .eq("user_id", u.data.user.id)
+          .limit(1)
+          .maybeSingle();
 
-        const j = await res.json().catch(() => null);
-        if (!res.ok) {
-          throw new Error(j?.error ? `${j.error}${j.detail ? " / " + j.detail : ""}` : `HTTP ${res.status}`);
-        }
+        if (m.error) throw m.error;
+        if (!m.data?.tenant_id) throw new Error("tenant_memberships が見つかりません（user_id に紐づく tenant が無い）");
 
-        setTenant(j.tenant as Tenant);
+        // 2) tenants を読む（RLSで読める前提）
+        const t = await supabase
+          .from("tenants")
+          .select("id, slug, name, plan_tier, is_active, stripe_customer_id, stripe_subscription_id")
+          .eq("id", m.data.tenant_id)
+          .maybeSingle();
+
+        if (t.error) throw t.error;
+        if (!t.data) throw new Error("tenants が見つかりません（tenant_id が無効）");
+
+        setTenant(t.data as Tenant);
       } catch (e: any) {
         setErr(e?.message ?? String(e));
       } finally {
@@ -77,6 +85,7 @@ export default function BillingPage() {
   async function openPortal() {
     setPortalBusy(true);
     try {
+      // まず POST（JSONで url を返す実装を想定）
       const res = await fetch("/api/stripe/portal", {
         method: "POST",
         headers: { "content-type": "application/json; charset=utf-8" },
@@ -90,6 +99,8 @@ export default function BillingPage() {
           return;
         }
       }
+
+      // fallback: GET redirect 型の実装にも対応
       window.location.href = "/api/stripe/portal";
     } finally {
       setPortalBusy(false);
@@ -133,16 +144,22 @@ export default function BillingPage() {
             Stripe customer: <span className="font-mono">{short(tenant.stripe_customer_id)}</span>
           </div>
           <div>
-            Stripe subscription: <span className="font-mono">{short(tenant.stripe_subscription_id)}</span>
+            Stripe subscription:{" "}
+            <span className="font-mono">{short(tenant.stripe_subscription_id)}</span>
           </div>
 
           <div className="pt-3 flex gap-2">
             <button className="rounded border px-3 py-2" onClick={openPortal} disabled={portalBusy}>
               {portalBusy ? "Opening…" : "Stripe請求ポータルを開く"}
             </button>
+
             <Link className="rounded border px-3 py-2" href="/admin">
               管理画面に戻る
             </Link>
+          </div>
+
+          <div className="pt-2 text-xs opacity-70">
+            ※ このページは success_url / cancel_url の返り先。DB反映とポータル導線の確認用。
           </div>
         </div>
       )}
