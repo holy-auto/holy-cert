@@ -25,7 +25,7 @@ function pickId(body: any): string | null {
 async function proxyToCertificatePdf(req: NextRequest, id: string) {
   const base = baseUrl(req);
 
-  // 既存実装がどのクエリ名を期待しているか不明なので候補を順に試す
+  // 既存のGET /api/certificate/pdf がどのクエリ名を期待してるか不明なので候補を順に試す
   const candidates = [
     `${base}/api/certificate/pdf?certificate_id=${encodeURIComponent(id)}`,
     `${base}/api/certificate/pdf?certificateId=${encodeURIComponent(id)}`,
@@ -35,7 +35,6 @@ async function proxyToCertificatePdf(req: NextRequest, id: string) {
     `${base}/api/certificate/pdf?publicId=${encodeURIComponent(id)}`,
   ];
 
-  // 認証が必要な場合に備えて cookie / authorization を引き継ぐ
   const headers: Record<string, string> = {};
   const cookie = req.headers.get("cookie");
   if (cookie) headers["cookie"] = cookie;
@@ -47,6 +46,7 @@ async function proxyToCertificatePdf(req: NextRequest, id: string) {
   for (const url of candidates) {
     const res = await fetch(url, { method: "GET", headers, cache: "no-store" });
     last = res;
+
     if (res.ok) {
       const buf = await res.arrayBuffer();
       const ct = res.headers.get("content-type") ?? "application/pdf";
@@ -72,7 +72,7 @@ async function proxyToCertificatePdf(req: NextRequest, id: string) {
 }
 
 export async function POST(req: NextRequest) {
-  // mini 以上 + is_active 必須（certificate_id から tenant を逆引きできる）
+  // mini以上 + is_active 必須（certificate_id が来れば guard 側で tenant 逆引き可能）
   const deny = await enforceBilling(req, { minPlan: "mini", action: "pdf_one" });
   if (deny) return deny as any;
 
@@ -86,9 +86,7 @@ export async function POST(req: NextRequest) {
   return proxyToCertificatePdf(req, id);
 }
 
-// ブラウザで開いた時（GET）用の案内
-
+// A: GETは案内を出さず 405 に統一
 export async function GET() {
   return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
 }
-
