@@ -1,13 +1,22 @@
 import { createClient } from "@supabase/supabase-js";
 
 type PlanTier = "mini" | "standard" | "pro";
-
 const RANK: Record<PlanTier, number> = { mini: 1, standard: 2, pro: 3 };
 
-function json(status: number, body: any) {
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+function json(status: number, body: any, extraHeaders?: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8" },
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      ...(extraHeaders ?? {}),
+    },
   });
 }
 
@@ -22,18 +31,13 @@ function redirectToBilling(req: Request, reason: "inactive" | "plan") {
   const origin = new URL(req.url).origin;
   const billing = new URL("/admin/billing", origin);
 
-  // referer があれば return に入れる（なければ /admin）
   const ref = req.headers.get("referer");
   try {
     if (ref) {
       const r = new URL(ref);
       billing.searchParams.set("return", r.pathname + r.search);
-    } else {
-      billing.searchParams.set("return", "/admin");
     }
-  } catch {
-    billing.searchParams.set("return", "/admin");
-  }
+  } catch {}
 
   billing.searchParams.set("reason", reason);
 
@@ -41,16 +45,6 @@ function redirectToBilling(req: Request, reason: "inactive" | "plan") {
     status: 303,
     headers: { Location: billing.toString() },
   });
-}
-,
-  });
-}
-
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 async function extractTenantId(req: Request): Promise<string | null> {
@@ -62,14 +56,13 @@ async function extractTenantId(req: Request): Promise<string | null> {
     if (tid) return tid;
   } catch {}
 
-  // body (clone so we don't consume original)
+  // body (clone)
   try {
     const b: any = await (req as any).clone().json();
-    const tid =
-      b?.tenant_id ?? b?.tenantId ?? b?.tenant ?? b?.tenant_id?.id ?? null;
+
+    const tid = b?.tenant_id ?? b?.tenantId ?? b?.tenant ?? null;
     if (typeof tid === "string" && tid) return tid;
 
-    // certificate_id(s) から tenant を引けるようにしておく（念のため）
     const cid = b?.certificate_id ?? b?.certificateId ?? null;
     if (typeof cid === "string" && cid) {
       const supabase = getSupabaseAdmin();
@@ -104,9 +97,7 @@ export async function enforceBilling(
 ): Promise<Response | null> {
   const tenant_id = await extractTenantId(req);
   if (!tenant_id) {
-    // tenant を特定できないAPIは、現状壊したくないので “スキップ” ではなく 400 にする
-    // （必要なら後で対象APIだけ例外化する）
-    return json(400, { error: "Missing tenant_id (billing guard)" });
+    return json(400, { error: "Missing tenant_id (billing guard)" }, { "x-billing-url": "/admin/billing" });
   }
 
   const supabase = getSupabaseAdmin();
@@ -118,39 +109,40 @@ export async function enforceBilling(
     .maybeSingle();
 
   if (error || !data) {
-    return json(404, { error: "Tenant not found (billing guard)" });
+    return json(404, { error: "Tenant not found (billing guard)" }, { "x-billing-url": "/admin/billing" });
   }
 
   const plan = (data.plan_tier ?? "mini") as PlanTier;
   const active = !!data.is_active;
 
   if (!active) {
-  if (isNavigation(req)) return redirectToBilling(req, "inactive");
-  return new Response(
-    JSON.stringify({
-      error: "Billing inactive",
-      message: "支払いが停止しています。請求・プラン画面から支払いを再開してください。",
-      billing_url: "/admin/billing",
-      action: opts.action ?? null,
-    }),
-    { status: 402, headers: { "content-type": "application/json; charset=utf-8", "x-billing-url": "/admin/billing" } }
-  );
-}
+    if (isNavigation(req)) return redirectToBilling(req, "inactive");
+    return json(
+      402,
+      {
+        error: "Billing inactive",
+        message: "支払いが停止しています。請求・プラン画面から支払いを再開してください。",
+        billing_url: "/admin/billing",
+        action: opts.action ?? null,
+      },
+      { "x-billing-url": "/admin/billing" }
+    );
+  }
 
   if (RANK[plan] < RANK[opts.minPlan]) {
-  if (isNavigation(req)) return redirectToBilling(req, "plan");
-  return new Response(
-    JSON.stringify({
-      error: "Plan restricted",
-      message: `この機能は ${opts.minPlan} 以上で利用できます。`,
-      billing_url: "/admin/billing",
-      action: opts.action ?? null,
-      current_plan: plan,
-    }),
-    { status: 403, headers: { "content-type": "application/json; charset=utf-8", "x-billing-url": "/admin/billing" } }
-  );
-}
+    if (isNavigation(req)) return redirectToBilling(req, "plan");
+    return json(
+      403,
+      {
+        error: "Plan restricted",
+        message: `この機能は ${opts.minPlan} 以上で利用できます。`,
+        billing_url: "/admin/billing",
+        action: opts.action ?? null,
+        current_plan: plan,
+      },
+      { "x-billing-url": "/admin/billing" }
+    );
+  }
 
   return null;
 }
-

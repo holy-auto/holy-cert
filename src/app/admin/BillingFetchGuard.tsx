@@ -17,9 +17,7 @@ export default function BillingFetchGuard() {
     if ((window as any).__billingFetchGuardInstalled) return;
     (window as any).__billingFetchGuardInstalled = true;
 
-    console.log("[billing-guard] installed");
-
-    // --- fetch hook ---
+    // ---- fetch hook ----
     const origFetch = window.fetch.bind(window);
     window.fetch = async (input: any, init?: any) => {
       const res = await origFetch(input, init);
@@ -33,12 +31,9 @@ export default function BillingFetchGuard() {
         if (!u.pathname.startsWith("/api/")) return res;
 
         if (res.status === 402 || res.status === 403) {
-          let billingUrl: string | null = null;
+          // header 優先 → body fallback
+          let billingUrl: string | null = res.headers.get("x-billing-url");
 
-          // header 優先（将来用）
-          billingUrl = res.headers.get("x-billing-url");
-
-          // なければ body（guard.ts の JSON）
           if (!billingUrl) {
             try {
               const j = await res.clone().json();
@@ -53,13 +48,16 @@ export default function BillingFetchGuard() {
       return res;
     };
 
-    // --- XHR hook (axios等対策) ---
+    // ---- XHR hook (axios 等) ----
     const OrigOpen = XMLHttpRequest.prototype.open;
     const OrigSend = XMLHttpRequest.prototype.send;
 
-    XMLHttpRequest.prototype.open = function (method: string, url: string, ...rest: any[]) {
-      (this as any).__billing_guard_url = url;
-      return OrigOpen.call(this, method, url, ...rest);
+    XMLHttpRequest.prototype.open = function (...args: any[]) {
+      try {
+        // open(method, url, ...)
+        (this as any).__billing_guard_url = String(args?.[1] ?? "");
+      } catch {}
+      return (OrigOpen as any).apply(this, args);
     };
 
     XMLHttpRequest.prototype.send = function (...args: any[]) {
@@ -79,7 +77,7 @@ export default function BillingFetchGuard() {
         } catch {}
       });
 
-      return OrigSend.apply(this, args as any);
+      return (OrigSend as any).apply(this, args);
     };
 
     return () => {};
