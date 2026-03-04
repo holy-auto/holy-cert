@@ -229,18 +229,18 @@ export default function BillingPage() {
     }
   }
 const activeLabel =
-    tenant?.is_active === true ? "ACTIVE" : tenant?.is_active === false ? "INACTIVE" : "-";
+    tenant?.is_active === true ? "有効" : tenant?.is_active === false ? "停止" : "-";
 
   const subErr = sub && "error" in sub ? sub.error : null;
   const subOk = sub && !("error" in sub) ? sub : null;
 
   return (
     <main className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold">Billing</h1>
+      <h1 className="text-xl font-semibold">請求・プラン</h1>
 
       {status && (
         <div className="rounded border p-3 text-sm">
-          Checkout status: <b>{status}</b>
+          決済結果: <b>{status === "success" ? "成功" : status === "cancel" ? "キャンセル" : status}</b>
         </div>
       )}
 
@@ -259,12 +259,12 @@ const activeLabel =
             店舗: <b>{tenant.name ?? tenant.slug ?? tenant.id}</b>
           </div>
           <div>
-            状態: <b>{activeLabel}</b>
+            利用状態: <b>{activeLabel}</b>
           </div>
           <div>
             プラン: <b>{tenant.plan_tier ?? "-"}</b>
           </div>          <div>
-            Stripe連携: <b>{tenant.stripe_subscription_id ? "連携済み" : "未連携"}</b>
+            決済: <b>{tenant.stripe_subscription_id ? "連携済み" : "未連携"}</b>
           </div>
 
           {tenant.stripe_subscription_id && (
@@ -280,12 +280,12 @@ const activeLabel =
               </div>
             </details>
           )}<div className="pt-2">
-            <div className="font-semibold">期限/更新</div>
+            <div className="font-semibold">有効期限・次回請求</div>
             {subErr && <div className="opacity-80">Stripe期限の取得に失敗: {subErr}</div>}
             {subOk && (
               <div className="space-y-1">
                 <div>
-                  サブスク状態: <b>{subOk.status}</b>
+                  契約状態: <b>{subOk.status}</b>
                 </div>
                 <div>
                   期間開始: <b>{fmtUnix(subOk.current_period_start)}</b>
@@ -295,7 +295,7 @@ const activeLabel =
                 </div>
                 {subOk.cancel_at_period_end && (
                   <div>
-                    解約予約中: <b>ON</b>（終了日: <b>{fmtUnix(subOk.current_period_end)}</b>）
+                    解約予約: <b>あり</b>（終了日: <b>{fmtUnix(subOk.current_period_end)}</b>）
                   </div>
                 )}
                 {subOk.trial_end && (
@@ -316,12 +316,12 @@ const activeLabel =
 )}
 <div className="pt-3 flex gap-2">
             <button className="rounded border px-3 py-2" onClick={openPortal} disabled={portalBusy}>
-              {portalBusy ? "Opening…" : "Stripe請求ポータルを開く"}
+              {portalBusy ? "Opening…" : "請求ポータル（プラン変更）"}
             </button>
 
             {tenant.is_active === false && (
               <button className="rounded border px-3 py-2" onClick={resumeCheckout} disabled={resumeBusy}>
-                {resumeBusy ? "Redirecting…" : "支払いを再開（Checkout）"}
+                {resumeBusy ? "Redirecting…" : "支払いを再開"}
               </button>
             )}<Link className="rounded border px-3 py-2" href="/admin">
               管理画面に戻る
@@ -336,6 +336,7 @@ const activeLabel =
     </main>
   );
 }
+
 
 
 
