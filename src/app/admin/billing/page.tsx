@@ -44,7 +44,6 @@ function daysLeft(unix?: number | null) {
   const d = Math.ceil(ms / (1000 * 60 * 60 * 24));
   return d;
 }
-);
 }
 
 export default function BillingPage() {
@@ -343,5 +342,6 @@ const activeLabel =
     </main>
   );
 }
+
 
 
