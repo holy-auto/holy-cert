@@ -2,55 +2,87 @@
 
 import { useEffect } from "react";
 
+function redirectToBilling(billingUrl: string | null) {
+  if (window.location.pathname.startsWith("/admin/billing")) return;
+
+  const dest = new URL(billingUrl || "/admin/billing", window.location.origin);
+  const ret = window.location.pathname + window.location.search;
+  dest.searchParams.set("return", ret);
+
+  window.location.href = dest.toString();
+}
+
 export default function BillingFetchGuard() {
   useEffect(() => {
-    const orig = window.fetch.bind(window);
-
-    // 2重適用防止
     if ((window as any).__billingFetchGuardInstalled) return;
     (window as any).__billingFetchGuardInstalled = true;
 
+    console.log("[billing-guard] installed");
+
+    // --- fetch hook ---
+    const origFetch = window.fetch.bind(window);
     window.fetch = async (input: any, init?: any) => {
-      const res = await orig(input, init);
+      const res = await origFetch(input, init);
 
       try {
-        // /admin/billing 自体ではリダイレクトしない（ループ防止）
-        if (window.location.pathname.startsWith("/admin/billing")) return res;
-
         const rawUrl = typeof input === "string" ? input : input?.url;
         if (!rawUrl) return res;
 
         const u = new URL(rawUrl, window.location.origin);
-
-        // 同一オリジン & /api/* のみ対象
         if (u.origin !== window.location.origin) return res;
         if (!u.pathname.startsWith("/api/")) return res;
 
         if (res.status === 402 || res.status === 403) {
-          // 可能なら billing_url を読む（guard.ts の JSON）
-          let billingUrl = "/admin/billing";
-          try {
-            const j = await res.clone().json();
-            if (j?.billing_url) billingUrl = j.billing_url;
-          } catch {}
+          let billingUrl: string | null = null;
 
-          // return 付きで請求画面へ
-          const ret = window.location.pathname + window.location.search;
-          const dest = new URL(billingUrl, window.location.origin);
-          dest.searchParams.set("return", ret);
+          // header 優先（将来用）
+          billingUrl = res.headers.get("x-billing-url");
 
-          window.location.href = dest.toString();
+          // なければ body（guard.ts の JSON）
+          if (!billingUrl) {
+            try {
+              const j = await res.clone().json();
+              billingUrl = j?.billing_url ?? null;
+            } catch {}
+          }
+
+          redirectToBilling(billingUrl);
         }
-      } catch {
-        // 失敗しても元のresは返す
-      }
+      } catch {}
 
       return res;
     };
 
-    return () => {
-      // 解除はしない（admin UI 全体で統一挙動にする）
+    // --- XHR hook (axios等対策) ---
+    const OrigOpen = XMLHttpRequest.prototype.open;
+    const OrigSend = XMLHttpRequest.prototype.send;
+
+    XMLHttpRequest.prototype.open = function (method: string, url: string, ...rest: any[]) {
+      (this as any).__billing_guard_url = url;
+      return OrigOpen.call(this, method, url, ...rest);
     };
+
+    XMLHttpRequest.prototype.send = function (...args: any[]) {
+      this.addEventListener("loadend", function () {
+        try {
+          const status = (this as any).status as number;
+          if (status !== 402 && status !== 403) return;
+
+          const rawUrl = (this as any).__billing_guard_url as string | undefined;
+          if (!rawUrl) return;
+
+          const u = new URL(rawUrl, window.location.origin);
+          if (u.origin !== window.location.origin) return;
+          if (!u.pathname.startsWith("/api/")) return;
+
+          redirectToBilling("/admin/billing");
+        } catch {}
+      });
+
+      return OrigSend.apply(this, args as any);
+    };
+
+    return () => {};
   }, []);
 
   return null;
