@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { renderCertificatePdf } from "@/lib/pdfCertificate";
+import { checkAdminFeature, billingDenyResponse } from "@/lib/billing/adminFeatureGate";
 
 export async function GET(req: Request) {
   // @holy-guard:pdf_one

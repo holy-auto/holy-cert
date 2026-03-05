@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import JSZip from "jszip";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { renderCertificatePdf } from "@/lib/pdfCertificate";
+import { checkAdminFeature, billingDenyResponse } from "@/lib/billing/adminFeatureGate";
 
 export async function GET(req: Request) {
   // @holy-guard:pdf_zip_selected

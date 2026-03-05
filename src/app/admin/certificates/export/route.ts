@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { checkAdminFeature, billingDenyResponse } from "@/lib/billing/adminFeatureGate";
 
 function csvEscape(v: any) {
   const s = (v ?? "").toString();
