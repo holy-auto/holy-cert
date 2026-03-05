@@ -62,13 +62,13 @@ function WrapDefaultPageReturn([string]$content, [string]$featureKey) {
     }
     if ($inT) {
       if ($ch -eq "\") { $esc = $true; continue }
-      if ($ch -eq "`") { $inT = $false; continue }
+      if ($ch -eq [char]96) { $inT = $false; continue }
       continue
     }
 
     if ($ch -eq [char]39) { $inS = $true; continue }
     if ($ch -eq [char]34) { $inD = $true; continue }
-    if ($ch -eq "`") { $inT = $true; continue }
+    if ($ch -eq [char]96) { $inT = $true; continue }
 
     if ($ch -eq "(") { $depth++; continue }
     if ($ch -eq ")") {
@@ -191,7 +191,7 @@ export default function AdminFeatureGuard({ feature, children }: { feature: Feat
 
   const nextUrl = useMemo(() => {
     const qs = sp?.toString();
-    return pathname + (qs ? \`?\${qs}\` : "");
+    return pathname + (qs ? `?\${qs}` : "");
   }, [pathname, sp]);
 
   const isActive = bs.data?.is_active ?? true;
@@ -202,7 +202,7 @@ export default function AdminFeatureGuard({ feature, children }: { feature: Feat
 
   const title = !isActive
     ? "支払いが停止中のため、この画面の操作は無効です。"
-    : \`現在のプラン（\${planTier}）ではこの機能は利用できません。\`;
+    : `現在のプラン（\${planTier}）ではこの機能は利用できません。`;
 
   const cta = !isActive ? "支払いを再開" : "プランをアップグレード";
 
@@ -211,7 +211,7 @@ export default function AdminFeatureGuard({ feature, children }: { feature: Feat
       <div className="rounded border bg-yellow-50 p-3 text-sm">
         <div className="font-semibold">{title}</div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Link className="rounded border bg-white px-3 py-2" href={\`/admin/billing?next=\``${encodeURIComponent(nextUrl)}\`}>
+          <Link className="rounded border bg-white px-3 py-2" href={`/admin/billing?next=${encodeURIComponent(nextUrl)}`}>
             {cta}（/admin/billing）
           </Link>
           <span className="text-xs opacity-70">plan: {planTier} / active: {String(isActive)}</span>
@@ -261,6 +261,7 @@ if ($cc -match 'const\s+canPdfOne\s*=' -and $cc -notmatch '"pdf_one"') {
 WriteUtf8 $ccPath $cc
 
 "OK: patched. backup=" + $backupDir
+
 
 
 
