@@ -42,12 +42,12 @@ export default function AdminRouteGuard({ children }: { children: ReactNode }) {
 
   const nextUrl = useMemo(() => {
     const qs = sp?.toString();
-    return pathname + (qs ? \?\\ : "");
+    return qs ? (pathname + "?" + qs) : pathname;
   }, [pathname, sp]);
 
   const title = !isActive
     ? "支払いが停止中のため、この画面の操作は無効です。"
-    : \現在のプラン（\）では「\」は利用できません。\;
+    : "現在のプラン（" + planTier + "）では「" + featureLabel(feature) + "」は利用できません。";
 
   const cta = !isActive ? "支払いを再開" : "プランをアップグレード";
 
@@ -56,7 +56,7 @@ export default function AdminRouteGuard({ children }: { children: ReactNode }) {
       <div className="rounded border bg-yellow-50 p-3 text-sm">
         <div className="font-semibold">{title}</div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Link className="rounded border bg-white px-3 py-2" href={\/admin/billing?next=\\}>
+          <Link className="rounded border bg-white px-3 py-2" href={"/admin/billing?next=" + encodeURIComponent(nextUrl)}>
             {cta}（/admin/billing）
           </Link>
           <span className="text-xs opacity-70">plan: {planTier} / active: {String(isActive)}</span>
