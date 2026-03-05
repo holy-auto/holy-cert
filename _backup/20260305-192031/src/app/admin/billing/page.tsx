@@ -43,7 +43,6 @@ function daysLeft(unix?: number | null) {
   const ms = unix * 1000 - Date.now();
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 }
-
 export default function BillingPage() {
   const supabase = useMemo(() => createClient(), []);
   const [status, setStatus] = useState<string | null>(null);
@@ -71,9 +70,6 @@ export default function BillingPage() {
       setFromPortal(qs.get("from") === "portal");
     } catch {
       setStatus(null);
-      setReason(null);
-      setAction(null);
-      setRet(null);
       setFromPortal(false);
     }
   }, []);
@@ -106,8 +102,8 @@ export default function BillingPage() {
       setTenant(j.tenant as Tenant);
       setSub((j.subscription ?? null) as SubInfo);
     } finally {
-      busyRef.current = false;
-    }
+    busyRef.current = false;
+  }
   }
 
   useEffect(() => {
@@ -127,12 +123,12 @@ export default function BillingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
-  // ポータル復帰後リトライ
+  // ✅ A: ポータルから戻った後に“勝手に更新”
   useEffect(() => {
     if (!fromPortal) return;
 
     const timers: any[] = [];
-    const delays = [0, 1000, 3000, 7000];
+    const delays = [0, 1000, 3000, 7000]; // webhook反映の遅延吸収
     for (const d of delays) {
       timers.push(
         setTimeout(() => {
@@ -141,6 +137,7 @@ export default function BillingPage() {
       );
     }
 
+    // URLを綺麗に（from=portal を消す）※表示は維持
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete("from");
@@ -152,7 +149,7 @@ export default function BillingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromPortal]);
 
-  // フォーカス復帰でも更新
+  // ✅ タブ復帰/フォーカス復帰でも更新
   useEffect(() => {
     const onFocus = () => fetchBillingState().catch((e: any) => setErr(e?.message ?? String(e)));
     const onVis = () => {
@@ -179,6 +176,7 @@ export default function BillingPage() {
         return;
       }
 
+      // return_url に from=portal&r= を付与（戻った時に自動更新トリガ）
       const u = new URL(window.location.href);
       u.searchParams.set("from", "portal");
       u.searchParams.set("r", String(Date.now()));
@@ -204,7 +202,7 @@ export default function BillingPage() {
     }
   }
 
-  async function resumeCheckout() {
+    async function resumeCheckout() {
     setResumeBusy(true);
     setErr(null);
 
@@ -236,8 +234,9 @@ export default function BillingPage() {
       setResumeBusy(false);
     }
   }
+const activeLabel =
+    tenant?.is_active === true ? "有効" : tenant?.is_active === false ? "停止" : "-";
 
-  const activeLabel = tenant?.is_active === true ? "有効" : tenant?.is_active === false ? "停止" : "-";
   const subErr = sub && "error" in sub ? sub.error : null;
   const subOk = sub && !("error" in sub) ? sub : null;
 
@@ -268,10 +267,7 @@ export default function BillingPage() {
           )}
           {ret && (
             <div className="mt-2 opacity-80">
-              元の画面:{" "}
-              <a className="underline" href={ret}>
-                戻る
-              </a>
+              元の画面: <a className="underline" href={ret}>戻る</a>
             </div>
           )}
         </div>
@@ -296,8 +292,7 @@ export default function BillingPage() {
           </div>
           <div>
             プラン: <b>{tenant.plan_tier ?? "-"}</b>
-          </div>
-          <div>
+          </div>          <div>
             決済: <b>{tenant.stripe_subscription_id ? "連携済み" : "未連携"}</b>
           </div>
 
@@ -313,9 +308,7 @@ export default function BillingPage() {
                 </div>
               </div>
             </details>
-          )}
-
-          <div className="pt-2">
+          )}<div className="pt-2">
             <div className="font-semibold">有効期限・次回請求</div>
             {subErr && <div className="opacity-80">Stripe期限の取得に失敗: {subErr}</div>}
             {subOk && (
@@ -327,11 +320,7 @@ export default function BillingPage() {
                   期間開始: <b>{fmtUnix(subOk.current_period_start)}</b>
                 </div>
                 <div>
-                  次回請求日（有効期限）: <b>{fmtUnix(subOk.current_period_end)}</b>
-                  {(() => {
-                    const d = daysLeft(subOk.current_period_end);
-                    return d !== null ? <span className="ml-2 opacity-80">（あと{d}日）</span> : null;
-                  })()}
+                  次回請求日（有効期限）: <b>{fmtUnix(subOk.current_period_end)}</b>{(() => { const d = daysLeft(subOk.current_period_end); return d !== null ? <span className="ml-2 opacity-80">（あと{d}日）</span> : null; })()}
                 </div>
                 {subOk.cancel_at_period_end && (
                   <div>
@@ -349,13 +338,12 @@ export default function BillingPage() {
           </div>
 
           {tenant.is_active === false && (
-            <div className="rounded border p-3 text-sm">
-              <div className="font-semibold">支払いが停止しています</div>
-              <div className="mt-1 opacity-80">この状態では機能が制限されます。下の「支払いを再開」で再決済してください。</div>
-            </div>
-          )}
-
-          <div className="pt-3 flex gap-2 flex-wrap">
+  <div className="rounded border p-3 text-sm">
+    <div className="font-semibold">支払いが停止しています</div>
+    <div className="mt-1 opacity-80">この状態では機能が制限されます。下の「支払いを再開」で再決済してください。</div>
+  </div>
+)}
+<div className="pt-3 flex gap-2">
             <button className="rounded border px-3 py-2" onClick={openPortal} disabled={portalBusy}>
               {portalBusy ? "Opening…" : "請求ポータル（プラン変更）"}
             </button>
@@ -364,16 +352,25 @@ export default function BillingPage() {
               <button className="rounded border px-3 py-2" onClick={resumeCheckout} disabled={resumeBusy}>
                 {resumeBusy ? "Redirecting…" : "支払いを再開"}
               </button>
-            )}
-
-            <Link className="rounded border px-3 py-2" href="/admin">
+            )}<Link className="rounded border px-3 py-2" href="/admin">
               管理画面に戻る
             </Link>
           </div>
 
-          <div className="pt-2 text-xs opacity-70">※ ポータル復帰時は自動で数回リトライして最新状態に同期します。</div>
+          <div className="pt-2 text-xs opacity-70">
+            ※ ポータル復帰時は自動で数回リトライして最新状態に同期します。
+          </div>
         </div>
       )}
     </main>
   );
 }
+
+
+
+
+
+
+
+
+

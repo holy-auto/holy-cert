@@ -1,8 +1,7 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import CertificatesTableClient from "./CertificatesTableClient";
-import { canUseFeature } from "@/lib/billing/planFeatures";
 
 type SearchParams = { q?: string };
 
@@ -20,11 +19,16 @@ async function getMyTenantId(supabase: any) {
   return data.tenant_id as string;
 }
 
-export default async function Page({ searchParams }: { searchParams: Promise<SearchParams> }) {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
 
   const supabase = await createSupabaseServerClient();
+
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login?next=/admin/certificates");
 
@@ -39,11 +43,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       </main>
     );
   }
-
-  const { data: t } = await supabase.from("tenants").select("plan_tier,is_active").eq("id", tenantId).single();
-  const planTier = String(t?.plan_tier ?? "pro");
-  const isActive = !!t?.is_active;
-  const canIssue = isActive && canUseFeature(planTier, "issue_certificate");
 
   let query = supabase
     .from("certificates")
@@ -64,19 +63,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     redirect("/login");
   }
 
-  const linkCls = (enabled: boolean) => "text-sm underline " + (enabled ? "" : "pointer-events-none opacity-40");
-
   return (
     <main className="p-6 space-y-4">
-      {!isActive ? (
-        <div className="border rounded p-3 text-sm bg-amber-50 text-amber-900">
-          お支払い停止中のため、一部機能（発行/出力）が制限されています。{" "}
-          <Link className="underline" href="/admin/billing">
-            課金ページへ
-          </Link>
-        </div>
-      ) : null}
-
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">管理：証明書一覧</h1>
@@ -87,19 +75,19 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
 
         <div className="flex gap-3 items-center flex-wrap">
           <form className="flex gap-2" action="/admin/certificates" method="get">
-            <input name="q" defaultValue={q} placeholder="検索（ID / 名前）" className="border rounded px-3 py-2 text-sm w-64" />
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="検索（ID / 名前）"
+              className="border rounded px-3 py-2 text-sm w-64"
+            />
             <button className="border rounded px-3 py-2 text-sm">検索</button>
             <Link className="text-sm underline self-center" href="/admin/certificates">
               クリア
             </Link>
           </form>
 
-          <Link
-            className={linkCls(canIssue)}
-            href="/admin/certificates/new"
-            aria-disabled={!canIssue}
-            title={!canIssue ? "課金状態/プランにより利用不可" : ""}
-          >
+          <Link className="text-sm underline" href="/admin/certificates/new">
             新規発行
           </Link>
 

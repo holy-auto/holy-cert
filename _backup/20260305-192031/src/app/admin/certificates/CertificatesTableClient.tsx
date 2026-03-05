@@ -1,9 +1,7 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useAdminBillingStatus } from "@/lib/billing/useAdminBillingStatus";
-import { canUseFeature } from "@/lib/billing/planFeatures";
 
 type Row = {
   public_id: string;
@@ -14,10 +12,6 @@ type Row = {
 
 export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: string }) {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
-
-  const bs = useAdminBillingStatus();
-  const isActive = bs.data?.is_active ?? true; // 取得失敗時は従来どおり（APIが最後に止める）
-  const planTier = bs.data?.plan_tier ?? "pro";
 
   const allIds = useMemo(() => rows.map((r) => r.public_id), [rows]);
   const selectedIds = useMemo(() => allIds.filter((id) => selected[id]), [allIds, selected]);
@@ -45,26 +39,8 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
     return `/admin/certificates/pdf-selected?ids=${ids}`;
   }, [selectedIds]);
 
-  const canCsvSearch = isActive && canUseFeature(planTier, "export_search_csv");
-  const canCsvSelected = isActive && canUseFeature(planTier, "export_selected_csv");
-  const canPdfZip = isActive && canUseFeature(planTier, "pdf_zip_selected");
-  const canCsvOne = isActive && canUseFeature(planTier, "export_one_csv");
-  const canPdfOne = isActive && canUseFeature(planTier, "pdf_one");
-
-  const btnCls = (enabled: boolean) => "border rounded px-3 py-2 text-sm " + (enabled ? "" : "pointer-events-none opacity-40");
-  const linkCls = (enabled: boolean) => "underline " + (enabled ? "" : "pointer-events-none opacity-40");
-
   return (
     <div className="space-y-3">
-      {bs.data && !bs.data.is_active ? (
-        <div className="border rounded p-3 text-sm bg-amber-50 text-amber-900">
-          お支払い停止中のため、出力（CSV/PDF）はご利用いただけません。{" "}
-          <Link className="underline" href="/admin/billing">
-            課金ページへ
-          </Link>
-        </div>
-      ) : null}
-
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-sm text-gray-500">
           選択: <span className="font-mono">{selectedIds.length}</span> 件
@@ -78,15 +54,15 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
             全解除
           </button>
 
-          <Link className={btnCls(selectedIds.length > 0 && canCsvSelected)} href={exportUrl} aria-disabled={!(selectedIds.length > 0 && canCsvSelected)}>
+          <Link className={"border rounded px-3 py-2 text-sm " + (selectedIds.length === 0 ? "pointer-events-none opacity-40" : "")} href={exportUrl}>
             選択CSV
           </Link>
 
-          <Link className={btnCls(selectedIds.length > 0 && canPdfZip)} href={pdfZipUrl} aria-disabled={!(selectedIds.length > 0 && canPdfZip)}>
+          <Link className={"border rounded px-3 py-2 text-sm " + (selectedIds.length === 0 ? "pointer-events-none opacity-40" : "")} href={pdfZipUrl}>
             選択PDF（ZIP）
           </Link>
 
-          <Link className={linkCls(canCsvSearch)} href={`/admin/certificates/export?q=${encodeURIComponent(q)}`} aria-disabled={!canCsvSearch}>
+          <Link className="text-sm underline" href={`/admin/certificates/export?q=${encodeURIComponent(q)}`}>
             CSV（検索結果）
           </Link>
         </div>
@@ -100,9 +76,7 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                 <input
                   type="checkbox"
                   checked={allChecked}
-                  ref={(el) => {
-                    if (el) el.indeterminate = someChecked;
-                  }}
+                  ref={(el) => { if (el) el.indeterminate = someChecked; }}
                   onChange={(e) => toggleAll(e.target.checked)}
                 />
               </th>
@@ -133,15 +107,9 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                   </td>
                   <td className="p-3">
                     <div className="flex gap-3 items-center flex-wrap">
-                      <Link className="underline" href={url} target="_blank">
-                        公開ページ
-                      </Link>
-                      <Link className={linkCls(canCsvOne)} href={`/admin/certificates/export-one?pid=${encodeURIComponent(r.public_id)}`} aria-disabled={!canCsvOne}>
-                        CSV(1件)
-                      </Link>
-                      <Link className={linkCls(canPdfOne)} href={`/admin/certificates/pdf-one?pid=${encodeURIComponent(r.public_id)}`} aria-disabled={!canPdfOne}>
-                        PDF(1件)
-                      </Link>
+                      <Link className="underline" href={url} target="_blank">公開ページ</Link>
+                      <Link className="underline" href={`/admin/certificates/export-one?pid=${encodeURIComponent(r.public_id)}`}>CSV(1件)</Link>
+                      <Link className="underline" href={`/admin/certificates/pdf-one?pid=${encodeURIComponent(r.public_id)}`}>PDF(1件)</Link>
                     </div>
                   </td>
                 </tr>
@@ -150,18 +118,15 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
 
             {rows.length === 0 && (
               <tr>
-                <td className="p-6 text-gray-500" colSpan={6}>
-                  該当なし
-                </td>
+                <td className="p-6 text-gray-500" colSpan={6}>該当なし</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <p className="text-xs text-gray-500">※ 選択PDFはZIPでまとめて落ちます（上限50件）。</p>
-      <p className="text-xs text-gray-400">
-        ※ プラン制限の調整は <span className="font-mono">src/lib/billing/planFeatures.ts</span> で行います。
+      <p className="text-xs text-gray-500">
+        ※ 選択PDFはZIPでまとめて落ちます（上限50件）。
       </p>
     </div>
   );
