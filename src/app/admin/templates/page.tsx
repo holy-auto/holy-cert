@@ -1,10 +1,10 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import { FEATURES } from "@/lib/billing/featureKeys";
+import { FEATURES as BILLING_FEATURES } from "@/lib/billing/planFeatures";
 
 import AdminFeatureGuard from "@/app/admin/AdminFeatureGuard";
-import { FEATURES } from "@/lib/billing/featureKeys";
+import { FEATURES as BILLING_FEATURES } from "@/lib/billing/planFeatures";
 const DEFAULT_SCHEMA = {
   version: 1,
   sections: [
