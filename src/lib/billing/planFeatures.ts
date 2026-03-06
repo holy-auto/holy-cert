@@ -1,6 +1,6 @@
 export type PlanTier = "mini" | "standard" | "pro";
 
-export type FeatureKey = FeatureId;
+export type FeatureKey = string;
 
 /**
  * - 不明な plan_tier は "pro" 扱い（UIは緩く→実際の制限はAPI/402で止める）
