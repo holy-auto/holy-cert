@@ -64,3 +64,10 @@ export function featureLabel(feature: FeatureKey): string {
     default: return feature;
   }
 }
+
+/** compile-time exhaustiveness check (auto) */
+type __NoExtraKeys<T> = Exclude<keyof T, FeatureKey> extends never ? T : never;
+const __assertExactFeatureKeys = <T extends Record<FeatureKey, unknown>>(t: __NoExtraKeys<T>) => t;
+
+// MATRIX must include ALL FeatureId keys (no missing / no extra)
+__assertExactFeatureKeys(MATRIX);
