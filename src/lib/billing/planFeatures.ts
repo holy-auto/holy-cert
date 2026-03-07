@@ -1,3 +1,4 @@
+import type { FeatureId } from "@/lib/billing/featureKeys";
 export type PlanTier = "mini" | "standard" | "pro";
 
 export type FeatureKey = string;
