@@ -5,6 +5,8 @@ import { ReactNode, useMemo } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useAdminBillingStatus } from "@/lib/billing/useAdminBillingStatus";
 import { canUseFeature, featureLabel, normalizePlanTier, type FeatureKey } from "@/lib/billing/planFeatures";
+import type { FeatureId } from "@/lib/billing/featureKeys";
+import { FEATURES } from "@/lib/billing/featureKeys";
 
 function requiredFeatureForPath(pathname: string): FeatureKey | null {
   if (pathname.startsWith("/admin/templates")) return "manage_templates";
