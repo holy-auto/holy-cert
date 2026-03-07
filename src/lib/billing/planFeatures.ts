@@ -1,7 +1,7 @@
 ﻿import type { FeatureId } from "@/lib/billing/featureKeys";
 export type PlanTier = "mini" | "standard" | "pro";
 
-export type FeatureKey = string;
+export type FeatureKey = FeatureId;
 
 /**
  * - 不明な plan_tier は "pro" 扱い（UIは緩く→実際の制限はAPI/402で止める）
@@ -71,8 +71,10 @@ type __NoExtraKeys<T> = Exclude<keyof T, FeatureKey> extends never ? T : never;
 const __assertExactFeatureKeys = <T extends Record<FeatureKey, unknown>>(t: __NoExtraKeys<T>) => t;
 
 // MATRIX must include ALL FeatureId keys (no missing / no extra)
-__assertExactFeatureKeys(MATRIX);
-
+// MATRIX rows must include ALL FeatureId keys (no missing / no extra)
+  __assertExactFeatureKeys(MATRIX.mini);
+  __assertExactFeatureKeys(MATRIX.standard);
+  __assertExactFeatureKeys(MATRIX.pro);
 /** compile-time diff (auto): show missing/extra keys as readable TS errors */
 type __MissingFeatureKeys = Exclude<FeatureId, keyof typeof MATRIX>;
 type __ExtraFeatureKeys = Exclude<keyof typeof MATRIX, FeatureId>;
@@ -83,5 +85,5 @@ type __CheckMissingFeatureKeys =
 type __CheckExtraFeatureKeys =
   __ExtraFeatureKeys extends never ? true : ["Extra keys in MATRIX (not in FeatureId)", __ExtraFeatureKeys];
 
-const __checkMissingFeatureKeys: __CheckMissingFeatureKeys = true;
-const __checkExtraFeatureKeys: __CheckExtraFeatureKeys = true;
+const __checkMissingFeatureKeys: __CheckMissingFeatureKeys = true as unknown as __CheckMissingFeatureKeys;
+const __checkExtraFeatureKeys: __CheckExtraFeatureKeys = true as unknown as __CheckExtraFeatureKeys;
