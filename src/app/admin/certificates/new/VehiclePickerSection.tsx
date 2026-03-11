@@ -97,10 +97,10 @@ export default function VehiclePickerSection({
             VEHICLE LINK
           </div>
           <div className="mt-1 text-base font-semibold text-neutral-900">
-            車両を紐づける
+            車両を選択 <span className="text-red-500">*</span>
           </div>
           <p className="mt-0.5 text-xs text-neutral-500">
-            既存車両を選択すると顧客名・車両情報が自動入力されます（任意）
+            既存車両を選択すると顧客名・車両情報が自動入力されます（必須）
           </p>
         </div>
 
