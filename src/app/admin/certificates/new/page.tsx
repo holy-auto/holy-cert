@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { makePublicId } from "@/lib/publicId";
 import { checkAdminFeature } from "@/lib/billing/adminFeatureGate";
+import VehiclePickerSection from "./VehiclePickerSection";
 
 type FieldType = "text" | "textarea" | "number" | "date" | "select" | "multiselect" | "checkbox";
 
@@ -23,10 +24,11 @@ type TemplateSchema = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ tid?: string }>;
+  searchParams: Promise<{ tid?: string; vehicle_id?: string }>;
 }) {
   const sp = await searchParams;
   const selectedTemplateId = sp.tid ?? "";
+  const defaultVehicleId = sp.vehicle_id ?? "";
 
   const supabase = await createSupabaseServerClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -73,6 +75,14 @@ export default async function Page({
   const fallbackId = list[0]?.id ?? "";
   const tid = selectedTemplateId || fallbackId;
 
+  const { data: vehiclesData } = await supabase
+    .from("vehicles")
+    .select("id,maker,model,year,plate_display,customer_name")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  const vehicles = vehiclesData ?? [];
+
   const selected = list.find((t) => t.id === tid) ?? list[0];
   const schema = (selected?.schema_json as unknown as TemplateSchema) ?? null;
 
@@ -112,6 +122,7 @@ export default async function Page({
       schema_snapshot = tpl?.schema_json ?? null;
     }
 
+    const vehicle_id = String(formData.get("vehicle_id") || "").trim() || null;
     const customer_name = String(formData.get("customer_name") || "").trim();
     const model = String(formData.get("model") || "").trim();
     const plate = String(formData.get("plate") || "").trim();
@@ -145,6 +156,7 @@ export default async function Page({
       public_id,
       status: "active",
       customer_name,
+      vehicle_id: vehicle_id ?? undefined,
       vehicle_info_json: { model, plate },
       content_free_text,
       content_preset_json: { template_id, template_name, schema_snapshot, values },
@@ -156,6 +168,19 @@ export default async function Page({
     });
 
     if (error) redirect(`/admin/certificates/new?tid=${encodeURIComponent(template_id)}&e=2`);
+
+    // If a vehicle was linked, record a history entry
+    if (vehicle_id) {
+      await supabase.from("vehicle_histories").insert({
+        tenant_id: tenantId,
+        vehicle_id,
+        type: "certificate_issued",
+        title: "施工証明書を発行",
+        description: `Public ID: ${public_id}`,
+        performed_at: new Date().toISOString(),
+        certificate_id: null, // ID unknown at this point (no returning clause); timeline will still show
+      });
+    }
 
     redirect(`/admin/certificates/new/success?pid=${encodeURIComponent(public_id)}`);
   }
@@ -244,36 +269,8 @@ export default async function Page({
           <input type="hidden" name="template_id" value={selected?.id ?? ""} />
           <input type="hidden" name="template_name" value={selected?.name ?? ""} />
 
-          {/* Basic info */}
-          <div>
-            <div className="mb-4">
-              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">BASIC INFO</div>
-              <div className="mt-1 text-base font-semibold text-neutral-900">基本情報</div>
-            </div>
-
-            <div className="space-y-4">
-              <label className={labelCls}>
-                <span className={labelTextCls}>お客様名 <span className="text-red-500">*</span></span>
-                <input
-                  name="customer_name"
-                  className={inputCls}
-                  placeholder="山田 太郎"
-                  required
-                />
-              </label>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className={labelCls}>
-                  <span className={labelTextCls}>車種</span>
-                  <input name="model" className={inputCls} placeholder="Prius" />
-                </label>
-                <label className={labelCls}>
-                  <span className={labelTextCls}>ナンバー</span>
-                  <input name="plate" className={inputCls} placeholder="水戸 300 あ 12-34" />
-                </label>
-              </div>
-            </div>
-          </div>
+          {/* Vehicle picker + basic info (client component) */}
+          <VehiclePickerSection vehicles={vehicles} defaultVehicleId={defaultVehicleId || undefined} />
 
           {/* Template fields */}
           {schema ? (
