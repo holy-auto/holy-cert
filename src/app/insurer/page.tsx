@@ -20,7 +20,7 @@ export default function InsurerHomePage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [billingBusy, setBillingBusy] = useState(false);
+  const billingBusy = false;
 
   useEffect(() => {
     (async () => {
@@ -55,19 +55,8 @@ export default function InsurerHomePage() {
   };
 
   const startCheckout = async () => {
-    setBillingBusy(true);
-    setErr(null);
-    try {
-      const res = await fetch("/api/insurer/checkout", { method: "POST" });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j?.error ?? "checkout_failed");
-      if (!j?.url) throw new Error("checkout_url_missing");
-      window.location.href = j.url;
-    } catch (e: any) {
-      setErr(e?.message ?? "checkout_failed");
-    } finally {
-      setBillingBusy(false);
-    }
+    // 保険会社向け Stripe checkout は未実装（insurer_id と Stripe の紐づけ設計が必要）
+    setErr("サブスク契約機能は現在準備中です。");
   };
 
   if (!ready) return null;
