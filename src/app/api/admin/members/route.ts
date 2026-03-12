@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({} as any));
     const email = (body?.email ?? "").trim().toLowerCase();
-    const role = (body?.role ?? "member").trim();
+    const role = (body?.role ?? "").trim() || null; // null → DB default
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "invalid_email" }, { status: 400 });
@@ -153,14 +153,16 @@ export async function POST(req: NextRequest) {
     }
 
     // tenant_memberships に追加
+    const row: Record<string, unknown> = {
+      id: crypto.randomUUID(),
+      tenant_id: caller.tenantId,
+      user_id: userId,
+    };
+    if (role) row.role = role; // null の場合は DB デフォルトに任せる
+
     const { error: insertErr } = await admin
       .from("tenant_memberships")
-      .insert({
-        id: crypto.randomUUID(),
-        tenant_id: caller.tenantId,
-        user_id: userId,
-        role,
-      });
+      .insert(row);
 
     if (insertErr) {
       console.error("member insert failed:", insertErr);
