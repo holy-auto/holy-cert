@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
 const NAV_ITEMS = [
   {
@@ -72,58 +73,97 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  // ページ遷移で閉じる
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col bg-surface border-r border-border-default">
-      {/* Brand */}
-      <div className="flex h-16 items-center gap-3 px-5 border-b border-border-subtle">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-base font-bold text-[#09090b]">
-          C
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl bg-surface border border-border-default lg:hidden"
+        aria-label="メニュー"
+      >
+        {open ? (
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+          </svg>
+        )}
+      </button>
+
+      {/* Overlay (mobile) */}
+      {open && (
+        <div
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed left-0 top-0 z-40 flex h-screen w-60 flex-col bg-surface border-r border-border-default transition-transform duration-200 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0`}
+      >
+        {/* Brand */}
+        <div className="flex h-16 items-center gap-3 px-5 border-b border-border-subtle">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-base font-bold text-[#09090b]">
+            C
+          </div>
+          <span className="text-sm font-bold tracking-wider text-primary">CARTRUST</span>
         </div>
-        <span className="text-sm font-bold tracking-wider text-primary">CARTRUST</span>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <ul className="space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const isActive = item.exact
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <ul className="space-y-1">
+            {NAV_ITEMS.map((item) => {
+              const isActive = item.exact
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
 
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-accent-dim text-accent border-l-2 border-accent"
-                      : "text-secondary hover:bg-surface-hover hover:text-primary"
-                  }`}
-                >
-                  <span className={isActive ? "text-accent" : "text-muted"}>{item.icon}</span>
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-accent-dim text-accent border-l-2 border-accent"
+                        : "text-secondary hover:bg-surface-hover hover:text-primary"
+                    }`}
+                  >
+                    <span className={isActive ? "text-accent" : "text-muted"}>{item.icon}</span>
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
 
-      {/* Footer */}
-      <div className="border-t border-border-subtle px-3 py-4">
-        <form action="/api/auth/logout" method="POST">
-          <button
-            type="submit"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface-hover hover:text-primary"
-          >
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-            </svg>
-            ログアウト
-          </button>
-        </form>
-      </div>
-    </aside>
+        {/* Footer */}
+        <div className="border-t border-border-subtle px-3 py-4">
+          <form action="/api/auth/logout" method="POST">
+            <button
+              type="submit"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface-hover hover:text-primary"
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+              </svg>
+              ログアウト
+            </button>
+          </form>
+        </div>
+      </aside>
+    </>
   );
 }
