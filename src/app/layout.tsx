@@ -16,20 +16,11 @@ export const metadata: Metadata = {
     title: `${siteConfig.siteName} — 施工証明をデジタルで`,
     description: siteConfig.siteDescription,
     url: siteConfig.siteUrl,
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: `${siteConfig.siteName} — 施工証明をデジタルで`,
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: `${siteConfig.siteName} — 施工証明をデジタルで`,
     description: siteConfig.siteDescription,
-    images: ["/og-image.png"],
   },
   robots: {
     index: true,

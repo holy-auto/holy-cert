@@ -99,8 +99,12 @@ export default function ContactPage() {
     setStatus("sending");
 
     try {
-      // TODO: API ルートへの POST に差し替え
-      await new Promise((r) => setTimeout(r, 800));
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error("server error");
       setStatus("done");
     } catch {
       setStatus("error");
