@@ -6,6 +6,7 @@ import {
   CERTIFICATE_IMAGE_BUCKET,
   formatCertificateImageBytes,
 } from "@/lib/certificateImages";
+import { logCertificateAction } from "@/lib/audit/certificateLog";
 
 type PageProps = {
   params: Promise<{ public_id: string }>;
@@ -69,6 +70,16 @@ export default async function Page({ params }: PageProps) {
     .single();
 
   if (error || !row?.public_id) notFound();
+
+  // 閲覧ログ記録
+  logCertificateAction({
+    type: "certificate_viewed",
+    tenantId,
+    publicId: row.public_id as string,
+    certificateId: row.id as string,
+    vehicleId: row.vehicle_id as string | null,
+    userId: userRes.user.id,
+  });
 
   const isVoid = String(row.status ?? "").toLowerCase() === "void";
   const info = asObj(row.vehicle_info_json);
