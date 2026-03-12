@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 type Member = {
   user_id: string;
   email: string | null;
+  display_name: string | null;
   role: string;
   created_at: string | null;
   is_self: boolean;
@@ -34,6 +35,7 @@ export default function MembersClient() {
   const [err, setErr] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [adding, setAdding] = useState(false);
   const [addMsg, setAddMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -67,13 +69,14 @@ export default function MembersClient() {
       const res = await fetch("/api/admin/members", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), display_name: displayName.trim() || undefined }),
       });
       const j = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(j?.message ?? j?.error ?? `HTTP ${res.status}`);
       }
       setEmail("");
+      setDisplayName("");
       setAddMsg({ text: `${j.email} を追加しました`, ok: true });
       await fetchMembers();
     } catch (e: any) {
@@ -179,16 +182,31 @@ export default function MembersClient() {
                 <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">ADD MEMBER</div>
                 <div className="mt-1 text-base font-semibold text-neutral-900">メンバーを追加</div>
               </div>
-              <div className="flex gap-3 items-center flex-wrap">
-                <input
-                  type="email"
-                  placeholder="メールアドレス"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
-                  disabled={!data.can_add || adding}
-                  className="rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm flex-1 min-w-[220px] placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none disabled:opacity-50"
-                />
+              <div className="flex gap-3 items-end flex-wrap">
+                <div className="flex-1 min-w-[220px] space-y-1">
+                  <label className="text-xs text-neutral-500">メールアドレス <span className="text-red-400">*</span></label>
+                  <input
+                    type="email"
+                    placeholder="example@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                    disabled={!data.can_add || adding}
+                    className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none disabled:opacity-50"
+                  />
+                </div>
+                <div className="min-w-[160px] space-y-1">
+                  <label className="text-xs text-neutral-500">表示名</label>
+                  <input
+                    type="text"
+                    placeholder="山田 太郎"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+                    disabled={!data.can_add || adding}
+                    className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm placeholder:text-neutral-400 focus:border-neutral-400 focus:outline-none disabled:opacity-50"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={handleAdd}
@@ -198,6 +216,7 @@ export default function MembersClient() {
                   {adding ? "追加中…" : "追加"}
                 </button>
               </div>
+              <p className="text-xs text-neutral-400">招待メールが送信されます。ユーザーがメール内のリンクからパスワードを設定します。</p>
               {addMsg && (
                 <div className={`mt-3 text-sm ${addMsg.ok ? "text-emerald-700" : "text-red-700"}`}>
                   {addMsg.text}
@@ -220,6 +239,7 @@ export default function MembersClient() {
                 <table className="min-w-full text-sm">
                   <thead className="bg-neutral-50">
                     <tr>
+                      <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-neutral-500">名前</th>
                       <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-neutral-500">メールアドレス</th>
                       <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-neutral-500">ロール</th>
                       <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-neutral-500">追加日</th>
@@ -230,12 +250,15 @@ export default function MembersClient() {
                     {data.members.map((m) => (
                       <tr key={m.user_id} className="hover:bg-neutral-50/60">
                         <td className="px-5 py-3.5">
-                          <span className="font-medium text-neutral-900">{m.email ?? "-"}</span>
+                          <span className="font-medium text-neutral-900">{m.display_name || "-"}</span>
                           {m.is_self && (
                             <span className="ml-2 inline-flex rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-500">
                               自分
                             </span>
                           )}
+                        </td>
+                        <td className="px-5 py-3.5 text-neutral-600">
+                          {m.email ?? "-"}
                         </td>
                         <td className="px-5 py-3.5">
                           <span className="inline-flex rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-0.5 text-xs font-medium text-neutral-600">
@@ -263,7 +286,7 @@ export default function MembersClient() {
                     ))}
                     {data.members.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-5 py-8 text-center text-neutral-400">
+                        <td colSpan={5} className="px-5 py-8 text-center text-neutral-400">
                           メンバーがいません
                         </td>
                       </tr>

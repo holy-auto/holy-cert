@@ -62,9 +62,11 @@ export async function GET() {
     const enriched = await Promise.all(
       (members ?? []).map(async (m) => {
         const { data } = await admin.auth.admin.getUserById(m.user_id);
+        const meta = data?.user?.user_metadata as Record<string, unknown> | undefined;
         return {
           user_id: m.user_id,
           email: data?.user?.email ?? null,
+          display_name: (meta?.display_name as string | undefined) ?? null,
           role: m.role ?? "member",
           created_at: m.created_at ?? null,
           is_self: m.user_id === caller.userId,
@@ -96,6 +98,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({} as any));
     const email = (body?.email ?? "").trim().toLowerCase();
+    const displayName = (body?.display_name ?? "").trim() || null;
     const role = (body?.role ?? "").trim() || null; // null → DB default
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -129,11 +132,21 @@ export async function POST(req: NextRequest) {
 
     let userId: string;
 
+    const userMeta = displayName ? { display_name: displayName } : undefined;
+
     if (existingUser) {
       userId = existingUser.id;
+      // 既存ユーザーに display_name をセット（未設定の場合のみ）
+      if (displayName && !existingUser.user_metadata?.display_name) {
+        await admin.auth.admin.updateUserById(userId, {
+          user_metadata: { ...existingUser.user_metadata, display_name: displayName },
+        });
+      }
     } else {
       // Supabase Auth に招待ユーザーを作成
-      const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email);
+      const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+        data: userMeta ?? {},
+      });
       if (inviteErr || !invited?.user) {
         return NextResponse.json({ error: "invite_failed", detail: inviteErr?.message ?? "unknown" }, { status: 500 });
       }
