@@ -1,23 +1,35 @@
-import type { ReactNode } from "react";
-import { MarketingHeader } from "@/components/marketing/layout/MarketingHeader";
-import { MarketingFooter } from "@/components/marketing/layout/MarketingFooter";
+import { Noto_Sans_JP } from "next/font/google";
+import { Header } from "@/components/marketing/Header";
+import { Footer } from "@/components/marketing/Footer";
 
-/**
- * マーケティングサイト共通レイアウト
- *
- * このレイアウトは (marketing) ルートグループ配下のページにのみ適用される。
- * /admin, /insurer, /customer などの既存アプリルートには影響しない。
- */
+const notoSansJP = Noto_Sans_JP({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-noto",
+  display: "swap",
+});
+
+export const metadata = {
+  title: {
+    default: "CARTRUST | WEB施工証明書SaaS",
+    template: "%s | CARTRUST",
+  },
+  description:
+    "施工証明をデジタルで。CARTRUSTは、施工店と保険会社をつなぐWEB施工証明書プラットフォームです。",
+};
+
 export default function MarketingLayout({
   children,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <MarketingHeader />
-      <main className="flex-1">{children}</main>
-      <MarketingFooter />
+    <div
+      className={`${notoSansJP.variable} font-[family-name:var(--font-noto)] text-body bg-surface`}
+    >
+      <Header />
+      <main>{children}</main>
+      <Footer />
     </div>
   );
 }
