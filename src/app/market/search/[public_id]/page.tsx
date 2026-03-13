@@ -5,6 +5,8 @@ import MarketNav from "@/app/market/_components/MarketNav";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import InquiryFormClient from "./_InquiryFormClient";
+import ImageSlider from "./_ImageSlider";
+import CopyLinkButton from "./_CopyLinkButton";
 
 type Params = { params: Promise<{ public_id: string }> };
 
@@ -39,8 +41,6 @@ export default async function ListingDetailPage({ params }: Params) {
     .eq("from_dealer_id", session.dealer.id)
     .single();
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-
   return (
     <>
       <MarketNav dealer={session.dealer} />
@@ -55,39 +55,11 @@ export default async function ListingDetailPage({ params }: Params) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 左: 画像 + 詳細 */}
           <div className="lg:col-span-2 space-y-4">
-            {/* メイン画像 */}
-            <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden">
-              {listing.images?.[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`${supabaseUrl}/storage/v1/object/public/assets/${listing.images[0].storage_path}`}
-                  alt={`${listing.make} ${listing.model}`}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-300">
-                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              )}
-            </div>
-
-            {/* サムネイル */}
-            {listing.images && listing.images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto">
-                {listing.images.slice(1).map((img) => (
-                  <div key={img.id} className="w-20 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`${supabaseUrl}/storage/v1/object/public/assets/${img.storage_path}`}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* 画像スライダー */}
+            <ImageSlider
+              images={listing.images ?? []}
+              alt={`${listing.make} ${listing.model}`}
+            />
 
             {/* 車両情報テーブル */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -167,6 +139,7 @@ export default async function ListingDetailPage({ params }: Params) {
                 >
                   編集する
                 </Link>
+                <CopyLinkButton publicId={listing.public_id} />
               </div>
             ) : (
               <InquiryFormClient

@@ -15,6 +15,7 @@ const navItems = [
   { href: "/market/inventory", label: "自社在庫" },
   { href: "/market/inquiries", label: "問い合わせ" },
   { href: "/market/deals", label: "商談" },
+  { href: "/market/profile", label: "プロフィール" },
 ];
 
 export default function MarketNav({ dealer }: Props) {

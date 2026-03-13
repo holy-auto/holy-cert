@@ -4,6 +4,7 @@ import MarketNav from "@/app/market/_components/MarketNav";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import DealStatusClient from "./_DealStatusClient";
+import DealNotesClient from "./_DealNotesClient";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -81,12 +82,7 @@ export default async function DealDetailPage({ params }: Params) {
             </div>
           )}
 
-          {deal.notes && (
-            <div className="border-t border-gray-100 pt-4 mt-4">
-              <p className="text-xs text-gray-400 mb-1">メモ</p>
-              <p className="text-sm text-gray-700 whitespace-pre-line">{deal.notes}</p>
-            </div>
-          )}
+          <DealNotesClient dealId={id} initialNotes={deal.notes ?? null} />
         </div>
 
         {/* ステータス変更 */}
@@ -97,6 +93,9 @@ export default async function DealDetailPage({ params }: Params) {
             isSeller={isSeller}
           />
         )}
+
+        {/* 関連する問い合わせメッセージ（価格交渉履歴） */}
+        {deal.inquiry_id && <NegotiationHistory dealId={id} />}
       </main>
     </>
   );
@@ -114,5 +113,46 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`text-sm px-3 py-1 rounded-full font-medium ${s.className}`}>
       {s.label}
     </span>
+  );
+}
+
+async function NegotiationHistory({ dealId }: { dealId: string }) {
+  const admin = createAdminClient();
+  const { data: deal } = await admin
+    .from("deals")
+    .select("inquiry_id")
+    .eq("id", dealId)
+    .single();
+
+  if (!deal?.inquiry_id) return null;
+
+  const { data: messages } = await admin
+    .from("inquiry_messages")
+    .select(`
+      *,
+      sender:dealers!inquiry_messages_sender_dealer_id_fkey(id, company_name)
+    `)
+    .eq("inquiry_id", deal.inquiry_id)
+    .order("created_at", { ascending: true });
+
+  if (!messages?.length) return null;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 mt-4">
+      <h2 className="font-semibold text-gray-900 mb-3">交渉履歴</h2>
+      <div className="space-y-3 max-h-80 overflow-y-auto">
+        {messages.map((msg: any) => (
+          <div key={msg.id} className="text-sm">
+            <div className="flex items-baseline gap-2 mb-0.5">
+              <span className="font-medium text-gray-700">{msg.sender?.company_name ?? "?"}</span>
+              <span className="text-xs text-gray-400">
+                {new Date(msg.created_at).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </span>
+            </div>
+            <p className="text-gray-600 whitespace-pre-line pl-0.5">{msg.message}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

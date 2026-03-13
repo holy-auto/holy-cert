@@ -493,3 +493,29 @@ export async function getDealerDeals(dealerId: string): Promise<DealWithDetails[
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as DealWithDetails[];
 }
+
+// ──────────────────────────────────────────
+// Dealer
+// ──────────────────────────────────────────
+
+export async function updateDealer(
+  dealerId: string,
+  input: {
+    company_name?: string;
+    contact_name?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    prefecture?: string | null;
+  }
+): Promise<import("@/types/market").Dealer> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("dealers")
+    .update({ ...input, updated_at: new Date().toISOString() })
+    .eq("id", dealerId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as import("@/types/market").Dealer;
+}
