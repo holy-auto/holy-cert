@@ -105,8 +105,8 @@ export default async function Page({
           <div className="text-xs text-muted">tid: <span className="font-mono">{tpl.id}</span></div>
         </div>
         <div className="flex gap-3 text-sm">
-          <Link className="underline text-cyan-400 hover:text-cyan-300" href="/admin/templates">一覧へ</Link>
-          <Link className="underline text-cyan-400 hover:text-cyan-300" href="/admin/certificates/new">発行</Link>
+          <Link className="underline text-[#0a84ff] hover:text-[#3b9eff]" href="/admin/templates">一覧へ</Link>
+          <Link className="underline text-[#0a84ff] hover:text-[#3b9eff]" href="/admin/certificates/new">発行</Link>
         </div>
       </header>
 

@@ -152,7 +152,7 @@ export default async function Page({ params }: PageProps) {
 
         {isVoid ? (
           <section className="rounded-2xl border border-amber-500/30 bg-[rgba(245,158,11,0.1)] p-4 text-sm text-amber-400">
-            この証明書は void（無効化）状態です。公開 / 出力は停止対象です。
+            この証明書は無効の施工証明書です。公開 / 出力は停止対象です。
           </section>
         ) : null}
 
@@ -164,7 +164,9 @@ export default async function Page({ params }: PageProps) {
 
           <div className="glass-card p-5">
             <div className="text-xs font-semibold tracking-[0.18em] text-muted">STATUS</div>
-            <div className="mt-2 text-sm font-medium text-primary">{row.status || "-"}</div>
+            <div className="mt-2 text-sm font-medium text-primary">
+              {row.status === "active" ? "有効な施工証明書" : row.status === "void" ? "無効の施工証明書" : row.status || "-"}
+            </div>
           </div>
 
           <div className="glass-card p-5">

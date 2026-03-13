@@ -171,8 +171,8 @@ export default async function Page({
           <div className="text-xs text-muted">ロゴ: {tenantLogoPath ? tenantLogoPath : "未設定（/admin/logo）"}</div>
         </div>
         <div className="flex gap-3 items-center">
-          <Link className="underline text-sm text-cyan-400 hover:text-cyan-300" href="/admin/certificates">一覧へ</Link>
-          <Link className="underline text-sm text-cyan-400 hover:text-cyan-300" href="/admin/templates">テンプレ</Link>
+          <Link className="underline text-sm text-[#0a84ff] hover:text-[#3b9eff]" href="/admin/certificates">一覧へ</Link>
+          <Link className="underline text-sm text-[#0a84ff] hover:text-[#3b9eff]" href="/admin/templates">テンプレ</Link>
         </div>
       </header>
 
@@ -236,7 +236,7 @@ export default async function Page({
                     if (f.type === "checkbox") {
                       return (
                         <label key={f.key} className="flex items-center gap-2 text-sm text-primary">
-                          <input type="checkbox" name={name} className="h-4 w-4 accent-cyan-500" />
+                          <input type="checkbox" name={name} className="h-4 w-4 accent-[#0a84ff]" />
                           <span>{f.label}</span>
                         </label>
                       );

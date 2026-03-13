@@ -119,8 +119,8 @@ export default async function Page({
           </p>
         </div>
         <div className="flex gap-3 text-sm">
-          <Link className="underline text-cyan-400 hover:text-cyan-300" href="/admin/certificates/new">発行</Link>
-          <Link className="underline text-cyan-400 hover:text-cyan-300" href="/admin/certificates">証明書一覧</Link>
+          <Link className="underline text-[#0a84ff] hover:text-[#3b9eff]" href="/admin/certificates/new">発行</Link>
+          <Link className="underline text-[#0a84ff] hover:text-[#3b9eff]" href="/admin/certificates">証明書一覧</Link>
         </div>
       </header>
 
@@ -154,7 +154,7 @@ export default async function Page({
                 <td className="p-3 whitespace-nowrap text-primary">{new Date(t.created_at).toLocaleString("ja-JP")}</td>
                 <td className="p-3">
                   <div className="flex gap-3 items-center flex-wrap">
-                    <Link className="underline text-cyan-400 hover:text-cyan-300" href={`/admin/templates/edit?tid=${encodeURIComponent(t.id)}`}>
+                    <Link className="underline text-[#0a84ff] hover:text-[#3b9eff]" href={`/admin/templates/edit?tid=${encodeURIComponent(t.id)}`}>
                       編集
                     </Link>
                     <form action={duplicateTemplate}>

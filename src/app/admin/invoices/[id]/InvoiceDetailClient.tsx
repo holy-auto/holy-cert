@@ -8,6 +8,8 @@ type InvoiceItem = {
   quantity: number;
   unit_price: number;
   amount: number;
+  certificate_id?: string | null;
+  certificate_public_id?: string | null;
 };
 
 type Invoice = {
@@ -168,7 +170,14 @@ export default function InvoiceDetailClient({
               <tbody>
                 {items.map((item, idx) => (
                   <tr key={idx} className="border-b border-border-subtle print:border-gray-200">
-                    <td className="py-3 px-3 text-primary print:text-black">{item.description || "-"}</td>
+                    <td className="py-3 px-3 text-primary print:text-black">
+                      {item.description || "-"}
+                      {item.certificate_public_id && (
+                        <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-[rgba(10,132,255,0.1)] text-[#0a84ff] print:text-blue-600 print:bg-blue-50">
+                          証明書: {item.certificate_public_id}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 px-3 text-right text-secondary print:text-gray-700">{item.quantity}</td>
                     <td className="py-3 px-3 text-right text-secondary print:text-gray-700">
                       {item.unit_price.toLocaleString("ja-JP")}円

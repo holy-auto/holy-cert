@@ -10,6 +10,8 @@ type InvoiceItem = {
   quantity: number;
   unit_price: number;
   amount: number;
+  certificate_id?: string | null;
+  certificate_public_id?: string | null;
 };
 
 type Invoice = {
@@ -31,6 +33,15 @@ type Invoice = {
 type Customer = {
   id: string;
   name: string;
+};
+
+type CertificateOption = {
+  id: string;
+  public_id: string;
+  customer_name: string;
+  service_price: number | null;
+  status: string;
+  created_at: string;
 };
 
 type Stats = {
@@ -75,7 +86,7 @@ const statusLabel = (s: string) => {
   }
 };
 
-const emptyItem = (): InvoiceItem => ({ description: "", quantity: 1, unit_price: 0, amount: 0 });
+const emptyItem = (): InvoiceItem => ({ description: "", quantity: 1, unit_price: 0, amount: 0, certificate_id: null, certificate_public_id: null });
 
 export default function InvoicesClient() {
   const [data, setData] = useState<InvoicesData | null>(null);
@@ -93,6 +104,9 @@ export default function InvoicesClient() {
   const [formItems, setFormItems] = useState<InvoiceItem[]>([emptyItem()]);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  // Certificates for linking
+  const [certificates, setCertificates] = useState<CertificateOption[]>([]);
 
   // Delete
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -129,6 +143,30 @@ export default function InvoicesClient() {
     })();
   }, [fetchInvoices, fetchCustomers]);
 
+  // 顧客が変わったら証明書を取得
+  const fetchCertificatesForCustomer = useCallback(async (customerId: string) => {
+    if (!customerId) {
+      setCertificates([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/invoices?action=certificates&customer_id=${encodeURIComponent(customerId)}`, { cache: "no-store" });
+      const j = await res.json().catch(() => null);
+      if (res.ok && j?.certificates) {
+        setCertificates(j.certificates);
+      } else {
+        setCertificates([]);
+      }
+    } catch {
+      setCertificates([]);
+    }
+  }, []);
+
+  const handleCustomerChange = (val: string) => {
+    setFormCustomerId(val);
+    fetchCertificatesForCustomer(val);
+  };
+
   const handleFilterChange = (val: string) => {
     setStatusFilter(val);
     fetchInvoices(val);
@@ -142,6 +180,28 @@ export default function InvoicesClient() {
     if (field === "quantity") item.quantity = parseInt(String(value), 10) || 0;
     if (field === "unit_price") item.unit_price = parseInt(String(value), 10) || 0;
     item.amount = item.quantity * item.unit_price;
+    newItems[index] = item;
+    setFormItems(newItems);
+  };
+
+  const linkCertificate = (index: number, certId: string) => {
+    const newItems = [...formItems];
+    const item = { ...newItems[index] };
+    if (!certId) {
+      item.certificate_id = null;
+      item.certificate_public_id = null;
+    } else {
+      const cert = certificates.find((c) => c.id === certId);
+      if (cert) {
+        item.certificate_id = cert.id;
+        item.certificate_public_id = cert.public_id;
+        if (cert.service_price != null && cert.service_price > 0) {
+          item.description = item.description || `施工証明書 ${cert.public_id}`;
+          item.unit_price = cert.service_price;
+          item.amount = item.quantity * cert.service_price;
+        }
+      }
+    }
     newItems[index] = item;
     setFormItems(newItems);
   };
@@ -288,7 +348,7 @@ export default function InvoicesClient() {
                   <select
                     className="select-field"
                     value={formCustomerId}
-                    onChange={(e) => setFormCustomerId(e.target.value)}
+                    onChange={(e) => handleCustomerChange(e.target.value)}
                   >
                     <option value="">選択なし</option>
                     {customers.map((c) => (
@@ -324,58 +384,83 @@ export default function InvoicesClient() {
               <div className="space-y-2">
                 <div className="text-xs font-semibold text-muted tracking-[0.18em]">LINE ITEMS</div>
                 {formItems.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-5 space-y-1">
-                      {idx === 0 && <label className="text-xs text-muted">内容</label>}
-                      <input
-                        type="text"
-                        className="input-field"
-                        placeholder="施工内容"
-                        value={item.description}
-                        onChange={(e) => updateItem(idx, "description", e.target.value)}
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      {idx === 0 && <label className="text-xs text-muted">数量</label>}
-                      <input
-                        type="number"
-                        className="input-field"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(idx, "quantity", e.target.value)}
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      {idx === 0 && <label className="text-xs text-muted">単価</label>}
-                      <input
-                        type="number"
-                        className="input-field"
-                        min="0"
-                        value={item.unit_price}
-                        onChange={(e) => updateItem(idx, "unit_price", e.target.value)}
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      {idx === 0 && <label className="text-xs text-muted">金額</label>}
-                      <div className="input-field bg-transparent text-secondary cursor-default">
-                        {item.amount.toLocaleString("ja-JP")}
+                  <div key={idx} className="space-y-1">
+                    {certificates.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] text-muted whitespace-nowrap">証明書紐付け:</label>
+                        <select
+                          className="select-field !text-xs !py-1"
+                          value={item.certificate_id ?? ""}
+                          onChange={(e) => linkCertificate(idx, e.target.value)}
+                        >
+                          <option value="">紐付けなし</option>
+                          {certificates.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.public_id} — {c.service_price != null ? `¥${c.service_price.toLocaleString()}` : "料金未設定"} ({c.status === "active" ? "有効" : c.status})
+                            </option>
+                          ))}
+                        </select>
+                        {item.certificate_id && (
+                          <span className="text-[10px] text-emerald-400">✓ 紐付済</span>
+                        )}
                       </div>
-                    </div>
-                    <div className="col-span-1">
-                      <button
-                        type="button"
-                        className="btn-ghost !px-2 !py-1 !text-xs text-red-400"
-                        onClick={() => removeItem(idx)}
-                        disabled={formItems.length <= 1}
-                      >
-                        ×
-                      </button>
+                    )}
+                    <div className="grid grid-cols-12 gap-2 items-end">
+                      <div className="col-span-5 space-y-1">
+                        {idx === 0 && <label className="text-xs text-muted">内容</label>}
+                        <input
+                          type="text"
+                          className="input-field"
+                          placeholder="施工内容"
+                          value={item.description}
+                          onChange={(e) => updateItem(idx, "description", e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-2 space-y-1">
+                        {idx === 0 && <label className="text-xs text-muted">数量</label>}
+                        <input
+                          type="number"
+                          className="input-field"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(idx, "quantity", e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-2 space-y-1">
+                        {idx === 0 && <label className="text-xs text-muted">単価</label>}
+                        <input
+                          type="number"
+                          className="input-field"
+                          min="0"
+                          value={item.unit_price}
+                          onChange={(e) => updateItem(idx, "unit_price", e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-2 space-y-1">
+                        {idx === 0 && <label className="text-xs text-muted">金額</label>}
+                        <div className="input-field bg-transparent text-secondary cursor-default">
+                          {item.amount.toLocaleString("ja-JP")}
+                        </div>
+                      </div>
+                      <div className="col-span-1">
+                        <button
+                          type="button"
+                          className="btn-ghost !px-2 !py-1 !text-xs text-red-400"
+                          onClick={() => removeItem(idx)}
+                          disabled={formItems.length <= 1}
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
                 <button type="button" className="btn-ghost !text-xs" onClick={addItem}>
                   + 明細を追加
                 </button>
+                {formCustomerId && certificates.length === 0 && (
+                  <div className="text-[10px] text-muted">※ この顧客に紐付く証明書がないか、証明書データの取得中です</div>
+                )}
               </div>
 
               {/* Totals */}
@@ -449,7 +534,7 @@ export default function InvoicesClient() {
                       <td className="px-5 py-3.5">
                         <Link
                           href={`/admin/invoices/${inv.id}`}
-                          className="font-mono text-cyan-400 hover:text-cyan-300 underline"
+                          className="font-mono text-[#0a84ff] hover:text-[#3b9eff] underline"
                         >
                           {inv.invoice_number}
                         </Link>

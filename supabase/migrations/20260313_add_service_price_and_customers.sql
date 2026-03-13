@@ -27,21 +27,25 @@ CREATE INDEX IF NOT EXISTS idx_certificates_customer ON certificates(customer_id
 -- RLS
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS customers_tenant_select ON customers;
 CREATE POLICY customers_tenant_select ON customers
   FOR SELECT USING (
     tenant_id IN (SELECT tenant_id FROM tenant_memberships WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS customers_tenant_insert ON customers;
 CREATE POLICY customers_tenant_insert ON customers
   FOR INSERT WITH CHECK (
     tenant_id IN (SELECT tenant_id FROM tenant_memberships WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS customers_tenant_update ON customers;
 CREATE POLICY customers_tenant_update ON customers
   FOR UPDATE USING (
     tenant_id IN (SELECT tenant_id FROM tenant_memberships WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS customers_tenant_delete ON customers;
 CREATE POLICY customers_tenant_delete ON customers
   FOR DELETE USING (
     tenant_id IN (SELECT tenant_id FROM tenant_memberships WHERE user_id = auth.uid())
@@ -70,21 +74,25 @@ CREATE INDEX IF NOT EXISTS idx_invoices_customer ON invoices(customer_id);
 
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS invoices_tenant_select ON invoices;
 CREATE POLICY invoices_tenant_select ON invoices
   FOR SELECT USING (
     tenant_id IN (SELECT tenant_id FROM tenant_memberships WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS invoices_tenant_insert ON invoices;
 CREATE POLICY invoices_tenant_insert ON invoices
   FOR INSERT WITH CHECK (
     tenant_id IN (SELECT tenant_id FROM tenant_memberships WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS invoices_tenant_update ON invoices;
 CREATE POLICY invoices_tenant_update ON invoices
   FOR UPDATE USING (
     tenant_id IN (SELECT tenant_id FROM tenant_memberships WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS invoices_tenant_delete ON invoices;
 CREATE POLICY invoices_tenant_delete ON invoices
   FOR DELETE USING (
     tenant_id IN (SELECT tenant_id FROM tenant_memberships WHERE user_id = auth.uid())

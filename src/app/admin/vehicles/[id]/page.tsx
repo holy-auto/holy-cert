@@ -239,7 +239,7 @@ export default async function AdminVehicleDetailPage({
                             href={`/c/${row.public_id}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="underline text-cyan-400 hover:text-cyan-300"
+                            className="underline text-[#0a84ff] hover:text-[#3b9eff]"
                           >
                             表示
                           </a>

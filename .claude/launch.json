@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "D:\\node.exe",
+      "runtimeArgs": ["D:\\node_modules\\npm\\bin\\npm-cli.js", "run", "dev"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

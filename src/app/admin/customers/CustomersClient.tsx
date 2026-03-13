@@ -450,7 +450,7 @@ export default function CustomersClient() {
                       <td className="px-5 py-3.5">
                         <Link
                           href={`/admin/customers/${c.id}`}
-                          className="font-medium text-primary hover:text-cyan-400 underline"
+                          className="font-medium text-primary hover:text-[#0a84ff] underline"
                         >
                           {c.name}
                         </Link>

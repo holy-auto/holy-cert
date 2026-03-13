@@ -65,7 +65,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   const { data: rows, error } = await query;
   if (error) return <main className="space-y-6"><div className="text-red-400">読み込みエラー: {error.message}</div></main>;
 
-  const linkCls = (enabled: boolean) => "text-sm underline " + (enabled ? "text-cyan-400" : "opacity-50 text-muted");
+  const linkCls = (enabled: boolean) => "text-sm underline " + (enabled ? "text-[#0a84ff]" : "opacity-50 text-muted");
 
   return (
     <main className="space-y-6">

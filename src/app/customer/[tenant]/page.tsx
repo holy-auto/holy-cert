@@ -190,7 +190,7 @@ export default function CustomerListPage() {
             const vs = buildVehicleSummary(vi);
 
             const isVoid = (r.status ?? "").toLowerCase() === "void";
-            const statusLabel = isVoid ? "VOID（無効）" : (r.status ? String(r.status) : "active");
+            const statusLabel = isVoid ? "無効の施工証明書" : "有効な施工証明書";
 
             return (
               <a key={r.public_id} href={href} className="no-underline text-inherit">

@@ -79,7 +79,7 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
   const canPdfOne = isActive && canUseFeature(planTier, "pdf_one");
 
   const btnCls = (enabled: boolean) => "btn-secondary " + (enabled ? "" : "opacity-50");
-  const linkCls = (enabled: boolean) => "underline text-cyan-400 hover:text-cyan-300 " + (enabled ? "" : "opacity-50");
+  const linkCls = (enabled: boolean) => "underline text-[#0a84ff] hover:text-[#3b9eff] " + (enabled ? "" : "opacity-50");
 
   const hrefOrBill = (enabled: boolean, href: string, action: string) => (enabled ? href : bill(action));
 
@@ -143,7 +143,7 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
               <th className="p-3 text-left w-10">
                 <input
                   type="checkbox"
-                  className="accent-cyan-500"
+                  className="accent-[#0a84ff]"
                   checked={allChecked}
                   ref={(el) => {
                     if (el) el.indeterminate = someChecked;
@@ -168,17 +168,19 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
               return (
                 <tr key={r.public_id} className="border-t border-border-default hover:bg-surface-hover transition-colors">
                   <td className="p-3">
-                    <input type="checkbox" className="accent-cyan-500" checked={checked} onChange={(e) => toggleOne(r.public_id, e.target.checked)} />
+                    <input type="checkbox" className="accent-[#0a84ff]" checked={checked} onChange={(e) => toggleOne(r.public_id, e.target.checked)} />
                   </td>
                   <td className="p-3 whitespace-nowrap text-primary">{new Date(r.created_at).toLocaleString("ja-JP")}</td>
                   <td className="p-3 font-mono text-primary">{r.public_id}</td>
                   <td className="p-3 text-primary">{r.customer_name}</td>
                   <td className="p-3">
-                    <span className={isVoid ? "text-muted" : "text-primary"}>{r.status}</span>
+                    <span className={isVoid ? "text-muted" : "text-primary"}>
+                      {r.status === "active" ? "有効な施工証明書" : r.status === "void" ? "無効の施工証明書" : r.status}
+                    </span>
                   </td>
                   <td className="p-3">
                     <div className="flex gap-3 items-center flex-wrap">
-                      <Link className="underline text-cyan-400 hover:text-cyan-300" href={url} target="_blank">
+                      <Link className="underline text-[#0a84ff] hover:text-[#3b9eff]" href={url} target="_blank">
                         公開ページ
                       </Link>
                       <Link

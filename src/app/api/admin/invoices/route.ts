@@ -57,8 +57,21 @@ export async function GET(req: NextRequest) {
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const url = new URL(req.url);
+    const action = url.searchParams.get("action") ?? "";
     const status = url.searchParams.get("status") ?? "";
     const customerId = url.searchParams.get("customer_id") ?? "";
+
+    // 証明書取得アクション
+    if (action === "certificates" && customerId) {
+      const { data: certs } = await supabase
+        .from("certificates")
+        .select("id, public_id, customer_name, service_price, status, created_at")
+        .eq("tenant_id", caller.tenantId)
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false });
+
+      return NextResponse.json({ certificates: certs ?? [] });
+    }
 
     let query = supabase
       .from("invoices")
@@ -143,12 +156,15 @@ export async function POST(req: NextRequest) {
       const unitPrice = parseInt(String(item.unit_price || 0), 10);
       const amount = qty * unitPrice;
       subtotal += amount;
-      return {
+      const mapped: Record<string, unknown> = {
         description: (item.description ?? "").trim(),
         quantity: qty,
         unit_price: unitPrice,
         amount,
       };
+      if (item.certificate_id) mapped.certificate_id = item.certificate_id;
+      if (item.certificate_public_id) mapped.certificate_public_id = item.certificate_public_id;
+      return mapped;
     });
 
     const tax = Math.floor(subtotal * 0.1);
@@ -209,12 +225,15 @@ export async function PUT(req: NextRequest) {
         const unitPrice = parseInt(String(item.unit_price || 0), 10);
         const amount = qty * unitPrice;
         subtotal += amount;
-        return {
+        const mapped: Record<string, unknown> = {
           description: (item.description ?? "").trim(),
           quantity: qty,
           unit_price: unitPrice,
           amount,
         };
+        if (item.certificate_id) mapped.certificate_id = item.certificate_id;
+        if (item.certificate_public_id) mapped.certificate_public_id = item.certificate_public_id;
+        return mapped;
       });
       const tax = Math.floor(subtotal * 0.1);
       updates.items_json = itemsJson;

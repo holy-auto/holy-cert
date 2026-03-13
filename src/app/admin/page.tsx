@@ -20,8 +20,24 @@ type DashboardStats = {
   activeCerts: number;
   voidCerts: number;
   memberCount: number;
+  customerCount: number;
+  invoiceCount: number;
+  unpaidAmount: number;
   recentActivity: { date: string; count: number }[];
   statusBreakdown: { status: string; count: number }[];
+  // Platform-wide
+  platformCertStats: { total: number; active: number; void: number; expired: number; draft: number } | null;
+  categoryStats: { category: string; count: number }[] | null;
+  insurerCount: number;
+  regionalStats: { prefecture: string; count: number }[] | null;
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  detailing: "ディテイリング",
+  maintenance: "整備",
+  custom: "カスタム",
+  bodywork: "板金",
+  unset: "未設定",
 };
 
 async function fetchStats(supabase: any, tenantId: string): Promise<DashboardStats> {
@@ -45,8 +61,6 @@ async function fetchStats(supabase: any, tenantId: string): Promise<DashboardSta
   const statusBreakdown = Array.from(statusMap.entries()).map(([status, count]) => ({ status, count }));
 
   // 直近30日の発行数（日別）
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const dateMap = new Map<string, number>();
   for (let i = 0; i < 30; i++) {
     const d = new Date();
@@ -68,13 +82,64 @@ async function fetchStats(supabase: any, tenantId: string): Promise<DashboardSta
     .select("*", { count: "exact", head: true })
     .eq("tenant_id", tenantId);
 
+  // 顧客数
+  const { count: customerCount } = await supabase
+    .from("customers")
+    .select("*", { count: "exact", head: true })
+    .eq("tenant_id", tenantId);
+
+  // 請求書統計
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("status,total")
+    .eq("tenant_id", tenantId);
+
+  const invoiceList = invoices ?? [];
+  const invoiceCount = invoiceList.length;
+  const unpaidAmount = invoiceList
+    .filter((inv: any) => inv.status === "sent" || inv.status === "overdue")
+    .reduce((sum: number, inv: any) => sum + (inv.total ?? 0), 0);
+
+  // プラットフォーム全体統計（RPC）
+  let platformCertStats = null;
+  let categoryStats = null;
+  let insurerCount = 0;
+  let regionalStats = null;
+
+  try {
+    const { data: pcs } = await supabase.rpc("platform_certificate_stats");
+    platformCertStats = pcs ?? null;
+  } catch { /* RPC未実行の場合は null */ }
+
+  try {
+    const { data: cs } = await supabase.rpc("platform_tenant_category_stats");
+    categoryStats = cs ?? null;
+  } catch { /* */ }
+
+  try {
+    const { data: ic } = await supabase.rpc("platform_insurer_count");
+    insurerCount = ic ?? 0;
+  } catch { /* */ }
+
+  try {
+    const { data: rs } = await supabase.rpc("platform_regional_stats");
+    regionalStats = rs ?? null;
+  } catch { /* */ }
+
   return {
     totalCerts,
     activeCerts,
     voidCerts,
     memberCount: memberCount ?? 0,
+    customerCount: customerCount ?? 0,
+    invoiceCount,
+    unpaidAmount,
     recentActivity,
     statusBreakdown,
+    platformCertStats,
+    categoryStats,
+    insurerCount,
+    regionalStats,
   };
 }
 
@@ -98,30 +163,54 @@ export default async function AdminHome() {
     <main className="space-y-6">
       <PageHeader tag="DASHBOARD" title="ダッシュボード" description="施工証明書の管理状況を一目で確認" />
 
-      {/* Stats Cards */}
+      {/* My Tenant Stats */}
       {stats && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL CERTIFICATES</div>
-            <div className="mt-2 text-3xl font-bold text-primary">{stats.totalCerts}</div>
-            <div className="mt-1 text-xs text-muted">証明書総数</div>
+        <>
+          <div>
+            <h2 className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">MY SHOP</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="glass-card p-5">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL</div>
+                <div className="mt-2 text-3xl font-bold text-primary">{stats.totalCerts}</div>
+                <div className="mt-1 text-xs text-muted">施工証明書 総数</div>
+              </div>
+              <div className="glass-card p-5">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">ACTIVE</div>
+                <div className="mt-2 text-3xl font-bold text-[#30d158]">{stats.activeCerts}</div>
+                <div className="mt-1 text-xs text-muted">有効な施工証明書</div>
+              </div>
+              <div className="glass-card p-5">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">VOID</div>
+                <div className="mt-2 text-3xl font-bold text-[#ff453a]">{stats.voidCerts}</div>
+                <div className="mt-1 text-xs text-muted">無効の施工証明書</div>
+              </div>
+              <div className="glass-card p-5">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">MEMBERS</div>
+                <div className="mt-2 text-3xl font-bold text-[#0a84ff]">{stats.memberCount}</div>
+                <div className="mt-1 text-xs text-muted">チームメンバー</div>
+              </div>
+            </div>
           </div>
-          <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">ACTIVE</div>
-            <div className="mt-2 text-3xl font-bold text-emerald-400">{stats.activeCerts}</div>
-            <div className="mt-1 text-xs text-muted">有効な証明書</div>
+
+          {/* Tenant sub-stats */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="glass-card p-5">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">CUSTOMERS</div>
+              <div className="mt-2 text-2xl font-bold text-primary">{stats.customerCount}</div>
+              <div className="mt-1 text-xs text-muted">顧客数</div>
+            </div>
+            <div className="glass-card p-5">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">INVOICES</div>
+              <div className="mt-2 text-2xl font-bold text-primary">{stats.invoiceCount}</div>
+              <div className="mt-1 text-xs text-muted">請求書数</div>
+            </div>
+            <div className="glass-card p-5">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">UNPAID</div>
+              <div className="mt-2 text-2xl font-bold text-[#ff9f0a]">¥{stats.unpaidAmount.toLocaleString()}</div>
+              <div className="mt-1 text-xs text-muted">未回収額</div>
+            </div>
           </div>
-          <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">VOID</div>
-            <div className="mt-2 text-3xl font-bold text-red-400">{stats.voidCerts}</div>
-            <div className="mt-1 text-xs text-muted">無効化済み</div>
-          </div>
-          <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">MEMBERS</div>
-            <div className="mt-2 text-3xl font-bold text-cyan-400">{stats.memberCount}</div>
-            <div className="mt-1 text-xs text-muted">チームメンバー</div>
-          </div>
-        </div>
+        </>
       )}
 
       {/* Charts */}
@@ -130,6 +219,95 @@ export default async function AdminHome() {
           recentActivity={stats.recentActivity}
           statusBreakdown={stats.statusBreakdown}
         />
+      )}
+
+      {/* Platform-wide Stats */}
+      {stats && (stats.platformCertStats || stats.categoryStats || stats.insurerCount > 0) && (
+        <div>
+          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">PLATFORM OVERVIEW</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {stats.platformCertStats && (
+              <>
+                <div className="glass-card p-5">
+                  <div className="text-xs font-semibold tracking-[0.18em] text-muted">全体証明書</div>
+                  <div className="mt-2 text-3xl font-bold text-primary">{stats.platformCertStats.total}</div>
+                  <div className="mt-1 text-xs text-muted">プラットフォーム全体</div>
+                </div>
+                <div className="glass-card p-5">
+                  <div className="text-xs font-semibold tracking-[0.18em] text-muted">全体 有効</div>
+                  <div className="mt-2 text-3xl font-bold text-[#30d158]">{stats.platformCertStats.active}</div>
+                  <div className="mt-1 text-xs text-muted">有効な施工証明書</div>
+                </div>
+              </>
+            )}
+            <div className="glass-card p-5">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">INSURERS</div>
+              <div className="mt-2 text-3xl font-bold text-[#bf5af2]">{stats.insurerCount}</div>
+              <div className="mt-1 text-xs text-muted">保険会社数</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category & Regional Breakdown */}
+      {stats && (stats.categoryStats || stats.regionalStats) && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* 業種別施工店数 */}
+          {stats.categoryStats && stats.categoryStats.length > 0 && (
+            <div className="glass-card p-5">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-1">SHOP CATEGORIES</div>
+              <div className="text-base font-semibold text-primary mb-4">業種別 施工店数</div>
+              <div className="space-y-3">
+                {stats.categoryStats.map((cat: any) => {
+                  const total = stats!.categoryStats!.reduce((s: number, c: any) => s + c.count, 0);
+                  const pct = total > 0 ? Math.round((cat.count / total) * 100) : 0;
+                  return (
+                    <div key={cat.category}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-secondary">{CATEGORY_LABELS[cat.category] ?? cat.category}</span>
+                        <span className="text-sm font-semibold text-primary">{cat.count}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#0a84ff] to-[#5e5ce6]"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 地域別 */}
+          {stats.regionalStats && stats.regionalStats.length > 0 && (
+            <div className="glass-card p-5">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-1">REGIONS</div>
+              <div className="text-base font-semibold text-primary mb-4">地域別 施工店数</div>
+              <div className="space-y-3">
+                {stats.regionalStats.slice(0, 10).map((reg: any) => {
+                  const total = stats!.regionalStats!.reduce((s: number, r: any) => s + r.count, 0);
+                  const pct = total > 0 ? Math.round((reg.count / total) * 100) : 0;
+                  return (
+                    <div key={reg.prefecture}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-secondary">{reg.prefecture}</span>
+                        <span className="text-sm font-semibold text-primary">{reg.count}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#30d158] to-[#34c759]"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Quick Actions */}
@@ -141,12 +319,12 @@ export default async function AdminHome() {
             className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-dim">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-cyan-400">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-[#0a84ff]">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
               </svg>
             </span>
             <div>
-              <div className="text-sm font-semibold text-primary group-hover:text-cyan-400 transition-colors">証明書一覧</div>
+              <div className="text-sm font-semibold text-primary group-hover:text-[#0a84ff] transition-colors">証明書一覧</div>
               <div className="text-xs text-muted">Certificates</div>
             </div>
           </Link>
@@ -156,13 +334,43 @@ export default async function AdminHome() {
             className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-success-dim">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-emerald-400">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-[#30d158]">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
             </span>
             <div>
-              <div className="text-sm font-semibold text-primary group-hover:text-emerald-400 transition-colors">新規発行</div>
+              <div className="text-sm font-semibold text-primary group-hover:text-[#30d158] transition-colors">新規発行</div>
               <div className="text-xs text-muted">New Certificate</div>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/customers"
+            className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-dim">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-[#0a84ff]">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+              </svg>
+            </span>
+            <div>
+              <div className="text-sm font-semibold text-primary group-hover:text-[#0a84ff] transition-colors">顧客管理</div>
+              <div className="text-xs text-muted">Customers</div>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/invoices"
+            className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-dim">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-[#ff9f0a]">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </span>
+            <div>
+              <div className="text-sm font-semibold text-primary group-hover:text-[#ff9f0a] transition-colors">請求書</div>
+              <div className="text-xs text-muted">Invoices</div>
             </div>
           </Link>
 
@@ -171,13 +379,28 @@ export default async function AdminHome() {
             className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-dim">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-amber-400">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-[#ff9f0a]">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
               </svg>
             </span>
             <div>
-              <div className="text-sm font-semibold text-primary group-hover:text-amber-400 transition-colors">請求・プラン</div>
+              <div className="text-sm font-semibold text-primary group-hover:text-[#ff9f0a] transition-colors">請求・プラン</div>
               <div className="text-xs text-muted">Billing</div>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/templates"
+            className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-dim">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-[#0a84ff]">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+              </svg>
+            </span>
+            <div>
+              <div className="text-sm font-semibold text-primary group-hover:text-[#0a84ff] transition-colors">テンプレート</div>
+              <div className="text-xs text-muted">Templates</div>
             </div>
           </Link>
         </div>

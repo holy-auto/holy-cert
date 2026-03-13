@@ -314,7 +314,7 @@ export default async function Page({
                       <td className="p-3">
                         {hasCertificate ? (
                           <span className={isVoid ? "text-red-700" : "text-emerald-700"}>
-                            {statusText}
+                            {isVoid ? "無効の施工証明書" : statusText === "active" ? "有効な施工証明書" : statusText}
                           </span>
                         ) : (
                           <span className="text-xs text-neutral-400">-</span>

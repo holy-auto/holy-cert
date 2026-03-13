@@ -104,8 +104,8 @@ function formatDate(v?: string | null) {
 
 function getStatusLabel(status?: string | null) {
   const s = String(status ?? "").toLowerCase();
-  if (s === "active") return "有効";
-  if (s === "void") return "無効";
+  if (s === "active") return "有効な施工証明書";
+  if (s === "void") return "無効の施工証明書";
   if (s === "expired") return "期限切れ";
   if (s === "inactive") return "停止";
   return status ?? "不明";
