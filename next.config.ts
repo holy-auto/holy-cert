@@ -16,6 +16,23 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname, "../../../.."),
   },
+
+  async headers() {
+    return [
+      {
+        source: "/(logos|images|icons)/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=3600, stale-while-revalidate=86400" },
+        ],
+      },
+      {
+        source: "/:path*.svg",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

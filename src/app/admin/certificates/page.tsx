@@ -5,12 +5,11 @@ import CertificatesTableClient from "./CertificatesTableClient";
 import { canUseFeature } from "@/lib/billing/planFeatures";
 import { buildBillingDenyUrl } from "@/lib/billing/billingRedirect";
 
-type SearchParams = { q?: string };
+const PAGE_SIZE = 30;
+
+type SearchParams = { q?: string; page?: string };
 
 async function getMyTenantId(supabase: any) {
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes.user) return null;
-
   const { data, error } = await supabase
     .from("tenant_memberships")
     .select("tenant_id")
@@ -24,6 +23,8 @@ async function getMyTenantId(supabase: any) {
 export default async function Page({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
+  const currentPage = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const offset = (currentPage - 1) * PAGE_SIZE;
   const returnTo = `/admin/certificates${q ? `?q=${encodeURIComponent(q)}` : ""}`;
 
   const supabase = await createSupabaseServerClient();
@@ -39,7 +40,24 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     );
   }
 
-  const { data: t } = await supabase.from("tenants").select("plan_tier,is_active").eq("id", tenantId).single();
+  // Fetch tenant info and certificates in parallel (with count for pagination)
+  let certQuery = supabase
+    .from("certificates")
+    .select("public_id,status,customer_name,created_at", { count: "exact" })
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + PAGE_SIZE - 1);
+
+  if (q) certQuery = certQuery.or(`public_id.ilike.%${q}%,customer_name.ilike.%${q}%`);
+
+  const [tenantRes, certRes] = await Promise.all([
+    supabase.from("tenants").select("plan_tier,is_active").eq("id", tenantId).single(),
+    certQuery,
+  ]);
+
+  const { data: t } = tenantRes;
+  const { data: rows, error, count: totalCount } = certRes;
+
   const planTier = String(t?.plan_tier ?? "pro");
   const isActive = !!t?.is_active;
   const canIssue = isActive && canUseFeature(planTier, "issue_certificate");
@@ -48,17 +66,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   const issueHref = canIssue
     ? "/admin/certificates/new"
     : buildBillingDenyUrl({ reason: denyReason, action: "issue_certificate", returnTo });
-
-  let query = supabase
-    .from("certificates")
-    .select("public_id,status,customer_name,created_at")
-    .eq("tenant_id", tenantId)
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (q) query = query.or(`public_id.ilike.%${q}%,customer_name.ilike.%${q}%`);
-
-  const { data: rows, error } = await query;
   if (error) {
     return (
       <main className="min-h-screen bg-neutral-50 p-6">
@@ -75,8 +82,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   }
 
   const allRows = rows ?? [];
+  const total = totalCount ?? allRows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const activeCount = allRows.filter((r) => r.status === "active").length;
   const voidCount = allRows.filter((r) => r.status === "void").length;
+
+  function pageHref(page: number) {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (page > 1) params.set("page", String(page));
+    const qs = params.toString();
+    return `/admin/certificates${qs ? `?${qs}` : ""}`;
+  }
 
   return (
     <main className="min-h-screen bg-neutral-50 p-6">
@@ -103,7 +120,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
                 証明書一覧
               </h1>
               <p className="mt-2 text-sm text-neutral-600">
-                発行済み施工証明書の確認・出力・無効化。最新50件表示。
+                発行済み施工証明書の確認・出力・無効化。全{total}件中 {offset + 1}〜{Math.min(offset + PAGE_SIZE, total)}件表示。
               </p>
             </div>
           </div>
@@ -168,18 +185,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
             <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">TOTAL</div>
-            <div className="mt-2 text-2xl font-bold text-neutral-900">{allRows.length}</div>
-            <div className="mt-1 text-xs text-neutral-500">表示中の証明書数</div>
+            <div className="mt-2 text-2xl font-bold text-neutral-900">{total}</div>
+            <div className="mt-1 text-xs text-neutral-500">証明書総数</div>
           </div>
           <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
             <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">ACTIVE</div>
             <div className="mt-2 text-2xl font-bold text-emerald-600">{activeCount}</div>
-            <div className="mt-1 text-xs text-neutral-500">有効な証明書</div>
+            <div className="mt-1 text-xs text-neutral-500">有効（このページ）</div>
           </div>
           <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
             <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">VOID</div>
             <div className="mt-2 text-2xl font-bold text-neutral-400">{voidCount}</div>
-            <div className="mt-1 text-xs text-neutral-500">無効化済み</div>
+            <div className="mt-1 text-xs text-neutral-500">無効化済み（このページ）</div>
           </div>
         </section>
 
@@ -191,6 +208,41 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
           </div>
           <CertificatesTableClient rows={allRows as any} q={q} />
         </section>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <nav className="flex items-center justify-center gap-2">
+            {currentPage > 1 ? (
+              <Link
+                href={pageHref(currentPage - 1)}
+                className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              >
+                前へ
+              </Link>
+            ) : (
+              <span className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-sm font-medium text-neutral-400">
+                前へ
+              </span>
+            )}
+
+            <span className="px-3 text-sm text-neutral-600">
+              {currentPage} / {totalPages}
+            </span>
+
+            {currentPage < totalPages ? (
+              <Link
+                href={pageHref(currentPage + 1)}
+                className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              >
+                次へ
+              </Link>
+            ) : (
+              <span className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-sm font-medium text-neutral-400">
+                次へ
+              </span>
+            )}
+          </nav>
+        )}
 
       </div>
     </main>
