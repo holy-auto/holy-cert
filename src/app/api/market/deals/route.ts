@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDealerSession } from "@/lib/market/auth";
 import { createDeal, getDealerDeals } from "@/lib/market/db";
+import { notifyDealStarted } from "@/lib/market/email";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // GET: 自分の商談一覧
 export async function GET() {
@@ -32,6 +34,27 @@ export async function POST(req: NextRequest) {
 
   try {
     const deal = await createDeal(session.dealer.id, body);
+
+    // 購入業者に通知（非同期）
+    const admin = createAdminClient();
+    const { data: listing } = await admin
+      .from("inventory_listings")
+      .select("make, model, year")
+      .eq("id", body.listing_id)
+      .single();
+
+    if (listing) {
+      notifyDealStarted({
+        buyerDealerId: deal.buyer_dealer_id,
+        sellerCompany: session.dealer.company_name,
+        make: listing.make,
+        model: listing.model,
+        year: listing.year,
+        agreedPrice: deal.agreed_price,
+        dealId: deal.id,
+      }).catch((err) => console.error("[market/deals] notifyDealStarted failed", err));
+    }
+
     return NextResponse.json({ deal }, { status: 201 });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Unknown error";
