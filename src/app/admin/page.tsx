@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,14 @@ const menuSections = [
     items: [
       { label: "テンプレート管理", href: "/admin/templates", desc: "証明書テンプレートの作成・編集" },
       { label: "ロゴ設定", href: "/admin/logo", desc: "証明書・公開ページに表示する店舗ロゴ" },
+    ],
+  },
+  {
+    title: "HolyMarket（BtoB中古車在庫共有）",
+    items: [
+      { label: "マーケット管理", href: "/admin/market", desc: "業者管理・在庫一覧・商談状況の確認" },
+      { label: "業者を招待", href: "/admin/market/dealers/invite", desc: "招待コードを発行して新規業者を追加" },
+      { label: "業者一覧", href: "/admin/market/dealers", desc: "参加業者の管理・承認・停止" },
     ],
   },
   {

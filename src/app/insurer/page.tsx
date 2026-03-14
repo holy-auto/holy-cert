@@ -44,7 +44,6 @@ export default function InsurerHomePage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const billingBusy = false;
 
   useEffect(() => {
     (async () => {
@@ -83,11 +82,6 @@ export default function InsurerHomePage() {
     window.location.href = "/insurer/login";
   };
 
-  const startCheckout = async () => {
-    // 保険会社向け Stripe checkout は未実装（insurer_id と Stripe の紐づけ設計が必要）
-    setErr("サブスク契約機能は現在準備中です。");
-  };
-
   if (!ready) return null;
 
   const exportQs = new URLSearchParams();
@@ -118,13 +112,6 @@ export default function InsurerHomePage() {
           </div>
 
           <div className="flex gap-3 items-center">
-            <button
-              onClick={startCheckout}
-              disabled={billingBusy}
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-40"
-            >
-              {billingBusy ? "..." : "サブスク契約/更新"}
-            </button>
             <button
               onClick={onLogout}
               className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
