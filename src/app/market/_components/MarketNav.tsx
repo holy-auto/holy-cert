@@ -11,11 +11,14 @@ interface Props {
 
 const navItems = [
   { href: "/market/dashboard", label: "ダッシュボード" },
-  { href: "/market/search", label: "在庫を探す" },
+  { href: "/market/search",    label: "在庫を探す" },
   { href: "/market/inventory", label: "自社在庫" },
+  { href: "/market/prices",    label: "相場" },
+  { href: "/market/news",      label: "ニュース" },
+  { href: "/market/jobs",      label: "受発注" },
   { href: "/market/inquiries", label: "問い合わせ" },
-  { href: "/market/deals", label: "商談" },
-  { href: "/market/profile", label: "プロフィール" },
+  { href: "/market/deals",     label: "商談" },
+  { href: "/market/profile",   label: "プロフィール" },
 ];
 
 export default function MarketNav({ dealer }: Props) {

@@ -33,6 +33,7 @@ export default async function AdminPage() {
             {[
               { href: "/market/admin", label: "ダッシュボード" },
               { href: "/market/admin/dealers", label: "業者管理" },
+              { href: "/market/admin/news", label: "ニュース管理" },
               { href: "/market/admin/inquiries", label: "問い合わせ" },
               { href: "/market/admin/deals", label: "商談" },
               { href: "/market/admin/report", label: "レポート" },
