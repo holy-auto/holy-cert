@@ -55,17 +55,7 @@ export async function GET(req: Request) {
     rpcParams.p_date_to = to.toISOString();
   }
 
-  let { data, error } = await supabase.rpc("insurer_search_certificates", rpcParams);
-
-  // Fallback: retry without new params if RPC doesn't support them yet
-  if (error && (status || dateFrom || dateTo)) {
-    delete rpcParams.p_status;
-    delete rpcParams.p_date_from;
-    delete rpcParams.p_date_to;
-    const retry = await supabase.rpc("insurer_search_certificates", rpcParams);
-    data = retry.data;
-    error = retry.error;
-  }
+  const { data, error } = await supabase.rpc("insurer_search_certificates", rpcParams);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   const { error: logErr } = await supabase.rpc("insurer_audit_log", {
