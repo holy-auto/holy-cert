@@ -47,26 +47,16 @@ export default async function AdminHome() {
       .single();
 
     if (membership?.tenant_id) {
-      const { data: tenant } = await supabase
-        .from("tenants")
-        .select("name")
-        .eq("id", membership.tenant_id)
-        .single();
+      const tid = membership.tenant_id;
+      const [tenantRes, certRes, vehicleRes] = await Promise.all([
+        supabase.from("tenants").select("name").eq("id", tid).single(),
+        supabase.from("certificates").select("id", { count: "exact", head: true }).eq("tenant_id", tid),
+        supabase.from("vehicles").select("id", { count: "exact", head: true }).eq("tenant_id", tid),
+      ]);
 
-      tenantName = tenant?.name ?? null;
-
-      const { count: cc } = await supabase
-        .from("certificates")
-        .select("id", { count: "exact", head: true })
-        .eq("tenant_id", membership.tenant_id);
-
-      const { count: vc } = await supabase
-        .from("vehicles")
-        .select("id", { count: "exact", head: true })
-        .eq("tenant_id", membership.tenant_id);
-
-      certCount = cc ?? 0;
-      vehicleCount = vc ?? 0;
+      tenantName = tenantRes.data?.name ?? null;
+      certCount = certRes.count ?? 0;
+      vehicleCount = vehicleRes.count ?? 0;
     }
   }
 

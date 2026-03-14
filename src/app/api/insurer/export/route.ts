@@ -23,6 +23,9 @@ export async function GET(req: Request) {
   if (deny) return deny as any;
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
+  const status = url.searchParams.get("status") ?? "";
+  const dateFrom = url.searchParams.get("date_from") ?? "";
+  const dateTo = url.searchParams.get("date_to") ?? "";
 
   const limit = 2000;
   const offset = 0;
@@ -36,13 +39,23 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { data, error } = await supabase.rpc("insurer_search_certificates", {
+  const rpcParams: Record<string, unknown> = {
     p_query: q,
     p_limit: limit,
     p_offset: offset,
     p_ip: ip,
     p_user_agent: ua,
-  });
+  };
+
+  if (status) rpcParams.p_status = status;
+  if (dateFrom) rpcParams.p_date_from = new Date(dateFrom).toISOString();
+  if (dateTo) {
+    const to = new Date(dateTo);
+    to.setHours(23, 59, 59, 999);
+    rpcParams.p_date_to = to.toISOString();
+  }
+
+  const { data, error } = await supabase.rpc("insurer_search_certificates", rpcParams);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   const { error: logErr } = await supabase.rpc("insurer_audit_log", {

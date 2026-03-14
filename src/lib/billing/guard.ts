@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import Stripe from "stripe";
 
 type PlanTier = "mini" | "standard" | "pro";
@@ -10,13 +10,6 @@ function graceDays(): number {
   const raw = process.env.BILLING_GRACE_DAYS ?? String(DEFAULT_GRACE_DAYS);
   const n = Math.max(0, Math.min(365, parseInt(raw, 10) || DEFAULT_GRACE_DAYS));
   return n;
-}
-
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 function getStripe() {
@@ -77,56 +70,57 @@ function extractPublicIdFromUrl(req: Request): string | null {
 }
 
 async function extractTenantId(req: Request): Promise<string | null> {
-  // query: tenant_id / tenant
+  // Collect all candidate IDs from query string and body in one pass
+  let tenantId: string | null = null;
+  let certId: string | null = null;
+  let publicId: string | null = null;
+
+  // From query string
   try {
     const u = new URL(req.url);
     const q = u.searchParams;
-    const tid = q.get("tenant_id") ?? q.get("tenantId") ?? q.get("tenant") ?? null;
-    if (tid) return tid;
+    tenantId = q.get("tenant_id") ?? q.get("tenantId") ?? q.get("tenant") ?? null;
+    if (tenantId) return tenantId;
 
-    // query: certificate_id -> tenant_id
-    const cid = q.get("certificate_id") ?? q.get("certificateId") ?? q.get("id");
-    if (cid) {
-      const supabase = getSupabaseAdmin();
-      const { data, error } = await supabase.from("certificates").select("tenant_id").eq("id", cid).limit(1).maybeSingle();
-      if (!error && data?.tenant_id) return data.tenant_id as string;
-    }
-
-    // query: public_id -> tenant_id
-    const pid = q.get("public_id") ?? q.get("publicId") ?? q.get("pid");
-    if (pid) {
-      const supabase = getSupabaseAdmin();
-      const { data, error } = await supabase.from("certificates").select("tenant_id").eq("public_id", pid).limit(1).maybeSingle();
-      if (!error && data?.tenant_id) return data.tenant_id as string;
-    }
+    certId = q.get("certificate_id") ?? q.get("certificateId") ?? q.get("id") ?? null;
+    publicId = q.get("public_id") ?? q.get("publicId") ?? q.get("pid") ?? null;
   } catch {}
 
-  // body: tenant_id / certificate_id / public_id
+  // From body (only if we still need to look)
+  if (!certId && !publicId) {
+    try {
+      const b: any = await (req as any).clone().json();
+      tenantId = b?.tenant_id ?? b?.tenantId ?? b?.tenant ?? null;
+      if (typeof tenantId === "string" && tenantId) return tenantId;
+
+      certId = b?.certificate_id ?? b?.certificateId ?? null;
+      if (typeof certId !== "string") certId = null;
+
+      publicId = b?.public_id ?? b?.publicId ?? b?.pid ?? null;
+      if (typeof publicId !== "string") publicId = null;
+
+      // certificate_ids array: use first element
+      if (!certId) {
+        const ids = b?.certificate_ids ?? b?.certificateIds ?? b?.ids ?? null;
+        if (Array.isArray(ids) && ids.length > 0 && typeof ids[0] === "string") {
+          certId = ids[0];
+        }
+      }
+    } catch {}
+  }
+
+  // Single DB lookup (prioritize cert ID over public ID)
+  if (!certId && !publicId) return null;
+
   try {
-    const b: any = await (req as any).clone().json();
-
-    const tid = b?.tenant_id ?? b?.tenantId ?? b?.tenant ?? null;
-    if (typeof tid === "string" && tid) return tid;
-
-    const cid = b?.certificate_id ?? b?.certificateId ?? null;
-    if (typeof cid === "string" && cid) {
-      const supabase = getSupabaseAdmin();
-      const { data, error } = await supabase.from("certificates").select("tenant_id").eq("id", cid).limit(1).maybeSingle();
-      if (!error && data?.tenant_id) return data.tenant_id as string;
+    const supabase = createAdminClient();
+    if (certId) {
+      const { data } = await supabase.from("certificates").select("tenant_id").eq("id", certId).limit(1).maybeSingle();
+      if (data?.tenant_id) return data.tenant_id as string;
     }
-
-    const pid = b?.public_id ?? b?.publicId ?? b?.pid ?? null;
-    if (typeof pid === "string" && pid) {
-      const supabase = getSupabaseAdmin();
-      const { data, error } = await supabase.from("certificates").select("tenant_id").eq("public_id", pid).limit(1).maybeSingle();
-      if (!error && data?.tenant_id) return data.tenant_id as string;
-    }
-
-    const ids = b?.certificate_ids ?? b?.certificateIds ?? b?.ids ?? null;
-    if (Array.isArray(ids) && ids.length > 0 && typeof ids[0] === "string") {
-      const supabase = getSupabaseAdmin();
-      const { data, error } = await supabase.from("certificates").select("tenant_id").eq("id", ids[0]).limit(1).maybeSingle();
-      if (!error && data?.tenant_id) return data.tenant_id as string;
+    if (publicId) {
+      const { data } = await supabase.from("certificates").select("tenant_id").eq("public_id", publicId).limit(1).maybeSingle();
+      if (data?.tenant_id) return data.tenant_id as string;
     }
   } catch {}
 
@@ -162,7 +156,7 @@ export async function enforceBilling(
     return json(400, { error: "Missing tenant_id (billing guard)" }, { "x-billing-url": "/admin/billing" });
   }
 
-  const supabase = getSupabaseAdmin();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("tenants")
     .select("plan_tier, is_active, stripe_subscription_id")

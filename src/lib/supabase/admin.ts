@@ -7,5 +7,11 @@ export function createAdminClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-// Backward-compatible export used by older code paths
-export const supabaseAdmin = createAdminClient();
+// Backward-compatible lazy singleton (avoids build-time crash when env vars are missing)
+let _adminInstance: ReturnType<typeof createAdminClient> | null = null;
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createAdminClient>, {
+  get(_target, prop, receiver) {
+    if (!_adminInstance) _adminInstance = createAdminClient();
+    return Reflect.get(_adminInstance, prop, receiver);
+  },
+});

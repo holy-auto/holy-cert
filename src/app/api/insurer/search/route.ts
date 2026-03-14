@@ -24,67 +24,24 @@ export async function GET(req: Request) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { data, error } = await supabase.rpc("insurer_search_certificates", {
+  const rpcParams: Record<string, unknown> = {
     p_query: q,
     p_limit: limit,
     p_offset: offset,
     p_ip: ip,
     p_user_agent: ua,
-  });
+  };
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-
-  let rows: any[] = data ?? [];
-
-  // Post-RPC filtering for status, date_from, date_to
-  // (applied here for RPC compatibility — no DB migration required)
-  if (status) {
-    const s = status.toLowerCase();
-    rows = rows.filter((r: any) => {
-      const rowStatus = String(
-        r?.status ??
-        r?.latest_active_certificate_status ??
-        r?.latest_certificate_status ??
-        r?.certificate_status ??
-        ""
-      ).toLowerCase();
-      return rowStatus === s;
-    });
-  }
-
-  if (dateFrom) {
-    const from = new Date(dateFrom);
-    if (!Number.isNaN(from.getTime())) {
-      rows = rows.filter((r: any) => {
-        const createdAt = String(
-          r?.created_at ??
-          r?.latest_active_certificate_created_at ??
-          r?.latest_certificate_created_at ??
-          ""
-        );
-        if (!createdAt) return true;
-        return new Date(createdAt) >= from;
-      });
-    }
-  }
-
+  if (status) rpcParams.p_status = status;
+  if (dateFrom) rpcParams.p_date_from = new Date(dateFrom).toISOString();
   if (dateTo) {
-    // Include the full dateTo day (end of day)
     const to = new Date(dateTo);
     to.setHours(23, 59, 59, 999);
-    if (!Number.isNaN(to.getTime())) {
-      rows = rows.filter((r: any) => {
-        const createdAt = String(
-          r?.created_at ??
-          r?.latest_active_certificate_created_at ??
-          r?.latest_certificate_created_at ??
-          ""
-        );
-        if (!createdAt) return true;
-        return new Date(createdAt) <= to;
-      });
-    }
+    rpcParams.p_date_to = to.toISOString();
   }
 
-  return NextResponse.json({ rows });
+  const { data, error } = await supabase.rpc("insurer_search_certificates", rpcParams);
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  return NextResponse.json({ rows: data ?? [] });
 }

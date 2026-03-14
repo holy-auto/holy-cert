@@ -1,13 +1,33 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const service = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+let _anon: SupabaseClient | null = null;
+export function getSupabaseAnon(): SupabaseClient {
+  if (!_anon) {
+    _anon = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+  }
+  return _anon;
+}
 
-export const supabaseAnon = createClient(url, anon, {
-  auth: { persistSession: false },
+let _service: SupabaseClient | null = null;
+export function getSupabaseService(): SupabaseClient {
+  if (!_service) {
+    _service = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } },
+    );
+  }
+  return _service;
+}
+
+// Backward-compatible lazy singletons
+export const supabaseAnon: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_t, p, r) { return Reflect.get(getSupabaseAnon(), p, r); },
 });
-
-export const supabaseService = createClient(url, service, {
-  auth: { persistSession: false },
+export const supabaseService: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_t, p, r) { return Reflect.get(getSupabaseService(), p, r); },
 });
