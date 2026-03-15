@@ -38,7 +38,7 @@ export default async function Page({
     .limit(1)
     .single();
 
-  if (!mem) return <main className="p-6 text-primary">tenant_memberships が見つかりません。</main>;
+  if (!mem) return <div className="text-sm text-muted">tenant_memberships が見つかりません。</div>;
   const tenantId = mem.tenant_id as string;
 
   const { data: tenantRow } = await supabase
@@ -55,7 +55,7 @@ export default async function Page({
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
-  if (tplErr) return <main className="p-6 text-primary">テンプレ読み込みエラー: {tplErr.message}</main>;
+  if (tplErr) return <div className="text-sm text-red-500">テンプレ読み込みエラー: {tplErr.message}</div>;
 
   // 顧客一覧を取得
   const { data: customers } = await supabase
@@ -163,7 +163,7 @@ export default async function Page({
   }
 
   return (
-    <main className="p-6 max-w-2xl space-y-4">
+    <div className="space-y-4">
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-primary">新規発行（テンプレ）</h1>
@@ -327,6 +327,6 @@ export default async function Page({
 
         <button className="btn-primary w-full">発行</button>
       </form>
-    </main>
+    </div>
   );
 }

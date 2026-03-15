@@ -51,9 +51,9 @@ export default async function Page({ params }: PageProps) {
   const tenantId = await getMyTenantId(supabase);
   if (!tenantId) {
     return (
-      <main className="p-6 text-primary">
+      <div className="text-sm text-muted">
         tenant_memberships が見つかりません。あなたのユーザーを tenant に紐付けてください。
-      </main>
+      </div>
     );
   }
 
@@ -116,8 +116,7 @@ export default async function Page({ params }: PageProps) {
   );
 
   return (
-    <main className="min-h-screen bg-base p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
         <PageHeader
           tag="CERTIFICATE DETAIL"
           title="証明書詳細"
@@ -320,7 +319,6 @@ export default async function Page({ params }: PageProps) {
             </section>
           </aside>
         </div>
-      </div>
-    </main>
+    </div>
   );
 }

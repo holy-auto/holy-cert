@@ -48,7 +48,7 @@ export default async function AdminSettingsPage() {
     .single();
 
   if (!membership?.tenant_id) {
-    return <main className="p-6 text-sm text-neutral-600">tenant が見つかりません。</main>;
+    return <div className="text-sm text-muted">tenant が見つかりません。</div>;
   }
   const tenantId = membership.tenant_id as string;
 
@@ -59,7 +59,7 @@ export default async function AdminSettingsPage() {
     .single();
 
   if (error || !tenant) {
-    return <main className="p-6 text-sm text-red-700">テナント情報の取得に失敗しました。</main>;
+    return <div className="text-sm text-red-500">テナント情報の取得に失敗しました。</div>;
   }
 
   const name = (tenant.name as string | null) ?? "";
@@ -84,8 +84,7 @@ export default async function AdminSettingsPage() {
   const columnsExist = !detectErr || !detectErr.message.includes("does not exist");
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-6">
-      <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
 
         {/* Header */}
         <header className="flex flex-wrap items-start justify-between gap-4">
@@ -228,7 +227,6 @@ export default async function AdminSettingsPage() {
           </div>
         </section>
 
-      </div>
-    </main>
+    </div>
   );
 }

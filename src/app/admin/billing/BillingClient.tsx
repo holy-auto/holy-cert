@@ -369,7 +369,7 @@ export default function BillingPage() {
   const subOk = sub && !("error" in sub) ? sub : null;
 
   return (
-    <main className="space-y-6">
+    <div className="space-y-6">
       <PageHeader tag="BILLING" title="請求・プラン" />
 
       {status && (
@@ -502,6 +502,6 @@ export default function BillingPage() {
       {!loading && tenant && (
         <PlanSelector currentPlan={tenant.plan_tier} isActive={tenant.is_active === true} />
       )}
-    </main>
+    </div>
   );
 }

@@ -33,7 +33,7 @@ export default async function Page({
     .limit(1)
     .single();
 
-  if (!mem) return <main className="p-6 text-primary">tenant_memberships が見つかりません。</main>;
+  if (!mem) return <div className="text-sm text-muted">tenant_memberships が見つかりません。</div>;
   const tenantId = mem.tenant_id as string;
 
   async function createTemplate(formData: FormData) {
@@ -106,12 +106,12 @@ export default async function Page({
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
-  if (error) return <main className="p-6 text-primary">読み込みエラー: {error.message}</main>;
+  if (error) return <div className="text-sm text-red-500">読み込みエラー: {error.message}</div>;
 
   return (
   <AdminFeatureGuard feature="manage_templates">
 
-    <main className="p-6 space-y-4 max-w-3xl">
+    <div className="space-y-4">
       <header className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-primary">テンプレ管理</h1>
@@ -173,7 +173,7 @@ export default async function Page({
           </tbody>
         </table>
       </div>
-    </main>
+    </div>
 
   </AdminFeatureGuard>
 );

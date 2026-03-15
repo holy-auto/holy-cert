@@ -199,7 +199,7 @@ export default async function AdminHome() {
   }
 
   return (
-    <main className="space-y-6">
+    <div className="space-y-6">
       <PageHeader tag="DASHBOARD" title="ダッシュボード" description="施工証明書の管理状況を一目で確認" />
 
       {/* My Tenant Stats */}
@@ -463,6 +463,6 @@ export default async function AdminHome() {
           </Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

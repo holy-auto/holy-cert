@@ -35,12 +35,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   const tenantId = await getMyTenantId(supabase);
   if (!tenantId) {
     return (
-      <main className="space-y-6">
+      <div className="space-y-6">
         <PageHeader tag="CERTIFICATES" title="管理：証明書一覧" />
         <div className="glass-card p-4 text-sm text-red-500">
           tenant_memberships が見つかりません。あなたのユーザーを tenant に紐付けてください。
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -67,12 +67,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   }
 
   const { data: rows, error } = await query;
-  if (error) return <main className="space-y-6"><div className="text-red-500">読み込みエラー: {error.message}</div></main>;
+  if (error) return <div className="space-y-6"><div className="text-red-500">読み込みエラー: {error.message}</div></div>;
 
   const linkCls = (enabled: boolean) => "text-sm underline " + (enabled ? "text-[#0071e3]" : "opacity-50 text-muted");
 
   return (
-    <main className="space-y-6">
+    <div className="space-y-6">
       {!isActive ? (
         <div className="glass-card p-4 text-sm text-amber-400">
           お支払い停止中のため、一部機能（発行/出力）が制限されています。{" "}
@@ -109,6 +109,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       />
 
       <CertificatesTableClient rows={(rows ?? []) as any} q={q} />
-    </main>
+    </div>
   );
 }

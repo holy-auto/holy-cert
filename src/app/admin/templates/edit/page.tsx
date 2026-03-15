@@ -23,7 +23,7 @@ export default async function Page({
 }) {
   const sp = await searchParams;
   const tid = sp.tid ?? "";
-  if (!tid) return <main className="p-6 text-primary">tid がありません</main>;
+  if (!tid) return <div className="text-sm text-muted">tid がありません</div>;
 
   const supabase = await createSupabaseServerClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -35,7 +35,7 @@ export default async function Page({
     .limit(1)
     .single();
 
-  if (!mem) return <main className="p-6 text-primary">tenant_memberships が見つかりません。</main>;
+  if (!mem) return <div className="text-sm text-muted">tenant_memberships が見つかりません。</div>;
   const tenantId = mem.tenant_id as string;
 
   const { data: tpl, error } = await supabase
@@ -45,7 +45,7 @@ export default async function Page({
     .eq("tenant_id", tenantId)
     .single();
 
-  if (error || !tpl) return <main className="p-6 text-primary">テンプレが見つかりません。</main>;
+  if (error || !tpl) return <div className="text-sm text-red-500">テンプレが見つかりません。</div>;
 
   async function save(formData: FormData) {
     "use server";
@@ -97,7 +97,7 @@ export default async function Page({
   const initialJson = JSON.stringify(safeSchema, null, 2);
 
   return (
-    <main className="p-6 space-y-4 max-w-4xl">
+    <div className="space-y-4">
       <header className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-primary">テンプレ編集（GUI）</h1>
@@ -124,6 +124,6 @@ export default async function Page({
 
         <button className="btn-primary w-full">保存</button>
       </form>
-    </main>
+    </div>
   );
 }

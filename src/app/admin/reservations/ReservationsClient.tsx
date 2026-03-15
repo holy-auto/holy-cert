@@ -328,12 +328,10 @@ export default function ReservationsClient() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-base p-6">
-        <div className="mx-auto max-w-6xl">
-          <PageHeader tag="RESERVATIONS" title="予約管理" />
-          <div className="mt-8 text-center text-sm text-muted">読み込み中...</div>
-        </div>
-      </main>
+      <div className="space-y-6">
+        <PageHeader tag="RESERVATIONS" title="予約管理" />
+        <div className="mt-8 text-center text-sm text-muted">読み込み中...</div>
+      </div>
     );
   }
 
@@ -344,8 +342,7 @@ export default function ReservationsClient() {
   };
 
   return (
-    <main className="min-h-screen bg-base p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
         <PageHeader
           tag="RESERVATIONS"
           title="予約管理"
@@ -707,7 +704,6 @@ export default function ReservationsClient() {
             </div>
           </div>
         )}
-      </div>
-    </main>
+    </div>
   );
 }

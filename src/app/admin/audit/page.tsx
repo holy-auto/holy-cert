@@ -58,7 +58,7 @@ export default async function AdminAuditPage({
     .single();
 
   if (!membership?.tenant_id) {
-    return <main className="p-6 text-sm text-secondary">tenant が見つかりません。</main>;
+    return <div className="text-sm text-muted">tenant が見つかりません。</div>;
   }
   const tenantId = membership.tenant_id as string;
 
@@ -83,7 +83,7 @@ export default async function AdminAuditPage({
   const { data: histories, error } = await query;
 
   if (error) {
-    return <main className="p-6 text-sm text-red-500">エラー: {error.message}</main>;
+    return <div className="text-sm text-red-500">エラー: {error.message}</div>;
   }
 
   // Fetch vehicle names for display
@@ -104,8 +104,7 @@ export default async function AdminAuditPage({
   const rows = histories ?? [];
 
   return (
-    <main className="min-h-screen bg-base p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
 
         <PageHeader
           tag="AUDIT"
@@ -213,7 +212,6 @@ export default async function AdminAuditPage({
           )}
         </section>
 
-      </div>
-    </main>
+    </div>
   );
 }
