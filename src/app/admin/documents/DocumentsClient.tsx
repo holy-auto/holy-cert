@@ -221,7 +221,7 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        tag="DOCUMENTS"
+        tag="帳票"
         title="帳票管理"
         description="見積書・納品書・請求書・領収書などの作成・管理を行います。"
         actions={
@@ -243,12 +243,12 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
           {/* Stats */}
           <section className="grid gap-4 sm:grid-cols-2">
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
               <div className="mt-2 text-2xl font-bold text-primary">{stats.total}</div>
               <div className="mt-1 text-xs text-muted">総帳票数</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">UNPAID</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">未入金</div>
               <div className="mt-2 text-2xl font-bold text-primary">{formatJpy(stats.unpaid_amount)}</div>
               <div className="mt-1 text-xs text-muted">未入金額</div>
             </div>
@@ -295,7 +295,7 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
           {showForm && (
             <section className="glass-card p-5 space-y-4">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">NEW DOCUMENT</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">新規作成</div>
                 <div className="mt-1 text-base font-semibold text-primary">新規帳票作成</div>
               </div>
 
@@ -414,7 +414,7 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
 
               {/* Line Items */}
               <div className="space-y-2">
-                <div className="text-xs font-semibold text-muted tracking-[0.18em]">LINE ITEMS</div>
+                <div className="text-xs font-semibold text-muted tracking-[0.18em]">明細項目</div>
                 {formItems.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                     <div className="col-span-5 space-y-1">
@@ -533,8 +533,7 @@ export default function DocumentsClient({ initialTypeFilter }: { initialTypeFilt
           {/* Document List */}
           <section className="glass-card overflow-hidden">
             <div className="border-b border-border-subtle p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">DOCUMENT LIST</div>
-              <div className="mt-1 text-base font-semibold text-primary">帳票一覧</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">帳票一覧</div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">

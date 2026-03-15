@@ -215,7 +215,7 @@ export default function MenuItemsClient() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        tag="MENU ITEMS"
+        tag="品目管理"
         title="品目マスタ"
         description="帳票で使用する品目・メニューの管理"
         actions={
@@ -246,7 +246,7 @@ export default function MenuItemsClient() {
           {/* Stats */}
           <section className="grid gap-4 sm:grid-cols-3">
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">REGISTERED</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">登録数</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.stats.total}</div>
               <div className="mt-1 text-xs text-muted">登録品目数</div>
             </div>
@@ -262,7 +262,7 @@ export default function MenuItemsClient() {
           {showCsv && (
             <section className="glass-card p-5 space-y-4">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">CSV IMPORT</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">CSV取込</div>
                 <div className="mt-1 text-base font-semibold text-primary">CSVインポート</div>
               </div>
               <div className="text-xs text-muted">
@@ -319,7 +319,7 @@ export default function MenuItemsClient() {
           {showForm && (
             <section className="glass-card p-5 space-y-4">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">NEW ITEM</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">新規登録</div>
                 <div className="mt-1 text-base font-semibold text-primary">新規品目登録</div>
               </div>
 
@@ -393,7 +393,7 @@ export default function MenuItemsClient() {
           {/* Items List */}
           <section className="glass-card overflow-hidden">
             <div className="border-b border-border-subtle p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">ITEM LIST</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">品目一覧</div>
               <div className="mt-1 text-base font-semibold text-primary">品目一覧</div>
             </div>
             <div className="overflow-x-auto">

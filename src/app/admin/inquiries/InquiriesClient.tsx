@@ -173,7 +173,7 @@ export default function InquiriesClient() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        tag="INQUIRIES"
+        tag="問い合わせ"
         title="問い合わせ管理"
         description="バイヤーからの問い合わせを管理します。"
       />
@@ -205,7 +205,7 @@ export default function InquiriesClient() {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">INQUIRY LIST</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">問い合わせ一覧</div>
                 <div className="mt-1 text-base font-semibold text-primary">問い合わせ一覧</div>
               </div>
               <div className="text-sm text-muted">{inquiries.length} 件</div>

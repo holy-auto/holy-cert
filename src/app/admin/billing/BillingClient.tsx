@@ -57,7 +57,7 @@ function PlanSelector({ currentPlan, isActive }: { currentPlan: string | null; i
 
   return (
     <section className="space-y-4">
-      <div className="text-xs font-semibold tracking-[0.18em] text-muted">PLANS</div>
+      <div className="text-xs font-semibold tracking-[0.18em] text-muted">プラン選択</div>
       {error && <div className="text-sm text-red-500">{error}</div>}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {PLANS.map((plan) => {
@@ -369,8 +369,8 @@ export default function BillingPage() {
   const subOk = sub && !("error" in sub) ? sub : null;
 
   return (
-    <main className="space-y-6">
-      <PageHeader tag="BILLING" title="請求・プラン" />
+    <div className="space-y-6">
+      <PageHeader tag="課金管理" title="請求・プラン" />
 
       {status && (
         <div className={`glass-card p-4 text-sm ${status === "success" ? "text-[#0071e3] glow-cyan" : "text-amber-400 glow-amber"}`}>
@@ -404,11 +404,11 @@ export default function BillingPage() {
         </div>
       )}
 
-      {loading && <div className="text-sm text-muted">Loading…</div>}
+      {loading && <div className="text-sm text-muted">読み込み中…</div>}
 
       {err && (
         <div className="glass-card p-4 text-sm">
-          <div className="font-semibold text-red-500">Error</div>
+          <div className="font-semibold text-red-500">エラー</div>
           <div className="mt-1 whitespace-pre-wrap text-red-500">{err}</div>
         </div>
       )}
@@ -484,12 +484,12 @@ export default function BillingPage() {
 
           <div className="pt-3 flex gap-3 flex-wrap">
             <button className="btn-secondary" onClick={openPortal} disabled={portalBusy}>
-              {portalBusy ? "Opening…" : "請求ポータル（プラン変更）"}
+              {portalBusy ? "処理中…" : "請求ポータル（プラン変更）"}
             </button>
 
             {tenant.is_active === false && (
               <button className="btn-primary" onClick={resumeCheckout} disabled={resumeBusy}>
-                {resumeBusy ? "Redirecting…" : "支払いを再開"}
+                {resumeBusy ? "リダイレクト中…" : "支払いを再開"}
               </button>
             )}
           </div>
@@ -502,6 +502,6 @@ export default function BillingPage() {
       {!loading && tenant && (
         <PlanSelector currentPlan={tenant.plan_tier} isActive={tenant.is_active === true} />
       )}
-    </main>
+    </div>
   );
 }

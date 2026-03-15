@@ -167,7 +167,7 @@ export default function CustomersClient() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        tag="CUSTOMERS"
+        tag="顧客管理"
         title="顧客管理"
         description="顧客情報の登録・編集・検索を行います。"
         actions={
@@ -189,17 +189,17 @@ export default function CustomersClient() {
           {/* Stats */}
           <section className="grid gap-4 sm:grid-cols-3">
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.stats.total}</div>
               <div className="mt-1 text-xs text-muted">総顧客数</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">THIS MONTH</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">今月</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.stats.this_month_new}</div>
               <div className="mt-1 text-xs text-muted">今月の新規</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">CERTIFICATES</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">証明書</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.stats.linked_certificates}</div>
               <div className="mt-1 text-xs text-muted">紐付き証明書</div>
             </div>
@@ -208,7 +208,7 @@ export default function CustomersClient() {
           {/* Search */}
           <section className="glass-card p-5">
             <div className="flex gap-3 items-end flex-wrap">
-              <div className="flex-1 min-w-[220px] space-y-1">
+              <div className="flex-1 min-w-0 space-y-1">
                 <label className="text-xs text-muted">検索（名前・メール・電話番号）</label>
                 <input
                   type="text"
@@ -240,7 +240,7 @@ export default function CustomersClient() {
           {showForm && (
             <section className="glass-card p-5 space-y-4">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">NEW CUSTOMER</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">新規登録</div>
                 <div className="mt-1 text-base font-semibold text-primary">新規顧客登録</div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -338,7 +338,7 @@ export default function CustomersClient() {
           {editingId && (
             <section className="glass-card glow-cyan p-5 space-y-4">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">EDIT CUSTOMER</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">編集</div>
                 <div className="mt-1 text-base font-semibold text-primary">顧客情報を編集</div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -429,17 +429,16 @@ export default function CustomersClient() {
           {/* Customer List */}
           <section className="glass-card overflow-hidden">
             <div className="border-b border-border-subtle p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">CUSTOMER LIST</div>
-              <div className="mt-1 text-base font-semibold text-primary">顧客一覧</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">顧客一覧</div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-surface-hover">
                   <tr>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">顧客名</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">フリガナ</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">メール</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">電話番号</th>
+                    <th className="hidden sm:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">フリガナ</th>
+                    <th className="hidden md:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">メール</th>
+                    <th className="hidden md:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">電話番号</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">証明書</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">登録日</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
@@ -456,9 +455,9 @@ export default function CustomersClient() {
                           {c.name}
                         </Link>
                       </td>
-                      <td className="px-5 py-3.5 text-secondary">{c.name_kana ?? "-"}</td>
-                      <td className="px-5 py-3.5 text-secondary">{c.email ?? "-"}</td>
-                      <td className="px-5 py-3.5 text-secondary">{c.phone ?? "-"}</td>
+                      <td className="hidden sm:table-cell px-5 py-3.5 text-secondary">{c.name_kana ?? "-"}</td>
+                      <td className="hidden md:table-cell px-5 py-3.5 text-secondary">{c.email ?? "-"}</td>
+                      <td className="hidden md:table-cell px-5 py-3.5 text-secondary">{c.phone ?? "-"}</td>
                       <td className="px-5 py-3.5">
                         <Badge variant={c.certificates_count > 0 ? "info" : "default"}>
                           {c.certificates_count}

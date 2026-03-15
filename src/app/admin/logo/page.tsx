@@ -19,7 +19,7 @@ export default async function Page({
     .limit(1)
     .single();
 
-  if (!mem) return <main className="p-6 text-primary">tenant_memberships が見つかりません。</main>;
+  if (!mem) return <div className="text-sm text-muted">tenant_memberships が見つかりません。</div>;
 
   const tenantId = mem.tenant_id as string;
 
@@ -56,7 +56,7 @@ if (file.size > 2 * 1024 * 1024) redirect("/admin/logo?e=size"); // 2MB上限
   return (
   <AdminFeatureGuard feature={FEATURES.upload_logo}>
 
-    <main className="p-6 max-w-xl space-y-4">
+    <div className="space-y-4">
       <h1 className="text-2xl font-bold text-primary">ロゴアップロード</h1>
       <p className="text-sm text-muted">tenant: <span className="font-mono">{tenantId}</span></p>
 
@@ -69,7 +69,7 @@ if (file.size > 2 * 1024 * 1024) redirect("/admin/logo?e=size"); // 2MB上限
         <input type="file" name="file" accept="image/png" className="text-sm text-primary file:btn-secondary file:mr-3" required />
         <button className="btn-primary w-full">アップロード</button>
       </form>
-    </main>
+    </div>
 
   </AdminFeatureGuard>
 );

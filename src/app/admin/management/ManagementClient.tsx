@@ -189,7 +189,7 @@ export default function ManagementClient() {
       {/* Header */}
       <div className="space-y-1">
         <span className="text-[11px] font-medium tracking-[0.12em] text-secondary uppercase">
-          MANAGEMENT KPIs
+          管理KPI
         </span>
         <h1 className="text-[28px] font-semibold tracking-tight text-primary leading-tight">
           経営ダッシュボード

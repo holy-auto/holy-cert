@@ -25,9 +25,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const tenantId = await getMyTenantId(supabase);
   if (!tenantId) {
     return (
-      <main className="space-y-6">
+      <div className="space-y-6">
         <div className="glass-card p-4 text-sm text-red-500">テナントが見つかりません。</div>
-      </main>
+      </div>
     );
   }
 
@@ -40,11 +40,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   if (invErr || !invoice) {
     return (
-      <main className="space-y-6">
+      <div className="space-y-6">
         <PageHeader tag="INVOICES" title="請求書詳細" />
         <div className="glass-card p-4 text-sm text-red-500">請求書が見つかりません。</div>
         <Link href="/admin/invoices" className="text-sm underline text-[#0071e3]">一覧に戻る</Link>
-      </main>
+      </div>
     );
   }
 
@@ -67,7 +67,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     .single();
 
   return (
-    <main className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
         tag="INVOICES"
         title="請求書詳細"
@@ -77,6 +77,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       />
 
       <InvoiceDetailClient invoice={invoice} customerName={customerName} tenant={tenant} />
-    </main>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 
 import { formatDateTime } from "@/lib/format";
 import AdminFeatureGuard from "@/app/admin/AdminFeatureGuard";
+import PageHeader from "@/components/ui/PageHeader";
 const DEFAULT_SCHEMA = {
   version: 1,
   sections: [
@@ -33,7 +34,7 @@ export default async function Page({
     .limit(1)
     .single();
 
-  if (!mem) return <main className="p-6 text-primary">tenant_memberships が見つかりません。</main>;
+  if (!mem) return <div className="text-sm text-muted">tenant_memberships が見つかりません。</div>;
   const tenantId = mem.tenant_id as string;
 
   async function createTemplate(formData: FormData) {
@@ -106,24 +107,22 @@ export default async function Page({
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
-  if (error) return <main className="p-6 text-primary">読み込みエラー: {error.message}</main>;
+  if (error) return <div className="text-sm text-red-500">読み込みエラー: {error.message}</div>;
 
   return (
   <AdminFeatureGuard feature="manage_templates">
 
-    <main className="p-6 space-y-4 max-w-3xl">
-      <header className="flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">テンプレ管理</h1>
-          <p className="text-sm text-muted">
-            tenant: <span className="font-mono">{tenantId}</span>
-          </p>
-        </div>
-        <div className="flex gap-3 text-sm">
-          <Link className="underline text-[#0071e3] hover:text-[#0077ED]" href="/admin/certificates/new">発行</Link>
-          <Link className="underline text-[#0071e3] hover:text-[#0077ED]" href="/admin/certificates">証明書一覧</Link>
-        </div>
-      </header>
+    <div className="space-y-4">
+      <PageHeader
+        tag="テンプレート"
+        title="テンプレート管理"
+        actions={
+          <div className="flex gap-3 text-sm">
+            <Link className="btn-secondary" href="/admin/certificates/new">新規発行</Link>
+            <Link className="btn-ghost" href="/admin/certificates">証明書一覧</Link>
+          </div>
+        }
+      />
 
       {sp.ok ? <div className="glass-card p-3 text-sm text-emerald-400">OK</div> : null}
       {sp.e ? <div className="glass-card p-3 text-sm text-red-500">エラー: {sp.e}</div> : null}
@@ -137,14 +136,14 @@ export default async function Page({
         <div className="text-xs text-muted">※ ひな形スキーマで作成します。あとで編集してください。</div>
       </form>
 
-      <div className="border border-border-default rounded-xl overflow-x-auto">
+      <div className="glass-card overflow-hidden">
         <table className="min-w-full text-sm">
-          <thead className="bg-base">
+          <thead className="bg-surface-hover">
             <tr>
-              <th className="text-left p-3 text-secondary">名前</th>
-              <th className="text-left p-3 text-secondary">layout</th>
-              <th className="text-left p-3 text-secondary">作成</th>
-              <th className="text-left p-3 text-secondary">操作</th>
+              <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">名前</th>
+              <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">レイアウト</th>
+              <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">作成日</th>
+              <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -173,7 +172,7 @@ export default async function Page({
           </tbody>
         </table>
       </div>
-    </main>
+    </div>
 
   </AdminFeatureGuard>
 );

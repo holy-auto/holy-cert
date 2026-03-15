@@ -27,9 +27,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const tenantId = await getMyTenantId(supabase);
   if (!tenantId) {
     return (
-      <main className="space-y-6">
+      <div className="space-y-6">
         <div className="glass-card p-4 text-sm text-red-500">テナントが見つかりません。</div>
-      </main>
+      </div>
     );
   }
 
@@ -43,11 +43,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   if (custErr || !customer) {
     return (
-      <main className="space-y-6">
+      <div className="space-y-6">
         <PageHeader tag="CUSTOMERS" title="顧客詳細" />
         <div className="glass-card p-4 text-sm text-red-500">顧客が見つかりません。</div>
         <Link href="/admin/customers" className="text-sm underline text-[#0071e3]">一覧に戻る</Link>
-      </main>
+      </div>
     );
   }
 
@@ -98,7 +98,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   };
 
   return (
-    <main className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
         tag="CUSTOMERS"
         title="顧客詳細"
@@ -219,6 +219,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           </table>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

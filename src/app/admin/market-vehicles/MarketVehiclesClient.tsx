@@ -150,7 +150,7 @@ export default function MarketVehiclesClient() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        tag="MARKET VEHICLES"
+        tag="マーケット"
         title="BtoB在庫管理"
         description="BtoB中古車在庫の登録・管理を行います。"
         actions={
@@ -168,17 +168,17 @@ export default function MarketVehiclesClient() {
           {/* Stats */}
           <section className="grid gap-4 sm:grid-cols-3">
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
               <div className="mt-2 text-2xl font-bold text-primary">{stats.total}</div>
               <div className="mt-1 text-xs text-muted">総車両数</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">LISTED</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">掲載中</div>
               <div className="mt-2 text-2xl font-bold text-primary">{stats.listed}</div>
               <div className="mt-1 text-xs text-muted">掲載中</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">DRAFT</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">下書き</div>
               <div className="mt-2 text-2xl font-bold text-primary">{stats.draft}</div>
               <div className="mt-1 text-xs text-muted">下書き</div>
             </div>
@@ -228,7 +228,7 @@ export default function MarketVehiclesClient() {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">VEHICLE LIST</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">車両一覧</div>
                 <div className="mt-1 text-base font-semibold text-primary">車両一覧</div>
               </div>
               <div className="text-sm text-muted">{vehicles.length} 件</div>

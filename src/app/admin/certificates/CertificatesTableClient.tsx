@@ -152,11 +152,11 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                   onChange={(e) => toggleAll(e.target.checked)}
                 />
               </th>
-              <th className="text-left p-3 text-secondary">作成日時</th>
-              <th className="text-left p-3 text-secondary">public_id</th>
-              <th className="text-left p-3 text-secondary">お客様名</th>
-              <th className="text-left p-3 text-secondary">status</th>
-              <th className="text-left p-3 text-secondary">操作</th>
+              <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">作成日時</th>
+              <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">証明書ID</th>
+              <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">お客様名</th>
+              <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">ステータス</th>
+              <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
             </tr>
           </thead>
 

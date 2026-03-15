@@ -137,7 +137,7 @@ export default function MembersClient() {
 
       {/* Header */}
       <PageHeader
-        tag="MEMBERS"
+        tag="メンバー"
         title="メンバー管理"
         description="テナントに所属するメンバーの追加・削除を行います。"
       />
@@ -154,17 +154,17 @@ export default function MembersClient() {
           {/* Stats */}
           <section className="grid gap-4 sm:grid-cols-3">
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">PLAN</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">プラン</div>
               <div className="mt-2 text-2xl font-bold text-primary">{planLabel(data.plan_tier)}</div>
               <div className="mt-1 text-xs text-muted">現在のプラン</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">MEMBERS</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">メンバー</div>
               <div className="mt-2 text-2xl font-bold text-primary">{data.member_count}</div>
               <div className="mt-1 text-xs text-muted">現在のメンバー数</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">LIMIT</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">上限</div>
               <div className="mt-2 text-2xl font-bold text-primary">{limitLabel}</div>
               <div className="mt-1 text-xs text-muted">メンバー上限</div>
             </div>
@@ -189,11 +189,11 @@ export default function MembersClient() {
           {/* Add member form */}
           <section className="glass-card p-5">
             <div className="mb-4">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">ADD MEMBER</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">追加</div>
               <div className="mt-1 text-base font-semibold text-primary">メンバーを追加</div>
             </div>
             <div className="flex gap-3 items-end flex-wrap">
-              <div className="flex-1 min-w-[220px] space-y-1">
+              <div className="flex-1 min-w-0 w-full sm:w-auto space-y-1">
                 <label className="text-xs text-muted">メールアドレス <span className="text-red-500">*</span></label>
                 <input
                   type="email"
@@ -205,7 +205,7 @@ export default function MembersClient() {
                   className="input-field disabled:opacity-50"
                 />
               </div>
-              <div className="min-w-[160px] space-y-1">
+              <div className="min-w-0 w-full sm:w-auto sm:min-w-[140px] space-y-1">
                 <label className="text-xs text-muted">表示名</label>
                 <input
                   type="text"
@@ -217,7 +217,7 @@ export default function MembersClient() {
                   className="input-field disabled:opacity-50"
                 />
               </div>
-              <div className="min-w-[120px] space-y-1">
+              <div className="min-w-0 w-full sm:w-auto sm:min-w-[110px] space-y-1">
                 <label className="text-xs text-muted">ロール</label>
                 <select
                   value={addRole}
@@ -255,8 +255,7 @@ export default function MembersClient() {
           {/* Member list */}
           <section className="glass-card overflow-hidden">
             <div className="border-b border-border-subtle p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">MEMBER LIST</div>
-              <div className="mt-1 text-base font-semibold text-primary">メンバー一覧</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">メンバー一覧</div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
@@ -265,7 +264,7 @@ export default function MembersClient() {
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">名前</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">メールアドレス</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">ロール</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">追加日</th>
+                    <th className="hidden sm:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">追加日</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
                   </tr>
                 </thead>
@@ -299,7 +298,7 @@ export default function MembersClient() {
                           </select>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap text-secondary">
+                      <td className="hidden sm:table-cell px-5 py-3.5 whitespace-nowrap text-secondary">
                         {formatDate(m.created_at)}
                       </td>
                       <td className="px-5 py-3.5">

@@ -182,7 +182,7 @@ export default function OrdersClient() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        tag="JOB ORDERS"
+        tag="受発注"
         title="受発注管理"
         description="他の施工店との仕事の受発注を管理します。"
         actions={
@@ -338,7 +338,7 @@ export default function OrdersClient() {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">ORDER LIST</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">受発注一覧</div>
                 <div className="mt-1 text-base font-semibold text-primary">受発注一覧</div>
               </div>
               <div className="text-sm text-muted">{orders.length} 件</div>

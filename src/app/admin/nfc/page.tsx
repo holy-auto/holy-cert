@@ -46,7 +46,7 @@ export default async function AdminNfcPage() {
     .single();
 
   if (!membership?.tenant_id) {
-    return <main className="p-6 text-sm text-neutral-600">tenant が見つかりません。</main>;
+    return <div className="text-sm text-muted">tenant が見つかりません。</div>;
   }
   const tenantId = membership.tenant_id as string;
 
@@ -57,7 +57,7 @@ export default async function AdminNfcPage() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return <main className="p-6 text-sm text-red-700">エラー: {error.message}</main>;
+    return <div className="text-sm text-red-500">エラー: {error.message}</div>;
   }
 
   const nfcRows = (rows ?? []) as Array<{
@@ -89,14 +89,13 @@ export default async function AdminNfcPage() {
   const prepared = nfcRows.filter((r) => r.status === "prepared").length;
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <div className="space-y-6">
 
         {/* Header */}
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
-              NFC TAGS
+              NFCタグ
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-neutral-900">NFCタグ管理</h1>
@@ -116,22 +115,22 @@ export default async function AdminNfcPage() {
         {/* Stats */}
         <section className="grid gap-4 sm:grid-cols-4">
           <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">TOTAL</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">合計</div>
             <div className="mt-2 text-2xl font-bold text-neutral-900">{total}</div>
             <div className="mt-1 text-xs text-neutral-500">登録タグ数</div>
           </div>
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-            <div className="text-xs font-semibold tracking-[0.18em] text-emerald-600">ATTACHED</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-emerald-600">紐付済</div>
             <div className="mt-2 text-2xl font-bold text-emerald-700">{attached}</div>
             <div className="mt-1 text-xs text-emerald-600">貼付済み</div>
           </div>
           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-5 shadow-sm">
-            <div className="text-xs font-semibold tracking-[0.18em] text-sky-600">WRITTEN</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-sky-600">書込済</div>
             <div className="mt-2 text-2xl font-bold text-sky-700">{written}</div>
             <div className="mt-1 text-xs text-sky-600">書込済み</div>
           </div>
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-            <div className="text-xs font-semibold tracking-[0.18em] text-amber-600">PREPARED</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-amber-600">準備済</div>
             <div className="mt-2 text-2xl font-bold text-amber-700">{prepared}</div>
             <div className="mt-1 text-xs text-amber-600">未書込み</div>
           </div>
@@ -140,7 +139,7 @@ export default async function AdminNfcPage() {
         {/* Table */}
         <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <div className="p-5 border-b border-neutral-100">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">TAG LIST</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">タグ一覧</div>
             <div className="mt-1 text-base font-semibold text-neutral-900">タグ台帳</div>
           </div>
 
@@ -214,7 +213,6 @@ export default async function AdminNfcPage() {
           )}
         </section>
 
-      </div>
-    </main>
+    </div>
   );
 }

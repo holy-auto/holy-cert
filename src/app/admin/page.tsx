@@ -199,32 +199,32 @@ export default async function AdminHome() {
   }
 
   return (
-    <main className="space-y-6">
-      <PageHeader tag="DASHBOARD" title="ダッシュボード" description="施工証明書の管理状況を一目で確認" />
+    <div className="space-y-6">
+      <PageHeader tag="管理画面" title="ダッシュボード" description="施工証明書の管理状況を一目で確認" />
 
       {/* My Tenant Stats */}
       {stats && (
         <>
           <div>
-            <h2 className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">MY SHOP</h2>
+            <h2 className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">自店舗</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="glass-card p-5">
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
                 <div className="mt-2 text-3xl font-bold text-primary">{stats.totalCerts}</div>
                 <div className="mt-1 text-xs text-muted">施工証明書 総数</div>
               </div>
               <div className="glass-card p-5">
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">ACTIVE</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">有効</div>
                 <div className="mt-2 text-3xl font-bold text-[#28a745]">{stats.activeCerts}</div>
                 <div className="mt-1 text-xs text-muted">有効な施工証明書</div>
               </div>
               <div className="glass-card p-5">
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">VOID</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">無効</div>
                 <div className="mt-2 text-3xl font-bold text-[#d1242f]">{stats.voidCerts}</div>
                 <div className="mt-1 text-xs text-muted">無効の施工証明書</div>
               </div>
               <div className="glass-card p-5">
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">MEMBERS</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">メンバー</div>
                 <div className="mt-2 text-3xl font-bold text-[#0071e3]">{stats.memberCount}</div>
                 <div className="mt-1 text-xs text-muted">チームメンバー</div>
               </div>
@@ -234,17 +234,17 @@ export default async function AdminHome() {
           {/* Reservations & Orders */}
           <div className="grid gap-4 sm:grid-cols-3">
             <Link href="/admin/reservations" className="glass-card p-5 hover:bg-surface-hover transition-colors">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">TODAY</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">本日</div>
               <div className="mt-2 text-2xl font-bold text-[#5856d6]">{stats.todayReservations}</div>
               <div className="mt-1 text-xs text-muted">本日の予約</div>
             </Link>
             <Link href="/admin/reservations" className="glass-card p-5 hover:bg-surface-hover transition-colors">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">IN PROGRESS</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">進行中</div>
               <div className="mt-2 text-2xl font-bold text-[#0071e3]">{stats.activeReservations}</div>
               <div className="mt-1 text-xs text-muted">進行中の予約・作業</div>
             </Link>
             <Link href="/admin/orders" className="glass-card p-5 hover:bg-surface-hover transition-colors">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">ORDERS</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">受発注</div>
               <div className="mt-2 text-2xl font-bold text-[#b35c00]">{stats.activeOrders}</div>
               <div className="mt-1 text-xs text-muted">進行中の受発注</div>
             </Link>
@@ -253,17 +253,17 @@ export default async function AdminHome() {
           {/* Tenant sub-stats */}
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">CUSTOMERS</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">顧客</div>
               <div className="mt-2 text-2xl font-bold text-primary">{stats.customerCount}</div>
               <div className="mt-1 text-xs text-muted">顧客数</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">INVOICES</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">請求書</div>
               <div className="mt-2 text-2xl font-bold text-primary">{stats.invoiceCount}</div>
               <div className="mt-1 text-xs text-muted">請求書数</div>
             </div>
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">UNPAID</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">未回収</div>
               <div className="mt-2 text-2xl font-bold text-[#b35c00]">¥{stats.unpaidAmount.toLocaleString()}</div>
               <div className="mt-1 text-xs text-muted">未回収額</div>
             </div>
@@ -282,7 +282,7 @@ export default async function AdminHome() {
       {/* Platform-wide Stats */}
       {stats && (stats.platformCertStats || stats.categoryStats || stats.insurerCount > 0) && (
         <div>
-          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">PLATFORM OVERVIEW</h2>
+          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">プラットフォーム全体</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.platformCertStats && (
               <>
@@ -299,7 +299,7 @@ export default async function AdminHome() {
               </>
             )}
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">INSURERS</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">保険会社</div>
               <div className="mt-2 text-3xl font-bold text-[#bf5af2]">{stats.insurerCount}</div>
               <div className="mt-1 text-xs text-muted">保険会社数</div>
             </div>
@@ -313,7 +313,7 @@ export default async function AdminHome() {
           {/* 業種別施工店数 */}
           {stats.categoryStats && stats.categoryStats.length > 0 && (
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-1">SHOP CATEGORIES</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-1">業種別</div>
               <div className="text-base font-semibold text-primary mb-4">業種別 施工店数</div>
               <div className="space-y-3">
                 {stats.categoryStats.map((cat: any) => {
@@ -341,7 +341,7 @@ export default async function AdminHome() {
           {/* 地域別 */}
           {stats.regionalStats && stats.regionalStats.length > 0 && (
             <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-1">REGIONS</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-1">地域別</div>
               <div className="text-base font-semibold text-primary mb-4">地域別 施工店数</div>
               <div className="space-y-3">
                 {stats.regionalStats.slice(0, 10).map((reg: any) => {
@@ -370,7 +370,7 @@ export default async function AdminHome() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-sm font-semibold tracking-[0.18em] text-muted mb-3">QUICK ACTIONS</h2>
+        <h2 className="text-sm font-semibold tracking-[0.18em] text-muted mb-3">クイックアクション</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link
             href="/admin/certificates"
@@ -383,7 +383,7 @@ export default async function AdminHome() {
             </span>
             <div>
               <div className="text-sm font-semibold text-primary group-hover:text-[#0077ED] transition-colors">証明書一覧</div>
-              <div className="text-xs text-muted">Certificates</div>
+              <div className="text-xs text-muted">証明書の管理・検索</div>
             </div>
           </Link>
 
@@ -398,7 +398,7 @@ export default async function AdminHome() {
             </span>
             <div>
               <div className="text-sm font-semibold text-primary group-hover:text-[#28a745] transition-colors">新規発行</div>
-              <div className="text-xs text-muted">New Certificate</div>
+              <div className="text-xs text-muted">施工証明書を発行</div>
             </div>
           </Link>
 
@@ -413,7 +413,7 @@ export default async function AdminHome() {
             </span>
             <div>
               <div className="text-sm font-semibold text-primary group-hover:text-[#0077ED] transition-colors">顧客管理</div>
-              <div className="text-xs text-muted">Customers</div>
+              <div className="text-xs text-muted">顧客情報の登録・編集</div>
             </div>
           </Link>
 
@@ -428,7 +428,7 @@ export default async function AdminHome() {
             </span>
             <div>
               <div className="text-sm font-semibold text-primary group-hover:text-[#b35c00] transition-colors">請求書</div>
-              <div className="text-xs text-muted">Invoices</div>
+              <div className="text-xs text-muted">請求書の作成・管理</div>
             </div>
           </Link>
 
@@ -443,7 +443,7 @@ export default async function AdminHome() {
             </span>
             <div>
               <div className="text-sm font-semibold text-primary group-hover:text-[#b35c00] transition-colors">請求・プラン</div>
-              <div className="text-xs text-muted">Billing</div>
+              <div className="text-xs text-muted">課金状況の確認</div>
             </div>
           </Link>
 
@@ -458,11 +458,11 @@ export default async function AdminHome() {
             </span>
             <div>
               <div className="text-sm font-semibold text-primary group-hover:text-[#0077ED] transition-colors">テンプレート</div>
-              <div className="text-xs text-muted">Templates</div>
+              <div className="text-xs text-muted">証明書テンプレートの管理</div>
             </div>
           </Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

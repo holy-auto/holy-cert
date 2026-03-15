@@ -66,7 +66,7 @@ export default function PriceStatsClient() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        tag="PRICE ANALYTICS"
+        tag="価格分析"
         title="施工価格の相場"
         description="全国の施工店から収集した施工価格データをもとに、地域ごとの相場を表示します。"
       />
@@ -78,7 +78,7 @@ export default function PriceStatsClient() {
         <>
           {/* Overall */}
           <div>
-            <h2 className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">OVERALL</h2>
+            <h2 className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">全体</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="glass-card p-5">
                 <div className="text-xs font-semibold tracking-[0.18em] text-muted">データ数</div>
@@ -135,7 +135,7 @@ export default function PriceStatsClient() {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">REGIONAL PRICING</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">地域別価格</div>
                 <div className="mt-1 text-base font-semibold text-primary">都道府県別 施工価格相場</div>
               </div>
               <div className="text-sm text-muted">{displayed.length} 都道府県</div>

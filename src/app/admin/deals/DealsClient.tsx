@@ -178,7 +178,7 @@ export default function DealsClient() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        tag="DEALS"
+        tag="取引"
         title="商談管理"
         description="商談の進捗を管理します。"
       />
@@ -210,7 +210,7 @@ export default function DealsClient() {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">DEAL LIST</div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">取引一覧</div>
                 <div className="mt-1 text-base font-semibold text-primary">商談一覧</div>
               </div>
               <div className="text-sm text-muted">{deals.length} 件</div>

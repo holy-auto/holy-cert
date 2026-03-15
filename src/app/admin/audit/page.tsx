@@ -58,7 +58,7 @@ export default async function AdminAuditPage({
     .single();
 
   if (!membership?.tenant_id) {
-    return <main className="p-6 text-sm text-secondary">tenant が見つかりません。</main>;
+    return <div className="text-sm text-muted">tenant が見つかりません。</div>;
   }
   const tenantId = membership.tenant_id as string;
 
@@ -83,7 +83,7 @@ export default async function AdminAuditPage({
   const { data: histories, error } = await query;
 
   if (error) {
-    return <main className="p-6 text-sm text-red-500">エラー: {error.message}</main>;
+    return <div className="text-sm text-red-500">エラー: {error.message}</div>;
   }
 
   // Fetch vehicle names for display
@@ -104,11 +104,10 @@ export default async function AdminAuditPage({
   const rows = histories ?? [];
 
   return (
-    <main className="min-h-screen bg-base p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
 
         <PageHeader
-          tag="AUDIT"
+          tag="監査ログ"
           title="操作履歴"
           description="車両・証明書に関する操作履歴を時系列で表示します。"
           actions={
@@ -124,12 +123,12 @@ export default async function AdminAuditPage({
         {/* Stats */}
         <section className="grid gap-4 sm:grid-cols-2">
           <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">TOTAL EVENTS</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計イベント</div>
             <div className="mt-2 text-2xl font-bold text-primary">{rows.length}</div>
             <div className="mt-1 text-xs text-muted">直近 200 件を表示</div>
           </div>
           <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">CERTIFICATES ISSUED</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">発行済証明書</div>
             <div className="mt-2 text-2xl font-bold text-primary">
               {rows.filter((r) => r.type === "certificate_issued").length}
             </div>
@@ -139,7 +138,7 @@ export default async function AdminAuditPage({
 
         {/* Filters */}
         <section className="glass-card p-5">
-          <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">FILTER</div>
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">フィルター</div>
           <form className="flex gap-3 items-end flex-wrap">
             <div className="min-w-[160px] space-y-1">
               <label className="text-xs text-muted">イベントタイプ</label>
@@ -166,7 +165,7 @@ export default async function AdminAuditPage({
         {/* Log list */}
         <section className="glass-card">
           <div className="p-5 border-b border-border-subtle">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">EVENTS</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">イベント</div>
             <div className="mt-1 text-base font-semibold text-primary">操作イベント一覧</div>
           </div>
 
@@ -213,7 +212,6 @@ export default async function AdminAuditPage({
           )}
         </section>
 
-      </div>
-    </main>
+    </div>
   );
 }

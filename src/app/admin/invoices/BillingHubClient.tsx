@@ -153,8 +153,8 @@ export default function BillingHubClient() {
     <div className="mx-auto max-w-4xl space-y-6">
       {/* Header */}
       <div className="space-y-1">
-        <span className="text-[11px] font-medium tracking-[0.12em] text-secondary uppercase">
-          BILLING & DOCUMENTS
+        <span className="text-[11px] font-medium tracking-[0.12em] text-secondary">
+          請求・帳票
         </span>
         <h1 className="text-[28px] font-semibold tracking-tight text-primary leading-tight">
           請求・帳票管理

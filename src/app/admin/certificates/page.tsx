@@ -5,6 +5,7 @@ import CertificatesTableClient from "./CertificatesTableClient";
 import { canUseFeature } from "@/lib/billing/planFeatures";
 import { buildBillingDenyUrl } from "@/lib/billing/billingRedirect";
 import PageHeader from "@/components/ui/PageHeader";
+import { escapeIlike } from "@/lib/sanitize";
 
 type SearchParams = { q?: string };
 
@@ -34,12 +35,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   const tenantId = await getMyTenantId(supabase);
   if (!tenantId) {
     return (
-      <main className="space-y-6">
+      <div className="space-y-6">
         <PageHeader tag="CERTIFICATES" title="管理：証明書一覧" />
         <div className="glass-card p-4 text-sm text-red-500">
           tenant_memberships が見つかりません。あなたのユーザーを tenant に紐付けてください。
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -60,15 +61,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (q) query = query.or(`public_id.ilike.%${q}%,customer_name.ilike.%${q}%`);
+  if (q) {
+    const sq = escapeIlike(q);
+    query = query.or(`public_id.ilike.%${sq}%,customer_name.ilike.%${sq}%`);
+  }
 
   const { data: rows, error } = await query;
-  if (error) return <main className="space-y-6"><div className="text-red-500">読み込みエラー: {error.message}</div></main>;
+  if (error) return <div className="space-y-6"><div className="text-red-500">読み込みエラー: {error.message}</div></div>;
 
   const linkCls = (enabled: boolean) => "text-sm underline " + (enabled ? "text-[#0071e3]" : "opacity-50 text-muted");
 
   return (
-    <main className="space-y-6">
+    <div className="space-y-6">
       {!isActive ? (
         <div className="glass-card p-4 text-sm text-amber-400">
           お支払い停止中のため、一部機能（発行/出力）が制限されています。{" "}
@@ -79,13 +83,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       ) : null}
 
       <PageHeader
-        tag="CERTIFICATES"
-        title="管理：証明書一覧"
+        tag="証明書管理"
+        title="証明書一覧"
         description={`tenant: ${tenantId} / 最新50件`}
         actions={
           <div className="flex gap-3 items-center flex-wrap">
             <form className="flex gap-2" action="/admin/certificates" method="get">
-              <input name="q" defaultValue={q} placeholder="検索（ID / 名前）" className="input-field w-64" />
+              <input name="q" defaultValue={q} placeholder="検索（ID / 名前）" className="input-field w-full sm:w-64" />
               <button className="btn-secondary">検索</button>
               <Link className="text-sm underline self-center text-muted hover:text-primary" href="/admin/certificates">
                 クリア
@@ -105,6 +109,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       />
 
       <CertificatesTableClient rows={(rows ?? []) as any} q={q} />
-    </main>
+    </div>
   );
 }

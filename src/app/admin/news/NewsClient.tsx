@@ -102,7 +102,7 @@ export default function NewsClient() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader
-        tag="INDUSTRY NEWS"
+        tag="業界ニュース"
         title="業界ニュース"
         description={`自動車業界の最新ニュースをRSSフィードから自動取得（${feedCount}サイト・保存済み${savedCount}件）毎朝7時に自動収集`}
       />

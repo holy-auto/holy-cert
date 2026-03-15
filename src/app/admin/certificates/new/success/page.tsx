@@ -16,7 +16,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   const qr = pid ? await qrSvgDataUrl(fullUrl) : "";
 
   return (
-    <main className="p-6 max-w-xl space-y-4">
+    <div className="space-y-4">
       <h1 className="text-2xl font-bold text-primary">発行完了</h1>
 
       {pid ? (
@@ -40,6 +40,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
         <Link className="underline text-[#0071e3] hover:text-[#0077ED]" href="/admin/certificates/new">続けて発行</Link>
         <Link className="underline text-[#0071e3] hover:text-[#0077ED]" href="/admin/certificates">一覧へ</Link>
       </div>
-    </main>
+    </div>
   );
 }

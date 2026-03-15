@@ -4,6 +4,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import SettingsForm from "./SettingsForm";
 import FollowUpSettings from "./FollowUpSettings";
+import PageHeader from "@/components/ui/PageHeader";
 import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +49,7 @@ export default async function AdminSettingsPage() {
     .single();
 
   if (!membership?.tenant_id) {
-    return <main className="p-6 text-sm text-neutral-600">tenant が見つかりません。</main>;
+    return <div className="text-sm text-muted">tenant が見つかりません。</div>;
   }
   const tenantId = membership.tenant_id as string;
 
@@ -59,7 +60,7 @@ export default async function AdminSettingsPage() {
     .single();
 
   if (error || !tenant) {
-    return <main className="p-6 text-sm text-red-700">テナント情報の取得に失敗しました。</main>;
+    return <div className="text-sm text-red-500">テナント情報の取得に失敗しました。</div>;
   }
 
   const name = (tenant.name as string | null) ?? "";
@@ -84,94 +85,71 @@ export default async function AdminSettingsPage() {
   const columnsExist = !detectErr || !detectErr.message.includes("does not exist");
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-6">
-      <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
 
-        {/* Header */}
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-3">
-            <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
-              SETTINGS
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">テナント設定</h1>
-              <p className="mt-2 text-sm text-neutral-600">
-                店舗情報の編集・プラン確認を行います。
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/admin"
-            className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-          >
-            ダッシュボード
-          </Link>
-        </header>
+        <PageHeader
+          tag="設定"
+          title="テナント設定"
+          description="店舗情報の編集・プラン確認を行います。"
+          actions={
+            <Link href="/admin" className="btn-secondary">ダッシュボード</Link>
+          }
+        />
 
         {/* Plan info */}
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <section className="glass-card p-5">
           <div className="mb-4">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">PLAN</div>
-            <div className="mt-1 text-base font-semibold text-neutral-900">プラン情報</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">プラン</div>
+            <div className="mt-1 text-base font-semibold text-primary">プラン情報</div>
           </div>
           <div className="grid gap-4 sm:grid-cols-3 text-sm">
-            <div className="rounded-xl bg-neutral-50 p-4">
-              <div className="text-xs text-neutral-500">現在のプラン</div>
-              <div className="mt-1 font-semibold text-neutral-900 uppercase">{planTier}</div>
+            <div className="glass-card p-4">
+              <div className="text-xs text-muted">現在のプラン</div>
+              <div className="mt-1 font-semibold text-primary uppercase">{planTier}</div>
             </div>
-            <div className="rounded-xl bg-neutral-50 p-4">
-              <div className="text-xs text-neutral-500">ロゴ設定</div>
-              <div className={`mt-1 font-semibold ${hasLogo ? "text-emerald-700" : "text-amber-600"}`}>
+            <div className="glass-card p-4">
+              <div className="text-xs text-muted">ロゴ設定</div>
+              <div className={`mt-1 font-semibold ${hasLogo ? "text-emerald-400" : "text-amber-400"}`}>
                 {hasLogo ? "設定済み" : "未設定"}
               </div>
             </div>
-            <div className="rounded-xl bg-neutral-50 p-4">
-              <div className="text-xs text-neutral-500">テナントID</div>
-              <div className="mt-1 font-mono text-[11px] text-neutral-500 break-all">{tenantId.slice(0, 16)}…</div>
+            <div className="glass-card p-4">
+              <div className="text-xs text-muted">テナントID</div>
+              <div className="mt-1 font-mono text-[11px] text-muted break-all">{tenantId.slice(0, 16)}…</div>
             </div>
           </div>
           <div className="mt-4 flex gap-3">
-            <Link
-              href="/admin/billing"
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-            >
-              プラン・請求管理
-            </Link>
-            <Link
-              href="/admin/logo"
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-            >
-              ロゴを設定
-            </Link>
+            <Link href="/admin/billing" className="btn-secondary">プラン・請求管理</Link>
+            <Link href="/admin/logo" className="btn-secondary">ロゴを設定</Link>
           </div>
         </section>
 
         {/* Migration notice if columns missing */}
         {!columnsExist && (
-          <section className="rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
+          <section className="glass-card glow-amber p-5">
             <div className="mb-3">
-              <div className="text-xs font-semibold tracking-[0.18em] text-amber-600">DB MIGRATION REQUIRED</div>
-              <div className="mt-1 text-base font-semibold text-amber-900">住所・連絡先項目を有効にするには</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-amber-400">マイグレーション必要</div>
+              <div className="mt-1 text-base font-semibold text-primary">住所・連絡先項目を有効にするには</div>
             </div>
-            <p className="text-sm text-amber-800 mb-3">
+            <p className="text-sm text-secondary mb-3">
               Supabase SQL Editor で以下を実行してください：
             </p>
-            <pre className="rounded-xl bg-amber-900 px-4 py-3 text-xs text-amber-100 overflow-x-auto whitespace-pre-wrap">{`ALTER TABLE tenants
+            <pre className="rounded-xl bg-surface px-4 py-3 text-xs text-secondary overflow-x-auto whitespace-pre-wrap">{`ALTER TABLE tenants
   ADD COLUMN IF NOT EXISTS contact_email text,
   ADD COLUMN IF NOT EXISTS contact_phone text,
   ADD COLUMN IF NOT EXISTS address       text,
   ADD COLUMN IF NOT EXISTS website_url   text;`}</pre>
-            <p className="mt-2 text-xs text-amber-700">
-              SQL Editor: <a href="https://supabase.com/dashboard/project/cahybswpduchptvyvdkk/sql/new" target="_blank" rel="noreferrer" className="underline">supabase.com/dashboard/project/cahybswpduchptvyvdkk/sql/new</a>
+            <p className="mt-2 text-xs text-muted">
+              SQL Editor: <a href="https://supabase.com/dashboard/project/cahybswpduchptvyvdkk/sql/new" target="_blank" rel="noreferrer" className="underline text-[#0071e3]">supabase.com/dashboard/project/cahybswpduchptvyvdkk/sql/new</a>
             </p>
           </section>
         )}
 
         {/* Tenant info form */}
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <section className="glass-card p-5">
           <div className="mb-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">SHOP INFO</div>
-            <div className="mt-1 text-base font-semibold text-neutral-900">店舗情報</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">店舗情報</div>
+            <div className="mt-1 text-base font-semibold text-primary">店舗情報</div>
           </div>
 
           <SettingsForm
@@ -191,44 +169,38 @@ export default async function AdminSettingsPage() {
         </section>
 
         {/* Follow-up settings */}
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <section className="glass-card p-5">
           <div className="mb-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">FOLLOW-UP</div>
-            <div className="mt-1 text-base font-semibold text-neutral-900">顧客フォロー設定</div>
-            <p className="mt-1 text-xs text-neutral-500">有効期限リマインダーや施工後フォローの自動送信を設定します。</p>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">フォロー</div>
+            <div className="mt-1 text-base font-semibold text-primary">顧客フォロー設定</div>
+            <p className="mt-1 text-xs text-muted">有効期限リマインダーや施工後フォローの自動送信を設定します。</p>
           </div>
           <FollowUpSettings />
         </section>
 
         {/* Account info */}
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <section className="glass-card p-5">
           <div className="mb-4">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">ACCOUNT</div>
-            <div className="mt-1 text-base font-semibold text-neutral-900">アカウント情報</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">アカウント</div>
+            <div className="mt-1 text-base font-semibold text-primary">アカウント情報</div>
           </div>
-          <div className="space-y-2 text-sm text-neutral-600">
+          <div className="space-y-2 text-sm text-secondary">
             <div className="flex items-center gap-2">
-              <span className="text-neutral-500">ログイン中:</span>
-              <span className="font-medium text-neutral-900">{user.email ?? user.id}</span>
+              <span className="text-muted">ログイン中:</span>
+              <span className="font-medium text-primary">{user.email ?? user.id}</span>
             </div>
             {createdAt && (
               <div className="flex items-center gap-2">
-                <span className="text-neutral-500">テナント作成日:</span>
+                <span className="text-muted">テナント作成日:</span>
                 <span>{formatDate(createdAt)}</span>
               </div>
             )}
           </div>
           <div className="mt-4">
-            <Link
-              href="/api/auth/signout"
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-            >
-              ログアウト
-            </Link>
+            <Link href="/api/auth/signout" className="btn-secondary">ログアウト</Link>
           </div>
         </section>
 
-      </div>
-    </main>
+    </div>
   );
 }
