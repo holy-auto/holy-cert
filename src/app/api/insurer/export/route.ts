@@ -16,11 +16,7 @@ function getClientMeta(req: Request) {
   return { ip, ua };
 }
 
-import { enforceBilling } from "@/lib/billing/guard";
-
 export async function GET(req: Request) {
-  const deny = await enforceBilling(req, { minPlan: "pro", action: "insurer_export" });
-  if (deny) return deny as any;
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
 

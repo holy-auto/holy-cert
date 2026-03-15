@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { formatDateTime } from "@/lib/format";
+import { CertificateStatusBadge } from "@/components/StatusBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -10,45 +11,19 @@ function first(v: string | string[] | undefined): string {
   return Array.isArray(v) ? String(v[0] ?? "") : String(v ?? "");
 }
 
-function asText(v: unknown): string {
-  if (v == null) return "";
-  return String(v);
-}
-
-function asNumber(v: unknown): number {
-  const n = Number(v ?? 0);
-  return Number.isFinite(n) ? n : 0;
-}
-
-
 async function getRequestInfo() {
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "http";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const cookie = h.get("cookie") ?? "";
-  return {
-    baseUrl: `${proto}://${host}`,
-    cookie,
-  };
+  return { baseUrl: `${proto}://${host}`, cookie };
 }
 
 async function fetchSearch(sp: Record<string, string | string[] | undefined>) {
   const { baseUrl, cookie } = await getRequestInfo();
   const qs = new URLSearchParams();
 
-  const keys = [
-    "q",
-    "status",
-    "public_id",
-    "plate",
-    "plate_display",
-    "customer_name",
-    "model",
-    "maker",
-    "vin"
-  ] as const;
-
-  for (const key of keys) {
+  for (const key of ["q", "status", "date_from", "date_to"] as const) {
     const value = first(sp[key]).trim();
     if (value) qs.set(key, value);
   }
@@ -60,116 +35,22 @@ async function fetchSearch(sp: Record<string, string | string[] | undefined>) {
     headers: cookie ? { cookie } : undefined,
   });
 
-  const rawText = await res.text();
-
   let json: any = {};
   try {
-    json = rawText ? JSON.parse(rawText) : {};
+    json = await res.json();
   } catch {
-    json = { error: rawText || "invalid_json" };
+    json = { error: "invalid_json" };
   }
-
-  const rows = Array.isArray(json?.rows)
-    ? json.rows
-    : Array.isArray(json)
-      ? json
-      : [];
 
   return {
     ok: res.ok,
     status: res.status,
-    rows,
+    rows: (Array.isArray(json?.rows) ? json.rows : []) as any[],
     raw: json,
   };
 }
 
-function getRowPublicId(row: any): string {
-  return asText(
-    row?.latest_active_certificate_public_id ??
-    row?.latest_certificate_public_id ??
-    row?.public_id ??
-    row?.certificate_public_id ??
-    row?.c_public_id ??
-    row?.pid
-  );
-}
-
-function getRowVehiclePublicId(row: any): string {
-  return asText(
-    row?.vehicle_public_id ??
-    row?.v_public_id ??
-    row?.vehicle_pid
-  );
-}
-
-function getRowStatus(row: any): string {
-  return asText(
-    row?.latest_active_certificate_status ??
-    row?.latest_certificate_status ??
-    row?.status ??
-    row?.certificate_status ??
-    row?.c_status
-  ) || "-";
-}
-
-function getRowCustomer(row: any): string {
-  return asText(
-    row?.latest_active_certificate_customer_name ??
-    row?.latest_certificate_customer_name ??
-    row?.customer_name ??
-    row?.certificate_customer_name ??
-    row?.vehicle_customer_name
-  ) || "-";
-}
-
-function getRowModel(row: any): string {
-  return asText(
-    row?.vehicle_model ??
-    row?.model ??
-    row?.latest_certificate_vehicle_model
-  ) || "-";
-}
-
-function getRowPlate(row: any): string {
-  return asText(
-    row?.vehicle_plate_display ??
-    row?.vehicle_plate ??
-    row?.plate_display ??
-    row?.plate ??
-    row?.latest_certificate_plate_display
-  ) || "-";
-}
-
-function getRowCreatedAt(row: any): string {
-  return asText(
-    row?.latest_active_certificate_created_at ??
-    row?.latest_certificate_created_at ??
-    row?.created_at ??
-    row?.certificate_created_at
-  );
-}
-
-function getRowImageCount(row: any): number {
-  return asNumber(
-    row?.latest_active_image_count ??
-    row?.latest_certificate_image_count ??
-    row?.image_count ??
-    row?.images_count ??
-    row?.attached_image_count
-  );
-}
-
-function getRowLatestImageUrl(row: any): string {
-  return asText(
-    row?.latest_active_image_url ??
-    row?.latest_certificate_image_url ??
-    row?.latest_image_url ??
-    row?.image_url ??
-    row?.latest_signed_image_url
-  );
-}
-
-export default async function Page({
+export default async function InsurerSearchPage({
   searchParams,
 }: {
   searchParams: SearchParams;
@@ -177,9 +58,18 @@ export default async function Page({
   const sp = await searchParams;
   const q = first(sp.q).trim();
   const status = first(sp.status).trim();
+  const dateFrom = first(sp.date_from).trim();
+  const dateTo = first(sp.date_to).trim();
 
   const result = await fetchSearch(sp);
-  const rows = result.rows as any[];
+  const rows = result.rows;
+
+  const exportQs = new URLSearchParams();
+  if (q) exportQs.set("q", q);
+  if (status) exportQs.set("status", status);
+  if (dateFrom) exportQs.set("date_from", dateFrom);
+  if (dateTo) exportQs.set("date_to", dateTo);
+  const exportUrl = `/api/insurer/export${exportQs.toString() ? `?${exportQs.toString()}` : ""}`;
 
   return (
     <main className="min-h-screen bg-neutral-50 p-6">
@@ -187,14 +77,14 @@ export default async function Page({
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
-              INSURER SEARCH
+              INSURER PORTAL
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-                保険会社検索
+                証明書検索
               </h1>
               <p className="mt-2 text-sm text-neutral-600">
-                必ず <span className="font-mono">/api/insurer/search</span> を経由して検索結果を表示します。
+                施工証明書を public_id・顧客名・車両で検索します。
               </p>
             </div>
           </div>
@@ -204,169 +94,161 @@ export default async function Page({
               href="/insurer"
               className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
             >
-              保険会社TOPへ
+              ダッシュボード
             </Link>
           </div>
         </header>
 
+        {/* Search Form */}
         <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <form action="/insurer/search" method="get" className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_120px]">
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder="public_id / 顧客名 / ナンバー / 車種"
-              className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-3 text-sm"
-            />
+          <div className="mb-3">
+            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">SEARCH</div>
+            <div className="mt-1 text-base font-semibold text-neutral-900">証明書を検索</div>
+          </div>
+          <form action="/insurer/search" method="get" className="space-y-3">
+            <div className="flex gap-3">
+              <input
+                name="q"
+                defaultValue={q}
+                placeholder="public_id / 顧客名 / 車両型式 / ナンバー / 施工店名"
+                className="flex-1 rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              />
+              <button type="submit" className="btn-primary px-4 py-2.5">
+                検索
+              </button>
+              <a
+                href={exportUrl}
+                className="rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              >
+                CSV
+              </a>
+            </div>
 
-            <select
-              name="status"
-              defaultValue={status}
-              className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-3 text-sm"
-            >
-              <option value="">全ステータス</option>
-              <option value="active">active</option>
-              <option value="void">void</option>
-            </select>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <select
+                name="status"
+                defaultValue={status}
+                className="rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              >
+                <option value="">全ステータス</option>
+                <option value="active">有効 (active)</option>
+                <option value="void">無効 (void)</option>
+                <option value="expired">期限切れ (expired)</option>
+              </select>
 
-            <button
-              type="submit"
-              className="btn-primary px-4 py-3"
-            >
-              検索
-            </button>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-neutral-500 whitespace-nowrap">FROM</span>
+                <input
+                  type="date"
+                  name="date_from"
+                  defaultValue={dateFrom}
+                  className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-neutral-500 whitespace-nowrap">TO</span>
+                <input
+                  type="date"
+                  name="date_to"
+                  defaultValue={dateTo}
+                  className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                />
+              </div>
+            </div>
           </form>
         </section>
 
-        {!result.ok ? (
+        {/* Error */}
+        {!result.ok && (
           <section className="rounded-2xl border border-red-300 bg-red-50 p-5 shadow-sm">
             <div className="text-lg font-semibold text-red-700">検索APIエラー</div>
             <div className="mt-2 text-sm text-red-700">HTTP {result.status}</div>
             <pre className="mt-3 overflow-x-auto rounded-xl bg-red-100 p-4 text-xs text-red-900">
-{JSON.stringify(result.raw, null, 2)}
+              {JSON.stringify(result.raw, null, 2)}
             </pre>
           </section>
-        ) : null}
+        )}
 
-        <section className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">RESULTS</div>
-            <div className="mt-2 text-2xl font-bold text-neutral-900">{rows.length}</div>
-          </div>
-
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">QUERY</div>
-            <div className="mt-2 text-sm font-medium text-neutral-900">{q || "-"}</div>
-          </div>
-
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">STATUS FILTER</div>
-            <div className="mt-2 text-sm font-medium text-neutral-900">{status || "-"}</div>
-          </div>
-
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">SOURCE</div>
-            <div className="mt-2 text-sm font-medium text-neutral-900">/api/insurer/search</div>
-          </div>
-        </section>
-
+        {/* Results */}
         <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="mb-4">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">SEARCH RESULT TABLE</div>
-            <div className="mt-1 text-lg font-semibold text-neutral-900">検索結果</div>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">RESULTS</div>
+              <div className="mt-1 text-base font-semibold text-neutral-900">検索結果</div>
+            </div>
+            {rows.length > 0 && (
+              <div className="text-sm text-neutral-500">
+                <span className="font-semibold text-neutral-900">{rows.length}</span> 件
+              </div>
+            )}
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-neutral-200">
             <table className="min-w-full text-sm">
               <thead className="bg-neutral-50">
                 <tr>
-                  <th className="p-3 text-left">作成日時</th>
-                  <th className="p-3 text-left">public_id</th>
-                  <th className="p-3 text-left">状態</th>
-                  <th className="p-3 text-left">顧客名</th>
-                  <th className="p-3 text-left">車種</th>
-                  <th className="p-3 text-left">ナンバー</th>
-                  <th className="p-3 text-left">画像</th>
-                  <th className="p-3 text-left">操作</th>
+                  <th className="p-3 text-left font-semibold text-neutral-600">証明書 ID</th>
+                  <th className="p-3 text-left font-semibold text-neutral-600">顧客名</th>
+                  <th className="p-3 text-left font-semibold text-neutral-600">車両</th>
+                  <th className="p-3 text-left font-semibold text-neutral-600">施工店</th>
+                  <th className="p-3 text-left font-semibold text-neutral-600">ステータス</th>
+                  <th className="p-3 text-left font-semibold text-neutral-600">作成日時</th>
+                  <th className="p-3 text-left font-semibold text-neutral-600">操作</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, idx) => {
-                  const publicId = getRowPublicId(row);
-                  const vehiclePublicId = getRowVehiclePublicId(row);
-                  const imageCount = getRowImageCount(row);
-                  const latestImageUrl = getRowLatestImageUrl(row);
-                  const statusText = getRowStatus(row);
-                  const isVoid = statusText.toLowerCase() === "void";
-                  const hasCertificate = !!publicId;
+                {rows.map((row: any, idx: number) => {
+                  const publicId = row.public_id ?? "";
+                  const vehicleModel = row.vehicle_model ?? row.vehicle_info_json?.model ?? "";
+                  const vehiclePlate = row.vehicle_plate ?? row.vehicle_info_json?.plate ?? row.vehicle_info_json?.plate_display ?? "";
 
                   return (
-                    <tr key={`${publicId || vehiclePublicId || "row"}_${idx}`} className="border-t align-top">
-                      <td className="p-3 whitespace-nowrap">{formatDateTime(getRowCreatedAt(row))}</td>
-                      <td className="p-3 font-mono">
-                        {publicId || <span className="text-xs text-neutral-500">証明書未発行</span>}
+                    <tr key={`${publicId}_${idx}`} className="border-t hover:bg-neutral-50">
+                      <td className="p-3 font-mono text-xs text-neutral-700">{publicId || "-"}</td>
+                      <td className="p-3 font-medium text-neutral-900">{row.customer_name || "-"}</td>
+                      <td className="p-3 text-neutral-600">
+                        {[vehicleModel, vehiclePlate].filter(Boolean).join(" / ") || "-"}
+                      </td>
+                      <td className="p-3 text-neutral-600">{row.tenant_name || "-"}</td>
+                      <td className="p-3">
+                        <CertificateStatusBadge status={row.status ?? ""} />
+                      </td>
+                      <td className="p-3 whitespace-nowrap text-neutral-600">
+                        {formatDateTime(row.created_at)}
                       </td>
                       <td className="p-3">
-                        {hasCertificate ? (
-                          <span className={isVoid ? "text-red-700" : "text-emerald-700"}>
-                            {isVoid ? "無効の施工証明書" : statusText === "active" ? "有効な施工証明書" : statusText}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-neutral-500">-</span>
-                        )}
-                      </td>
-                      <td className="p-3">{getRowCustomer(row)}</td>
-                      <td className="p-3">{getRowModel(row)}</td>
-                      <td className="p-3">{getRowPlate(row)}</td>
-                      <td className="p-3">
-                        <div className="space-y-2">
-                          <div>{imageCount}枚</div>
-                          {latestImageUrl ? (
-                            <a href={latestImageUrl} target="_blank" rel="noreferrer">
-                              <img
-                                src={latestImageUrl}
-                                alt={publicId ? `${publicId}_latest_image` : "latest_image"}
-                                className="h-20 w-28 rounded-lg border border-neutral-200 bg-white object-cover"
-                              />
-                            </a>
-                          ) : (
-                            <div className="text-xs text-neutral-500">画像URLなし</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        {hasCertificate ? (
-                          <div className="flex flex-col gap-2">
-                            <Link
-                              href={`/insurer/certificate/${encodeURIComponent(publicId)}`}
-                              className="underline"
+                        {publicId ? (
+                          <div className="flex gap-2">
+                            <a
+                              href={`/insurer/c/${encodeURIComponent(publicId)}`}
+                              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
                             >
                               詳細
-                            </Link>
-                            <Link
+                            </a>
+                            <a
                               href={`/c/${encodeURIComponent(publicId)}`}
                               target="_blank"
-                              className="underline"
+                              rel="noreferrer"
+                              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
                             >
-                              公開ページ
-                            </Link>
+                              公開
+                            </a>
                           </div>
                         ) : (
-                          <span className="text-xs text-neutral-500">
-                            車両一致のみ
-                          </span>
+                          <span className="text-xs text-neutral-500">-</span>
                         )}
                       </td>
                     </tr>
                   );
                 })}
-
-                {rows.length === 0 ? (
+                {rows.length === 0 && (
                   <tr>
-                    <td className="p-6 text-neutral-500" colSpan={8}>
-                      該当なし
+                    <td colSpan={7} className="p-8 text-center text-sm text-neutral-500">
+                      {q ? `「${q}」に一致する証明書が見つかりません。` : "検索キーワードを入力して検索してください。"}
                     </td>
                   </tr>
-                ) : null}
+                )}
               </tbody>
             </table>
           </div>
@@ -375,5 +257,3 @@ export default async function Page({
     </main>
   );
 }
-
-

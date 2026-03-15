@@ -1,7 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { logInsurerAccess } from "@/lib/insurer/audit";
-
 export const runtime = "nodejs";
 
 /**
@@ -27,35 +25,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data: cert, error } = await sb
-    .from("certificates")
-    .select("*")
-    .eq("public_id", pid)
-    .maybeSingle();
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const ua = req.headers.get("user-agent") ?? null;
+
+  // RPC経由で証明書を取得（SECURITY DEFINER でテナント RLS をバイパス）
+  const { data, error } = await sb.rpc("insurer_get_certificate", {
+    p_public_id: pid,
+    p_ip: ip,
+    p_user_agent: ua,
+  });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  const cert = Array.isArray(data) ? data[0] : null;
   if (!cert) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  const ua = req.headers.get("user-agent") ?? null;
-
-  try {
-    await logInsurerAccess({
-      action: "view",
-      certificateId: cert.id,
-      meta: { route: "GET /api/insurer/certificate?pid", public_id: pid },
-      ip,
-      userAgent: ua,
-    });
-  } catch {
-    // 監査ログ失敗は閲覧をブロックしない
-  }
+  // RPC内部で監査ログ記録済みのため、ここでは不要
 
   return NextResponse.json({ certificate: cert });
 }

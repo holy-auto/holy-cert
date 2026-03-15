@@ -1,31 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { CertificateStatusBadge } from "@/components/StatusBadge";
+import { CertificateStatusBadge, CaseStatusBadge } from "@/components/StatusBadge";
 import { formatDateTime } from "@/lib/format";
+import InsurerDashboardCharts from "./InsurerDashboardCharts";
+import type { InsurerDashboardStats } from "@/types/insurer";
 
-type Row = {
-  public_id: string;
-  status: string;
-  customer_name: string;
-  vehicle_model: string;
-  vehicle_plate: string;
-  created_at: string;
-  tenant_id: string;
-};
-
-export default function InsurerHomePage() {
+export default function InsurerDashboardPage() {
   const supabase = useMemo(() => createClient(), []);
   const [ready, setReady] = useState(false);
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [rows, setRows] = useState<Row[]>([]);
+  const [stats, setStats] = useState<InsurerDashboardStats | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const billingBusy = false;
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -35,48 +23,29 @@ export default function InsurerHomePage() {
         return;
       }
       setReady(true);
+      // ダッシュボードデータ取得
+      try {
+        const res = await fetch("/api/insurer/dashboard", { cache: "no-store" });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j?.error ?? "dashboard_failed");
+        }
+        const data = await res.json();
+        setStats(data);
+      } catch (e: any) {
+        setErr(e?.message ?? "dashboard_failed");
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [supabase]);
-
-  const runSearch = async () => {
-    setBusy(true);
-    setErr(null);
-    try {
-      const qs = new URLSearchParams({ limit: "50", offset: "0" });
-      if (q) qs.set("q", q);
-      if (status) qs.set("status", status);
-      if (dateFrom) qs.set("date_from", dateFrom);
-      if (dateTo) qs.set("date_to", dateTo);
-      const res = await fetch(`/api/insurer/search?${qs.toString()}`, { cache: "no-store" });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j?.error ?? "search_failed");
-      setRows(j?.rows ?? []);
-    } catch (e: any) {
-      setErr(e?.message ?? "search_failed");
-      setRows([]);
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const onLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/insurer/login";
   };
 
-  const startCheckout = async () => {
-    // 保険会社向け Stripe checkout は未実装（insurer_id と Stripe の紐づけ設計が必要）
-    setErr("サブスク契約機能は現在準備中です。");
-  };
-
   if (!ready) return null;
-
-  const exportQs = new URLSearchParams();
-  if (q) exportQs.set("q", q);
-  if (status) exportQs.set("status", status);
-  if (dateFrom) exportQs.set("date_from", dateFrom);
-  if (dateTo) exportQs.set("date_to", dateTo);
-  const exportUrl = `/api/insurer/export${exportQs.toString() ? `?${exportQs.toString()}` : ""}`;
 
   return (
     <main className="min-h-screen bg-neutral-50 p-6">
@@ -90,22 +59,27 @@ export default function InsurerHomePage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-                証明書検索
+                ダッシュボード
               </h1>
               <p className="mt-2 text-sm text-neutral-600">
-                保険会社ポータル — 施工証明書を public_id・顧客名・車両で検索します。
+                保険会社ポータル — 閲覧状況・アクティビティの概要
               </p>
             </div>
           </div>
 
           <div className="flex gap-3 items-center">
-            <button
-              onClick={startCheckout}
-              disabled={billingBusy}
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-40"
+            <Link
+              href="/insurer/cases"
+              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
             >
-              {billingBusy ? "..." : "サブスク契約/更新"}
-            </button>
+              案件管理
+            </Link>
+            <Link
+              href="/insurer/search"
+              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            >
+              証明書検索
+            </Link>
             <button
               onClick={onLogout}
               className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
@@ -115,139 +89,218 @@ export default function InsurerHomePage() {
           </div>
         </header>
 
-        {/* Search bar */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="mb-3">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">SEARCH</div>
-            <div className="mt-1 text-base font-semibold text-neutral-900">証明書を検索</div>
+        {err && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {err}
           </div>
-          <div className="space-y-3">
-            {/* キーワード行 */}
-            <div className="flex gap-3">
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && runSearch()}
-                placeholder="public_id / 顧客名 / 車両型式 / ナンバー"
-                className="flex-1 rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-400"
-              />
-              <button
-                onClick={runSearch}
-                disabled={busy}
-                className="btn-primary disabled:opacity-50"
-              >
-                {busy ? "検索中..." : "検索"}
-              </button>
-              <a
-                href={exportUrl}
-                className="rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-              >
-                CSV
-              </a>
-            </div>
+        )}
 
-            {/* フィルタ行 */}
-            <div className="grid gap-3 sm:grid-cols-3">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
-              >
-                <option value="">全ステータス</option>
-                <option value="active">有効 (active)</option>
-                <option value="void">無効 (void)</option>
-              </select>
+        {loading && (
+          <div className="text-center py-12 text-neutral-500">読み込み中...</div>
+        )}
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-neutral-500 whitespace-nowrap">FROM</span>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
-                />
+        {/* KPI Cards */}
+        {stats && (
+          <>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">TOTAL VIEWS</div>
+                <div className="mt-2 text-3xl font-bold text-[#bf5af2]">{stats.total_views.toLocaleString()}</div>
+                <div className="mt-1 text-xs text-neutral-500">累計閲覧数</div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-neutral-500 whitespace-nowrap">TO</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
-                />
+              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">UNIQUE CERTS</div>
+                <div className="mt-2 text-3xl font-bold text-[#0071e3]">{stats.unique_certs.toLocaleString()}</div>
+                <div className="mt-1 text-xs text-neutral-500">閲覧済み証明書数</div>
+              </div>
+              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">THIS MONTH</div>
+                <div className="mt-2 text-3xl font-bold text-[#30d158]">{stats.month_actions.toLocaleString()}</div>
+                <div className="mt-1 text-xs text-neutral-500">今月のアクション数</div>
               </div>
             </div>
-          </div>
 
-          {err && (
-            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {err}
-            </div>
-          )}
-        </div>
+            {/* Charts */}
+            <InsurerDashboardCharts
+              recentActivity={stats.recent_activity}
+              actionBreakdown={stats.action_breakdown}
+            />
 
-        {/* Results */}
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">RESULTS</div>
-              <div className="mt-1 text-base font-semibold text-neutral-900">検索結果</div>
-            </div>
-            {rows.length > 0 && (
-              <div className="text-sm text-neutral-500">
-                <span className="font-semibold text-neutral-900">{rows.length}</span> 件
-              </div>
-            )}
-          </div>
+            {/* Case Overview KPIs */}
+            {stats.case_stats && (
+              <>
+                <div className="mt-2">
+                  <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500 mb-3">CASE OVERVIEW</div>
+                  <div className="grid gap-4 sm:grid-cols-4">
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                      <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">ACTIVE</div>
+                      <div className="mt-2 text-3xl font-bold text-[#bf5af2]">{stats.case_stats.active}</div>
+                      <div className="mt-1 text-xs text-neutral-500">対応中</div>
+                    </div>
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                      <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">PENDING</div>
+                      <div className="mt-2 text-3xl font-bold text-[#0071e3]">{stats.case_stats.pending_review}</div>
+                      <div className="mt-1 text-xs text-neutral-500">確認待ち</div>
+                    </div>
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                      <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">INFO REQ</div>
+                      <div className="mt-2 text-3xl font-bold text-[#ff9f0a]">{stats.case_stats.info_requested}</div>
+                      <div className="mt-1 text-xs text-neutral-500">情報依頼</div>
+                    </div>
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                      <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">RESOLVED</div>
+                      <div className="mt-2 text-3xl font-bold text-[#30d158]">{stats.case_stats.resolved}</div>
+                      <div className="mt-1 text-xs text-neutral-500">解決済み</div>
+                    </div>
+                  </div>
+                </div>
 
-          <div className="overflow-x-auto rounded-xl border border-neutral-200">
-            <table className="min-w-full text-sm">
-              <thead className="bg-neutral-50">
-                <tr>
-                  <th className="p-3 text-left font-semibold text-neutral-600">証明書 ID</th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">顧客名</th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">車両</th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">ステータス</th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">作成日時</th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.public_id} className="border-t hover:bg-neutral-50">
-                    <td className="p-3 font-mono text-xs text-neutral-700">{r.public_id}</td>
-                    <td className="p-3 font-medium text-neutral-900">{r.customer_name}</td>
-                    <td className="p-3 text-neutral-600">
-                      {[r.vehicle_model, r.vehicle_plate].filter(Boolean).join(" / ") || "-"}
-                    </td>
-                    <td className="p-3">
-                      <CertificateStatusBadge status={r.status} />
-                    </td>
-                    <td className="p-3 whitespace-nowrap text-neutral-600">
-                      {formatDateTime(r.created_at)}
-                    </td>
-                    <td className="p-3">
-                      <a
-                        href={`/insurer/c/${encodeURIComponent(r.public_id)}`}
-                        className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+                {/* Active Cases Table */}
+                {stats.active_cases && stats.active_cases.length > 0 && (
+                  <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">ACTIVE CASES</div>
+                        <div className="mt-1 text-base font-semibold text-neutral-900">進行中の案件</div>
+                      </div>
+                      <Link
+                        href="/insurer/cases"
+                        className="text-xs font-medium text-[#bf5af2] hover:underline"
                       >
-                        詳細
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-                {rows.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-sm text-neutral-500">
-                      {q ? `「${q}」に一致する証明書が見つかりません。` : "検索キーワードを入力してください。"}
-                    </td>
-                  </tr>
+                        すべて表示 →
+                      </Link>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-neutral-200">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-neutral-50">
+                          <tr>
+                            <th className="p-3 text-left font-semibold text-neutral-600">案件番号</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">タイトル</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">施工店</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">車両</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">ステータス</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">更新日</th>
+                            <th className="p-3 text-left font-semibold text-neutral-600">操作</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stats.active_cases.map((c) => (
+                            <tr key={c.id} className="border-t hover:bg-neutral-50">
+                              <td className="p-3 font-mono text-xs text-neutral-700">{c.case_number}</td>
+                              <td className="p-3 font-medium text-neutral-900">{c.title}</td>
+                              <td className="p-3 text-neutral-600">{c.tenant_name}</td>
+                              <td className="p-3 text-neutral-600">{c.vehicle_summary || "-"}</td>
+                              <td className="p-3">
+                                <CaseStatusBadge status={c.status} />
+                              </td>
+                              <td className="p-3 whitespace-nowrap text-neutral-600">
+                                {formatDateTime(c.updated_at)}
+                              </td>
+                              <td className="p-3">
+                                <Link
+                                  href={`/insurer/cases/${c.id}`}
+                                  className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+                                >
+                                  詳細
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
                 )}
-              </tbody>
-            </table>
+              </>
+            )}
+
+            {/* Recent Certs */}
+            {stats.recent_certs.length > 0 && (
+              <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                <div className="mb-4">
+                  <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">RECENT</div>
+                  <div className="mt-1 text-base font-semibold text-neutral-900">最近閲覧した証明書</div>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-neutral-200">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-neutral-50">
+                      <tr>
+                        <th className="p-3 text-left font-semibold text-neutral-600">証明書 ID</th>
+                        <th className="p-3 text-left font-semibold text-neutral-600">顧客名</th>
+                        <th className="p-3 text-left font-semibold text-neutral-600">車両</th>
+                        <th className="p-3 text-left font-semibold text-neutral-600">ステータス</th>
+                        <th className="p-3 text-left font-semibold text-neutral-600">閲覧日時</th>
+                        <th className="p-3 text-left font-semibold text-neutral-600">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.recent_certs.map((r) => (
+                        <tr key={r.public_id} className="border-t hover:bg-neutral-50">
+                          <td className="p-3 font-mono text-xs text-neutral-700">{r.public_id}</td>
+                          <td className="p-3 font-medium text-neutral-900">{r.customer_name}</td>
+                          <td className="p-3 text-neutral-600">
+                            {[r.vehicle_info_json?.model, r.vehicle_info_json?.plate ?? r.vehicle_info_json?.plate_display].filter(Boolean).join(" / ") || "-"}
+                          </td>
+                          <td className="p-3">
+                            <CertificateStatusBadge status={r.status} />
+                          </td>
+                          <td className="p-3 whitespace-nowrap text-neutral-600">
+                            {formatDateTime(r.viewed_at)}
+                          </td>
+                          <td className="p-3">
+                            <a
+                              href={`/insurer/c/${encodeURIComponent(r.public_id)}`}
+                              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+                            >
+                              詳細
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+          </>
+        )}
+
+        {/* Quick Actions */}
+        <div>
+          <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500 mb-3">QUICK ACTIONS</div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Link
+              href="/insurer/cases"
+              className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm flex items-center gap-4 hover:bg-neutral-50 transition-colors group"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-[#0071e3]">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+              </span>
+              <div>
+                <div className="text-sm font-semibold text-neutral-900 group-hover:text-[#0071e3] transition-colors">案件管理</div>
+                <div className="text-xs text-neutral-500">Insurance Cases</div>
+              </div>
+            </Link>
+            <Link
+              href="/insurer/search"
+              className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm flex items-center gap-4 hover:bg-neutral-50 transition-colors group"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-[#bf5af2]">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+              </span>
+              <div>
+                <div className="text-sm font-semibold text-neutral-900 group-hover:text-[#bf5af2] transition-colors">証明書検索</div>
+                <div className="text-xs text-neutral-500">Search Certificates</div>
+              </div>
+            </Link>
           </div>
-        </section>
+        </div>
 
       </div>
     </main>

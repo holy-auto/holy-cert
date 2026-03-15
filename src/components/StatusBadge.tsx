@@ -17,6 +17,27 @@ export function CertificateStatusBadge({ status }: { status?: string | null }) {
   );
 }
 
+const CASE_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  draft:          { bg: "bg-neutral-50 border-neutral-200",  text: "text-neutral-500",  label: "下書き" },
+  submitted:      { bg: "bg-blue-50 border-blue-200",        text: "text-blue-700",     label: "提出済み" },
+  under_review:   { bg: "bg-purple-50 border-purple-200",    text: "text-purple-700",   label: "確認中" },
+  info_requested: { bg: "bg-amber-50 border-amber-200",      text: "text-amber-700",    label: "情報依頼" },
+  approved:       { bg: "bg-emerald-50 border-emerald-200",  text: "text-emerald-700",  label: "承認" },
+  rejected:       { bg: "bg-red-50 border-red-200",          text: "text-red-700",      label: "却下" },
+  closed:         { bg: "bg-neutral-50 border-neutral-200",  text: "text-neutral-600",  label: "完了" },
+  cancelled:      { bg: "bg-neutral-50 border-neutral-200",  text: "text-neutral-500",  label: "キャンセル" },
+};
+
+export function CaseStatusBadge({ status }: { status?: string | null }) {
+  const key = String(status ?? "").toLowerCase();
+  const s = CASE_STATUS_STYLES[key] ?? { bg: "bg-neutral-50 border-neutral-200", text: "text-neutral-500", label: status ?? "-" };
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${s.bg} ${s.text}`}>
+      {s.label}
+    </span>
+  );
+}
+
 export function GenericStatusBadge({
   status,
   labelMap,
