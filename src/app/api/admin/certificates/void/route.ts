@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
     // tenant_id で絞ることで他テナントの証明書は操作不可
     const existing = await supabase
       .from("certificates")
-      .select("id, status")
+      .select("id, vehicle_id, status")
       .eq("tenant_id", tenantId)
       .eq("public_id", publicId)
       .limit(1)
@@ -57,6 +58,20 @@ export async function POST(req: Request) {
     if (updateErr) {
       return NextResponse.json({ error: "update_failed", detail: updateErr.message }, { status: 500 });
     }
+
+    // Audit log (fire-and-forget)
+    const { ip, userAgent } = getRequestMeta(req);
+    logCertificateAction({
+      type: "certificate_voided",
+      tenantId,
+      publicId,
+      certificateId: existing.data.id,
+      vehicleId: existing.data.vehicle_id ?? null,
+      userId: userRes.user.id,
+      description: `証明書を無効化 (void)`,
+      ip,
+      userAgent,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {

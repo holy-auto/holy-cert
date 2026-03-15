@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import SettingsForm from "./SettingsForm";
+import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -14,18 +15,22 @@ async function fetchTenantExtended(tenantId: string) {
   try {
     const { data, error } = await admin
       .from("tenants")
-      .select("contact_email,contact_phone,address,website_url")
+      .select("contact_email,contact_phone,address,website_url,registration_number,bank_info,stripe_connect_account_id,stripe_connect_onboarded")
       .eq("id", tenantId)
       .single();
-    if (error) return { contact_email: null, contact_phone: null, address: null, website_url: null };
+    if (error) return { contact_email: null, contact_phone: null, address: null, website_url: null, registration_number: null, bank_info: null, stripe_connect_account_id: null, stripe_connect_onboarded: false };
     return {
       contact_email: (data as any)?.contact_email ?? null,
       contact_phone: (data as any)?.contact_phone ?? null,
       address: (data as any)?.address ?? null,
       website_url: (data as any)?.website_url ?? null,
+      registration_number: (data as any)?.registration_number ?? null,
+      bank_info: (data as any)?.bank_info ?? null,
+      stripe_connect_account_id: (data as any)?.stripe_connect_account_id ?? null,
+      stripe_connect_onboarded: (data as any)?.stripe_connect_onboarded ?? false,
     };
   } catch {
-    return { contact_email: null, contact_phone: null, address: null, website_url: null };
+    return { contact_email: null, contact_phone: null, address: null, website_url: null, registration_number: null, bank_info: null };
   }
 }
 
@@ -174,7 +179,13 @@ export default async function AdminSettingsPage() {
             contactPhone={columnsExist ? ext.contact_phone : null}
             address={columnsExist ? ext.address : null}
             websiteUrl={columnsExist ? ext.website_url : null}
+            registrationNumber={columnsExist ? ext.registration_number : null}
+            bankInfo={columnsExist ? ext.bank_info : null}
             columnsExist={columnsExist}
+            connectStatus={columnsExist ? {
+              accountId: (ext as any).stripe_connect_account_id ?? null,
+              onboarded: (ext as any).stripe_connect_onboarded ?? false,
+            } : null}
           />
         </section>
 
@@ -186,13 +197,13 @@ export default async function AdminSettingsPage() {
           </div>
           <div className="space-y-2 text-sm text-neutral-600">
             <div className="flex items-center gap-2">
-              <span className="text-neutral-400">ログイン中:</span>
+              <span className="text-neutral-500">ログイン中:</span>
               <span className="font-medium text-neutral-900">{user.email ?? user.id}</span>
             </div>
             {createdAt && (
               <div className="flex items-center gap-2">
-                <span className="text-neutral-400">テナント作成日:</span>
-                <span>{new Date(createdAt).toLocaleDateString("ja-JP")}</span>
+                <span className="text-neutral-500">テナント作成日:</span>
+                <span>{formatDate(createdAt)}</span>
               </div>
             )}
           </div>

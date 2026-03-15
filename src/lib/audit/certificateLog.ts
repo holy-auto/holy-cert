@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type CertificateAuditType =
+  | "certificate_issued"
+  | "certificate_voided"
   | "certificate_viewed"
   | "certificate_pdf_generated"
   | "certificate_pdf_batch"
@@ -8,6 +10,8 @@ export type CertificateAuditType =
   | "certificate_public_pdf";
 
 const TITLE_MAP: Record<CertificateAuditType, string> = {
+  certificate_issued: "証明書を発行",
+  certificate_voided: "証明書を無効化",
   certificate_viewed: "証明書を閲覧",
   certificate_pdf_generated: "PDFを生成",
   certificate_pdf_batch: "PDFを一括生成",

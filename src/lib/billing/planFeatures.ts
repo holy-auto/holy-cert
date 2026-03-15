@@ -1,5 +1,6 @@
 ﻿import type { FeatureId } from "@/lib/billing/featureKeys";
-export type PlanTier = "mini" | "standard" | "pro";
+export type { PlanTier } from "@/types/billing";
+import type { PlanTier } from "@/types/billing";
 
 export type FeatureKey = FeatureId;
 

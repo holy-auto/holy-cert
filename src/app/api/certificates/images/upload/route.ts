@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import { CERTIFICATE_IMAGE_BUCKET } from "@/lib/certificateImages";
 import { normalizePlanTier, PHOTO_LIMITS } from "@/lib/billing/planFeatures";

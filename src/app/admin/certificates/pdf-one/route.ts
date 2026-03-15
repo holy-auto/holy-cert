@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { renderCertificatePdf } from "@/lib/pdfCertificate";
 import { checkAdminFeature, billingDenyResponse } from "@/lib/billing/adminFeatureGate";
 import { logCertificateAction } from "@/lib/audit/certificateLog";

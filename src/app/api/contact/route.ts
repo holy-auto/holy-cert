@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/** 遅延初期化: ビルド時に API キーが無くてもクラッシュしない */
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY ?? "");
+}
 
 /** 送信先（問い合わせ受信用アドレス） */
 const TO = process.env.CONTACT_TO_EMAIL ?? "info@cartrust.co.jp";
@@ -49,7 +52,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: FROM,
       to: TO,
       replyTo: email,
