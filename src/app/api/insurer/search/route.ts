@@ -36,52 +36,36 @@ export async function GET(req: Request) {
 
   let rows: any[] = data ?? [];
 
+  // vehicle_info_json を展開してフラットなフィールドにする
+  rows = rows.map((r: any) => ({
+    ...r,
+    vehicle_model: r?.vehicle_info_json?.model ?? "",
+    vehicle_plate: r?.vehicle_info_json?.plate ?? r?.vehicle_info_json?.plate_display ?? "",
+  }));
+
   // Post-RPC filtering for status, date_from, date_to
-  // (applied here for RPC compatibility — no DB migration required)
   if (status) {
     const s = status.toLowerCase();
-    rows = rows.filter((r: any) => {
-      const rowStatus = String(
-        r?.status ??
-        r?.latest_active_certificate_status ??
-        r?.latest_certificate_status ??
-        r?.certificate_status ??
-        ""
-      ).toLowerCase();
-      return rowStatus === s;
-    });
+    rows = rows.filter((r: any) => String(r?.status ?? "").toLowerCase() === s);
   }
 
   if (dateFrom) {
     const from = new Date(dateFrom);
     if (!Number.isNaN(from.getTime())) {
       rows = rows.filter((r: any) => {
-        const createdAt = String(
-          r?.created_at ??
-          r?.latest_active_certificate_created_at ??
-          r?.latest_certificate_created_at ??
-          ""
-        );
-        if (!createdAt) return true;
-        return new Date(createdAt) >= from;
+        if (!r?.created_at) return true;
+        return new Date(r.created_at) >= from;
       });
     }
   }
 
   if (dateTo) {
-    // Include the full dateTo day (end of day)
     const to = new Date(dateTo);
     to.setHours(23, 59, 59, 999);
     if (!Number.isNaN(to.getTime())) {
       rows = rows.filter((r: any) => {
-        const createdAt = String(
-          r?.created_at ??
-          r?.latest_active_certificate_created_at ??
-          r?.latest_certificate_created_at ??
-          ""
-        );
-        if (!createdAt) return true;
-        return new Date(createdAt) <= to;
+        if (!r?.created_at) return true;
+        return new Date(r.created_at) <= to;
       });
     }
   }

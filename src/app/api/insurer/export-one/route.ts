@@ -16,11 +16,7 @@ function getClientMeta(req: Request) {
   return { ip, ua };
 }
 
-import { enforceBilling } from "@/lib/billing/guard";
-
 export async function GET(req: Request) {
-  const deny = await enforceBilling(req, { minPlan: "pro", action: "insurer_export_one" });
-  if (deny) return deny as any;
   const url = new URL(req.url);
   const pid = url.searchParams.get("pid");
   if (!pid) return NextResponse.json({ error: "pid_required" }, { status: 400 });

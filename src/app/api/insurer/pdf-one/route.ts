@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { logInsurerAccess } from "@/lib/insurer/audit";
 import { createClient } from "@/lib/supabase/server";
 import QRCode from "qrcode";
 import React from "react";
@@ -20,11 +19,7 @@ function buildBaseUrl(req: Request) {
   return `${proto}://${host}`;
 }
 
-import { enforceBilling } from "@/lib/billing/guard";
-
 export async function GET(req: Request) {
-  const deny = await enforceBilling(req, { minPlan: "pro", action: "insurer_pdf_one" });
-  if (deny) return deny as any;
   const url = new URL(req.url);
   const pid = url.searchParams.get("pid");
   if (!pid) return NextResponse.json({ error: "pid_required" }, { status: 400 });
@@ -66,22 +61,7 @@ export async function GET(req: Request) {
 
   // ★JSXを使わず createElement
   const docEl = React.createElement(InsurerPdfDoc, { cert, qrDataUrl, publicUrl }) as any;
-  // Resolve certificate_id reliably from pid (public_id)
-  const { data: certIdRow, error: certIdErr } = await supabase
-    .from("certificates")
-    .select("id")
-    .eq("public_id", pid)
-    .maybeSingle();
-  if (certIdErr) throw certIdErr;
-  const certId = certIdRow?.id;
-  if (!certId) return NextResponse.json({ error: "certificate_not_found" }, { status: 404 });
-  await logInsurerAccess({
-    action: "download_pdf",
-    certificateId: certId,
-    meta: { route: "GET /api/insurer/pdf-one", pid },
-    ip,
-    userAgent: ua,
-  });
+  // insurer_audit_log RPC で監査ログ記録済み
   const buffer = await pdf(docEl as any).toBuffer();
 
   const buf = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer as any);
