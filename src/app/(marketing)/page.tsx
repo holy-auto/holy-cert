@@ -21,7 +21,7 @@ export default function HomePage() {
       <Hero />
 
       {/* 課題提起 */}
-      <Section bg="alt">
+      <Section bg="dark-alt">
         <SectionHeading
           title="こんな課題、ありませんか？"
           subtitle="施工証明の管理には、多くの非効率が残されています"
@@ -64,7 +64,7 @@ export default function HomePage() {
       </Section>
 
       {/* CARTRUSTの解決方法 */}
-      <Section>
+      <Section bg="dark">
         <SectionHeading
           title="CARTRUSTが解決します"
           subtitle="デジタル施工証明書で、施工店と保険会社の業務を変えます"
@@ -104,7 +104,7 @@ export default function HomePage() {
       </Section>
 
       {/* 施工店向けメリット */}
-      <Section bg="alt">
+      <Section bg="dark-alt">
         <SectionHeading
           title="施工店の方へ"
           subtitle="業務効率化と顧客満足度の向上を同時に実現します"
@@ -158,7 +158,7 @@ export default function HomePage() {
       </Section>
 
       {/* 保険会社向けメリット */}
-      <Section>
+      <Section bg="dark">
         <SectionHeading
           title="保険会社の方へ"
           subtitle="査定業務の効率化と、施工情報の信頼性向上を支援します"
@@ -208,7 +208,7 @@ export default function HomePage() {
       </Section>
 
       {/* ユースケース */}
-      <Section bg="alt">
+      <Section bg="dark-alt">
         <SectionHeading
           title="ご利用シーン"
           subtitle="さまざまな場面でCARTRUSTをご活用いただけます"
@@ -251,7 +251,7 @@ export default function HomePage() {
       </Section>
 
       {/* 信頼要素 */}
-      <Section>
+      <Section bg="dark">
         <SectionHeading title="多くの企業にご利用いただいています" />
         <StatsRow>
           <StatCard value="500+" label="導入企業数" delay={0} />
@@ -262,7 +262,7 @@ export default function HomePage() {
       </Section>
 
       {/* 料金概要 */}
-      <Section bg="alt">
+      <Section bg="dark-alt">
         <SectionHeading
           title="料金プラン"
           subtitle="シンプルな料金体系で、すぐに始められます"
@@ -316,7 +316,7 @@ export default function HomePage() {
           <p className="text-center mt-8">
             <Link
               href="/pricing"
-              className="text-sm font-medium text-primary hover:underline"
+              className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
             >
               料金の詳細を見る &rarr;
             </Link>
@@ -325,7 +325,7 @@ export default function HomePage() {
       </Section>
 
       {/* FAQ抜粋 */}
-      <Section>
+      <Section bg="dark">
         <SectionHeading title="よくあるご質問" />
         <FAQList>
           <FAQItem
@@ -349,7 +349,7 @@ export default function HomePage() {
           <p className="text-center mt-8">
             <Link
               href="/faq"
-              className="text-sm font-medium text-primary hover:underline"
+              className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
             >
               すべてのFAQを見る &rarr;
             </Link>
