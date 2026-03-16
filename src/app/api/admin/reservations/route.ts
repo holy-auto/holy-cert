@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerBasic } from "@/lib/api/auth";
-import { apiOk, apiUnauthorized, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiOk, apiUnauthorized, apiInternalError, apiValidationError, apiError } from "@/lib/api/response";
 import { reservationCreateSchema, reservationUpdateSchema, reservationDeleteSchema } from "@/lib/validations/reservation";
+import { checkOverlap } from "@/lib/reservations/overlap";
+import { syncCreateEvent, syncUpdateEvent, syncDeleteEvent } from "@/lib/gcal/client";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +109,29 @@ export async function POST(req: NextRequest) {
       return apiValidationError(msg);
     }
 
+    const startTime = (String(body?.start_time ?? "")).trim() || null;
+    const endTime = (String(body?.end_time ?? "")).trim() || null;
+    const assignedUserId = (String(body?.assigned_user_id ?? "")).trim() || null;
+
+    // ── ダブルブッキングチェック ──
+    if (startTime && endTime) {
+      const overlaps = await checkOverlap({
+        tenantId: caller.tenantId,
+        scheduledDate: parsed.data.scheduled_date,
+        startTime,
+        endTime,
+        assignedUserId: assignedUserId ?? undefined,
+      });
+      if (overlaps.length > 0) {
+        return apiError({
+          code: "conflict",
+          message: `時間帯が重複する予約があります: ${overlaps.map(o => o.overlapping_title).join(", ")}`,
+          status: 409,
+          data: { overlaps },
+        });
+      }
+    }
+
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
@@ -116,15 +141,25 @@ export async function POST(req: NextRequest) {
       menu_items_json: body?.menu_items_json ?? [],
       note: (String(body?.note ?? "")).trim() || null,
       scheduled_date: parsed.data.scheduled_date,
-      start_time: (String(body?.start_time ?? "")).trim() || null,
-      end_time: (String(body?.end_time ?? "")).trim() || null,
-      assigned_user_id: (String(body?.assigned_user_id ?? "")).trim() || null,
+      start_time: startTime,
+      end_time: endTime,
+      assigned_user_id: assignedUserId,
       status: "confirmed",
       estimated_amount: parseInt(String(body?.estimated_amount ?? 0), 10) || 0,
     };
 
     const { data, error } = await supabase.from("reservations").insert(row).select().single();
     if (error) return apiInternalError(error, "reservation insert");
+
+    // ── Google Calendar 同期（非ブロッキング） ──
+    syncCreateEvent(caller.tenantId, {
+      id: data.id,
+      title: data.title,
+      scheduled_date: data.scheduled_date,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      note: data.note,
+    }).catch(() => {});
 
     return apiOk({ reservation: data });
   } catch (e) {
@@ -160,6 +195,43 @@ export async function PUT(req: NextRequest) {
     if (body.assigned_user_id !== undefined) updates.assigned_user_id = (String(body.assigned_user_id)).trim() || null;
     if (body.estimated_amount !== undefined) updates.estimated_amount = parseInt(String(body.estimated_amount), 10) || 0;
 
+    // ── ダブルブッキングチェック（日時変更時のみ） ──
+    if (body.scheduled_date || body.start_time || body.end_time) {
+      // 現在の予約情報を取得
+      const { data: current } = await supabase
+        .from("reservations")
+        .select("scheduled_date, start_time, end_time, assigned_user_id")
+        .eq("id", id)
+        .eq("tenant_id", caller.tenantId)
+        .single();
+
+      if (current) {
+        const checkDate = body.scheduled_date ?? current.scheduled_date;
+        const checkStart = body.start_time ?? current.start_time;
+        const checkEnd = body.end_time ?? current.end_time;
+        const checkUser = body.assigned_user_id ?? current.assigned_user_id;
+
+        if (checkStart && checkEnd) {
+          const overlaps = await checkOverlap({
+            tenantId: caller.tenantId,
+            scheduledDate: checkDate,
+            startTime: String(checkStart).trim(),
+            endTime: String(checkEnd).trim(),
+            excludeId: id,
+            assignedUserId: checkUser ? String(checkUser).trim() : undefined,
+          });
+          if (overlaps.length > 0) {
+            return apiError({
+              code: "conflict",
+              message: `時間帯が重複する予約があります: ${overlaps.map(o => o.overlapping_title).join(", ")}`,
+              status: 409,
+              data: { overlaps },
+            });
+          }
+        }
+      }
+    }
+
     // ステータス変更
     if (body.status !== undefined) {
       updates.status = body.status;
@@ -178,6 +250,21 @@ export async function PUT(req: NextRequest) {
       .single();
 
     if (error) return apiInternalError(error, "reservation update");
+
+    // ── Google Calendar 同期（非ブロッキング） ──
+    if (body.status === "cancelled") {
+      syncDeleteEvent(caller.tenantId, id, data.gcal_event_id).catch(() => {});
+    } else {
+      syncUpdateEvent(caller.tenantId, {
+        id: data.id,
+        title: data.title,
+        scheduled_date: data.scheduled_date,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        note: data.note,
+        gcal_event_id: data.gcal_event_id,
+      }).catch(() => {});
+    }
 
     return apiOk({ reservation: data });
   } catch (e) {
@@ -216,6 +303,9 @@ export async function DELETE(req: NextRequest) {
       .single();
 
     if (error) return apiInternalError(error, "reservation cancel");
+
+    // ── Google Calendar イベント削除（非ブロッキング） ──
+    syncDeleteEvent(caller.tenantId, id, data.gcal_event_id).catch(() => {});
 
     return apiOk({ reservation: data });
   } catch (e) {

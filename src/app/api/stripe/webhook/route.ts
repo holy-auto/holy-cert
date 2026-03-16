@@ -263,7 +263,7 @@ export async function POST(req: NextRequest) {
           .select("id, stripe_connect_onboarded")
           .eq("stripe_connect_account_id", accountId)
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (tenant && tenant.stripe_connect_onboarded !== onboarded) {
           await supabase

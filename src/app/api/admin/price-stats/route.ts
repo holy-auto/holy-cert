@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerBasic } from "@/lib/api/auth";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
 const PREFECTURES = [
@@ -15,13 +16,14 @@ const PREFECTURES = [
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: userRes } = await supabase.auth.getUser();
-    if (!userRes?.user) return apiUnauthorized();
+    const caller = await resolveCallerBasic(supabase);
+    if (!caller) return apiUnauthorized();
 
     // Get all certificates with service_price and tenant prefecture info
     const { data: certs } = await supabase
       .from("certificates")
       .select("service_price, tenant_id, created_at")
+      .eq("tenant_id", caller.tenantId)
       .not("service_price", "is", null)
       .gt("service_price", 0);
 

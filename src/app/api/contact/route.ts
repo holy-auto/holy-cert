@@ -1,6 +1,8 @@
+import { NextRequest } from "next/server";
 import { Resend } from "resend";
 import { contactSchema } from "@/lib/validations/contact";
 import { apiOk, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 /** 遅延初期化: ビルド時に API キーが無くてもクラッシュしない */
 function getResend() {
@@ -13,7 +15,9 @@ const TO = process.env.CONTACT_TO_EMAIL ?? "info@cartrust.co.jp";
 /** 送信元として表示するアドレス（Resendの検証済みドメインである必要がある） */
 const FROM = process.env.CONTACT_FROM_EMAIL ?? "noreply@cartrust.co.jp";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const limited = await checkRateLimit(request, "auth");
+  if (limited) return limited;
   let body: unknown;
   try {
     body = await request.json();
