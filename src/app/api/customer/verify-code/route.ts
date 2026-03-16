@@ -10,12 +10,20 @@ import {
   phoneLast4Hash,
   CUSTOMER_COOKIE,
 } from "@/lib/customerPortalServer";
+import { createRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+
+const limiter = createRateLimit({ prefix: "rl:otp-verify", limit: 10, window: "10 m" });
 
 const LAST4_COOKIE = "hc_l4";
 
 const isSecureCookie = process.env.NODE_ENV === "production";
 
 export async function POST(req: Request) {
+  if (limiter) {
+    const { success, reset } = await limiter.limit(getClientIp(req));
+    if (!success) return rateLimitResponse(reset);
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     const tenant_slug = (body.tenant_slug ?? "").toString().trim();

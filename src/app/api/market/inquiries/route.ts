@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+
+const limiter = createRateLimit({ prefix: "rl:market-inquiry", limit: 10, window: "10 m" });
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +28,11 @@ async function resolveCallerTenant(supabase: Awaited<ReturnType<typeof createSup
 
 // ─── POST: Create inquiry (public, no auth required) ───
 export async function POST(req: NextRequest) {
+  if (limiter) {
+    const { success, reset } = await limiter.limit(getClientIp(req));
+    if (!success) return rateLimitResponse(reset);
+  }
+
   try {
     const admin = createAdminClient();
     const body = await req.json().catch(() => ({} as any));

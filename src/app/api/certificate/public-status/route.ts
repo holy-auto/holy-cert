@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+
+const limiter = createRateLimit({ prefix: "rl:public-status", limit: 30, window: "1 m" });
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +15,11 @@ function getSupabaseAdmin() {
 }
 
 export async function GET(req: NextRequest) {
+  if (limiter) {
+    const { success, reset } = await limiter.limit(getClientIp(req));
+    if (!success) return rateLimitResponse(reset);
+  }
+
   try {
     const pid = req.nextUrl.searchParams.get("pid") ?? req.nextUrl.searchParams.get("public_id");
     if (!pid) return NextResponse.json({ error: "Missing pid" }, { status: 400 });

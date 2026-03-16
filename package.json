@@ -10,9 +10,12 @@
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.2",
+    "@sentry/nextjs": "^10.43.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.98.0",
     "@upstash/qstash": "^2.9.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
     "cheerio": "^1.2.0",
     "holy-cert": "file:",
     "jszip": "^3.10.1",
