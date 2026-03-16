@@ -187,7 +187,7 @@ export default function MembersClient() {
               <div className="text-xs font-semibold tracking-[0.18em] text-muted">メンバー追加</div>
               <div className="mt-1 text-base font-semibold text-primary">新しいメンバーを招待</div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_auto] gap-3 items-end">
               <div className="space-y-1">
                 <label className="text-xs text-muted">メールアドレス <span className="text-red-500">*</span></label>
                 <input
@@ -212,8 +212,6 @@ export default function MembersClient() {
                   className="input-field disabled:opacity-50"
                 />
               </div>
-            </div>
-            <div className="flex gap-3 items-end flex-wrap">
               <div className="space-y-1">
                 <label className="text-xs text-muted">ロール</label>
                 <select
@@ -231,9 +229,9 @@ export default function MembersClient() {
                 type="button"
                 onClick={handleAdd}
                 disabled={!data.can_add || adding || !email.trim()}
-                className="btn-primary"
+                className="btn-primary whitespace-nowrap"
               >
-                {adding ? "追加中…" : "メンバーを追加"}
+                {adding ? "追加中…" : "追加"}
               </button>
             </div>
             <p className="text-xs text-muted">※ 招待メールが送信されます。ユーザーがメール内のリンクからパスワードを設定します。</p>
@@ -251,33 +249,33 @@ export default function MembersClient() {
 
           {/* Member list */}
           <section className="glass-card overflow-hidden">
-            <div className="border-b border-border-subtle p-5">
+            <div className="border-b border-border-subtle px-5 py-4">
               <div className="text-xs font-semibold tracking-[0.18em] text-muted">メンバー一覧</div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-surface-hover">
                   <tr>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">名前</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">メールアドレス</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">ロール</th>
-                    <th className="hidden sm:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">追加日</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold tracking-[0.12em] text-muted">名前</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold tracking-[0.12em] text-muted">メールアドレス</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold tracking-[0.12em] text-muted">ロール</th>
+                    <th className="hidden sm:table-cell text-left px-4 py-3 text-xs font-semibold tracking-[0.12em] text-muted">追加日</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
                   {data.members.map((m) => (
                     <tr key={m.user_id} className="hover:bg-surface-hover/60">
-                      <td className="px-5 py-3.5">
-                        <span className="font-medium text-primary">{m.display_name || "-"}</span>
-                        {m.is_self && (
-                          <Badge variant="info">自分</Badge>
-                        )}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-primary">{m.display_name || "-"}</span>
+                          {m.is_self && <Badge variant="info">自分</Badge>}
+                        </div>
                       </td>
-                      <td className="px-5 py-3.5 text-secondary">
+                      <td className="px-4 py-3 text-secondary">
                         {m.email ?? "-"}
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-3">
                         {m.is_self || m.role === "owner" ? (
                           <Badge variant={m.role === "owner" ? "warning" : "default"}>
                             {ROLE_LABELS[m.role as Role] ?? m.role}
@@ -295,10 +293,10 @@ export default function MembersClient() {
                           </select>
                         )}
                       </td>
-                      <td className="hidden sm:table-cell px-5 py-3.5 whitespace-nowrap text-secondary">
+                      <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap text-secondary">
                         {formatDate(m.created_at)}
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-3">
                         {m.is_self ? (
                           <span className="text-xs text-muted">-</span>
                         ) : (
@@ -316,7 +314,7 @@ export default function MembersClient() {
                   ))}
                   {data.members.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-muted">
+                      <td colSpan={5} className="px-4 py-8 text-center text-muted">
                         メンバーがいません
                       </td>
                     </tr>

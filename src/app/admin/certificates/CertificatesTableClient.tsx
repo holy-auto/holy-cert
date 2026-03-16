@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAdminBillingStatus } from "@/lib/billing/useAdminBillingStatus";
 import { canUseFeature } from "@/lib/billing/planFeatures";
 import { buildBillingDenyUrl } from "@/lib/billing/billingRedirect";
-import { formatDateTime } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import Badge from "@/components/ui/Badge";
 
 type Row = {
@@ -164,7 +164,7 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
           <table className="min-w-full text-sm">
             <thead className="bg-surface-hover">
               <tr>
-                <th className="p-3 text-left w-10">
+                <th className="pl-4 pr-2 py-3 text-left w-10">
                   <input
                     type="checkbox"
                     className="accent-[#0071e3]"
@@ -175,11 +175,11 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                     onChange={(e) => toggleAll(e.target.checked)}
                   />
                 </th>
-                <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">作成日時</th>
-                <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">証明書ID</th>
-                <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">お客様名</th>
-                <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">ステータス</th>
-                <th className="text-left p-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold tracking-[0.12em] text-muted">作成日</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold tracking-[0.12em] text-muted">証明書ID</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold tracking-[0.12em] text-muted">お客様名</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold tracking-[0.12em] text-muted">ステータス</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
               </tr>
             </thead>
 
@@ -191,22 +191,22 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
 
                 return (
                   <tr key={r.public_id} className="hover:bg-surface-hover/60">
-                    <td className="p-3">
+                    <td className="pl-4 pr-2 py-3">
                       <input type="checkbox" className="accent-[#0071e3]" checked={checked} onChange={(e) => toggleOne(r.public_id, e.target.checked)} />
                     </td>
-                    <td className="p-3 whitespace-nowrap text-secondary">{formatDateTime(r.created_at)}</td>
-                    <td className="p-3 font-mono text-primary">
-                      <Link href={`/admin/certificates/${r.public_id}`} className="hover:text-[#0071e3] transition-colors">
-                        {r.public_id}
+                    <td className="px-4 py-3 whitespace-nowrap text-secondary">{formatDate(r.created_at)}</td>
+                    <td className="px-4 py-3 font-mono text-primary">
+                      <Link href={`/admin/certificates/${r.public_id}`} className="hover:text-[#0071e3] transition-colors" title={r.public_id}>
+                        {r.public_id.length > 8 ? r.public_id.slice(0, 8) + "…" : r.public_id}
                       </Link>
                     </td>
-                    <td className="p-3 font-medium text-primary">{r.customer_name}</td>
-                    <td className="p-3">
+                    <td className="px-4 py-3 font-medium text-primary">{r.customer_name}</td>
+                    <td className="px-4 py-3">
                       <Badge variant={statusVariant(r.status)}>
                         {statusLabel(r.status)}
                       </Badge>
                     </td>
-                    <td className="p-3">
+                    <td className="px-4 py-3">
                       <div className="flex gap-2 items-center flex-wrap">
                         <Link
                           href={url}
@@ -247,7 +247,7 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
 
               {rows.length === 0 && (
                 <tr>
-                  <td className="px-5 py-8 text-center text-muted" colSpan={6}>
+                  <td className="px-4 py-8 text-center text-muted" colSpan={6}>
                     該当する証明書がありません
                   </td>
                 </tr>
