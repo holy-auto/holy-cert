@@ -36,7 +36,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   if (!tenantId) {
     return (
       <div className="space-y-6">
-        <PageHeader tag="CERTIFICATES" title="管理：証明書一覧" />
+        <PageHeader tag="証明書管理" title="証明書一覧" />
         <div className="glass-card p-4 text-sm text-red-500">
           tenant_memberships が見つかりません。あなたのユーザーを tenant に紐付けてください。
         </div>
@@ -69,7 +69,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   const { data: rows, error } = await query;
   if (error) return <div className="space-y-6"><div className="text-red-500">読み込みエラー: {error.message}</div></div>;
 
-  const linkCls = (enabled: boolean) => "text-sm underline " + (enabled ? "text-[#0071e3]" : "opacity-50 text-muted");
+  const allRows = rows ?? [];
+  const activeCount = allRows.filter((r) => r.status === "active").length;
+  const voidCount = allRows.filter((r) => r.status === "void").length;
 
   return (
     <div className="space-y-6">
@@ -85,30 +87,57 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       <PageHeader
         tag="証明書管理"
         title="証明書一覧"
-        description={`tenant: ${tenantId} / 最新50件`}
+        description={`最新50件を表示${q ? ` / 検索: "${q}"` : ""}`}
         actions={
           <div className="flex gap-3 items-center flex-wrap">
-            <form className="flex gap-2" action="/admin/certificates" method="get">
-              <input name="q" defaultValue={q} placeholder="検索（ID / 名前）" className="input-field w-full sm:w-64" />
-              <button className="btn-secondary">検索</button>
-              <Link className="text-sm underline self-center text-muted hover:text-primary" href="/admin/certificates">
-                クリア
-              </Link>
-            </form>
-
             <Link
-              className={linkCls(canIssue)}
+              className={canIssue ? "btn-primary" : "btn-primary opacity-50"}
               href={issueHref}
               aria-disabled={!canIssue}
-              title={!canIssue ? "課金状態/プランにより利用不可 → 課金ページへ" : ""}
+              title={!canIssue ? "課金状態/プランにより利用不可" : ""}
             >
-              新規発行
+              + 新規発行
             </Link>
           </div>
         }
       />
 
-      <CertificatesTableClient rows={(rows ?? []) as any} q={q} />
+      {/* Stats */}
+      <section className="grid gap-4 sm:grid-cols-3">
+        <div className="glass-card p-5">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
+          <div className="mt-2 text-2xl font-bold text-primary">{allRows.length}</div>
+          <div className="mt-1 text-xs text-muted">表示中の証明書</div>
+        </div>
+        <div className="glass-card p-5">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">有効</div>
+          <div className="mt-2 text-2xl font-bold text-[#28a745]">{activeCount}</div>
+          <div className="mt-1 text-xs text-muted">有効な証明書</div>
+        </div>
+        <div className="glass-card p-5">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">無効</div>
+          <div className="mt-2 text-2xl font-bold text-[#d1242f]">{voidCount}</div>
+          <div className="mt-1 text-xs text-muted">無効の証明書</div>
+        </div>
+      </section>
+
+      {/* Search */}
+      <section className="glass-card p-5">
+        <form className="flex gap-3 items-end flex-wrap" action="/admin/certificates" method="get">
+          <div className="flex-1 min-w-0 space-y-1">
+            <label className="text-xs text-muted">検索</label>
+            <input name="q" defaultValue={q} placeholder="証明書ID / お客様名で検索" className="input-field" />
+          </div>
+          <button className="btn-secondary">検索</button>
+          {q && (
+            <Link className="btn-ghost" href="/admin/certificates">
+              クリア
+            </Link>
+          )}
+        </form>
+      </section>
+
+      <CertificatesTableClient rows={allRows as any} q={q} />
     </div>
   );
 }
