@@ -71,9 +71,6 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
   const allIds = useMemo(() => rows.map((r) => r.public_id), [rows]);
   const selectedIds = useMemo(() => allIds.filter((id) => selected[id]), [allIds, selected]);
 
-  const allChecked = allIds.length > 0 && selectedIds.length === allIds.length;
-  const someChecked = selectedIds.length > 0 && selectedIds.length < allIds.length;
-
   const toggleAll = (on: boolean) => {
     const next: Record<string, boolean> = {};
     if (on) for (const id of allIds) next[id] = true;
