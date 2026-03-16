@@ -7,6 +7,9 @@ import {
   phoneLast4Hash,
   tenantHasPhoneHash,
 } from "@/lib/customerPortalServer";
+import { createRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+
+const limiter = createRateLimit({ prefix: "rl:otp-request", limit: 5, window: "10 m" });
 
 function genCode6(): string {
   // 000000〜999999（先頭ゼロあり）
@@ -38,6 +41,11 @@ async function sendEmailResend(to: string, subject: string, html: string) {
 }
 
 export async function POST(req: Request) {
+  if (limiter) {
+    const { success, reset } = await limiter.limit(getClientIp(req));
+    if (!success) return rateLimitResponse(reset);
+  }
+
   try {
     const body = await req.json().catch(() => ({} as any));
 

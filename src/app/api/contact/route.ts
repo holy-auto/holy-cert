@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { createRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+
+const limiter = createRateLimit({ prefix: "rl:contact", limit: 5, window: "10 m" });
 
 /** 遅延初期化: ビルド時に API キーが無くてもクラッシュしない */
 function getResend() {
@@ -32,6 +35,11 @@ function isValidBody(b: unknown): b is Body {
 }
 
 export async function POST(request: Request) {
+  if (limiter) {
+    const { success, reset } = await limiter.limit(getClientIp(request));
+    if (!success) return rateLimitResponse(reset);
+  }
+
   let body: unknown;
   try {
     body = await request.json();

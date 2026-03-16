@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
+
+const limiter = createRateLimit({ prefix: "rl:insurer-search", limit: 30, window: "1 m" });
 
 export const runtime = "nodejs";
 
@@ -10,6 +13,11 @@ function getClientMeta(req: Request) {
 }
 
 export async function GET(req: Request) {
+  if (limiter) {
+    const { success, reset } = await limiter.limit(getClientIp(req));
+    if (!success) return rateLimitResponse(reset);
+  }
+
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
   const status = url.searchParams.get("status") ?? "";
