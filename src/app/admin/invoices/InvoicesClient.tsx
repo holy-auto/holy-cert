@@ -122,6 +122,11 @@ export default function InvoicesClient() {
   const [paymentTarget, setPaymentTarget] = useState<string | null>(null);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
 
+  // Consolidated invoice (合算請求書)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [consolidateMode, setConsolidateMode] = useState(false);
+  const [creatingConsolidated, setCreatingConsolidated] = useState(false);
+
   const fetchInvoices = useCallback(async (status?: string) => {
     setErr(null);
     try {
@@ -288,6 +293,64 @@ export default function InvoicesClient() {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleCreateConsolidated = async () => {
+    if (selectedIds.size < 2) {
+      setSaveMsg({ text: "合算するには2件以上の請求書を選択してください", ok: false });
+      return;
+    }
+    setCreatingConsolidated(true);
+    setSaveMsg(null);
+    try {
+      const selectedInvoices = (data?.invoices ?? []).filter((i) => selectedIds.has(i.id));
+
+      // Merge all items
+      const mergedItems: InvoiceItem[] = [];
+      for (const inv of selectedInvoices) {
+        for (const item of inv.items_json ?? []) {
+          mergedItems.push({ ...item });
+        }
+      }
+
+      // Use first invoice's customer
+      const firstInv = selectedInvoices[0];
+      const res = await fetch("/api/admin/invoices", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          customer_id: firstInv.customer_id,
+          issued_at: new Date().toISOString().slice(0, 10),
+          due_date: null,
+          note: `合算請求書（${selectedInvoices.map((i) => i.invoice_number).join(", ")} を合算）`,
+          items: mergedItems,
+          is_invoice_compliant: false,
+          show_seal: true,
+          show_logo: true,
+          show_bank_info: true,
+          recipient_name: firstInv.customer_name,
+        }),
+      });
+      const j = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(j?.message ?? j?.error ?? `HTTP ${res.status}`);
+      setSaveMsg({ text: `合算請求書 ${j.invoice?.invoice_number} を作成しました`, ok: true });
+      setSelectedIds(new Set());
+      setConsolidateMode(false);
+      await fetchInvoices(statusFilter);
+    } catch (e: any) {
+      setSaveMsg({ text: e?.message ?? String(e), ok: false });
+    } finally {
+      setCreatingConsolidated(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
@@ -295,13 +358,25 @@ export default function InvoicesClient() {
         title="請求書管理"
         description="請求書の作成・管理を行います。"
         actions={
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => { setShowForm(!showForm); setSaveMsg(null); }}
-          >
-            {showForm ? "閉じる" : "新規作成"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={consolidateMode ? "btn-secondary" : "btn-ghost"}
+              onClick={() => {
+                setConsolidateMode(!consolidateMode);
+                setSelectedIds(new Set());
+              }}
+            >
+              {consolidateMode ? "選択を終了" : "合算請求書"}
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => { setShowForm(!showForm); setSaveMsg(null); }}
+            >
+              {showForm ? "閉じる" : "新規作成"}
+            </button>
+          </div>
         }
       />
 
@@ -659,15 +734,47 @@ export default function InvoicesClient() {
             </div>
           )}
 
+          {/* Consolidated Invoice Action Bar */}
+          {consolidateMode && selectedIds.size > 0 && (
+            <section className="glass-card p-4 border border-[rgba(0,113,227,0.2)] bg-[rgba(0,113,227,0.04)]">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="text-sm text-primary">
+                  <span className="font-semibold text-[#0071e3]">{selectedIds.size}件</span> の請求書を選択中
+                  {selectedIds.size >= 2 && (
+                    <span className="ml-2 text-muted">
+                      合計: {formatJpy((data?.invoices ?? []).filter((i) => selectedIds.has(i.id)).reduce((s, i) => s + i.total, 0))}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={selectedIds.size < 2 || creatingConsolidated}
+                  onClick={handleCreateConsolidated}
+                >
+                  {creatingConsolidated ? "作成中..." : "合算請求書を作成"}
+                </button>
+              </div>
+            </section>
+          )}
+
           {/* Invoice List */}
           <section className="glass-card overflow-hidden">
             <div className="border-b border-border-subtle p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">請求書一覧</div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">
+                請求書一覧
+                {consolidateMode && <span className="ml-2 text-[#0071e3]">- 合算する請求書を選択してください</span>}
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-surface-hover">
                   <tr>
+                    {consolidateMode && (
+                      <th className="px-3 py-3 w-10">
+                        <span className="sr-only">選択</span>
+                      </th>
+                    )}
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">請求番号</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">顧客名</th>
                     <th className="hidden sm:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">発行日</th>
@@ -679,7 +786,17 @@ export default function InvoicesClient() {
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
                   {(data.invoices ?? []).map((inv) => (
-                    <tr key={inv.id} className="hover:bg-surface-hover/60">
+                    <tr key={inv.id} className={`hover:bg-surface-hover/60 ${selectedIds.has(inv.id) ? "bg-[rgba(0,113,227,0.04)]" : ""}`}>
+                      {consolidateMode && (
+                        <td className="px-3 py-3.5">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(inv.id)}
+                            onChange={() => toggleSelect(inv.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-[#0071e3] focus:ring-[#0071e3]"
+                          />
+                        </td>
+                      )}
                       <td className="px-5 py-3.5">
                         <Link
                           href={`/admin/invoices/${inv.id}`}
@@ -736,7 +853,7 @@ export default function InvoicesClient() {
                   ))}
                   {data.invoices.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-5 py-8 text-center text-muted">
+                      <td colSpan={consolidateMode ? 8 : 7} className="px-5 py-8 text-center text-muted">
                         請求書がありません
                       </td>
                     </tr>

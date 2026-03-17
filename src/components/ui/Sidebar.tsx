@@ -211,7 +211,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/admin/logo",
-    label: "ロゴ",
+    label: "ロゴ・角印",
     requiredPermission: "logo:manage",
     icon: (
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

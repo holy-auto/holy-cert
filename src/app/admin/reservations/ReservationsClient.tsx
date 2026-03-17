@@ -537,7 +537,7 @@ export default function ReservationsClient() {
                 </label>
 
                 {/* Date & Time */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <label className={labelCls}>
                     <span className={labelTextCls}>予約日 <span className="text-red-500">*</span></span>
                     <input

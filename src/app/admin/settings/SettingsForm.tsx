@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { updateTenantSettingsAction } from "./actions";
 
 type BankInfo = {
@@ -34,6 +35,7 @@ const labelCls = "block space-y-1.5";
 const labelTextCls = "text-sm font-medium text-neutral-700";
 
 export default function SettingsForm({ name, contactEmail, contactPhone, address, websiteUrl, registrationNumber, bankInfo, columnsExist, connectStatus }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export default function SettingsForm({ name, contactEmail, contactPhone, address
       const res = await updateTenantSettingsAction(formData);
       if (res.ok) {
         setSuccess(true);
+        router.refresh();
       } else {
         setError(res.error);
       }

@@ -120,7 +120,7 @@ export default async function AdminSettingsPage() {
           </div>
           <div className="mt-4 flex gap-3">
             <Link href="/admin/billing" className="btn-secondary">プラン・請求管理</Link>
-            <Link href="/admin/logo" className="btn-secondary">ロゴを設定</Link>
+            <Link href="/admin/logo" className="btn-secondary">ロゴ・角印を設定</Link>
           </div>
         </section>
 
