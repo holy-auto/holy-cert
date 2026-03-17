@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizePlanTier } from "@/lib/billing/planFeatures";
 import { memberLimit, canAddMember } from "@/lib/billing/memberLimits";
+import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
 
@@ -13,42 +14,28 @@ function getSupabaseAdmin() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-/** 現在ログインユーザーの tenant_id + plan_tier を取得 */
-async function resolveCallerTenant(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes?.user) return null;
-
-  const { data: mem } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id, role")
-    .eq("user_id", userRes.user.id)
-    .limit(1)
-    .single();
-
-  if (!mem?.tenant_id) return null;
-
+/** Resolve the plan tier for the caller's tenant */
+async function resolvePlanTier(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, tenantId: string) {
   const { data: tenant } = await supabase
     .from("tenants")
     .select("id, plan_tier")
-    .eq("id", mem.tenant_id)
+    .eq("id", tenantId)
     .single();
-
-  return {
-    userId: userRes.user.id,
-    tenantId: mem.tenant_id as string,
-    role: (mem.role as string) ?? "member",
-    planTier: normalizePlanTier(tenant?.plan_tier),
-  };
+  return normalizePlanTier(tenant?.plan_tier);
 }
 
 // ─── GET: メンバー一覧 ───
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "members:view")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const admin = getSupabaseAdmin();
+    const planTier = await resolvePlanTier(supabase, caller.tenantId);
 
     // tenant_memberships からメンバー取得
     const { data: members, error } = await admin
@@ -74,14 +61,14 @@ export async function GET() {
       })
     );
 
-    const limit = memberLimit(caller.planTier);
+    const limit = memberLimit(planTier);
 
     return NextResponse.json({
       members: enriched,
-      plan_tier: caller.planTier,
+      plan_tier: planTier,
       member_count: enriched.length,
       member_limit: limit,
-      can_add: canAddMember(caller.planTier, enriched.length),
+      can_add: canAddMember(planTier, enriched.length),
     });
   } catch (e: any) {
     console.error("members list failed", e);
@@ -93,8 +80,11 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "members:manage")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({} as any));
     const email = (body?.email ?? "").trim().toLowerCase();
@@ -116,11 +106,12 @@ export async function POST(req: NextRequest) {
     if (countErr) return NextResponse.json({ error: "db_error", detail: countErr.message }, { status: 500 });
 
     const currentCount = count ?? 0;
-    if (!canAddMember(caller.planTier, currentCount)) {
-      const limit = memberLimit(caller.planTier);
+    const planTier = await resolvePlanTier(supabase, caller.tenantId);
+    if (!canAddMember(planTier, currentCount)) {
+      const limit = memberLimit(planTier);
       return NextResponse.json({
         error: "member_limit_reached",
-        message: `現在のプラン（${caller.planTier}）ではメンバーは${limit}人までです。プランをアップグレードしてください。`,
+        message: `現在のプラン（${planTier}）ではメンバーは${limit}人までです。プランをアップグレードしてください。`,
         current: currentCount,
         limit,
       }, { status: 403 });
@@ -205,11 +196,9 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-    // owner または admin のみロール変更可
-    if (caller.role !== "owner" && caller.role !== "admin") {
+    if (!requirePermission(caller, "members:manage")) {
       return NextResponse.json({ error: "forbidden", message: "ロール変更の権限がありません。" }, { status: 403 });
     }
 
@@ -269,11 +258,9 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-    // owner または admin のみ削除可
-    if (caller.role !== "owner" && caller.role !== "admin") {
+    if (!requirePermission(caller, "members:manage")) {
       return NextResponse.json({ error: "forbidden", message: "メンバー削除の権限がありません。" }, { status: 403 });
     }
 

@@ -1,33 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { escapeIlike } from "@/lib/sanitize";
+import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
-
-async function resolveCallerTenant(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes?.user) return null;
-
-  const { data: mem } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .eq("user_id", userRes.user.id)
-    .limit(1)
-    .single();
-
-  if (!mem?.tenant_id) return null;
-
-  return {
-    userId: userRes.user.id,
-    tenantId: mem.tenant_id as string,
-  };
-}
 
 // ─── GET: BtoB中古車在庫一覧 ───
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const url = new URL(req.url);
@@ -127,8 +109,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "market:create")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({} as any));
 
@@ -168,6 +153,9 @@ export async function POST(req: NextRequest) {
     if (body.condition_note !== undefined) row.condition_note = body.condition_note;
     if (body.asking_price !== undefined) row.asking_price = body.asking_price;
     if (body.wholesale_price !== undefined) row.wholesale_price = body.wholesale_price;
+    if (body.cost_price !== undefined) row.cost_price = body.cost_price;
+    if (body.supplier_name !== undefined) row.supplier_name = body.supplier_name;
+    if (body.acquisition_date !== undefined) row.acquisition_date = body.acquisition_date;
     if (body.description !== undefined) row.description = body.description;
     if (body.features !== undefined) row.features = body.features;
 
@@ -190,8 +178,11 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "market:edit")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({} as any));
     const id = (body?.id ?? "").trim();
@@ -232,9 +223,18 @@ export async function PUT(req: NextRequest) {
     if (body.condition_note !== undefined) updates.condition_note = body.condition_note;
     if (body.asking_price !== undefined) updates.asking_price = body.asking_price;
     if (body.wholesale_price !== undefined) updates.wholesale_price = body.wholesale_price;
+    if (body.cost_price !== undefined) updates.cost_price = body.cost_price;
+    if (body.supplier_name !== undefined) updates.supplier_name = body.supplier_name;
+    if (body.acquisition_date !== undefined) updates.acquisition_date = body.acquisition_date;
+    if (body.sold_price !== undefined) updates.sold_price = body.sold_price;
     if (body.status !== undefined) updates.status = body.status;
     if (body.description !== undefined) updates.description = body.description;
     if (body.features !== undefined) updates.features = body.features;
+
+    // When status changes to 'sold', set sold_at
+    if (body.status === "sold" && existing.status !== "sold") {
+      updates.sold_at = new Date().toISOString();
+    }
 
     // When status changes to 'listed', set listed_at
     if (body.status === "listed" && existing.status !== "listed") {
@@ -262,8 +262,11 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "market:edit")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({} as any));
     const id = (body?.id ?? "").trim();
