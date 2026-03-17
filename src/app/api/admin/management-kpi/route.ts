@@ -1,26 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
-
-async function resolveCallerTenant(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes?.user) return null;
-  const { data: mem } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .eq("user_id", userRes.user.id)
-    .limit(1)
-    .single();
-  if (!mem?.tenant_id) return null;
-  return { userId: userRes.user.id, tenantId: mem.tenant_id as string };
-}
 
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "management:view")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();

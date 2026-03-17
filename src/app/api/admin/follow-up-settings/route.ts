@@ -1,29 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
-
-async function resolveCallerTenant(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes?.user) return null;
-
-  const { data: mem } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .eq("user_id", userRes.user.id)
-    .limit(1)
-    .single();
-
-  if (!mem?.tenant_id) return null;
-  return { userId: userRes.user.id, tenantId: mem.tenant_id as string };
-}
 
 // GET: フォロー設定取得
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "settings:view")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const { data } = await supabase
       .from("follow_up_settings")
@@ -47,8 +36,11 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "settings:edit")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({} as any));
     const reminderDays = Array.isArray(body.reminder_days_before)

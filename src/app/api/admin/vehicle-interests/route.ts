@@ -1,24 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-
-async function resolveCallerTenant(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes?.user) return null;
-  const { data: mem } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .eq("user_id", userRes.user.id)
-    .limit(1)
-    .single();
-  if (!mem?.tenant_id) return null;
-  return { userId: userRes.user.id, tenantId: mem.tenant_id as string };
-}
+import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 
 // GET: List customer interests for a vehicle
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const vehicleId = new URL(req.url).searchParams.get("vehicle_id");
@@ -43,8 +31,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "market:create")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json();
     const { vehicle_id, customer_name, customer_phone, customer_email, interest_level, note, follow_up_date } = body;
@@ -80,8 +71,11 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "market:edit")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json();
     const { id, ...updates } = body;

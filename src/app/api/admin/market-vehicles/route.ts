@@ -1,33 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { escapeIlike } from "@/lib/sanitize";
+import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
-
-async function resolveCallerTenant(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes?.user) return null;
-
-  const { data: mem } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .eq("user_id", userRes.user.id)
-    .limit(1)
-    .single();
-
-  if (!mem?.tenant_id) return null;
-
-  return {
-    userId: userRes.user.id,
-    tenantId: mem.tenant_id as string,
-  };
-}
 
 // ─── GET: BtoB中古車在庫一覧 ───
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const url = new URL(req.url);
@@ -127,8 +109,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "market:create")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({} as any));
 
@@ -193,8 +178,11 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "market:edit")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({} as any));
     const id = (body?.id ?? "").trim();
@@ -274,8 +262,11 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "market:edit")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({} as any));
     const id = (body?.id ?? "").trim();

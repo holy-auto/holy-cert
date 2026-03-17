@@ -1,27 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
-
-async function resolveCallerTenant(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes?.user) return null;
-
-  const { data: mem } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .eq("user_id", userRes.user.id)
-    .limit(1)
-    .single();
-
-  if (!mem?.tenant_id) return null;
-
-  return {
-    userId: userRes.user.id,
-    tenantId: mem.tenant_id as string,
-  };
-}
 
 /** 次の請求書番号を生成: INV-YYYYMM-NNN */
 async function generateInvoiceNumber(
@@ -54,7 +35,7 @@ async function generateInvoiceNumber(
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const url = new URL(req.url);
@@ -137,8 +118,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "invoices:create")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({} as any));
 
@@ -212,8 +196,11 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "invoices:edit")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({} as any));
     const id = (body?.id ?? "").trim();
@@ -284,12 +271,11 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const callerWithRole = await resolveCallerWithRole(supabase);
-    if (!callerWithRole) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    if (!requireMinRole(callerWithRole, "admin")) {
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requirePermission(caller, "invoices:edit")) {
       return NextResponse.json({ error: "forbidden", message: "削除権限がありません。" }, { status: 403 });
     }
-    const caller = { userId: callerWithRole.userId, tenantId: callerWithRole.tenantId };
 
     const body = await req.json().catch(() => ({} as any));
     const id = (body?.id ?? "").trim();
