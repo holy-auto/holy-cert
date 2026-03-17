@@ -56,7 +56,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
 
   let query = supabase
     .from("certificates")
-    .select("public_id,status,customer_name,created_at")
+    .select("public_id,status,customer_name,created_at,vehicle_info_json,service_type")
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
     .limit(50);

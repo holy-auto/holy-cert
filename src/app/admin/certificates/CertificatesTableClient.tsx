@@ -9,11 +9,22 @@ import { buildBillingDenyUrl } from "@/lib/billing/billingRedirect";
 import { formatDate } from "@/lib/format";
 import Badge from "@/components/ui/Badge";
 
+type VehicleInfo = {
+  maker?: string;
+  model?: string;
+  year?: string;
+  color?: string;
+  vin?: string;
+  plate?: string;
+} | null;
+
 type Row = {
   public_id: string;
   status: string;
   customer_name: string;
   created_at: string;
+  vehicle_info_json?: VehicleInfo;
+  service_type?: string | null;
 };
 
 const statusVariant = (s: string) => {
@@ -35,6 +46,12 @@ const statusLabel = (s: string) => {
     default: return s;
   }
 };
+
+function vehicleSummary(v: VehicleInfo): string | null {
+  if (!v) return null;
+  const parts = [v.maker, v.model, v.color, v.year ? `${v.year}年` : null].filter(Boolean);
+  return parts.length > 0 ? parts.join(" ") : null;
+}
 
 export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: string }) {
   const router = useRouter();
@@ -182,16 +199,26 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                   </Badge>
                 </div>
 
-                {/* Body: ID + customer */}
-                <div className="min-w-0">
+                {/* Body: ID + customer + vehicle */}
+                <div className="min-w-0 space-y-1">
                   <Link
                     href={`/admin/certificates/${r.public_id}`}
-                    className="font-mono text-sm text-primary hover:text-[#0071e3] transition-colors"
+                    className="font-mono text-xs text-primary hover:text-[#0071e3] transition-colors break-all"
                     title={r.public_id}
                   >
-                    {r.public_id.length > 8 ? r.public_id.slice(0, 8) + "…" : r.public_id}
+                    {r.public_id}
                   </Link>
-                  <p className="text-sm font-medium text-primary truncate mt-0.5">{r.customer_name}</p>
+                  <p className="text-sm font-medium text-primary truncate">{r.customer_name}</p>
+                  {vehicleSummary(r.vehicle_info_json ?? null) && (
+                    <p className="text-xs text-secondary truncate">
+                      {vehicleSummary(r.vehicle_info_json ?? null)}
+                    </p>
+                  )}
+                  {r.service_type && (
+                    <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded bg-[rgba(0,113,227,0.06)] text-[#0071e3]">
+                      {r.service_type}
+                    </span>
+                  )}
                 </div>
 
                 {/* Actions */}
