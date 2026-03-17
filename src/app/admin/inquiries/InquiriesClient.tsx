@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
 import { formatDate } from "@/lib/format";
 
@@ -171,13 +170,7 @@ export default function InquiriesClient() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <PageHeader
-        tag="問い合わせ"
-        title="問い合わせ管理"
-        description="バイヤーからの問い合わせを管理します。"
-      />
-
+    <div className="space-y-6">
       {loading && <div className="text-sm text-muted">読み込み中...</div>}
       {err && <div className="glass-card p-4 text-sm text-red-500">{err}</div>}
 

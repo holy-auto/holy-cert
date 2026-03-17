@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export type SettingsResult = { ok: true } | { ok: false; error: string };
 
@@ -20,6 +21,9 @@ export async function updateTenantSettingsAction(formData: FormData): Promise<Se
   const supabase = await createSupabaseServerClient();
   const tenantId = await getTenantId(supabase);
   if (!tenantId) return { ok: false, error: "unauthorized" };
+
+  // Use admin client for update to bypass RLS restrictions on tenants table
+  const admin = createSupabaseAdminClient();
 
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { ok: false, error: "店舗名は必須です" };
@@ -48,7 +52,7 @@ export async function updateTenantSettingsAction(formData: FormData): Promise<Se
     };
   }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("tenants")
     .update(payload)
     .eq("id", tenantId);

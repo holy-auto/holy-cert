@@ -156,47 +156,58 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
       </div>
 
       {/* List */}
-      <section className="glass-card overflow-hidden divide-y divide-border-subtle">
-        {rows.map((r) => {
-          const url = `/c/${r.public_id}`;
-          const isVoid = r.status === "void";
-          const checked = !!selected[r.public_id];
+      <section>
+        {/* Desktop: card grid */}
+        <div className="hidden md:grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {rows.map((r) => {
+            const url = `/c/${r.public_id}`;
+            const isVoid = r.status === "void";
+            const checked = !!selected[r.public_id];
 
-          return (
-            <div key={r.public_id} className="hover:bg-surface-hover/40 transition-colors">
-              {/* Desktop: single row layout */}
-              <div className="hidden md:flex items-center gap-3 px-4 py-3">
-                <input
-                  type="checkbox"
-                  className="accent-[#0071e3] shrink-0"
-                  checked={checked}
-                  onChange={(e) => toggleOne(r.public_id, e.target.checked)}
-                />
-                <span className="text-xs text-secondary whitespace-nowrap">{formatDate(r.created_at)}</span>
-                <Link
-                  href={`/admin/certificates/${r.public_id}`}
-                  className="font-mono text-sm text-primary hover:text-[#0071e3] transition-colors"
-                  title={r.public_id}
-                >
-                  {r.public_id.length > 8 ? r.public_id.slice(0, 8) + "…" : r.public_id}
-                </Link>
-                <span className="text-sm font-medium text-primary truncate flex-1 min-w-0">{r.customer_name}</span>
-                <Badge variant={statusVariant(r.status)}>
-                  {statusLabel(r.status)}
-                </Badge>
-                <div className="flex gap-2 items-center shrink-0 ml-2">
-                  <Link href={url} target="_blank" className="btn-secondary !text-xs !py-1.5">
+            return (
+              <div key={r.public_id} className="glass-card p-4 flex flex-col gap-3 hover:ring-1 hover:ring-border-subtle transition-all">
+                {/* Header: checkbox + status */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="accent-[#0071e3] shrink-0"
+                      checked={checked}
+                      onChange={(e) => toggleOne(r.public_id, e.target.checked)}
+                    />
+                    <span className="text-xs text-secondary">{formatDate(r.created_at)}</span>
+                  </div>
+                  <Badge variant={statusVariant(r.status)}>
+                    {statusLabel(r.status)}
+                  </Badge>
+                </div>
+
+                {/* Body: ID + customer */}
+                <div className="min-w-0">
+                  <Link
+                    href={`/admin/certificates/${r.public_id}`}
+                    className="font-mono text-sm text-primary hover:text-[#0071e3] transition-colors"
+                    title={r.public_id}
+                  >
+                    {r.public_id.length > 8 ? r.public_id.slice(0, 8) + "…" : r.public_id}
+                  </Link>
+                  <p className="text-sm font-medium text-primary truncate mt-0.5">{r.customer_name}</p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 items-center flex-wrap mt-auto pt-1 border-t border-border-subtle">
+                  <Link href={url} target="_blank" className="btn-secondary !text-xs !py-1.5 flex-1 text-center">
                     公開ページ
                   </Link>
                   <Link
-                    className={btnCls(canPdfOne)}
+                    className={btnCls(canPdfOne) + " flex-1 text-center"}
                     href={hrefOrBill(canPdfOne, `/admin/certificates/pdf-one?pid=${encodeURIComponent(r.public_id)}`, "pdf_one")}
                     aria-disabled={!canPdfOne}
                   >
                     PDF
                   </Link>
                   <Link
-                    className={btnCls(canCsvOne)}
+                    className={btnCls(canCsvOne) + " flex-1 text-center"}
                     href={hrefOrBill(canCsvOne, `/admin/certificates/export-one?pid=${encodeURIComponent(r.public_id)}`, "export_one_csv")}
                     aria-disabled={!canCsvOne}
                   >
@@ -214,9 +225,19 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                   )}
                 </div>
               </div>
+            );
+          })}
+        </div>
 
-              {/* Mobile: stacked layout */}
-              <div className="md:hidden">
+        {/* Mobile: stacked list */}
+        <div className="md:hidden glass-card overflow-hidden divide-y divide-border-subtle">
+          {rows.map((r) => {
+            const url = `/c/${r.public_id}`;
+            const isVoid = r.status === "void";
+            const checked = !!selected[r.public_id];
+
+            return (
+              <div key={r.public_id} className="hover:bg-surface-hover/40 transition-colors">
                 <div className="flex items-center gap-3 px-4 pt-3 pb-2">
                   <input
                     type="checkbox"
@@ -271,12 +292,12 @@ export default function CertificatesTableClient({ rows, q }: { rows: Row[]; q: s
                   )}
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
 
         {rows.length === 0 && (
-          <div className="px-4 py-8 text-center text-sm text-muted">
+          <div className="glass-card px-4 py-8 text-center text-sm text-muted">
             該当する証明書がありません
           </div>
         )}
