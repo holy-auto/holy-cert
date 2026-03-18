@@ -7,7 +7,7 @@ import { FAQList } from "@/components/marketing/FAQList";
 import { FAQItem } from "@/components/marketing/FAQItem";
 import { CTABanner } from "@/components/marketing/CTABanner";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
-import { PLANS, FEATURE_COMPARISON, ANNUAL_DISCOUNT_PERCENT } from "@/lib/marketing/pricing";
+import { PLANS, FEATURE_COMPARISON, ANNUAL_DISCOUNT_PERCENT, TEMPLATE_OPTIONS, TEMPLATE_ADDITIONAL_WORK, TEMPLATE_FAQ } from "@/lib/marketing/pricing";
 
 export const metadata = {
   title: "料金プラン",
@@ -107,6 +107,71 @@ export default function PricingPage() {
             question="解約手数料はかかりますか？"
             answer="解約手数料は一切かかりません。月額プランの場合、月末まではご利用いただけます。年間プランの場合は残期間分の返金はございませんのでご了承ください。"
           />
+        </FAQList>
+      </Section>
+
+      {/* テンプレートオプション */}
+      <Section bg="alt">
+        <SectionHeading
+          title="ブランド証明書オプション"
+          subtitle="自社ロゴ・ブランドカラーを反映した施工証明書を発行できるオプションです。基本プランに追加してご利用いただけます。"
+        />
+        <PricingCards>
+          <PricingCard
+            name={TEMPLATE_OPTIONS.preset.name}
+            price={TEMPLATE_OPTIONS.preset.price}
+            unit={TEMPLATE_OPTIONS.preset.unit}
+            description={`${TEMPLATE_OPTIONS.preset.description}（初期費用 ${TEMPLATE_OPTIONS.preset.setupFee}）`}
+            delay={0}
+            features={[...TEMPLATE_OPTIONS.preset.features]}
+          />
+          <PricingCard
+            name={TEMPLATE_OPTIONS.custom.name}
+            price={TEMPLATE_OPTIONS.custom.price}
+            unit={TEMPLATE_OPTIONS.custom.unit}
+            description={`${TEMPLATE_OPTIONS.custom.description}（初期費用 ${TEMPLATE_OPTIONS.custom.setupFee}）`}
+            delay={100}
+            features={[...TEMPLATE_OPTIONS.custom.features]}
+            recommended
+          />
+        </PricingCards>
+      </Section>
+
+      {/* 追加作業費 */}
+      <Section>
+        <SectionHeading
+          title="追加作業費"
+          subtitle="テンプレート公開後の変更・追加は以下の料金にて承ります。"
+        />
+        <ScrollReveal variant="fade-up" delay={100}>
+          <div className="overflow-x-auto">
+            <table className="w-full max-w-2xl mx-auto text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-4 px-4 font-medium text-muted">作業内容</th>
+                  <th className="text-right py-4 px-4 font-medium text-heading">料金（税込）</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-light">
+                {TEMPLATE_ADDITIONAL_WORK.map((row) => (
+                  <tr key={row.item} className="hover:bg-surface-subtle/50 transition-colors">
+                    <td className="py-3.5 px-4 text-heading">{row.item}</td>
+                    <td className="py-3.5 px-4 text-right text-body">{row.price}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </ScrollReveal>
+      </Section>
+
+      {/* テンプレートFAQ */}
+      <Section bg="alt">
+        <SectionHeading title="ブランド証明書に関するご質問" />
+        <FAQList>
+          {TEMPLATE_FAQ.map((faq) => (
+            <FAQItem key={faq.question} question={faq.question} answer={faq.answer} />
+          ))}
         </FAQList>
       </Section>
 

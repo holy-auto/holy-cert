@@ -31,6 +31,8 @@ export type Permission =
   | "billing:view" | "billing:manage"
   // Stores
   | "stores:view" | "stores:manage"
+  // Template Options
+  | "template_options:view" | "template_options:manage"
   // Other
   | "announcements:view" | "news:view" | "price_stats:view"
   | "management:view" | "audit:view" | "insurers:view" | "insurers:manage"
@@ -59,6 +61,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "management:view", "audit:view",
     "insurers:view", "insurers:manage",
     "logo:manage",
+    "template_options:view", "template_options:manage",
   ],
   admin: [
     "dashboard:view",
@@ -78,6 +81,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "management:view", "audit:view",
     "insurers:view", "insurers:manage",
     "logo:manage",
+    "template_options:view", "template_options:manage",
   ],
   staff: [
     "dashboard:view",
@@ -154,6 +158,8 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/admin/audit": "audit:view",
   "/admin/stores": "stores:view",
   "/admin/deals": "market:view",
+  "/admin/template-options": "template_options:view",
+  "/admin/platform/template-orders": "template_options:manage",
 };
 
 /**

@@ -36,6 +36,7 @@ type DashboardStats = {
   categoryStats: { category: string; count: number }[] | null;
   insurerCount: number;
   regionalStats: { prefecture: string; count: number }[] | null;
+  templateOptionStatus: { active: boolean; optionType: string | null };
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -140,6 +141,21 @@ async function fetchStats(supabase: any, tenantId: string): Promise<DashboardSta
     activeOrders = ordCount ?? 0;
   } catch { /* job_orders table may not exist yet */ }
 
+  // テンプレートオプション契約状況
+  let templateOptionStatus: { active: boolean; optionType: string | null } = { active: false, optionType: null };
+  try {
+    const { data: tos } = await supabase
+      .from("tenant_option_subscriptions")
+      .select("option_type, status")
+      .eq("tenant_id", tenantId)
+      .in("status", ["active", "past_due"])
+      .limit(1)
+      .maybeSingle();
+    if (tos) {
+      templateOptionStatus = { active: true, optionType: tos.option_type as string };
+    }
+  } catch { /* table may not exist yet */ }
+
   // プラットフォーム全体統計（RPC）
   let platformCertStats = null;
   let categoryStats = null;
@@ -183,6 +199,7 @@ async function fetchStats(supabase: any, tenantId: string): Promise<DashboardSta
     categoryStats,
     insurerCount,
     regionalStats,
+    templateOptionStatus,
   };
 }
 
@@ -275,6 +292,25 @@ export default async function AdminHome() {
               <div className="mt-1 text-xs text-muted">未回収額</div>
             </div>
           </div>
+          {/* ブランド証明書 */}
+          <Link href="/admin/template-options" className="glass-card p-5 hover:bg-surface-hover transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">ブランド証明書</div>
+                <div className="mt-2 text-lg font-bold text-primary">
+                  {stats.templateOptionStatus.active
+                    ? stats.templateOptionStatus.optionType === "custom" ? "プレミアム" : "ライト"
+                    : "未契約"}
+                </div>
+                <div className="mt-1 text-xs text-muted">
+                  {stats.templateOptionStatus.active
+                    ? "テンプレート設定を確認"
+                    : "自社ブランド入り証明書を発行"}
+                </div>
+              </div>
+              <div className={`w-3 h-3 rounded-full ${stats.templateOptionStatus.active ? "bg-emerald-400" : "bg-gray-400"}`} />
+            </div>
+          </Link>
         </>
       )}
 

@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { priceIdToPlanTier } from "@/lib/stripe/plan";
 import { insurerPriceIdToPlanTier } from "@/lib/stripe/insurerPlan";
+import { isTemplateOptionEvent } from "@/lib/template-options/stripe";
 import { apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
@@ -189,6 +190,33 @@ export async function POST(req: NextRequest) {
         const customerId = asStringId(session.customer);
         const subscriptionId = asStringId(session.subscription);
 
+        // ─── テンプレートオプション checkout ───
+        if (isTemplateOptionEvent(session.metadata as Record<string, string> | null)) {
+          const tenantId = session.metadata?.tenant_id;
+          const optionType = session.metadata?.option_type as "preset" | "custom" | undefined;
+          if (tenantId && optionType && subscriptionId) {
+            // subscription item ID を取得
+            const sub = await stripe.subscriptions.retrieve(subscriptionId);
+            const recurringItem = sub.items?.data?.find(i => i.price?.recurring);
+
+            await supabase.from("tenant_option_subscriptions").upsert({
+              tenant_id: tenantId,
+              option_type: optionType,
+              status: "active",
+              stripe_subscription_id: subscriptionId,
+              stripe_subscription_item_id: recurringItem?.id ?? null,
+              started_at: new Date().toISOString(),
+              current_period_end: sub.current_period_end
+                ? new Date(sub.current_period_end * 1000).toISOString()
+                : null,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "tenant_id,option_type" });
+
+            console.log("webhook: template option subscription created", { tenantId, optionType, subscriptionId });
+          }
+          break;
+        }
+
         // tenant 特定：metadata優先（推奨）→ client_reference_id
         const tenant_id = session.metadata?.tenant_id ?? session.client_reference_id ?? null;
         const tenant_slug = session.metadata?.tenant_slug ?? null;
@@ -214,6 +242,34 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
+
+        // ─── テンプレートオプション subscription ───
+        if (isTemplateOptionEvent(sub.metadata as Record<string, string> | null)) {
+          const tenantId = sub.metadata?.tenant_id;
+          const optionType = sub.metadata?.option_type;
+          if (tenantId && optionType) {
+            const active = isActiveStatus(sub.status);
+            const status = sub.status === "canceled" ? "cancelled"
+              : sub.status === "past_due" ? "past_due"
+              : active ? "active" : "suspended";
+
+            await supabase.from("tenant_option_subscriptions")
+              .update({
+                status,
+                current_period_end: sub.current_period_end
+                  ? new Date(sub.current_period_end * 1000).toISOString()
+                  : null,
+                cancelled_at: sub.status === "canceled" ? new Date().toISOString() : null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("tenant_id", tenantId)
+              .eq("option_type", optionType);
+
+            console.log("webhook: template option subscription synced", { tenantId, optionType, status });
+          }
+          break;
+        }
+
         // Try insurer first (checks metadata.type or reverse lookup)
         const isInsurer = sub.metadata?.type === "insurer";
         if (isInsurer) {
@@ -238,6 +294,28 @@ export async function POST(req: NextRequest) {
         if (!subscriptionId) break;
 
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
+
+        // ─── テンプレートオプション invoice ───
+        if (isTemplateOptionEvent(sub.metadata as Record<string, string> | null)) {
+          const tenantId = sub.metadata?.tenant_id;
+          const optionType = sub.metadata?.option_type;
+          if (tenantId && optionType) {
+            const isPaid = event.type === "invoice.paid";
+            await supabase.from("tenant_option_subscriptions")
+              .update({
+                status: isPaid ? "active" : "past_due",
+                current_period_end: sub.current_period_end
+                  ? new Date(sub.current_period_end * 1000).toISOString()
+                  : null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("tenant_id", tenantId)
+              .eq("option_type", optionType);
+            console.log("webhook: template option invoice", { tenantId, optionType, event: event.type });
+          }
+          break;
+        }
+
         const isInsurer = sub.metadata?.type === "insurer";
         if (isInsurer) {
           await syncInsurerSubscription(stripe, supabase, sub);
