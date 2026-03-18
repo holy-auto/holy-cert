@@ -111,6 +111,7 @@ export function validateCustomConfig(config: TemplateConfigInput): TemplateConfi
       show_customer_name: true,  // 必須固定
       show_vehicle_info: true,   // 必須固定
       show_service_details: true, // 必須固定
+      show_photos: config.body?.show_photos ?? true,
     },
     footer: {
       ...config.footer,
