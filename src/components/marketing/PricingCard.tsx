@@ -11,7 +11,7 @@ export function PricingCard({
   features,
   recommended = false,
   ctaLabel = "お申し込み",
-  ctaHref = "/contact",
+  ctaHref = "/signup",
   delay = 0,
 }: {
   name: string;
@@ -53,7 +53,7 @@ export function PricingCard({
         </span>
         {unit && (
           <span className="text-sm ml-1.5 text-white/40">
-            /{unit}
+            {unit.startsWith("/") ? unit : `/${unit}`}
           </span>
         )}
       </div>

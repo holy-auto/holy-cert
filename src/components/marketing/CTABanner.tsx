@@ -8,7 +8,7 @@ export function CTABanner({
   title = "CARTRUSTを始めましょう",
   subtitle = "まずはお気軽にお問い合わせください。導入のご相談も承ります。",
   primaryLabel = "無料で始める",
-  primaryHref = "/contact",
+  primaryHref = "/signup",
   secondaryLabel = "お問い合わせ",
   secondaryHref = "/contact",
 }: {

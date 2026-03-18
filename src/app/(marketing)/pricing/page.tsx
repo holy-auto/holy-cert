@@ -60,6 +60,7 @@ export default function PricingPage() {
             delay={300}
             features={[...PLANS.pro.features]}
             ctaLabel={PLANS.pro.ctaLabel}
+            ctaHref="/contact"
           />
         </PricingCards>
       </Section>

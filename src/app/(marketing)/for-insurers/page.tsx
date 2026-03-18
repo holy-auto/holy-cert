@@ -132,7 +132,7 @@ export default function ForInsurersPage() {
               </svg>
             }
             title="API連携"
-            description="エンタープライズプランでは、RESTful APIによる社内システムとの連携が可能。既存ワークフローに組み込めます。"
+            description="施工店のプロプランでは、RESTful APIによるデータ連携が可能。保険会社の既存ワークフローに組み込めます。"
           />
         </div>
       </Section>
