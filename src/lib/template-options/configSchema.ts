@@ -116,7 +116,7 @@ export function validateCustomConfig(config: TemplateConfigInput): TemplateConfi
       ...config.footer,
       show_cartrust_badge: true, // 必須固定
     },
-  };
+  } as TemplateConfigInput;
 }
 
 /** option_type に応じた config 補正 */
