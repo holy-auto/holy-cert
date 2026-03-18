@@ -281,6 +281,11 @@ export default function ConfigurePage() {
           {/* ロゴ設定 */}
           <div className="glass-card p-4 space-y-3">
             <div className="text-xs font-semibold tracking-[0.18em] text-muted">ロゴ設定</div>
+            <LogoUploader
+              configId={savedConfigId}
+              currentLogoId={config.branding.logo_asset_id}
+              onUploaded={(assetId) => updateBranding("logo_asset_id", assetId)}
+            />
             <label className="block">
               <span className="text-xs text-muted">ロゴ位置</span>
               <select
@@ -294,7 +299,7 @@ export default function ConfigurePage() {
               </select>
             </label>
             <div className="text-xs text-muted">
-              ※ ロゴ画像は「設定」画面からアップロードしたロゴが自動で反映されます。
+              ※ PNG, JPEG, SVG, WebP（2MB以下）に対応しています。
             </div>
           </div>
 
@@ -394,6 +399,71 @@ export default function ConfigurePage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LogoUploader({
+  configId,
+  currentLogoId,
+  onUploaded,
+}: {
+  configId: string | null;
+  currentLogoId?: string;
+  onUploaded: (assetId: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploaded, setUploaded] = useState(!!currentLogoId);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      if (configId) fd.append("config_id", configId);
+
+      const res = await fetch("/api/template-options/upload-logo", {
+        method: "POST",
+        body: fd,
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j?.message ?? `HTTP ${res.status}`);
+
+      onUploaded(j.asset_id);
+      setUploaded(true);
+    } catch (err: any) {
+      setError(err?.message ?? String(err));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="block">
+        <span className="text-xs text-muted">ロゴ画像</span>
+        <div className="mt-1 flex items-center gap-3">
+          <label className="btn-secondary text-xs cursor-pointer">
+            {uploading ? "アップロード中..." : uploaded ? "ロゴを変更" : "ロゴをアップロード"}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml,image/webp"
+              className="hidden"
+              disabled={uploading}
+              onChange={handleUpload}
+            />
+          </label>
+          {uploaded && (
+            <span className="text-xs text-emerald-400">アップロード済み</span>
+          )}
+        </div>
+      </label>
+      {error && <div className="text-xs text-red-500">{error}</div>}
     </div>
   );
 }
