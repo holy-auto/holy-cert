@@ -6,8 +6,8 @@
 export const PLANS = {
   free: {
     name: "フリー",
-    price: "無料",
-    unit: "",
+    price: "¥0",
+    unit: "/月",
     description: "まずは試してみたい方に",
     certLimit: "月10件まで証明書発行",
     certLimitShort: "月10件",

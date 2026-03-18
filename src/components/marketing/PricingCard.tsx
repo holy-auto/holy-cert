@@ -47,8 +47,8 @@ export function PricingCard({
         </p>
       </div>
 
-      <div className="mb-8">
-        <span className="text-[2.75rem] font-bold tracking-tight text-white">
+      <div className="mb-8 min-h-[3.5rem] flex items-baseline">
+        <span className="text-[2.5rem] font-bold tracking-tight text-white">
           {price}
         </span>
         {unit && (
