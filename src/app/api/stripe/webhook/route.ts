@@ -199,6 +199,7 @@ export async function POST(req: NextRequest) {
             const sub = await stripe.subscriptions.retrieve(subscriptionId);
             const recurringItem = sub.items?.data?.find(i => i.price?.recurring);
 
+            const periodEnd = (sub as any).current_period_end;
             await supabase.from("tenant_option_subscriptions").upsert({
               tenant_id: tenantId,
               option_type: optionType,
@@ -206,8 +207,8 @@ export async function POST(req: NextRequest) {
               stripe_subscription_id: subscriptionId,
               stripe_subscription_item_id: recurringItem?.id ?? null,
               started_at: new Date().toISOString(),
-              current_period_end: sub.current_period_end
-                ? new Date(sub.current_period_end * 1000).toISOString()
+              current_period_end: periodEnd
+                ? new Date(periodEnd * 1000).toISOString()
                 : null,
               updated_at: new Date().toISOString(),
             }, { onConflict: "tenant_id,option_type" });
@@ -253,11 +254,12 @@ export async function POST(req: NextRequest) {
               : sub.status === "past_due" ? "past_due"
               : active ? "active" : "suspended";
 
+            const periodEnd2 = (sub as any).current_period_end;
             await supabase.from("tenant_option_subscriptions")
               .update({
                 status,
-                current_period_end: sub.current_period_end
-                  ? new Date(sub.current_period_end * 1000).toISOString()
+                current_period_end: periodEnd2
+                  ? new Date(periodEnd2 * 1000).toISOString()
                   : null,
                 cancelled_at: sub.status === "canceled" ? new Date().toISOString() : null,
                 updated_at: new Date().toISOString(),
@@ -301,11 +303,12 @@ export async function POST(req: NextRequest) {
           const optionType = sub.metadata?.option_type;
           if (tenantId && optionType) {
             const isPaid = event.type === "invoice.paid";
+            const periodEnd3 = (sub as any).current_period_end;
             await supabase.from("tenant_option_subscriptions")
               .update({
                 status: isPaid ? "active" : "past_due",
-                current_period_end: sub.current_period_end
-                  ? new Date(sub.current_period_end * 1000).toISOString()
+                current_period_end: periodEnd3
+                  ? new Date(periodEnd3 * 1000).toISOString()
                   : null,
                 updated_at: new Date().toISOString(),
               })
