@@ -22,6 +22,13 @@ function asStringId(v: any): string | null {
   return String(v);
 }
 
+/** Stripe SDK v20+: current_period_end moved from Subscription to SubscriptionItem */
+function getCurrentPeriodEnd(sub: Stripe.Subscription): number | null {
+  return (sub as any).current_period_end
+    ?? sub.items?.data?.[0]?.current_period_end
+    ?? null;
+}
+
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("Missing STRIPE_SECRET_KEY");
@@ -207,8 +214,8 @@ export async function POST(req: NextRequest) {
               stripe_subscription_id: subscriptionId,
               stripe_subscription_item_id: recurringItem?.id ?? null,
               started_at: new Date().toISOString(),
-              current_period_end: sub.current_period_end
-                ? new Date(sub.current_period_end * 1000).toISOString()
+              current_period_end: getCurrentPeriodEnd(sub)
+                ? new Date(getCurrentPeriodEnd(sub)! * 1000).toISOString()
                 : null,
               updated_at: new Date().toISOString(),
             }, { onConflict: "tenant_id,option_type" });
@@ -257,8 +264,8 @@ export async function POST(req: NextRequest) {
             await supabase.from("tenant_option_subscriptions")
               .update({
                 status,
-                current_period_end: sub.current_period_end
-                  ? new Date(sub.current_period_end * 1000).toISOString()
+                current_period_end: getCurrentPeriodEnd(sub)
+                  ? new Date(getCurrentPeriodEnd(sub)! * 1000).toISOString()
                   : null,
                 cancelled_at: sub.status === "canceled" ? new Date().toISOString() : null,
                 updated_at: new Date().toISOString(),
@@ -305,8 +312,8 @@ export async function POST(req: NextRequest) {
             await supabase.from("tenant_option_subscriptions")
               .update({
                 status: isPaid ? "active" : "past_due",
-                current_period_end: sub.current_period_end
-                  ? new Date(sub.current_period_end * 1000).toISOString()
+                current_period_end: getCurrentPeriodEnd(sub)
+                  ? new Date(getCurrentPeriodEnd(sub)! * 1000).toISOString()
                   : null,
                 updated_at: new Date().toISOString(),
               })
