@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerBasic } from "@/lib/api/auth";
-import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound } from "@/lib/api/response";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +12,17 @@ const MAX_IMAGES_PER_VEHICLE = 20;
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller)
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const url = new URL(req.url);
     const vehicleId = url.searchParams.get("vehicle_id");
-    if (!vehicleId) return apiValidationError("vehicle_id は必須です。");
+    if (!vehicleId)
+      return NextResponse.json(
+        { error: "missing vehicle_id" },
+        { status: 400 }
+      );
 
     // Verify vehicle belongs to caller's tenant
     const { data: vehicle } = await supabase
@@ -28,7 +32,11 @@ export async function GET(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
-    if (!vehicle) return apiNotFound("車両が見つかりません。");
+    if (!vehicle)
+      return NextResponse.json(
+        { error: "vehicle_not_found" },
+        { status: 404 }
+      );
 
     const { data: images, error } = await supabase
       .from("market_vehicle_images")
@@ -37,11 +45,21 @@ export async function GET(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .order("sort_order", { ascending: true });
 
-    if (error) return apiInternalError(error, "market vehicle images list");
+    if (error) {
+      console.error("[market-vehicle-images] db_error:", error.message);
+      return NextResponse.json(
+        { error: "db_error" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ images: images ?? [] });
-  } catch (e) {
-    return apiInternalError(e, "market vehicle images GET");
+  } catch (e: any) {
+    console.error("market vehicle images GET error", e);
+    return NextResponse.json(
+      { error: "internal_error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -49,26 +67,36 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller)
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const form = await req.formData();
     const vehicleId = String(form.get("vehicle_id") ?? "").trim();
     const file = form.get("file") as File | null;
 
-    if (!vehicleId) return apiValidationError("vehicle_id は必須です。");
-    if (!file || !file.size) return apiValidationError("ファイルは必須です。");
+    if (!vehicleId)
+      return NextResponse.json(
+        { error: "missing vehicle_id" },
+        { status: 400 }
+      );
+    if (!file || !file.size)
+      return NextResponse.json({ error: "missing file" }, { status: 400 });
 
     // Validate MIME
     const mime = file.type || "application/octet-stream";
-    if (!ALLOWED_MIME.includes(mime)) {
-      return apiValidationError(`許可されていないファイル形式です。許可: ${ALLOWED_MIME.join(", ")}`);
-    }
+    if (!ALLOWED_MIME.includes(mime))
+      return NextResponse.json(
+        { error: "invalid_file_type", allowed: ALLOWED_MIME },
+        { status: 400 }
+      );
 
     // Validate size
-    if (file.size > MAX_FILE_BYTES) {
-      return apiValidationError(`ファイルサイズが大きすぎます。上限: ${MAX_FILE_BYTES / 1024 / 1024}MB`);
-    }
+    if (file.size > MAX_FILE_BYTES)
+      return NextResponse.json(
+        { error: "file_too_large", max_bytes: MAX_FILE_BYTES },
+        { status: 400 }
+      );
 
     // Verify vehicle belongs to caller's tenant
     const { data: vehicle } = await supabase
@@ -78,7 +106,11 @@ export async function POST(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
-    if (!vehicle) return apiNotFound("車両が見つかりません。");
+    if (!vehicle)
+      return NextResponse.json(
+        { error: "vehicle_not_found" },
+        { status: 404 }
+      );
 
     // Check max images
     const { count: existingCount } = await supabase
@@ -88,11 +120,15 @@ export async function POST(req: NextRequest) {
       .eq("tenant_id", caller.tenantId);
 
     const existing = existingCount ?? 0;
-    if (existing >= MAX_IMAGES_PER_VEHICLE) {
-      return apiValidationError(
-        `画像数の上限（${MAX_IMAGES_PER_VEHICLE}枚）に達しています。`,
+    if (existing >= MAX_IMAGES_PER_VEHICLE)
+      return NextResponse.json(
+        {
+          error: "image_limit_reached",
+          max: MAX_IMAGES_PER_VEHICLE,
+          current: existing,
+        },
+        { status: 422 }
       );
-    }
 
     // Build storage path
     const ext = mime.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
@@ -107,7 +143,11 @@ export async function POST(req: NextRequest) {
       .upload(storagePath, buffer, { contentType: mime, upsert: false });
 
     if (uploadError) {
-      return apiInternalError(uploadError, "market image upload");
+      console.error("market image upload error", uploadError);
+      return NextResponse.json(
+        { error: "upload_failed" },
+        { status: 500 }
+      );
     }
 
     // Insert record
@@ -126,14 +166,22 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (insertError) {
+      console.error("[market-vehicle-images] db_error (insert):", insertError.message);
       // Attempt to clean up uploaded file
       await supabase.storage.from("market").remove([storagePath]);
-      return apiInternalError(insertError, "market image record insert");
+      return NextResponse.json(
+        { error: "db_error" },
+        { status: 500 }
+      );
     }
 
-    return apiOk({ image });
-  } catch (e) {
-    return apiInternalError(e, "market vehicle images POST");
+    return NextResponse.json({ ok: true, image });
+  } catch (e: any) {
+    console.error("market vehicle images POST error", e);
+    return NextResponse.json(
+      { error: "internal_error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -141,13 +189,18 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller)
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({} as any));
     const { id, vehicle_id: vehicleId } = body;
 
-    if (!id || !vehicleId) return apiValidationError("id と vehicle_id は必須です。");
+    if (!id || !vehicleId)
+      return NextResponse.json(
+        { error: "missing id or vehicle_id" },
+        { status: 400 }
+      );
 
     // Verify image belongs to caller's tenant
     const { data: image } = await supabase
@@ -158,7 +211,11 @@ export async function DELETE(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
-    if (!image) return apiNotFound("画像が見つかりません。");
+    if (!image)
+      return NextResponse.json(
+        { error: "image_not_found" },
+        { status: 404 }
+      );
 
     // Delete from storage
     const { error: storageError } = await supabase.storage
@@ -177,10 +234,20 @@ export async function DELETE(req: NextRequest) {
       .eq("id", id)
       .eq("tenant_id", caller.tenantId);
 
-    if (deleteError) return apiInternalError(deleteError, "market image delete");
+    if (deleteError) {
+      console.error("[market-vehicle-images] db_error (delete):", deleteError.message);
+      return NextResponse.json(
+        { error: "db_error" },
+        { status: 500 }
+      );
+    }
 
-    return apiOk({});
-  } catch (e) {
-    return apiInternalError(e, "market vehicle images DELETE");
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    console.error("market vehicle images DELETE error", e);
+    return NextResponse.json(
+      { error: "internal_error" },
+      { status: 500 }
+    );
   }
 }

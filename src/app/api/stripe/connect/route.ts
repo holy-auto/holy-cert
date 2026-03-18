@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { resolveBaseUrl } from "@/lib/url";
-import { apiOk, apiInternalError, apiUnauthorized, apiNotFound, apiValidationError } from "@/lib/api/response";
-import { resolveCallerBasic } from "@/lib/api/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +14,8 @@ function getStripe() {
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const admin = createAdminClient();
     const { data: tenant } = await admin
@@ -26,7 +24,7 @@ export async function POST(req: NextRequest) {
       .eq("id", caller.tenantId)
       .single();
 
-    if (!tenant) return apiNotFound("テナントが見つかりません。");
+    if (!tenant) return NextResponse.json({ error: "tenant_not_found" }, { status: 404 });
 
     const stripe = getStripe();
     let accountId = tenant.stripe_connect_account_id as string | null;
@@ -49,10 +47,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate onboarding link
-    const body = await req.json().catch(() => ({} as Record<string, unknown>));
-    const baseUrl = resolveBaseUrl({ req });
-    const returnUrl = (body?.return_url as string) || `${baseUrl}/admin/settings`;
-    const refreshUrl = (body?.refresh_url as string) || `${baseUrl}/admin/settings`;
+    const body = await req.json().catch(() => ({} as any));
+    const returnUrl = body?.return_url || `${process.env.NEXT_PUBLIC_BASE_URL}/admin/settings`;
+    const refreshUrl = body?.refresh_url || `${process.env.NEXT_PUBLIC_BASE_URL}/admin/settings`;
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
@@ -61,12 +58,14 @@ export async function POST(req: NextRequest) {
       type: "account_onboarding",
     });
 
-    return apiOk({
+    return NextResponse.json({
+      ok: true,
       account_id: accountId,
       onboarding_url: accountLink.url,
     });
-  } catch (e) {
-    return apiInternalError(e, "stripe connect create");
+  } catch (e: any) {
+    console.error("stripe connect create failed", e);
+    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
   }
 }
 
@@ -74,8 +73,8 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const admin = createAdminClient();
     const { data: tenant } = await admin
@@ -84,7 +83,7 @@ export async function GET() {
       .eq("id", caller.tenantId)
       .single();
 
-    if (!tenant) return apiNotFound("テナントが見つかりません。");
+    if (!tenant) return NextResponse.json({ error: "tenant_not_found" }, { status: 404 });
 
     const accountId = tenant.stripe_connect_account_id as string | null;
     if (!accountId) {
@@ -116,43 +115,8 @@ export async function GET() {
       charges_enabled: account.charges_enabled,
       payouts_enabled: account.payouts_enabled,
     });
-  } catch (e) {
-    return apiInternalError(e, "stripe connect status");
-  }
-}
-
-// ─── DELETE: Disconnect Connect account ───
-export async function DELETE() {
-  try {
-    const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
-
-    const admin = createAdminClient();
-    const { data: tenant } = await admin
-      .from("tenants")
-      .select("stripe_connect_account_id")
-      .eq("id", caller.tenantId)
-      .single();
-
-    if (!tenant) return apiNotFound("テナントが見つかりません。");
-
-    const accountId = tenant.stripe_connect_account_id as string | null;
-    if (!accountId) {
-      return apiValidationError("Stripe Connect アカウントが接続されていません。");
-    }
-
-    // Clear local records (Stripe account itself is not deleted — the shop retains their Stripe account)
-    await admin
-      .from("tenants")
-      .update({
-        stripe_connect_account_id: null,
-        stripe_connect_onboarded: false,
-      })
-      .eq("id", caller.tenantId);
-
-    return apiOk({ disconnected: true, previous_account_id: accountId });
-  } catch (e) {
-    return apiInternalError(e, "stripe connect disconnect");
+  } catch (e: any) {
+    console.error("stripe connect status failed", e);
+    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
   }
 }

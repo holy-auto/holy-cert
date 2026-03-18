@@ -1,13 +1,17 @@
 import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import BillingGate from "./BillingGate";
 import AdminRouteGuard from "./AdminRouteGuard";
 import BillingFetchGuard from "./BillingFetchGuard";
-import Sidebar from "@/components/ui/Sidebar";
-import { StoreProvider } from "@/lib/stores/StoreContext";
+
+const Sidebar = dynamic(() => import("@/components/ui/Sidebar"), {
+  ssr: false,
+  loading: () => <div className="hidden lg:block lg:w-60 lg:shrink-0" />,
+});
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <StoreProvider>
+    <>
       <BillingFetchGuard />
       <BillingGate />
       <div className="flex min-h-screen">
@@ -18,6 +22,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Suspense>
         </main>
       </div>
-    </StoreProvider>
+    </>
   );
 }

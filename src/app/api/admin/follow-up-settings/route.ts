@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerBasic } from "@/lib/api/auth";
-import { apiOk, apiInternalError, apiUnauthorized } from "@/lib/api/response";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +8,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const { data } = await supabase
       .from("follow_up_settings")
@@ -25,8 +24,8 @@ export async function GET() {
         enabled: true,
       },
     });
-  } catch (e) {
-    return apiInternalError(e, "follow-up-settings GET");
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
   }
 }
 
@@ -34,8 +33,8 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const body = await req.json().catch(() => ({} as any));
     const reminderDays = Array.isArray(body.reminder_days_before)
@@ -72,8 +71,8 @@ export async function PUT(req: NextRequest) {
         .insert({ ...row, id: crypto.randomUUID() });
     }
 
-    return apiOk({});
-  } catch (e) {
-    return apiInternalError(e, "follow-up-settings PUT");
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
   }
 }

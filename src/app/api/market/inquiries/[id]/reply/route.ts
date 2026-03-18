@@ -1,28 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyInquiryReply } from "@/lib/market/email";
 
 export const dynamic = "force-dynamic";
-
-async function resolveCallerTenant(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes?.user) return null;
-
-  const { data: mem } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .eq("user_id", userRes.user.id)
-    .limit(1)
-    .single();
-
-  if (!mem?.tenant_id) return null;
-
-  return {
-    userId: userRes.user.id,
-    tenantId: mem.tenant_id as string,
-  };
-}
 
 // ─── POST: Add a message to the inquiry thread ───
 export async function POST(
@@ -31,7 +13,7 @@ export async function POST(
 ) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const { id: inquiryId } = await params;
@@ -75,7 +57,8 @@ export async function POST(
       .single();
 
     if (insertErr) {
-      return NextResponse.json({ error: "insert_failed", detail: insertErr.message }, { status: 500 });
+      console.error("[inquiry-reply] insert_failed:", insertErr.message);
+      return NextResponse.json({ error: "insert_failed" }, { status: 500 });
     }
 
     // Update inquiry status to "responded" if currently "new"
@@ -111,7 +94,7 @@ export async function POST(
     return NextResponse.json({ ok: true, reply });
   } catch (e: any) {
     console.error("inquiry reply failed", e);
-    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -122,7 +105,7 @@ export async function GET(
 ) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerTenant(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const { id: inquiryId } = await params;
@@ -147,12 +130,13 @@ export async function GET(
       .order("created_at", { ascending: true });
 
     if (error) {
-      return NextResponse.json({ error: "db_error", detail: error.message }, { status: 500 });
+      console.error("[inquiry-reply] db_error:", error.message);
+      return NextResponse.json({ error: "db_error" }, { status: 500 });
     }
 
     return NextResponse.json({ messages: messages ?? [] });
   } catch (e: any) {
     console.error("inquiry messages list failed", e);
-    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 
 export const runtime = "nodejs";
 
@@ -11,9 +10,20 @@ export const runtime = "nodejs";
  */
 export async function GET(req: Request) {
   const supabase = await createClient();
-  const caller = await resolveCallerWithRole(supabase);
-  if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!requirePermission(caller, "insurers:view")) {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  // テナント管理者であることを確認
+  const { data: mem } = await supabase
+    .from("tenant_memberships")
+    .select("role")
+    .eq("user_id", auth.user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!mem || !["admin", "owner"].includes(mem.role)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
@@ -33,7 +43,8 @@ export async function GET(req: Request) {
   const { data, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[insurers] db_error:", error.message);
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
 
   return NextResponse.json({ insurers: data ?? [] });
@@ -45,9 +56,20 @@ export async function GET(req: Request) {
  */
 export async function PATCH(req: Request) {
   const supabase = await createClient();
-  const caller = await resolveCallerWithRole(supabase);
-  if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!requirePermission(caller, "insurers:manage")) {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  // テナント管理者であることを確認
+  const { data: mem } = await supabase
+    .from("tenant_memberships")
+    .select("role")
+    .eq("user_id", auth.user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!mem || !["admin", "owner"].includes(mem.role)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
@@ -69,7 +91,7 @@ export async function PATCH(req: Request) {
   if (status && ["active_pending_review", "active", "suspended"].includes(status)) {
     updates.status = status;
     updates.reviewed_at = new Date().toISOString();
-    updates.reviewed_by = caller.userId;
+    updates.reviewed_by = auth.user.id;
 
     if (status === "active") {
       updates.activated_at = new Date().toISOString();
@@ -89,7 +111,8 @@ export async function PATCH(req: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[insurers] update_failed:", error.message);
+    return NextResponse.json({ error: "update_failed" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, insurer: data });

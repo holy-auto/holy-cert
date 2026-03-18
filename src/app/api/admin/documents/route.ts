@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { DOC_TYPES, type DocType } from "@/types/document";
-import { resolveCallerBasic } from "@/lib/api/auth";
-import { apiOk, apiUnauthorized, apiNotFound, apiInternalError, apiValidationError } from "@/lib/api/response";
-import { parsePagination } from "@/lib/api/pagination";
-import { documentCreateSchema, documentUpdateSchema, documentDeleteSchema } from "@/lib/validations/document";
 
 export const dynamic = "force-dynamic";
 
@@ -67,27 +64,43 @@ function calcItems(items: any[], taxRate: number) {
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const p = parsePagination(req);
     const url = new URL(req.url);
     const docType = url.searchParams.get("doc_type") ?? "";
     const status = url.searchParams.get("status") ?? "";
     const customerId = url.searchParams.get("customer_id") ?? "";
+    const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "0", 10) || 0);
+    const perPage = Math.min(200, Math.max(1, parseInt(url.searchParams.get("per_page") ?? "50", 10)));
+
+    const selectCols = "id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, is_invoice_compliant, source_document_id, show_seal, show_logo, show_bank_info, recipient_name, created_at, updated_at";
 
     let query = supabase
       .from("documents")
-      .select("*", { count: "exact" })
+      .select(selectCols)
       .eq("tenant_id", caller.tenantId)
       .order("created_at", { ascending: false });
 
-    if (docType) query = query.eq("doc_type", docType);
-    if (status && status !== "all") query = query.eq("status", status);
-    if (customerId) query = query.eq("customer_id", customerId);
+    let countQuery = supabase
+      .from("documents")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", caller.tenantId);
 
-    const { data: docs, error, count } = await query.range(p.from, p.to);
-    if (error) return apiInternalError(error, "documents list query");
+    if (docType) { query = query.eq("doc_type", docType); countQuery = countQuery.eq("doc_type", docType); }
+    if (status && status !== "all") { query = query.eq("status", status); countQuery = countQuery.eq("status", status); }
+    if (customerId) { query = query.eq("customer_id", customerId); countQuery = countQuery.eq("customer_id", customerId); }
+
+    if (page > 0) {
+      const from = (page - 1) * perPage;
+      query = query.range(from, from + perPage - 1);
+    }
+
+    const [{ data: docs, error }, { count: totalCount }] = await Promise.all([query, countQuery]);
+    if (error) {
+      console.error("[documents] db_error:", error.message);
+      return NextResponse.json({ error: "db_error" }, { status: 500 });
+    }
 
     // 顧客名を取得
     const customerIds = [...new Set((docs ?? []).map((d) => d.customer_id).filter(Boolean))];
@@ -106,19 +119,26 @@ export async function GET(req: NextRequest) {
     }));
 
     // 統計
+    const total = enriched.length;
     const unpaidAmount = enriched
       .filter((d) => d.status === "sent" || d.status === "accepted")
       .reduce((sum, d) => sum + (d.total ?? 0), 0);
 
     return NextResponse.json({
       documents: enriched,
-      page: p.page,
-      per_page: p.perPage,
-      total: count ?? 0,
-      stats: { total: count ?? 0, unpaid_amount: unpaidAmount },
+      stats: { total: totalCount ?? total, unpaid_amount: unpaidAmount },
+      ...(page > 0 && {
+        pagination: {
+          page,
+          per_page: perPage,
+          total: totalCount ?? total,
+          total_pages: Math.ceil((totalCount ?? total) / perPage),
+        },
+      }),
     });
-  } catch (e) {
-    return apiInternalError(e, "documents list");
+  } catch (e: any) {
+    console.error("documents list failed", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -126,17 +146,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({}));
-    const parsed = documentCreateSchema.safeParse(body);
-    if (!parsed.success) {
-      const msg = parsed.error.issues.map(i => i.message).join(" ");
-      return apiValidationError(msg);
+    const body = await req.json().catch(() => ({} as any));
+    const docType = (body?.doc_type ?? "").trim() as DocType;
+    if (!DOC_TYPES[docType]) {
+      return NextResponse.json({ error: "invalid_doc_type" }, { status: 400 });
     }
-
-    const docType = parsed.data.doc_type as DocType;
 
     const docNumber = body?.doc_number?.trim() || (await generateDocNumber(supabase, caller.tenantId, docType));
     const customerId = body?.customer_id?.trim() || null;
@@ -181,11 +198,15 @@ export async function POST(req: NextRequest) {
     };
 
     const { data, error } = await supabase.from("documents").insert(row).select().single();
-    if (error) return apiInternalError(error, "document insert");
+    if (error) {
+      console.error("[documents] insert_failed:", error.message);
+      return NextResponse.json({ error: "insert_failed" }, { status: 500 });
+    }
 
-    return apiOk({ document: data });
-  } catch (e) {
-    return apiInternalError(e, "document create");
+    return NextResponse.json({ ok: true, document: data });
+  } catch (e: any) {
+    console.error("document create failed", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -193,17 +214,13 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({}));
-    const parsed = documentUpdateSchema.safeParse(body);
-    if (!parsed.success) {
-      const msg = parsed.error.issues.map(i => i.message).join(" ");
-      return apiValidationError(msg);
-    }
+    const body = await req.json().catch(() => ({} as any));
+    const id = (body?.id ?? "").trim();
+    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
-    const id = parsed.data.id;
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
     if (body.status !== undefined) updates.status = body.status;
@@ -237,11 +254,15 @@ export async function PUT(req: NextRequest) {
       .select()
       .single();
 
-    if (error) return apiInternalError(error, "document update");
+    if (error) {
+      console.error("[documents] update_failed:", error.message);
+      return NextResponse.json({ error: "update_failed" }, { status: 500 });
+    }
 
-    return apiOk({ document: data });
-  } catch (e) {
-    return apiInternalError(e, "document update");
+    return NextResponse.json({ ok: true, document: data });
+  } catch (e: any) {
+    console.error("document update failed", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -249,17 +270,12 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({}));
-    const parsed = documentDeleteSchema.safeParse(body);
-    if (!parsed.success) {
-      const msg = parsed.error.issues.map(i => i.message).join(" ");
-      return apiValidationError(msg);
-    }
-
-    const id = parsed.data.id;
+    const body = await req.json().catch(() => ({} as any));
+    const id = (body?.id ?? "").trim();
+    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
     const { data: doc } = await supabase
       .from("documents")
@@ -268,10 +284,13 @@ export async function DELETE(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .single();
 
-    if (!doc) return apiNotFound("帳票が見つかりません。");
+    if (!doc) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     if (doc.status !== "draft") {
-      return apiValidationError("下書きステータスの帳票のみ削除できます。");
+      return NextResponse.json({
+        error: "not_draft",
+        message: "下書きステータスの帳票のみ削除できます。",
+      }, { status: 400 });
     }
 
     const { error } = await supabase
@@ -280,10 +299,14 @@ export async function DELETE(req: NextRequest) {
       .eq("id", id)
       .eq("tenant_id", caller.tenantId);
 
-    if (error) return apiInternalError(error, "document delete");
+    if (error) {
+      console.error("[documents] delete_failed:", error.message);
+      return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+    }
 
-    return apiOk({});
-  } catch (e) {
-    return apiInternalError(e, "document delete");
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    console.error("document delete failed", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }

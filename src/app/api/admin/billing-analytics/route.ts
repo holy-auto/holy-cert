@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerBasic } from "@/lib/api/auth";
-import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +16,8 @@ type MonthData = {
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     // Fetch all invoices (non-cancelled) for this tenant
     const { data: invoices } = await supabase
@@ -190,7 +189,8 @@ export async function GET() {
         totalCount: months.reduce((s, m) => s + m.count, 0),
       },
     });
-  } catch (e) {
-    return apiInternalError(e, "billing-analytics");
+  } catch (e: unknown) {
+    console.error("[billing-analytics] GET failed:", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }

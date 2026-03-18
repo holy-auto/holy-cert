@@ -1,8 +1,7 @@
-import { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { contactSchema } from "@/lib/validations/contact";
-import { apiOk, apiInternalError, apiValidationError } from "@/lib/api/response";
-import { checkRateLimit } from "@/lib/api/rateLimit";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { contactSchema, parseBody } from "@/lib/validation/schemas";
 
 /** 遅延初期化: ビルド時に API キーが無くてもクラッシュしない */
 function getResend() {
@@ -15,19 +14,27 @@ const TO = process.env.CONTACT_TO_EMAIL ?? "info@cartrust.co.jp";
 /** 送信元として表示するアドレス（Resendの検証済みドメインである必要がある） */
 const FROM = process.env.CONTACT_FROM_EMAIL ?? "noreply@cartrust.co.jp";
 
-export async function POST(request: NextRequest) {
-  const limited = await checkRateLimit(request, "auth");
-  if (limited) return limited;
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return apiValidationError("無効なJSONです。");
+export async function POST(request: Request) {
+  // Rate limit: 5 contact form submissions per IP per 15 minutes
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`contact:${ip}`, { limit: 5, windowSec: 900 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", message: "送信が多すぎます。しばらくしてから再度お試しください。" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
   }
 
-  const parsed = contactSchema.safeParse(body);
+  let rawBody: unknown;
+  try {
+    rawBody = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const parsed = parseBody(contactSchema, rawBody);
   if (!parsed.success) {
-    return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
+    return NextResponse.json({ error: "Missing required fields", details: parsed.errors }, { status: 400 });
   }
 
   const { name, email, company, category, message } = parsed.data;
@@ -35,7 +42,7 @@ export async function POST(request: NextRequest) {
   if (!process.env.RESEND_API_KEY) {
     // 開発環境: APIキー未設定の場合はログだけ出してOK返す
     console.log("[contact] dev mode — would send:", { name, email, category });
-    return apiOk({});
+    return NextResponse.json({ ok: true });
   }
 
   try {
@@ -57,8 +64,9 @@ export async function POST(request: NextRequest) {
         .join("\n"),
     });
 
-    return apiOk({});
-  } catch (e) {
-    return apiInternalError(e, "contact mail send");
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[contact] resend error:", err);
+    return NextResponse.json({ error: "Mail send failed" }, { status: 500 });
   }
 }

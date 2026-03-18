@@ -1,21 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import PageHeader from "@/components/ui/PageHeader";
 import DashboardCharts from "./DashboardCharts";
-import { assertUUID } from "@/lib/sanitize";
-import AnnouncementsBanner from "./AnnouncementsBanner";
-
-async function getMyTenantId(supabase: any) {
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes.user) return null;
-  const { data } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .limit(1)
-    .single();
-  return data?.tenant_id as string | null;
-}
 
 type DashboardStats = {
   totalCerts: number;
@@ -36,7 +24,6 @@ type DashboardStats = {
   categoryStats: { category: string; count: number }[] | null;
   insurerCount: number;
   regionalStats: { prefecture: string; count: number }[] | null;
-  templateOptionStatus: { active: boolean; optionType: string | null };
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -48,20 +35,41 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 async function fetchStats(supabase: any, tenantId: string): Promise<DashboardStats> {
-  assertUUID(tenantId, "tenantId");
+  const today = new Date().toISOString().slice(0, 10);
 
-  // 証明書の総数・ステータス別
-  const { data: certs } = await supabase
-    .from("certificates")
-    .select("status,created_at")
-    .eq("tenant_id", tenantId);
+  // ── All queries in parallel (was 11 sequential queries → now 1 round-trip) ──
+  const [
+    { data: certs },
+    { count: memberCount },
+    { count: customerCount },
+    { data: invoices },
+    todayResResult,
+    activeResResult,
+    ordersResult,
+    pcsResult,
+    csResult,
+    icResult,
+    rsResult,
+  ] = await Promise.all([
+    supabase.from("certificates").select("status,created_at").eq("tenant_id", tenantId),
+    supabase.from("tenant_memberships").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
+    supabase.from("customers").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
+    supabase.from("invoices").select("status,total").eq("tenant_id", tenantId),
+    supabase.from("reservations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("scheduled_date", today).neq("status", "cancelled").then((r: any) => r).catch(() => ({ count: 0 })),
+    supabase.from("reservations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).in("status", ["confirmed", "arrived", "in_progress"]).then((r: any) => r).catch(() => ({ count: 0 })),
+    supabase.from("job_orders").select("*", { count: "exact", head: true }).or(`from_tenant_id.eq.${tenantId},to_tenant_id.eq.${tenantId}`).in("status", ["pending", "accepted", "in_progress"]).then((r: any) => r).catch(() => ({ count: 0 })),
+    supabase.rpc("platform_certificate_stats").then((r: any) => r).catch(() => ({ data: null })),
+    supabase.rpc("platform_tenant_category_stats").then((r: any) => r).catch(() => ({ data: null })),
+    supabase.rpc("platform_insurer_count").then((r: any) => r).catch(() => ({ data: 0 })),
+    supabase.rpc("platform_regional_stats").then((r: any) => r).catch(() => ({ data: null })),
+  ]);
 
+  // ── Process certificates ──
   const allCerts = certs ?? [];
   const totalCerts = allCerts.length;
   const activeCerts = allCerts.filter((c: any) => c.status === "active").length;
   const voidCerts = allCerts.filter((c: any) => c.status === "void").length;
 
-  // ステータス別集計
   const statusMap = new Map<string, number>();
   for (const c of allCerts) {
     const s = c.status ?? "unknown";
@@ -69,7 +77,6 @@ async function fetchStats(supabase: any, tenantId: string): Promise<DashboardSta
   }
   const statusBreakdown = Array.from(statusMap.entries()).map(([status, count]) => ({ status, count }));
 
-  // 直近30日の発行数（日別）
   const dateMap = new Map<string, number>();
   for (let i = 0; i < 30; i++) {
     const d = new Date();
@@ -79,108 +86,16 @@ async function fetchStats(supabase: any, tenantId: string): Promise<DashboardSta
   for (const c of allCerts) {
     if (!c.created_at) continue;
     const date = c.created_at.slice(0, 10);
-    if (dateMap.has(date)) {
-      dateMap.set(date, (dateMap.get(date) ?? 0) + 1);
-    }
+    if (dateMap.has(date)) dateMap.set(date, (dateMap.get(date) ?? 0) + 1);
   }
   const recentActivity = Array.from(dateMap.entries()).map(([date, count]) => ({ date, count }));
 
-  // メンバー数
-  const { count: memberCount } = await supabase
-    .from("tenant_memberships")
-    .select("*", { count: "exact", head: true })
-    .eq("tenant_id", tenantId);
-
-  // 顧客数
-  const { count: customerCount } = await supabase
-    .from("customers")
-    .select("*", { count: "exact", head: true })
-    .eq("tenant_id", tenantId);
-
-  // 請求書統計
-  const { data: invoices } = await supabase
-    .from("invoices")
-    .select("status,total")
-    .eq("tenant_id", tenantId);
-
+  // ── Process invoices ──
   const invoiceList = invoices ?? [];
   const invoiceCount = invoiceList.length;
   const unpaidAmount = invoiceList
     .filter((inv: any) => inv.status === "sent" || inv.status === "overdue")
     .reduce((sum: number, inv: any) => sum + (inv.total ?? 0), 0);
-
-  // 予約統計
-  const today = new Date().toISOString().slice(0, 10);
-  let todayReservations = 0;
-  let activeReservations = 0;
-  try {
-    const { count: todayCount } = await supabase
-      .from("reservations")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("scheduled_date", today)
-      .neq("status", "cancelled");
-    todayReservations = todayCount ?? 0;
-
-    const { count: activeCount } = await supabase
-      .from("reservations")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .in("status", ["confirmed", "arrived", "in_progress"]);
-    activeReservations = activeCount ?? 0;
-  } catch { /* reservations table may not exist yet */ }
-
-  // 受発注統計
-  let activeOrders = 0;
-  try {
-    const { count: ordCount } = await supabase
-      .from("job_orders")
-      .select("*", { count: "exact", head: true })
-      .or(`from_tenant_id.eq.${tenantId},to_tenant_id.eq.${tenantId}`)
-      .in("status", ["pending", "accepted", "in_progress"]);
-    activeOrders = ordCount ?? 0;
-  } catch { /* job_orders table may not exist yet */ }
-
-  // テンプレートオプション契約状況
-  let templateOptionStatus: { active: boolean; optionType: string | null } = { active: false, optionType: null };
-  try {
-    const { data: tos } = await supabase
-      .from("tenant_option_subscriptions")
-      .select("option_type, status")
-      .eq("tenant_id", tenantId)
-      .in("status", ["active", "past_due"])
-      .limit(1)
-      .maybeSingle();
-    if (tos) {
-      templateOptionStatus = { active: true, optionType: tos.option_type as string };
-    }
-  } catch { /* table may not exist yet */ }
-
-  // プラットフォーム全体統計（RPC）
-  let platformCertStats = null;
-  let categoryStats = null;
-  let insurerCount = 0;
-  let regionalStats = null;
-
-  try {
-    const { data: pcs } = await supabase.rpc("platform_certificate_stats");
-    platformCertStats = pcs ?? null;
-  } catch { /* RPC未実行の場合は null */ }
-
-  try {
-    const { data: cs } = await supabase.rpc("platform_tenant_category_stats");
-    categoryStats = cs ?? null;
-  } catch { /* */ }
-
-  try {
-    const { data: ic } = await supabase.rpc("platform_insurer_count");
-    insurerCount = ic ?? 0;
-  } catch { /* */ }
-
-  try {
-    const { data: rs } = await supabase.rpc("platform_regional_stats");
-    regionalStats = rs ?? null;
-  } catch { /* */ }
 
   return {
     totalCerts,
@@ -192,23 +107,22 @@ async function fetchStats(supabase: any, tenantId: string): Promise<DashboardSta
     unpaidAmount,
     recentActivity,
     statusBreakdown,
-    todayReservations,
-    activeReservations,
-    activeOrders,
-    platformCertStats,
-    categoryStats,
-    insurerCount,
-    regionalStats,
-    templateOptionStatus,
+    todayReservations: todayResResult?.count ?? 0,
+    activeReservations: activeResResult?.count ?? 0,
+    activeOrders: ordersResult?.count ?? 0,
+    platformCertStats: pcsResult?.data ?? null,
+    categoryStats: csResult?.data ?? null,
+    insurerCount: icResult?.data ?? 0,
+    regionalStats: rsResult?.data ?? null,
   };
 }
 
 export default async function AdminHome() {
   const supabase = await createSupabaseServerClient();
-  const { data: userRes } = await supabase.auth.getUser();
-  if (!userRes.user) redirect("/login?next=/admin");
+  const caller = await resolveCallerWithRole(supabase);
+  if (!caller) redirect("/login?next=/admin");
 
-  const tenantId = await getMyTenantId(supabase);
+  const tenantId = caller.tenantId;
 
   let stats: DashboardStats | null = null;
   if (tenantId) {
@@ -222,9 +136,6 @@ export default async function AdminHome() {
   return (
     <div className="space-y-6">
       <PageHeader tag="管理画面" title="ダッシュボード" description="施工証明書の管理状況を一目で確認" />
-
-      {/* Announcements from operator */}
-      <AnnouncementsBanner />
 
       {/* My Tenant Stats */}
       {stats && (
@@ -292,25 +203,6 @@ export default async function AdminHome() {
               <div className="mt-1 text-xs text-muted">未回収額</div>
             </div>
           </div>
-          {/* ブランド証明書 */}
-          <Link href="/admin/template-options" className="glass-card p-5 hover:bg-surface-hover transition-colors">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">ブランド証明書</div>
-                <div className="mt-2 text-lg font-bold text-primary">
-                  {stats.templateOptionStatus.active
-                    ? stats.templateOptionStatus.optionType === "custom" ? "プレミアム" : "ライト"
-                    : "未契約"}
-                </div>
-                <div className="mt-1 text-xs text-muted">
-                  {stats.templateOptionStatus.active
-                    ? "テンプレート設定を確認"
-                    : "自社ブランド入り証明書を発行"}
-                </div>
-              </div>
-              <div className={`w-3 h-3 rounded-full ${stats.templateOptionStatus.active ? "bg-emerald-400" : "bg-gray-400"}`} />
-            </div>
-          </Link>
         </>
       )}
 

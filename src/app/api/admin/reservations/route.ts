@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerBasic } from "@/lib/api/auth";
-import { apiOk, apiUnauthorized, apiInternalError, apiValidationError, apiError } from "@/lib/api/response";
-import { parsePagination } from "@/lib/api/pagination";
-import { reservationCreateSchema, reservationUpdateSchema, reservationDeleteSchema } from "@/lib/validations/reservation";
-import { checkOverlap } from "@/lib/reservations/overlap";
-import { syncCreateEvent, syncUpdateEvent, syncDeleteEvent } from "@/lib/gcal/client";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +8,9 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const p = parsePagination(req);
     const url = new URL(req.url);
     const status = url.searchParams.get("status") ?? "";
     const from = url.searchParams.get("from") ?? "";
@@ -25,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("reservations")
-      .select("*", { count: "exact" })
+      .select("*")
       .eq("tenant_id", caller.tenantId)
       .order("scheduled_date", { ascending: true })
       .order("start_time", { ascending: true });
@@ -43,8 +37,11 @@ export async function GET(req: NextRequest) {
       query = query.eq("customer_id", customerId);
     }
 
-    const { data: reservations, error, count } = await query.range(p.from, p.to);
-    if (error) return apiInternalError(error, "reservations list query");
+    const { data: reservations, error } = await query;
+    if (error) {
+      console.error("[reservations] db_error:", error.message);
+      return NextResponse.json({ error: "db_error" }, { status: 500 });
+    }
 
     // 顧客名を取得
     const customerIds = [...new Set((reservations ?? []).map((r) => r.customer_id).filter(Boolean))];
@@ -86,17 +83,15 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       reservations: enriched,
-      page: p.page,
-      per_page: p.perPage,
-      total: count ?? 0,
       stats: {
-        total: count ?? 0,
+        total: enriched.length,
         today_count: todayCount,
         active_count: activeCount,
       },
     });
-  } catch (e) {
-    return apiInternalError(e, "reservations list");
+  } catch (e: unknown) {
+    console.error("reservations list failed", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -104,71 +99,43 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({}));
-    const parsed = reservationCreateSchema.safeParse(body);
-    if (!parsed.success) {
-      const msg = parsed.error.issues.map(i => i.message).join(" ");
-      return apiValidationError(msg);
-    }
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
 
-    const startTime = (String(body?.start_time ?? "")).trim() || null;
-    const endTime = (String(body?.end_time ?? "")).trim() || null;
-    const assignedUserId = (String(body?.assigned_user_id ?? "")).trim() || null;
+    const title = (String(body?.title ?? "")).trim();
+    if (!title) return NextResponse.json({ error: "missing_title" }, { status: 400 });
 
-    // ── ダブルブッキングチェック ──
-    if (startTime && endTime) {
-      const overlaps = await checkOverlap({
-        tenantId: caller.tenantId,
-        scheduledDate: parsed.data.scheduled_date,
-        startTime,
-        endTime,
-        assignedUserId: assignedUserId ?? undefined,
-      });
-      if (overlaps.length > 0) {
-        return apiError({
-          code: "conflict",
-          message: `時間帯が重複する予約があります: ${overlaps.map(o => o.overlapping_title).join(", ")}`,
-          status: 409,
-          data: { overlaps },
-        });
-      }
-    }
+    const scheduledDate = String(body?.scheduled_date ?? "").trim();
+    if (!scheduledDate) return NextResponse.json({ error: "missing_scheduled_date" }, { status: 400 });
 
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
       customer_id: (String(body?.customer_id ?? "")).trim() || null,
       vehicle_id: (String(body?.vehicle_id ?? "")).trim() || null,
-      title: (String(body?.title ?? "")).trim(),
+      title,
       menu_items_json: body?.menu_items_json ?? [],
       note: (String(body?.note ?? "")).trim() || null,
-      scheduled_date: parsed.data.scheduled_date,
-      start_time: startTime,
-      end_time: endTime,
-      assigned_user_id: assignedUserId,
+      scheduled_date: scheduledDate,
+      start_time: (String(body?.start_time ?? "")).trim() || null,
+      end_time: (String(body?.end_time ?? "")).trim() || null,
+      assigned_user_id: (String(body?.assigned_user_id ?? "")).trim() || null,
       status: "confirmed",
       estimated_amount: parseInt(String(body?.estimated_amount ?? 0), 10) || 0,
     };
 
     const { data, error } = await supabase.from("reservations").insert(row).select().single();
-    if (error) return apiInternalError(error, "reservation insert");
+    if (error) {
+      console.error("[reservations] insert_failed:", error.message);
+      return NextResponse.json({ error: "insert_failed" }, { status: 500 });
+    }
 
-    // ── Google Calendar 同期（非ブロッキング） ──
-    syncCreateEvent(caller.tenantId, {
-      id: data.id,
-      title: data.title,
-      scheduled_date: data.scheduled_date,
-      start_time: data.start_time,
-      end_time: data.end_time,
-      note: data.note,
-    }).catch(() => {});
-
-    return apiOk({ reservation: data });
-  } catch (e) {
-    return apiInternalError(e, "reservation create");
+    return NextResponse.json({ ok: true, reservation: data });
+  } catch (e: unknown) {
+    console.error("reservation create failed", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -176,17 +143,13 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({}));
-    const parsed = reservationUpdateSchema.safeParse(body);
-    if (!parsed.success) {
-      const msg = parsed.error.issues.map(i => i.message).join(" ");
-      return apiValidationError(msg);
-    }
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+    const id = (String(body?.id ?? "")).trim();
+    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
-    const id = parsed.data.id;
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
     if (body.title !== undefined) updates.title = (String(body.title)).trim();
@@ -199,43 +162,6 @@ export async function PUT(req: NextRequest) {
     if (body.end_time !== undefined) updates.end_time = (String(body.end_time)).trim() || null;
     if (body.assigned_user_id !== undefined) updates.assigned_user_id = (String(body.assigned_user_id)).trim() || null;
     if (body.estimated_amount !== undefined) updates.estimated_amount = parseInt(String(body.estimated_amount), 10) || 0;
-
-    // ── ダブルブッキングチェック（日時変更時のみ） ──
-    if (body.scheduled_date || body.start_time || body.end_time) {
-      // 現在の予約情報を取得
-      const { data: current } = await supabase
-        .from("reservations")
-        .select("scheduled_date, start_time, end_time, assigned_user_id")
-        .eq("id", id)
-        .eq("tenant_id", caller.tenantId)
-        .single();
-
-      if (current) {
-        const checkDate = body.scheduled_date ?? current.scheduled_date;
-        const checkStart = body.start_time ?? current.start_time;
-        const checkEnd = body.end_time ?? current.end_time;
-        const checkUser = body.assigned_user_id ?? current.assigned_user_id;
-
-        if (checkStart && checkEnd) {
-          const overlaps = await checkOverlap({
-            tenantId: caller.tenantId,
-            scheduledDate: checkDate,
-            startTime: String(checkStart).trim(),
-            endTime: String(checkEnd).trim(),
-            excludeId: id,
-            assignedUserId: checkUser ? String(checkUser).trim() : undefined,
-          });
-          if (overlaps.length > 0) {
-            return apiError({
-              code: "conflict",
-              message: `時間帯が重複する予約があります: ${overlaps.map(o => o.overlapping_title).join(", ")}`,
-              status: 409,
-              data: { overlaps },
-            });
-          }
-        }
-      }
-    }
 
     // ステータス変更
     if (body.status !== undefined) {
@@ -254,26 +180,15 @@ export async function PUT(req: NextRequest) {
       .select()
       .single();
 
-    if (error) return apiInternalError(error, "reservation update");
-
-    // ── Google Calendar 同期（非ブロッキング） ──
-    if (body.status === "cancelled") {
-      syncDeleteEvent(caller.tenantId, id, data.gcal_event_id).catch(() => {});
-    } else {
-      syncUpdateEvent(caller.tenantId, {
-        id: data.id,
-        title: data.title,
-        scheduled_date: data.scheduled_date,
-        start_time: data.start_time,
-        end_time: data.end_time,
-        note: data.note,
-        gcal_event_id: data.gcal_event_id,
-      }).catch(() => {});
+    if (error) {
+      console.error("[reservations] update_failed:", error.message);
+      return NextResponse.json({ error: "update_failed" }, { status: 500 });
     }
 
-    return apiOk({ reservation: data });
-  } catch (e) {
-    return apiInternalError(e, "reservation update");
+    return NextResponse.json({ ok: true, reservation: data });
+  } catch (e: unknown) {
+    console.error("reservation update failed", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -281,17 +196,13 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
-    if (!caller) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({}));
-    const parsed = reservationDeleteSchema.safeParse(body);
-    if (!parsed.success) {
-      const msg = parsed.error.issues.map(i => i.message).join(" ");
-      return apiValidationError(msg);
-    }
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+    const id = (String(body?.id ?? "")).trim();
+    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
-    const id = parsed.data.id;
     const cancelReason = (String(body?.cancel_reason ?? "")).trim() || null;
 
     const { data, error } = await supabase
@@ -307,13 +218,14 @@ export async function DELETE(req: NextRequest) {
       .select()
       .single();
 
-    if (error) return apiInternalError(error, "reservation cancel");
+    if (error) {
+      console.error("[reservations] cancel_failed:", error.message);
+      return NextResponse.json({ error: "cancel_failed" }, { status: 500 });
+    }
 
-    // ── Google Calendar イベント削除（非ブロッキング） ──
-    syncDeleteEvent(caller.tenantId, id, data.gcal_event_id).catch(() => {});
-
-    return apiOk({ reservation: data });
-  } catch (e) {
-    return apiInternalError(e, "reservation cancel");
+    return NextResponse.json({ ok: true, reservation: data });
+  } catch (e: unknown) {
+    console.error("reservation cancel failed", e);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
