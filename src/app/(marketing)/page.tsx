@@ -26,7 +26,7 @@ export default function HomePage() {
         />
       </div>
 
-      <Container className="relative text-center py-28 md:py-40">
+      <Container className="relative text-center py-16 sm:py-28 md:py-40">
         {/* Badge */}
         <div className="animate-[hero-fade-in_0.7s_ease-out_0.15s_both]">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium text-blue-300 bg-blue-500/10 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
@@ -36,28 +36,28 @@ export default function HomePage() {
         </div>
 
         {/* Title */}
-        <h1 className="mt-10">
-          <span className="block text-[2.5rem] md:text-[3.75rem] lg:text-[4.5rem] font-bold leading-[1.1] tracking-tight text-white animate-[hero-fade-up_0.8s_ease-out_0.3s_both]">
+        <h1 className="mt-8 sm:mt-10">
+          <span className="block text-[1.75rem] sm:text-[2.5rem] md:text-[3.75rem] lg:text-[4.5rem] font-bold leading-[1.1] tracking-tight text-white animate-[hero-fade-up_0.8s_ease-out_0.3s_both]">
             施工証明をデジタルで。
           </span>
-          <span className="block mt-2 text-[2.5rem] md:text-[3.75rem] lg:text-[4.5rem] font-bold leading-[1.1] tracking-tight bg-gradient-to-r from-[#60a5fa] via-[#a78bfa] to-[#60a5fa] bg-clip-text text-transparent animate-[hero-fade-up_0.8s_ease-out_0.5s_both] bg-[length:200%_auto]">
+          <span className="block mt-2 text-[1.75rem] sm:text-[2.5rem] md:text-[3.75rem] lg:text-[4.5rem] font-bold leading-[1.1] tracking-tight bg-gradient-to-r from-[#60a5fa] via-[#a78bfa] to-[#60a5fa] bg-clip-text text-transparent animate-[hero-fade-up_0.8s_ease-out_0.5s_both] bg-[length:200%_auto]">
             信頼を、かんたんに。
           </span>
         </h1>
 
-        <p className="mt-8 text-lg md:text-xl leading-relaxed text-white/50 max-w-2xl mx-auto animate-[hero-fade-up_0.8s_ease-out_0.7s_both]">
+        <p className="mt-6 sm:mt-8 text-base sm:text-lg md:text-xl leading-relaxed text-white/50 max-w-2xl mx-auto animate-[hero-fade-up_0.8s_ease-out_0.7s_both]">
           CARTRUSTは、自動車の施工記録をデジタル証明書として発行・管理できるプラットフォームです。
           <br className="hidden md:block" />
           サービス公開までもう少しお待ちください。
         </p>
 
         {/* Countdown */}
-        <div className="mt-16 animate-[hero-fade-up_0.8s_ease-out_0.9s_both]">
+        <div className="mt-10 sm:mt-16 animate-[hero-fade-up_0.8s_ease-out_0.9s_both]">
           <CountdownTimer />
         </div>
 
         {/* CTA */}
-        <div className="mt-16 flex flex-col sm:flex-row gap-4 justify-center animate-[hero-fade-up_0.8s_ease-out_1.1s_both]">
+        <div className="mt-10 sm:mt-16 flex flex-col sm:flex-row gap-4 justify-center animate-[hero-fade-up_0.8s_ease-out_1.1s_both]">
           <Link
             href="/contact"
             className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-8 py-4 bg-white text-[#060a12] hover:bg-gray-100 transition-colors shadow-[0_0_30px_rgba(255,255,255,0.1)]"
