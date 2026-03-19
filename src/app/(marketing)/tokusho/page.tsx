@@ -36,11 +36,11 @@ export default function TokushoPage() {
       </p>
 
       <dl className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-6">
-        <Row label="販売事業者名" value="株式会社〇〇（準備中）" />
-        <Row label="代表者氏名" value="代表取締役　〇〇 〇〇" />
+        <Row label="販売事業者名" value="株式会社HOLY" />
+        <Row label="代表者氏名" value="代表取締役　堀越　友輔" />
         <Row
           label="所在地"
-          value="〒000-0000　東京都〇〇区〇〇町0-0-0（正式住所は開示請求に応じて速やかに提供します）"
+          value="〒107-0061　東京都港区北青山1-3-1　アールキューブ青山3F"
         />
         <Row
           label="電話番号"
