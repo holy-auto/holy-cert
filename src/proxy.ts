@@ -23,6 +23,20 @@ const MARKETING_PATHS = [
   "/faq", "/contact", "/privacy", "/terms", "/tokusho",
 ];
 
+/** Unreleased feature routes — redirect to /admin until ready for launch */
+const HIDDEN_ADMIN_PREFIXES = [
+  "/admin/reservations",
+  "/admin/btob",
+  "/admin/orders",
+  "/admin/price-stats",
+  "/admin/news",
+  "/admin/inquiries",
+  "/admin/insurers",
+  "/admin/nfc",
+  "/admin/market-vehicles",
+  "/admin/deals",
+];
+
 /**
  * CSRF protection for API mutation routes.
  * Returns a 403 response if the request is cross-origin, or null to continue.
@@ -78,10 +92,18 @@ export function proxy(request: NextRequest) {
   const csrfResponse = csrfCheck(request);
   if (csrfResponse) return csrfResponse;
 
-  // Pre-launch: redirect all marketing pages except "/" and "/contact" to countdown
-  const PRELAUNCH_BLOCKED = ["/pricing", "/for-shops", "/for-insurers", "/faq", "/privacy", "/terms", "/tokusho"];
-  if (PRELAUNCH_BLOCKED.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    return NextResponse.redirect(new URL("/", request.url));
+  // Block unreleased features — redirect to admin dashboard
+  if (HIDDEN_ADMIN_PREFIXES.some((p) => pathname.startsWith(p))) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/admin";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // Block unreleased market routes
+  if (pathname.startsWith("/market") && !pathname.startsWith("/market/login") && !pathname.startsWith("/market/register")) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/";
+    return NextResponse.redirect(redirectUrl);
   }
 
   // Marketing pages and public routes: pass through

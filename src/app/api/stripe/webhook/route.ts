@@ -30,6 +30,72 @@ function getCurrentPeriodEnd(sub: Stripe.Subscription): number | null {
     ?? null;
 }
 
+// ── Payment failure notification email ──
+const RESEND_API = "https://api.resend.com/emails";
+
+async function sendPaymentFailureEmail(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  tenantId: string,
+  billingPortalUrl: string,
+) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+  if (!apiKey || !from) return;
+
+  // Resolve owner email from tenant membership
+  const { data: members } = await supabase
+    .from("tenant_memberships")
+    .select("user_id, role")
+    .eq("tenant_id", tenantId)
+    .eq("role", "owner")
+    .limit(1);
+
+  if (!members?.[0]) return;
+
+  const { data: userData } = await supabase.auth.admin.getUserById(members[0].user_id);
+  const email = userData?.user?.email;
+  if (!email) return;
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+      <div style="border-bottom: 2px solid #ff3b30; padding-bottom: 12px; margin-bottom: 20px;">
+        <h2 style="margin: 0; color: #1d1d1f; font-size: 18px;">お支払いに失敗しました</h2>
+      </div>
+      <p style="color: #1d1d1f; line-height: 1.6;">
+        ご利用中のCARTRUSTプランのお支払いを処理できませんでした。<br>
+        カード情報をご確認のうえ、更新をお願いいたします。
+      </p>
+      <p style="margin: 24px 0;">
+        <a href="${billingPortalUrl}" style="display: inline-block; background: #0071e3; color: #fff; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+          カード情報を更新する
+        </a>
+      </p>
+      <p style="color: #86868b; font-size: 13px;">
+        お支払いが確認できない場合、一部機能がご利用いただけなくなる場合がございます。
+      </p>
+      <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
+        CARTRUST
+      </div>
+    </div>
+  `;
+
+  try {
+    await fetch(RESEND_API, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: email,
+        subject: "【CARTRUST】お支払いに失敗しました — カード情報をご確認ください",
+        html,
+      }),
+    });
+    console.log("webhook: payment failure email sent", { tenantId, email });
+  } catch (e) {
+    console.error("webhook: failed to send payment failure email", { tenantId, error: e });
+  }
+}
+
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("Missing STRIPE_SECRET_KEY");
@@ -202,6 +268,19 @@ export async function POST(req: NextRequest) {
 
   const supabase = getSupabaseAdmin();
 
+  // ── Idempotency: skip already-processed events ──
+  const { data: existing } = await supabase
+    .from("stripe_processed_events")
+    .select("id")
+    .eq("event_id", event.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    console.log("webhook: duplicate event skipped", { id: event.id, type: event.type });
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
@@ -346,6 +425,22 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // ─── 決済失敗通知メール（テナント向け） ───
+        if (event.type === "invoice.payment_failed" && sub.metadata?.type !== "insurer") {
+          const tenantId = sub.metadata?.tenant_id;
+          const customerId = asStringId(sub.customer);
+          if (tenantId || customerId) {
+            const resolvedTenantId = tenantId ?? (customerId ? (
+              await supabase.from("tenants").select("id").eq("stripe_customer_id", customerId).limit(1).maybeSingle()
+            ).data?.id : null);
+
+            if (resolvedTenantId) {
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.cartrust.co.jp";
+              await sendPaymentFailureEmail(supabase, resolvedTenantId, `${appUrl}/admin/billing`);
+            }
+          }
+        }
+
         const isInsurer = sub.metadata?.type === "insurer";
         if (isInsurer) {
           await syncInsurerSubscription(stripe, supabase, sub);
@@ -390,6 +485,14 @@ export async function POST(req: NextRequest) {
     console.error("stripe webhook handler failed", { type: event.type, id: event.id, error: e instanceof Error ? e.message : e });
     return apiInternalError(e, "stripe webhook handler");
   }
+
+  // ── Record processed event for idempotency ──
+  await supabase
+    .from("stripe_processed_events")
+    .insert({ event_id: event.id, event_type: event.type })
+    .then(({ error }) => {
+      if (error) console.warn("webhook: failed to record processed event", { id: event.id, error: error.message });
+    });
 
   return NextResponse.json({ received: true });
 }

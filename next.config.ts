@@ -72,8 +72,8 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           // HSTS: enforce HTTPS, 1 year, include subdomains
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
-          // CSP in Report-Only mode first — switch to Content-Security-Policy after validation
-          { key: "Content-Security-Policy-Report-Only", value: cspDirectives },
+          // CSP enforced — validated and switched from Report-Only for launch
+          { key: "Content-Security-Policy", value: cspDirectives },
         ],
       },
     ];
