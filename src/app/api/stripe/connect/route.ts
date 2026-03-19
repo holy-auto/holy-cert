@@ -3,11 +3,21 @@ import Stripe from "stripe";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" as any });
+}
+
+/** オープンリダイレクト対策: 許可済みオリジンのURLのみ通す */
+function safeUrl(candidate?: string | null, fallback?: string): string {
+  const base = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/+$/, "") ?? "";
+  const safe = fallback ?? `${base}/admin/settings`;
+  if (!candidate) return safe;
+  if (base && candidate.startsWith(base)) return candidate;
+  return safe;
 }
 
 // ─── POST: Create Connect account + onboarding link ───
@@ -48,8 +58,8 @@ export async function POST(req: NextRequest) {
 
     // Generate onboarding link
     const body = await req.json().catch(() => ({} as any));
-    const returnUrl = body?.return_url || `${process.env.NEXT_PUBLIC_BASE_URL}/admin/settings`;
-    const refreshUrl = body?.refresh_url || `${process.env.NEXT_PUBLIC_BASE_URL}/admin/settings`;
+    const returnUrl = safeUrl(body?.return_url);
+    const refreshUrl = safeUrl(body?.refresh_url);
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
@@ -63,9 +73,8 @@ export async function POST(req: NextRequest) {
       account_id: accountId,
       onboarding_url: accountLink.url,
     });
-  } catch (e: any) {
-    console.error("stripe connect create failed", e);
-    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
+  } catch (e) {
+    return apiInternalError(e, "stripe connect create");
   }
 }
 
@@ -115,8 +124,7 @@ export async function GET() {
       charges_enabled: account.charges_enabled,
       payouts_enabled: account.payouts_enabled,
     });
-  } catch (e: any) {
-    console.error("stripe connect status failed", e);
-    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
+  } catch (e) {
+    return apiInternalError(e, "stripe connect status");
   }
 }
