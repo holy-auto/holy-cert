@@ -403,8 +403,12 @@ export async function POST(req: NextRequest) {
       case "invoice.paid":
       case "invoice.payment_failed": {
         const inv = event.data.object as any;
+        console.log("webhook: invoice case entered", { eventType: event.type, eventId: event.id, invSub: inv.subscription, invSubId: inv.subscription_id, invId: inv.id });
         const subscriptionId = asStringId(inv.subscription ?? inv.subscription_id);
-        if (!subscriptionId) break;
+        if (!subscriptionId) {
+          console.warn("webhook: invoice has no subscription ID, skipping", { eventType: event.type, invId: inv.id });
+          break;
+        }
 
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
 
