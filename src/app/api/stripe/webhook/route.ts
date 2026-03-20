@@ -403,10 +403,19 @@ export async function POST(req: NextRequest) {
       case "invoice.paid":
       case "invoice.payment_failed": {
         const inv = event.data.object as any;
-        console.log("webhook: invoice case entered", { eventType: event.type, eventId: event.id, invSub: inv.subscription, invSubId: inv.subscription_id, invId: inv.id });
-        const subscriptionId = asStringId(inv.subscription ?? inv.subscription_id);
+        // Stripe API v2025+ moved subscription reference:
+        //   legacy: inv.subscription (string)
+        //   new:    inv.parent?.subscription_details?.subscription (string)
+        //   fallback: inv.lines?.data?.[0]?.parent?.subscription_item_details?.subscription (string)
+        const rawSubId = inv.subscription
+          ?? inv.subscription_id
+          ?? inv.parent?.subscription_details?.subscription
+          ?? inv.lines?.data?.[0]?.parent?.subscription_item_details?.subscription
+          ?? inv.lines?.data?.[0]?.subscription;
+        console.log("webhook: invoice case entered", { eventType: event.type, eventId: event.id, rawSubId, invId: inv.id, parentType: inv.parent?.type });
+        const subscriptionId = asStringId(rawSubId);
         if (!subscriptionId) {
-          console.warn("webhook: invoice has no subscription ID, skipping", { eventType: event.type, invId: inv.id });
+          console.warn("webhook: invoice has no subscription ID, skipping", { eventType: event.type, invId: inv.id, keys: Object.keys(inv).join(",") });
           break;
         }
 
