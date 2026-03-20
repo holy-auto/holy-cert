@@ -7,6 +7,8 @@ const inputClass =
 
 export function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
   if (submitted) {
     return (
@@ -25,14 +27,42 @@ export function ContactForm() {
     );
   }
 
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    setSending(true);
+
+    const fd = new FormData(e.currentTarget);
+    const body = {
+      name: fd.get("name") as string,
+      email: fd.get("email") as string,
+      company: (fd.get("company") as string) || undefined,
+      category: fd.get("category") as string,
+      message: fd.get("message") as string,
+    };
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? "送信に失敗しました。");
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "送信に失敗しました。しばらくしてから再度お試しください。");
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        setSubmitted(true);
-      }}
-      className="space-y-6"
-    >
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-white/80 mb-2">
@@ -40,6 +70,7 @@ export function ContactForm() {
           </label>
           <input
             type="text"
+            name="name"
             required
             className={inputClass}
             placeholder="山田 太郎"
@@ -51,6 +82,7 @@ export function ContactForm() {
           </label>
           <input
             type="text"
+            name="company"
             className={inputClass}
             placeholder="株式会社〇〇"
           />
@@ -62,6 +94,7 @@ export function ContactForm() {
         </label>
         <input
           type="email"
+          name="email"
           required
           className={inputClass}
           placeholder="example@company.com"
@@ -69,9 +102,9 @@ export function ContactForm() {
       </div>
       <div>
         <label className="block text-sm font-medium text-white/80 mb-2">
-          お問い合わせ種別
+          お問い合わせ種別 <span className="text-red-400">*</span>
         </label>
-        <select className={inputClass}>
+        <select name="category" required className={inputClass}>
           <option value="">選択してください</option>
           <option value="demo">デモのご依頼</option>
           <option value="document">資料請求</option>
@@ -85,17 +118,22 @@ export function ContactForm() {
           お問い合わせ内容 <span className="text-red-400">*</span>
         </label>
         <textarea
+          name="message"
           required
           rows={5}
           className={`${inputClass} resize-none`}
           placeholder="お問い合わせ内容をご記入ください"
         />
       </div>
+      {error && (
+        <p className="text-red-400 text-sm">{error}</p>
+      )}
       <button
         type="submit"
-        className="w-full sm:w-auto inline-flex items-center justify-center font-medium rounded-lg text-[0.938rem] px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 shadow-[0_1px_12px_rgba(59,130,246,0.3)] hover:shadow-[0_2px_20px_rgba(59,130,246,0.45)] hover:-translate-y-[0.5px] transition-all duration-200"
+        disabled={sending}
+        className="w-full sm:w-auto inline-flex items-center justify-center font-medium rounded-lg text-[0.938rem] px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 shadow-[0_1px_12px_rgba(59,130,246,0.3)] hover:shadow-[0_2px_20px_rgba(59,130,246,0.45)] hover:-translate-y-[0.5px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        送信する
+        {sending ? "送信中..." : "送信する"}
       </button>
     </form>
   );
