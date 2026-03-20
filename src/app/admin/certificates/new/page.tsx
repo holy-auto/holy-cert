@@ -63,7 +63,7 @@ export default async function Page({
   const { data: templates, error: tplErr } = await supabase
     .from("templates")
     .select("id, name, schema_json, created_at")
-    .or(`and(scope.eq.tenant,tenant_id.eq.${tenantId}),scope.eq.platform`)
+    .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
     .order("created_at", { ascending: false });
 
   if (tplErr) return <div className="text-sm text-danger">テンプレ読み込みエラー: {tplErr.message}</div>;
