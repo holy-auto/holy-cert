@@ -102,3 +102,20 @@ test.describe("Market inquiry rate limiting", () => {
     expect(res.status()).toBe(400);
   });
 });
+
+test.describe("CRON endpoint authorization", () => {
+  test("billing cron rejects request without CRON_SECRET", async ({ request }) => {
+    const res = await request.get("/api/cron/billing");
+    expect([401, 405]).toContain(res.status());
+  });
+
+  test("follow-up cron rejects request without CRON_SECRET", async ({ request }) => {
+    const res = await request.get("/api/cron/follow-up");
+    expect([401, 405]).toContain(res.status());
+  });
+
+  test("news cron rejects request without CRON_SECRET", async ({ request }) => {
+    const res = await request.get("/api/cron/news");
+    expect([401, 405]).toContain(res.status());
+  });
+});

@@ -1,5 +1,36 @@
 import { test, expect } from "@playwright/test";
 
+test.describe("Health endpoint", () => {
+  test("GET /api/health returns ok with db and env status", async ({ request }) => {
+    const res = await request.get("/api/health");
+    const json = await res.json();
+    expect(json.ok).toBeDefined();
+    expect(json.ts).toBeDefined();
+    expect(json.db).toBeDefined();
+    expect(json.env).toBeDefined();
+  });
+});
+
+test.describe("Contact form validation", () => {
+  test("contact API accepts valid submission", async ({ request }) => {
+    const res = await request.post("/api/contact", {
+      data: {
+        name: "テスト太郎",
+        email: "test@example.com",
+        company: "テスト株式会社",
+        category: "サービスについて",
+        message: "テストメッセージです。",
+      },
+    });
+    // Should succeed (200) or be rate limited (429) in CI
+    expect([200, 429]).toContain(res.status());
+    if (res.status() === 200) {
+      const json = await res.json();
+      expect(json.ok).toBe(true);
+    }
+  });
+});
+
 test.describe("API health checks", () => {
   test("contact API rejects invalid body", async ({ request }) => {
     const res = await request.post("/api/contact", {

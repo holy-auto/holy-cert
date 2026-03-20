@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,16 @@ function getSupabaseAdmin() {
 
 export async function GET(req: NextRequest) {
   try {
+    // Rate limit: 30 requests per IP per minute
+    const ip = getClientIp(req);
+    const rl = checkRateLimit(`public-status:${ip}`, { limit: 30, windowSec: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "rate_limited", message: "リクエストが多すぎます。しばらくしてから再度お試しください。" },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+      );
+    }
+
     const pid = req.nextUrl.searchParams.get("pid") ?? req.nextUrl.searchParams.get("public_id");
     if (!pid) return apiValidationError("pid は必須です。");
 
