@@ -113,7 +113,7 @@ export default proxy;
 
 /** Refresh Supabase session cookies on every request */
 function refreshSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -142,7 +142,7 @@ function refreshSession(request: NextRequest) {
 /** Refresh session + redirect unauthenticated users */
 async function refreshSessionAndProtect(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  let response = NextResponse.next({ request });
+  const response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

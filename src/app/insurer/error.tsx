@@ -1,12 +1,13 @@
 "use client";
 
 export default function InsurerError({
-  error,
+  error: _error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  void _error;
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
       <div className="text-center space-y-2">
