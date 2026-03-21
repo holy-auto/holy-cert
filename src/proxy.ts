@@ -27,9 +27,6 @@ const MARKETING_PATHS = [
 const HIDDEN_ADMIN_PREFIXES = [
   "/admin/price-stats",
   "/admin/insurers",
-  "/admin/nfc",
-  "/admin/market-vehicles",
-  "/admin/deals",
 ];
 
 /**
