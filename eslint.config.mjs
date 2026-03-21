@@ -11,6 +11,8 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-explicit-any": "warn",
       "prefer-const": "warn",
       "@typescript-eslint/no-require-imports": "warn",
+      // React Compiler rules — warn until existing code is refactored
+      "react-compiler/react-compiler": "warn",
     },
   },
   // Override default ignores of eslint-config-next.
