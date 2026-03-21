@@ -1,3 +1,11 @@
+-- Add 'platform' to scope enum if it exists, otherwise this is a no-op for text columns
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'template_scope_enum') THEN
+    ALTER TYPE template_scope_enum ADD VALUE IF NOT EXISTS 'platform';
+  END IF;
+END $$;
+
 -- Insert platform-level preset templates (scope = 'platform', tenant_id = NULL)
 -- These are shared across all tenants and cannot be edited by franchisees.
 
