@@ -25,16 +25,8 @@ const MARKETING_PATHS = [
 
 /** Unreleased feature routes — redirect to /admin until ready for launch */
 const HIDDEN_ADMIN_PREFIXES = [
-  "/admin/reservations",
-  "/admin/btob",
-  "/admin/orders",
   "/admin/price-stats",
-  "/admin/news",
-  "/admin/inquiries",
   "/admin/insurers",
-  "/admin/nfc",
-  "/admin/market-vehicles",
-  "/admin/deals",
 ];
 
 /**

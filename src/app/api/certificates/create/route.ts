@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { phoneLast4Hash } from "@/lib/customerPortalServer";
 import { certificateCreateSchema } from "@/lib/validations/certificate";
-import { apiOk, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiInternalError, apiValidationError, apiUnauthorized, apiForbidden } from "@/lib/api/response";
 import { enforceBilling } from "@/lib/billing/guard";
 import { logCertificateAction } from "@/lib/audit/certificateLog";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,13 @@ async function supaInsertCertificate(row: any) {
 }
 
 export async function POST(req: Request) {
+  // ── 認証チェック: ログイン済みユーザーのテナントを検証 ──
+  const supabase = await createSupabaseServerClient();
+  const caller = await resolveCallerWithRole(supabase);
+  if (!caller) {
+    return apiUnauthorized();
+  }
+
   const deny = await enforceBilling(req, { minPlan: "free", action: "create" });
   if (deny) return deny as any;
   try {
@@ -42,12 +51,17 @@ export async function POST(req: Request) {
     }
     const b = parsed.data;
 
+    // ── tenant_id照合: リクエストのtenant_idと認証ユーザーのテナントが一致するか検証 ──
+    if (b.tenant_id !== caller.tenantId) {
+      return apiForbidden("テナントIDが一致しません。");
+    }
+
     const customer_phone_last4 = b.customer_phone_last4 ?? null;
     const customer_phone_last4_hash =
       customer_phone_last4 ? phoneLast4Hash(b.tenant_id, customer_phone_last4) : null;
 
     const insertRow = {
-      tenant_id: b.tenant_id,
+      tenant_id: caller.tenantId,
       status: b.status ?? "active",
       customer_name: b.customer_name,
 
@@ -69,10 +83,11 @@ export async function POST(req: Request) {
     // Fire-and-forget audit log
     logCertificateAction({
       type: "certificate_issued",
-      tenantId: b.tenant_id,
+      tenantId: caller.tenantId,
       publicId: certificate?.public_id ?? "",
       certificateId: certificate?.id ?? null,
       vehicleId: certificate?.vehicle_id ?? null,
+      userId: caller.userId,
       description: `顧客: ${b.customer_name}`,
     });
 
