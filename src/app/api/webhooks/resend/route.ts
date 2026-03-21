@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Webhook } from "svix";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +29,9 @@ type ResendEvent = {
 export async function POST(req: NextRequest) {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
 
-  // Verify webhook signature if secret is configured
+  const rawBody = await req.text();
+
+  // Verify webhook signature using Svix HMAC-SHA256
   if (secret) {
     const signature = req.headers.get("svix-signature");
     const timestamp = req.headers.get("svix-timestamp");
@@ -38,17 +41,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing webhook headers" }, { status: 401 });
     }
 
-    // Basic timestamp replay protection (5 min tolerance)
-    const ts = parseInt(timestamp, 10);
-    const now = Math.floor(Date.now() / 1000);
-    if (Math.abs(now - ts) > 300) {
-      return NextResponse.json({ error: "Timestamp too old" }, { status: 401 });
+    try {
+      const wh = new Webhook(secret);
+      wh.verify(rawBody, {
+        "svix-id": id,
+        "svix-timestamp": timestamp,
+        "svix-signature": signature,
+      });
+    } catch (err) {
+      console.error("[resend-webhook] Signature verification failed:", err);
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
   }
 
   let event: ResendEvent;
   try {
-    event = await req.json();
+    event = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
