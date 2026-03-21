@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enforceBilling } from "@/lib/billing/guard";
-import { apiValidationError } from "@/lib/api/response";
+import { apiValidationError, apiUnauthorized } from "@/lib/api/response";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,6 +75,13 @@ async function proxyToCertificatePdf(req: NextRequest, id: string) {
 }
 
 export async function POST(req: NextRequest) {
+  // ── 認証チェック ──
+  const supabase = await createSupabaseServerClient();
+  const caller = await resolveCallerWithRole(supabase);
+  if (!caller) {
+    return apiUnauthorized();
+  }
+
   // free以上 + is_active 必須（certificate_id が来れば guard 側で tenant 逆引き可能）
   const deny = await enforceBilling(req, { minPlan: "free", action: "pdf_one" });
   if (deny) return deny as any;

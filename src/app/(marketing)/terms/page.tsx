@@ -29,7 +29,7 @@ function Ul({ children }: { children: ReactNode }) {
 }
 
 export default function TermsPage() {
-  const updated = "2025年4月1日";
+  const updated = "2026年4月1日";
 
   return (
     <Article>
