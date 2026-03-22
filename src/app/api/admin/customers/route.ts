@@ -189,6 +189,26 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "update_failed" }, { status: 500 });
     }
 
+    // 双方向反映: 紐付き車両の customer_name も同期更新
+    try {
+      const { count } = await supabase
+        .from("vehicles")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", id)
+        .eq("tenant_id", caller.tenantId);
+
+      if (count && count > 0) {
+        await supabase
+          .from("vehicles")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("customer_id", id)
+          .eq("tenant_id", caller.tenantId);
+      }
+    } catch (syncErr) {
+      // 同期失敗はログのみ（顧客更新自体は成功扱い）
+      console.warn("[customers] vehicle sync warning:", syncErr);
+    }
+
     return NextResponse.json({ ok: true, customer: data });
   } catch (e: any) {
     console.error("customer update failed", e);
