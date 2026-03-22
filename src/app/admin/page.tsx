@@ -326,19 +326,7 @@ export default async function AdminHome() {
         </div>
       </div>
 
-      {/* Tenant Stats - streams in first */}
-      {tenantId && (
-        <Suspense fallback={<StatSkeleton />}>
-          <TenantStats tenantId={tenantId} />
-        </Suspense>
-      )}
-
-      {/* Platform Stats - streams independently */}
-      <Suspense fallback={<StatSkeleton />}>
-        <PlatformStats />
-      </Suspense>
-
-      {/* Quick Actions - renders immediately (no data fetching) */}
+      {/* Quick Actions - 2段目 */}
       <div>
         <h2 className="text-sm font-semibold tracking-[0.18em] text-muted mb-3">クイックアクション</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -419,6 +407,18 @@ export default async function AdminHome() {
 
         </div>
       </div>
+
+      {/* Tenant Stats */}
+      {tenantId && (
+        <Suspense fallback={<StatSkeleton />}>
+          <TenantStats tenantId={tenantId} />
+        </Suspense>
+      )}
+
+      {/* Platform Stats */}
+      <Suspense fallback={<StatSkeleton />}>
+        <PlatformStats />
+      </Suspense>
     </div>
   );
 }
