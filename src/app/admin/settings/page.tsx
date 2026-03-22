@@ -4,6 +4,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { createSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import SettingsForm from "./SettingsForm";
 import FollowUpSettings from "./FollowUpSettings";
+import RestartTourButton from "./RestartTourButton";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatDate } from "@/lib/format";
 
@@ -208,8 +209,9 @@ export default async function AdminSettingsPage() {
               </div>
             )}
           </div>
-          <div className="mt-4">
+          <div className="mt-4 flex gap-3">
             <Link href="/api/auth/signout" className="btn-secondary">ログアウト</Link>
+            <RestartTourButton />
           </div>
         </section>
 

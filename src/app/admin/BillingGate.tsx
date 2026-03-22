@@ -12,9 +12,34 @@ export default function BillingGate() {
         // billing 自体は除外（ループ防止）
         if (window.location.pathname.startsWith("/admin/billing")) return;
 
+        // stale-while-revalidate: use cached state for instant check
+        const CACHE_KEY = "cartrust_billing_state";
+        const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+          try {
+            const { data, ts } = JSON.parse(cached);
+            if (Date.now() - ts < CACHE_TTL && data?.tenant?.is_active !== false) {
+              // Cache is fresh and active — skip blocking fetch
+              // Still revalidate in background
+              revalidate();
+              return;
+            }
+            if (data?.tenant?.is_active === false) {
+              redirectToBilling();
+              return;
+            }
+          } catch { /* ignore corrupt cache */ }
+        }
+
+        // No cache or expired — fetch and block
+        await revalidate();
+      } catch {}
+
+      async function revalidate() {
         const s = await supabase.auth.getSession();
         const access_token = s.data?.session?.access_token;
-        if (!access_token) return; // 未ログインは既存導線に任せる
+        if (!access_token) return;
 
         const res = await fetch("/api/admin/billing-state", {
           method: "POST",
@@ -26,14 +51,20 @@ export default function BillingGate() {
         if (!res.ok) return;
         const j = await res.json().catch(() => null);
 
+        sessionStorage.setItem("cartrust_billing_state", JSON.stringify({ data: j, ts: Date.now() }));
+
         if (j?.tenant?.is_active === false) {
-          const ret = window.location.pathname + window.location.search;
-          const dest = new URL("/admin/billing", window.location.origin);
-          dest.searchParams.set("reason", "inactive");
-          dest.searchParams.set("return", ret);
-          window.location.replace(dest.toString());
+          redirectToBilling();
         }
-      } catch {}
+      }
+
+      function redirectToBilling() {
+        const ret = window.location.pathname + window.location.search;
+        const dest = new URL("/admin/billing", window.location.origin);
+        dest.searchParams.set("reason", "inactive");
+        dest.searchParams.set("return", ret);
+        window.location.replace(dest.toString());
+      }
     })();
   }, [supabase]);
 

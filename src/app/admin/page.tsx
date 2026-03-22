@@ -5,6 +5,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import PageHeader from "@/components/ui/PageHeader";
 import DashboardCharts from "./DashboardCharts";
+import OnboardingTour from "./OnboardingTour";
 
 const CATEGORY_LABELS: Record<string, string> = {
   detailing: "ディテイリング",
@@ -31,56 +32,86 @@ function StatSkeleton() {
 // ── Tenant Stats Section ──
 async function TenantStats({ tenantId }: { tenantId: string }) {
   const supabase = await createSupabaseServerClient();
-  const today = new Date().toISOString().slice(0, 10);
 
-  const [
-    { data: certs },
-    { count: memberCount },
-    { count: customerCount },
-    { data: invoices },
-    todayResResult,
-    activeResResult,
-    ordersResult,
-  ] = await Promise.all([
-    supabase.from("certificates").select("status,created_at").eq("tenant_id", tenantId),
-    supabase.from("tenant_memberships").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
-    supabase.from("customers").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
-    supabase.from("invoices").select("status,total").eq("tenant_id", tenantId),
-    Promise.resolve(supabase.from("reservations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("scheduled_date", today).neq("status", "cancelled")).catch(() => ({ count: 0 })),
-    Promise.resolve(supabase.from("reservations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).in("status", ["confirmed", "arrived", "in_progress"])).catch(() => ({ count: 0 })),
-    Promise.resolve(supabase.from("job_orders").select("*", { count: "exact", head: true }).or(`from_tenant_id.eq.${tenantId},to_tenant_id.eq.${tenantId}`).in("status", ["pending", "accepted", "in_progress"])).catch(() => ({ count: 0 })),
-  ]);
+  // Try consolidated RPC first, fall back to individual queries
+  const { data: stats, error: rpcError } = await supabase.rpc("dashboard_tenant_stats", { p_tenant_id: tenantId });
 
-  const allCerts = certs ?? [];
-  const totalCerts = allCerts.length;
-  const activeCerts = allCerts.filter((c: any) => c.status === "active").length;
-  const voidCerts = allCerts.filter((c: any) => c.status === "void").length;
+  let totalCerts = 0, activeCerts = 0, voidCerts = 0, memberCount = 0, customerCount = 0;
+  let invoiceCount = 0, unpaidAmount = 0, todayRes = 0, activeRes = 0, activeOrders = 0;
+  let statusBreakdown: Array<{ status: string; count: number }> = [];
+  let recentActivity: Array<{ date: string; count: number }> = [];
 
-  const statusMap = new Map<string, number>();
-  for (const c of allCerts) {
-    const s = c.status ?? "unknown";
-    statusMap.set(s, (statusMap.get(s) ?? 0) + 1);
+  if (!rpcError && stats) {
+    // RPC succeeded — use consolidated data
+    totalCerts = stats.total_certs ?? 0;
+    activeCerts = stats.active_certs ?? 0;
+    voidCerts = stats.void_certs ?? 0;
+    memberCount = stats.member_count ?? 0;
+    customerCount = stats.customer_count ?? 0;
+    invoiceCount = stats.invoice_count ?? 0;
+    unpaidAmount = stats.unpaid_amount ?? 0;
+    todayRes = stats.today_reservations ?? 0;
+    activeRes = stats.active_reservations ?? 0;
+    activeOrders = stats.active_orders ?? 0;
+    statusBreakdown = stats.status_breakdown ?? [];
+    recentActivity = stats.recent_activity ?? [];
+  } else {
+    // Fallback: individual queries (for environments where RPC is not yet deployed)
+    const today = new Date().toISOString().slice(0, 10);
+    const [
+      { data: certs },
+      { count: mc },
+      { count: cc },
+      { data: invoices },
+      todayResResult,
+      activeResResult,
+      ordersResult,
+    ] = await Promise.all([
+      supabase.from("certificates").select("status,created_at").eq("tenant_id", tenantId),
+      supabase.from("tenant_memberships").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
+      supabase.from("customers").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
+      supabase.from("invoices").select("status,total").eq("tenant_id", tenantId),
+      Promise.resolve(supabase.from("reservations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("scheduled_date", today).neq("status", "cancelled")).catch(() => ({ count: 0 })),
+      Promise.resolve(supabase.from("reservations").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).in("status", ["confirmed", "arrived", "in_progress"])).catch(() => ({ count: 0 })),
+      Promise.resolve(supabase.from("job_orders").select("*", { count: "exact", head: true }).or(`from_tenant_id.eq.${tenantId},to_tenant_id.eq.${tenantId}`).in("status", ["pending", "accepted", "in_progress"])).catch(() => ({ count: 0 })),
+    ]);
+
+    const allCerts = certs ?? [];
+    totalCerts = allCerts.length;
+    activeCerts = allCerts.filter((c: any) => c.status === "active").length;
+    voidCerts = allCerts.filter((c: any) => c.status === "void").length;
+    memberCount = mc ?? 0;
+    customerCount = cc ?? 0;
+
+    const statusMap = new Map<string, number>();
+    for (const c of allCerts) {
+      const s = c.status ?? "unknown";
+      statusMap.set(s, (statusMap.get(s) ?? 0) + 1);
+    }
+    statusBreakdown = Array.from(statusMap.entries()).map(([status, count]) => ({ status, count }));
+
+    const dateMap = new Map<string, number>();
+    for (let i = 0; i < 30; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - (29 - i));
+      dateMap.set(d.toISOString().slice(0, 10), 0);
+    }
+    for (const c of allCerts) {
+      if (!c.created_at) continue;
+      const date = c.created_at.slice(0, 10);
+      if (dateMap.has(date)) dateMap.set(date, (dateMap.get(date) ?? 0) + 1);
+    }
+    recentActivity = Array.from(dateMap.entries()).map(([date, count]) => ({ date, count }));
+
+    const invoiceList = invoices ?? [];
+    invoiceCount = invoiceList.length;
+    unpaidAmount = invoiceList
+      .filter((inv: any) => inv.status === "sent" || inv.status === "overdue")
+      .reduce((sum: number, inv: any) => sum + (inv.total ?? 0), 0);
+    todayRes = (todayResResult as any)?.count ?? 0;
+    activeRes = (activeResResult as any)?.count ?? 0;
+    activeOrders = (ordersResult as any)?.count ?? 0;
   }
-  const statusBreakdown = Array.from(statusMap.entries()).map(([status, count]) => ({ status, count }));
-
-  const dateMap = new Map<string, number>();
-  for (let i = 0; i < 30; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - (29 - i));
-    dateMap.set(d.toISOString().slice(0, 10), 0);
-  }
-  for (const c of allCerts) {
-    if (!c.created_at) continue;
-    const date = c.created_at.slice(0, 10);
-    if (dateMap.has(date)) dateMap.set(date, (dateMap.get(date) ?? 0) + 1);
-  }
-  const recentActivity = Array.from(dateMap.entries()).map(([date, count]) => ({ date, count }));
-
-  const invoiceList = invoices ?? [];
-  const invoiceCount = invoiceList.length;
-  const unpaidAmount = invoiceList
-    .filter((inv: any) => inv.status === "sent" || inv.status === "overdue")
-    .reduce((sum: number, inv: any) => sum + (inv.total ?? 0), 0);
 
   return (
     <>
@@ -104,7 +135,7 @@ async function TenantStats({ tenantId }: { tenantId: string }) {
           </div>
           <div className="glass-card p-5">
             <div className="text-xs font-semibold tracking-[0.18em] text-muted">メンバー</div>
-            <div className="mt-2 text-3xl font-bold text-accent">{memberCount ?? 0}</div>
+            <div className="mt-2 text-3xl font-bold text-accent">{memberCount}</div>
             <div className="mt-1 text-xs text-muted">チームメンバー</div>
           </div>
         </div>
@@ -114,17 +145,17 @@ async function TenantStats({ tenantId }: { tenantId: string }) {
       <div className="grid gap-4 sm:grid-cols-3">
         <Link href="/admin/reservations" className="glass-card p-5 hover:bg-surface-hover transition-colors">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">本日</div>
-          <div className="mt-2 text-2xl font-bold text-violet-text">{todayResResult?.count ?? 0}</div>
+          <div className="mt-2 text-2xl font-bold text-violet-text">{todayRes}</div>
           <div className="mt-1 text-xs text-muted">本日の予約</div>
         </Link>
         <Link href="/admin/reservations" className="glass-card p-5 hover:bg-surface-hover transition-colors">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">進行中</div>
-          <div className="mt-2 text-2xl font-bold text-accent">{activeResResult?.count ?? 0}</div>
+          <div className="mt-2 text-2xl font-bold text-accent">{activeRes}</div>
           <div className="mt-1 text-xs text-muted">進行中の予約・作業</div>
         </Link>
         <Link href="/admin/orders" className="glass-card p-5 hover:bg-surface-hover transition-colors">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">受発注</div>
-          <div className="mt-2 text-2xl font-bold text-warning">{ordersResult?.count ?? 0}</div>
+          <div className="mt-2 text-2xl font-bold text-warning">{activeOrders}</div>
           <div className="mt-1 text-xs text-muted">進行中の受発注</div>
         </Link>
       </div>
@@ -133,7 +164,7 @@ async function TenantStats({ tenantId }: { tenantId: string }) {
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="glass-card p-5">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">顧客</div>
-          <div className="mt-2 text-2xl font-bold text-primary">{customerCount ?? 0}</div>
+          <div className="mt-2 text-2xl font-bold text-primary">{customerCount}</div>
           <div className="mt-1 text-xs text-muted">顧客数</div>
         </div>
         <div className="glass-card p-5">
@@ -274,6 +305,7 @@ export default async function AdminHome() {
 
   return (
     <div className="space-y-6">
+      <OnboardingTour />
       <PageHeader tag="管理画面" title="ダッシュボード" description="施工証明書の管理状況を一目で確認" />
 
       {/* Tenant Stats - streams in first */}

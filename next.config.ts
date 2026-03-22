@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
   // infinite symlink loops caused by "holy-cert": "file:" in package.json
   serverExternalPackages: ["holy-cert", "@react-pdf/renderer"],
 
+  // Pin Turbopack root to this directory to prevent path resolution issues in worktrees
+  turbopack: {
+    root: ".",
+  },
+
   // Next 16.1.6: Server Actions config is under experimental
   experimental: {
     serverActions: {

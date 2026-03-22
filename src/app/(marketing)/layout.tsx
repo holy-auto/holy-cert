@@ -1,6 +1,7 @@
 import { Noto_Sans_JP } from "next/font/google";
 import { Header } from "@/components/marketing/Header";
 import { Footer } from "@/components/marketing/Footer";
+import MarketingThemeWrapper from "./MarketingThemeWrapper";
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
@@ -27,13 +28,12 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      data-theme="dark"
+    <MarketingThemeWrapper
       className={`${notoSansJP.variable} font-[family-name:var(--font-noto)] bg-[var(--bg-base)]`}
     >
       <Header />
       <main>{children}</main>
       <Footer />
-    </div>
+    </MarketingThemeWrapper>
   );
 }

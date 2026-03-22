@@ -80,7 +80,7 @@
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ── Dark Mode (Marketing HP) ── */
+/* ── Dark Mode (全サイト対応) ── */
 [data-theme="dark"] {
   --bg-base: #060a12;
   --bg-surface: rgba(255, 255, 255, 0.04);
@@ -94,11 +94,43 @@
   --border-default: rgba(255, 255, 255, 0.07);
   --border-subtle: rgba(255, 255, 255, 0.04);
   --border-strong: rgba(255, 255, 255, 0.15);
+  --border-focus: #4d9fff;
 
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.5);
   --text-muted: rgba(255, 255, 255, 0.3);
   --text-inverse: #1d1d1f;
+
+  /* Accent adjustments for dark bg */
+  --accent-blue: #4d9fff;
+  --accent-blue-dim: rgba(77, 159, 255, 0.12);
+  --accent-blue-hover: #66adff;
+  --accent-blue-text: #4d9fff;
+
+  --accent-emerald: #3dd68c;
+  --accent-emerald-dim: rgba(61, 214, 140, 0.12);
+  --accent-emerald-text: #3dd68c;
+
+  --accent-amber: #f5a623;
+  --accent-amber-dim: rgba(245, 166, 35, 0.12);
+  --accent-amber-text: #f5a623;
+
+  --accent-red: #ff6b6b;
+  --accent-red-dim: rgba(255, 107, 107, 0.12);
+  --accent-red-text: #ff6b6b;
+
+  --accent-violet: #c084fc;
+  --accent-violet-dim: rgba(192, 132, 252, 0.12);
+  --accent-violet-text: #c084fc;
+
+  /* Shadows for dark mode */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.2);
+  --shadow-focus: 0 0 0 3px var(--accent-blue-dim);
+
+  color-scheme: dark;
 }
 
 /* ── Tailwind @theme Mapping ── */
@@ -392,6 +424,10 @@ body {
     border-radius: var(--radius-md);
     animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+
+  [data-theme="dark"] .skeleton {
+    background: rgba(255, 255, 255, 0.08);
+  }
 }
 
 /* ══════════════════════════════════════════════════
@@ -489,4 +525,11 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }

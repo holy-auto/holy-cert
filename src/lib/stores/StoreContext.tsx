@@ -38,15 +38,43 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [activeStoreId, setActiveStoreIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const CACHE_KEY = "cartrust_stores_cache";
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   const fetchStores = useCallback(async () => {
     try {
+      // Try cache first for instant display
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        try {
+          const { data, ts } = JSON.parse(cached);
+          if (Date.now() - ts < CACHE_TTL && Array.isArray(data)) {
+            setStores(data);
+            setLoading(false);
+            // Revalidate in background
+            fetch("/api/admin/stores", { cache: "no-store" })
+              .then((r) => r.ok ? r.json() : null)
+              .then((d) => {
+                if (d?.stores) {
+                  setStores(d.stores);
+                  sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: d.stores, ts: Date.now() }));
+                }
+              })
+              .catch(() => {});
+            return;
+          }
+        } catch { /* ignore corrupt cache */ }
+      }
+
       const res = await fetch("/api/admin/stores", { cache: "no-store" });
       if (!res.ok) {
         setStores([]);
         return;
       }
       const data = await res.json();
-      setStores(data.stores ?? []);
+      const storeList = data.stores ?? [];
+      setStores(storeList);
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: storeList, ts: Date.now() }));
     } catch {
       setStores([]);
     } finally {
