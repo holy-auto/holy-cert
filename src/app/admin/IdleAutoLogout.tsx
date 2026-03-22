@@ -25,8 +25,11 @@ export default function IdleAutoLogout() {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
+      // sessionStorageのキャッシュもクリア
+      try { sessionStorage.clear(); } catch { /* ignore */ }
     } catch { /* ignore */ }
-    window.location.href = "/login?reason=idle";
+    // replaceでbfcacheに管理画面を残さない
+    window.location.replace("/login?reason=idle");
   }, []);
 
   const dismissWarning = useCallback(() => {
