@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAdminClient } from "@/lib/api/auth";
 
 import { formatDateTime } from "@/lib/format";
 import AdminFeatureGuard from "@/app/admin/AdminFeatureGuard";
@@ -97,12 +98,30 @@ export default async function Page({
     const tenantId = mem?.tenant_id as string | undefined;
     if (!tenantId) redirect("/admin/templates?e=tenant");
 
-    const { error } = await supabase
+    // 共有テンプレ（tenant_id IS NULL）は削除不可
+    const { data: target } = await supabase
+      .from("templates")
+      .select("id, tenant_id")
+      .eq("id", tid)
+      .single();
+
+    if (!target) redirect("/admin/templates?e=del");
+    if (!target.tenant_id || target.tenant_id !== tenantId) {
+      redirect("/admin/templates?e=shared");
+    }
+
+    // 削除実行（adminクライアントでRLSをバイパス — 証明書はスナップショット保持のため影響なし）
+    const admin = getAdminClient();
+    const { error } = await admin
       .from("templates")
       .delete()
       .eq("id", tid)
       .eq("tenant_id", tenantId);
-    if (error) redirect("/admin/templates?e=del");
+    if (error) {
+      console.error("[templates] delete error:", error);
+      redirect("/admin/templates?e=del");
+    }
+
     redirect("/admin/templates?ok=deleted");
   }
 
@@ -136,7 +155,7 @@ export default async function Page({
   if (error) return <div className="text-sm text-red-500">読み込みエラー: {error.message}</div>;
 
   const ERR_MSGS: Record<string, string> = {
-    in_use: "このテンプレートは証明書に使用されているため削除できません。",
+    shared: "共有テンプレートは削除できません。自店舗で作成したテンプレートのみ削除可能です。",
     del: "削除に失敗しました。",
     rename: "名前変更に失敗しました。",
     create: "作成に失敗しました。",
