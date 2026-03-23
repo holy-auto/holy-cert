@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,10 @@ export async function GET(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    if (!requirePermission(caller, "payments:view")) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     const url = new URL(req.url);
     const status = url.searchParams.get("status") ?? "";
@@ -120,7 +124,7 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    if (!requireMinRole(caller, "staff")) {
+    if (!requirePermission(caller, "payments:create")) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
@@ -135,13 +139,16 @@ export async function POST(req: NextRequest) {
     }
 
     const amount = parseInt(String(body?.amount ?? ""), 10);
-    if (isNaN(amount) || amount <= 0) {
+    if (isNaN(amount) || amount < 1 || amount > 999_999_999) {
       return NextResponse.json({ error: "invalid_amount" }, { status: 400 });
     }
 
     const receivedAmount = body?.received_amount != null
       ? parseInt(String(body.received_amount), 10)
       : null;
+    if (receivedAmount != null && (isNaN(receivedAmount) || receivedAmount < 0)) {
+      return NextResponse.json({ error: "invalid_received_amount" }, { status: 400 });
+    }
     const changeAmount = receivedAmount != null && receivedAmount > amount
       ? receivedAmount - amount
       : 0;
@@ -185,7 +192,7 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    if (!requireMinRole(caller, "staff")) {
+    if (!requirePermission(caller, "payments:manage")) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
@@ -249,7 +256,7 @@ export async function DELETE(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    if (!requireMinRole(caller, "admin")) {
+    if (!requirePermission(caller, "payments:manage")) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
