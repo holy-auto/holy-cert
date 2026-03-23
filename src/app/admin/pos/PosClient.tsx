@@ -2,22 +2,12 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import useSWR from "swr";
+import QRCode from "qrcode";
 import { fetcher } from "@/lib/swr";
 import { formatJpy, formatDate } from "@/lib/format";
 import Badge from "@/components/ui/Badge";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
-
-// NOTE: Stripe Terminal JS SDK を使う場合は `npm install @stripe/terminal-js` を実行してください
-// import { loadStripeTerminal } from '@stripe/terminal-js';
-
-/* ────────────────────────────────────────────── */
-/*  Stripe Terminal types (SDK未インストール時用)   */
-/* ────────────────────────────────────────────── */
-type TerminalStatus = "idle" | "connecting" | "waiting_card" | "processing" | "succeeded" | "failed";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type StripeTerminalInstance = any;
 
 /* ────────────────────────────────────────────── */
 /*  Types                                         */
@@ -86,30 +76,35 @@ interface CheckoutResult {
 }
 
 /* ────────────────────────────────────────────── */
+/*  QR Code payment types                         */
+/* ────────────────────────────────────────────── */
+type QrStep = "idle" | "creating" | "showing" | "paid" | "recording" | "error";
+
+/* ────────────────────────────────────────────── */
 /*  Constants                                     */
 /* ────────────────────────────────────────────── */
 
 const PAYMENT_METHODS = [
-  { value: "cash", label: "現金", icon: "💴" },
-  { value: "card", label: "カード", icon: "💳" },
-  { value: "qr", label: "QR決済", icon: "📱" },
-  { value: "bank_transfer", label: "振込", icon: "🏦" },
-  { value: "other", label: "その他", icon: "📋" },
+  { value: "cash", label: "\u73FE\u91D1", icon: "\uD83D\uDCB4" },
+  { value: "card", label: "\u30AB\u30FC\u30C9", icon: "\uD83D\uDCB3" },
+  { value: "qr", label: "QR\u6C7A\u6E08", icon: "\uD83D\uDCF1" },
+  { value: "bank_transfer", label: "\u632F\u8FBC", icon: "\uD83C\uDFE6" },
+  { value: "other", label: "\u305D\u306E\u4ED6", icon: "\uD83D\uDCCB" },
 ] as const;
 
 const RESERVATION_STATUS_MAP: Record<string, { variant: "default" | "success" | "warning" | "danger" | "info" | "violet"; label: string }> = {
-  confirmed: { variant: "info", label: "確定" },
-  arrived: { variant: "violet", label: "来店" },
-  in_progress: { variant: "warning", label: "作業中" },
-  completed: { variant: "success", label: "完了" },
-  cancelled: { variant: "default", label: "取消" },
+  confirmed: { variant: "info", label: "\u78BA\u5B9A" },
+  arrived: { variant: "violet", label: "\u6765\u5E97" },
+  in_progress: { variant: "warning", label: "\u4F5C\u696D\u4E2D" },
+  completed: { variant: "success", label: "\u5B8C\u4E86" },
+  cancelled: { variant: "default", label: "\u53D6\u6D88" },
 };
 
 const PAYMENT_STATUS_MAP: Record<string, { variant: "default" | "success" | "warning" | "danger" | "info" | "violet"; label: string }> = {
-  unpaid: { variant: "default", label: "未会計" },
-  paid: { variant: "success", label: "会計済" },
-  partial: { variant: "warning", label: "一部" },
-  refunded: { variant: "danger", label: "返金済" },
+  unpaid: { variant: "default", label: "\u672A\u4F1A\u8A08" },
+  paid: { variant: "success", label: "\u4F1A\u8A08\u6E08" },
+  partial: { variant: "warning", label: "\u4E00\u90E8" },
+  refunded: { variant: "danger", label: "\u8FD4\u91D1\u6E08" },
 };
 
 /* ────────────────────────────────────────────── */
@@ -162,14 +157,12 @@ export default function PosClient() {
   const [result, setResult] = useState<CheckoutResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Stripe Terminal state ──
-  const [terminalStatus, setTerminalStatus] = useState<TerminalStatus>("idle");
-  const [terminalError, setTerminalError] = useState<string | null>(null);
-  const [activePaymentIntentId, setActivePaymentIntentId] = useState<string | null>(null);
-  const [activeConnectAccount, setActiveConnectAccount] = useState<string | null>(null);
-  const terminalRef = useRef<StripeTerminalInstance>(null);
+  // ── QR Code payment state ──
+  const [qrStep, setQrStep] = useState<QrStep>("idle");
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrSessionId, setQrSessionId] = useState<string | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|Android/i.test(navigator.userAgent);
 
   // ── Mode switch reset ──
   const handleModeSwitch = useCallback((newMode: PosMode) => {
@@ -182,10 +175,10 @@ export default function PosClient() {
     setPaymentMethod("cash");
     setReceivedAmount("");
     setNote("");
-    setTerminalStatus("idle");
-    setTerminalError(null);
-    setActivePaymentIntentId(null);
-    setActiveConnectAccount(null);
+    setQrStep("idle");
+    setQrDataUrl(null);
+    setQrSessionId(null);
+    setQrError(null);
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
@@ -268,10 +261,10 @@ export default function PosClient() {
     setNote("");
     setResult(null);
     setError(null);
-    setTerminalStatus("idle");
-    setTerminalError(null);
-    setActivePaymentIntentId(null);
-    setActiveConnectAccount(null);
+    setQrStep("idle");
+    setQrDataUrl(null);
+    setQrSessionId(null);
+    setQrError(null);
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
@@ -285,234 +278,134 @@ export default function PosClient() {
     };
   }, []);
 
-  // ── Stripe Terminal: initialize (lazy) ──
-  const getTerminal = useCallback(async (): Promise<StripeTerminalInstance | null> => {
-    if (terminalRef.current) return terminalRef.current;
+  // ── QR Code card payment flow ──
+  const handleCardPaymentQr = useCallback(async () => {
+    setQrStep("creating");
+    setQrError(null);
+    setQrDataUrl(null);
+    setQrSessionId(null);
 
     try {
-      // 動的インポートで @stripe/terminal-js をロード
-      // @ts-expect-error -- @stripe/terminal-js は別途 npm install が必要
-      const mod = await import("@stripe/terminal-js");
-      const loadStripeTerminal = mod.loadStripeTerminal ?? mod.default?.loadStripeTerminal;
-      if (!loadStripeTerminal) throw new Error("loadStripeTerminal not found");
-      const StripeTerminal = await loadStripeTerminal();
-      if (!StripeTerminal) throw new Error("Stripe Terminal SDK のロードに失敗しました");
-
-      const terminal = StripeTerminal.create({
-        onFetchConnectionToken: async () => {
-          const res = await fetch("/api/admin/pos/terminal/connection-token", { method: "POST" });
-          if (!res.ok) throw new Error("Connection token の取得に失敗しました");
-          const { secret } = await res.json();
-          return secret;
-        },
-        onUnexpectedReaderDisconnect: () => {
-          setTerminalError("リーダーが切断されました");
-          setTerminalStatus("failed");
-        },
-      });
-
-      terminalRef.current = terminal;
-      return terminal;
-    } catch {
-      // SDK未インストール時はnullを返す（フォールバックモードで動作）
-      return null;
-    }
-  }, []);
-
-  // ── Card payment: Full Terminal SDK flow ──
-  const handleCardPaymentWithTerminal = useCallback(async (terminal: StripeTerminalInstance) => {
-    setTerminalStatus("processing");
-    setTerminalError(null);
-
-    try {
-      // 1. PaymentIntent 作成
-      const description = checkoutItems.map((i) => i.description).join(", ") || (mode === "reservation" ? selected?.title : "ウォークイン会計") || "POS会計";
-      const piRes = await fetch("/api/admin/pos/terminal/create-payment-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, description }),
-      });
-      const piData = await piRes.json();
-      if (!piRes.ok) throw new Error(piData?.error ?? "PaymentIntent の作成に失敗しました");
-
-      // 2. リーダーに接続（未接続の場合）
-      setTerminalStatus("connecting");
-      const discoverResult = await terminal.discoverReaders();
-      if (discoverResult.error) throw new Error(discoverResult.error.message);
-
-      if (discoverResult.discoveredReaders.length === 0) {
-        throw new Error("利用可能なカードリーダーが見つかりません");
-      }
-
-      const connectResult = await terminal.connectReader(discoverResult.discoveredReaders[0]);
-      if (connectResult.error) throw new Error(connectResult.error.message);
-
-      // 3. カード決済実行
-      setTerminalStatus("waiting_card");
-      const collectResult = await terminal.collectPaymentMethod(piData.client_secret);
-      if (collectResult.error) throw new Error(collectResult.error.message);
-
-      setTerminalStatus("processing");
-      const processResult = await terminal.processPayment(collectResult.paymentIntent);
-      if (processResult.error) throw new Error(processResult.error.message);
-
-      // 4. サーバーで capture + DB記録
-      const captureRes = await fetch("/api/admin/pos/terminal/capture", {
+      // 1. Checkout Session 作成
+      const description = checkoutItems.map((i) => i.description).join(", ") || (mode === "reservation" ? selected?.title : "\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08") || "POS\u4F1A\u8A08";
+      const res = await fetch("/api/admin/pos/checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          payment_intent_id: processResult.paymentIntent.id,
+          amount,
+          description,
           reservation_id: mode === "reservation" ? selected?.id : undefined,
           customer_id: mode === "reservation" ? selected?.customer_id : undefined,
-          items_json: checkoutItems.map((ci) => ({
-            description: ci.description,
-            quantity: ci.quantity,
-            unit_price: ci.unit_price,
-            amount: ci.amount,
-          })),
-          tax_rate: 10,
           note: note || undefined,
         }),
       });
-      const captureData = await captureRes.json();
-      if (!captureRes.ok) throw new Error(captureData?.error ?? "決済の記録に失敗しました");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Checkout Session \u306E\u4F5C\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
 
-      setResult(captureData);
-      setTerminalStatus("succeeded");
-      await mutate();
-    } catch (e) {
-      setTerminalError(e instanceof Error ? e.message : "カード決済に失敗しました");
-      setTerminalStatus("failed");
-    }
-  }, [selected, amount, checkoutItems, note, mutate, mode]);
+      const sessionId = data.session_id as string;
+      const checkoutUrl = data.url as string;
 
-  // ── Card payment: Fallback polling flow (SDK未インストール時) ──
-  const handleCardPaymentFallback = useCallback(async () => {
-    setTerminalStatus("processing");
-    setTerminalError(null);
-
-    try {
-      // 1. PaymentIntent 作成
-      const description = checkoutItems.map((i) => i.description).join(", ") || (mode === "reservation" ? selected?.title : "ウォークイン会計") || "POS会計";
-      const piRes = await fetch("/api/admin/pos/terminal/create-payment-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, description }),
+      // 2. QR\u30B3\u30FC\u30C9\u751F\u6210
+      const qrUrl = await QRCode.toDataURL(checkoutUrl, {
+        width: 250,
+        margin: 2,
+        color: { dark: "#000000", light: "#ffffff" },
       });
-      const piData = await piRes.json();
-      if (!piRes.ok) throw new Error(piData?.error ?? "PaymentIntent の作成に失敗しました");
 
-      const paymentIntentId = piData.payment_intent_id;
-      const connectAccount = piData.connect_account as string | null;
-      setActivePaymentIntentId(paymentIntentId);
-      setActiveConnectAccount(connectAccount);
+      setQrSessionId(sessionId);
+      setQrDataUrl(qrUrl);
+      setQrStep("showing");
 
-      // 2. 「カード決済待ち」状態 - 端末側での決済を待つ
-      setTerminalStatus("waiting_card");
+      // 3. \u30DD\u30FC\u30EA\u30F3\u30B0\u958B\u59CB (2\u79D2\u9593\u9694, \u6700\u59275\u5206)
+      let attempts = 0;
+      const maxAttempts = 150; // 5\u5206 = 150 x 2\u79D2
 
-      // モバイルの場合、Stripeアプリを自動で開く
-      if (isMobile) {
-        const dashboardBase = connectAccount
-          ? `https://dashboard.stripe.com/${connectAccount}`
-          : "https://dashboard.stripe.com";
-        window.open(`${dashboardBase}/payments/${paymentIntentId}`, "_blank");
-      }
+      pollingRef.current = setInterval(async () => {
+        attempts++;
+        if (attempts > maxAttempts) {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          pollingRef.current = null;
+          setQrError("\u6C7A\u6E08\u304C\u30BF\u30A4\u30E0\u30A2\u30A6\u30C8\u3057\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002");
+          setQrStep("error");
+          return;
+        }
 
-      // ポーリングで PaymentIntent のステータスを確認
-      await new Promise<void>((resolve, reject) => {
-        let attempts = 0;
-        const maxAttempts = 120; // 最大2分 (1秒間隔)
+        try {
+          const statusRes = await fetch(`/api/admin/pos/checkout-session?id=${sessionId}`);
+          if (!statusRes.ok) return;
 
-        pollingRef.current = setInterval(async () => {
-          attempts++;
-          if (attempts > maxAttempts) {
+          const statusData = await statusRes.json();
+
+          if (statusData.payment_status === "paid") {
             if (pollingRef.current) clearInterval(pollingRef.current);
             pollingRef.current = null;
-            reject(new Error("決済がタイムアウトしました。もう一度お試しください。"));
-            return;
-          }
+            setQrStep("paid");
 
-          try {
-            const statusRes = await fetch(`/api/admin/pos/terminal/create-payment-intent?id=${paymentIntentId}`, {
-              method: "GET",
+            // 4. CARTRUST DB \u306B\u8A18\u9332
+            setQrStep("recording");
+            const checkoutRes = await fetch("/api/admin/pos/checkout", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                reservation_id: mode === "reservation" ? selected?.id : undefined,
+                customer_id: mode === "reservation" ? selected?.customer_id : undefined,
+                payment_method: "card",
+                amount,
+                items_json: checkoutItems,
+                tax_rate: 10,
+                note: note || undefined,
+                create_receipt: true,
+              }),
             });
+            const checkoutData = await checkoutRes.json();
+            if (!checkoutRes.ok) throw new Error(checkoutData?.error ?? "\u6C7A\u6E08\u306E\u8A18\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
 
-            // GET未実装の場合はポーリングをスキップ（端末側で処理される想定）
-            if (statusRes.status === 405) return;
-
-            const statusData = await statusRes.json();
-            if (statusData.status === "requires_capture" || statusData.status === "succeeded") {
-              if (pollingRef.current) clearInterval(pollingRef.current);
-              pollingRef.current = null;
-              resolve();
-            } else if (statusData.status === "canceled" || statusData.status === "requires_payment_method") {
-              if (pollingRef.current) clearInterval(pollingRef.current);
-              pollingRef.current = null;
-              reject(new Error("決済がキャンセルされました"));
-            }
-          } catch {
-            // ポーリング中のネットワークエラーは無視して次回リトライ
+            setResult(checkoutData);
+            setQrStep("idle");
+            await mutate();
+          } else if (statusData.status === "expired") {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            setQrError("\u30BB\u30C3\u30B7\u30E7\u30F3\u304C\u671F\u9650\u5207\u308C\u306B\u306A\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002");
+            setQrStep("error");
           }
-        }, 1000);
-      });
-
-      // 3. Capture + DB記録
-      setTerminalStatus("processing");
-      const captureRes = await fetch("/api/admin/pos/terminal/capture", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          payment_intent_id: paymentIntentId,
-          reservation_id: mode === "reservation" ? selected?.id : undefined,
-          customer_id: mode === "reservation" ? selected?.customer_id : undefined,
-          items_json: checkoutItems.map((ci) => ({
-            description: ci.description,
-            quantity: ci.quantity,
-            unit_price: ci.unit_price,
-            amount: ci.amount,
-          })),
-          tax_rate: 10,
-          note: note || undefined,
-        }),
-      });
-      const captureData = await captureRes.json();
-      if (!captureRes.ok) throw new Error(captureData?.error ?? "決済の記録に失敗しました");
-
-      setResult(captureData);
-      setTerminalStatus("succeeded");
-      await mutate();
+        } catch {
+          // \u30DD\u30FC\u30EA\u30F3\u30B0\u4E2D\u306E\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u30A8\u30E9\u30FC\u306F\u7121\u8996\u3057\u3066\u6B21\u56DE\u30EA\u30C8\u30E9\u30A4
+        }
+      }, 2000);
     } catch (e) {
-      setTerminalError(e instanceof Error ? e.message : "カード決済に失敗しました");
-      setTerminalStatus("failed");
+      setQrError(e instanceof Error ? e.message : "QR\u30B3\u30FC\u30C9\u306E\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
+      setQrStep("error");
     }
   }, [selected, amount, checkoutItems, note, mutate, mode]);
+
+  // ── Cancel QR payment ──
+  const handleCancelQr = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+    setQrStep("idle");
+    setQrDataUrl(null);
+    setQrSessionId(null);
+    setQrError(null);
+    setProcessing(false);
+  }, []);
 
   // ── Main checkout handler ──
   const handleCheckout = useCallback(async () => {
     if (!hasSelection || processing) return;
 
-    // カード決済: Stripe連携フロー（Stripeアプリで決済）
+    // \u30AB\u30FC\u30C9\u6C7A\u6E08: QR\u30B3\u30FC\u30C9\u30D5\u30ED\u30FC
     if (paymentMethod === "card") {
       setProcessing(true);
       setError(null);
-      try {
-        // Terminal SDK が使える場合はSDKフロー
-        const terminal = await getTerminal();
-        if (terminal) {
-          await handleCardPaymentWithTerminal(terminal);
-        } else {
-          // SDKなし: Stripeアプリ連携フォールバック
-          await handleCardPaymentFallback();
-        }
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "カード決済に失敗しました");
-      } finally {
-        setProcessing(false);
-      }
+      await handleCardPaymentQr();
+      setProcessing(false);
       return;
     }
 
-    // 現金・QR・振込・その他: 即 pos_checkout（外部で決済済みの記録方式）
+    // \u73FE\u91D1\u30FBQR\u30FB\u632F\u8FBC\u30FB\u305D\u306E\u4ED6: \u5373 pos_checkout
     setProcessing(true);
     setError(null);
     try {
@@ -536,23 +429,23 @@ export default function PosClient() {
       setResult(j);
       await mutate();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "会計処理に失敗しました");
+      setError(e instanceof Error ? e.message : "\u4F1A\u8A08\u51E6\u7406\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
     } finally {
       setProcessing(false);
     }
-  }, [hasSelection, processing, paymentMethod, amount, received, checkoutItems, note, mutate, mode, selected, getTerminal, handleCardPaymentWithTerminal, handleCardPaymentFallback]);
+  }, [hasSelection, processing, paymentMethod, amount, received, checkoutItems, note, mutate, mode, selected, handleCardPaymentQr]);
 
   // ── Render ──
   return (
     <div className="space-y-6">
-      <PageHeader title="POS 会計" tag="POS" description="予約の会計処理・ウォークイン会計を行います" />
+      <PageHeader title="POS \u4F1A\u8A08" tag="POS" description="\u4E88\u7D04\u306E\u4F1A\u8A08\u51E6\u7406\u30FB\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08\u3092\u884C\u3044\u307E\u3059" />
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="未会計" value={unpaidReservations.length} />
-        <StatCard label="本日会計済" value={paidReservations.length} />
+        <StatCard label="\u672A\u4F1A\u8A08" value={unpaidReservations.length} />
+        <StatCard label="\u672C\u65E5\u4F1A\u8A08\u6E08" value={paidReservations.length} />
         <StatCard
-          label="本日売上"
+          label="\u672C\u65E5\u58F2\u4E0A"
           value={formatJpy(
             paidReservations.reduce((s, r) => s + (r.estimated_amount ?? 0), 0),
           )}
@@ -570,7 +463,7 @@ export default function PosClient() {
               : "text-secondary hover:text-primary"
           }`}
         >
-          予約から会計
+          {"\u4E88\u7D04\u304B\u3089\u4F1A\u8A08"}
         </button>
         <button
           type="button"
@@ -581,7 +474,7 @@ export default function PosClient() {
               : "text-secondary hover:text-primary"
           }`}
         >
-          予約なし会計
+          {"\u4E88\u7D04\u306A\u3057\u4F1A\u8A08"}
         </button>
       </div>
 
@@ -591,7 +484,7 @@ export default function PosClient() {
           {mode === "reservation" ? (
             /* ── Reservation list ── */
             <>
-              <h2 className="text-sm font-semibold text-secondary">未会計の予約</h2>
+              <h2 className="text-sm font-semibold text-secondary">{"\u672A\u4F1A\u8A08\u306E\u4E88\u7D04"}</h2>
 
               {isLoading && !data ? (
                 <div className="space-y-2">
@@ -601,7 +494,7 @@ export default function PosClient() {
                 </div>
               ) : unpaidReservations.length === 0 ? (
                 <div className="rounded-xl border border-border-subtle bg-surface p-8 text-center text-sm text-muted">
-                  未会計の予約はありません
+                  {"\u672A\u4F1A\u8A08\u306E\u4E88\u7D04\u306F\u3042\u308A\u307E\u305B\u3093"}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -620,7 +513,7 @@ export default function PosClient() {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-primary">{r.title || "無題"}</span>
+                          <span className="text-sm font-medium text-primary">{r.title || "\u7121\u984C"}</span>
                           <div className="flex items-center gap-2">
                             <Badge variant={statusEntry.variant}>{statusEntry.label}</Badge>
                             <span className="text-sm font-semibold text-primary">
@@ -630,7 +523,7 @@ export default function PosClient() {
                         </div>
                         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary">
                           {r.scheduled_date && <span>{formatDate(r.scheduled_date)}</span>}
-                          {r.start_time && <span>{r.start_time}〜{r.end_time ?? ""}</span>}
+                          {r.start_time && <span>{r.start_time}{"\u301C"}{r.end_time ?? ""}</span>}
                           {r.customer_name && <span>{r.customer_name}</span>}
                           {r.vehicle_info && <span>{r.vehicle_info}</span>}
                         </div>
@@ -644,14 +537,14 @@ export default function PosClient() {
             /* ── Walk-in: menu item grid ── */
             <>
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-secondary">品目を選択</h2>
+                <h2 className="text-sm font-semibold text-secondary">{"\u54C1\u76EE\u3092\u9078\u629E"}</h2>
                 {cart.length > 0 && (
                   <button
                     type="button"
                     onClick={clearCart}
                     className="text-xs text-danger-text hover:underline"
                   >
-                    カートを空にする
+                    {"\u30AB\u30FC\u30C8\u3092\u7A7A\u306B\u3059\u308B"}
                   </button>
                 )}
               </div>
@@ -661,14 +554,14 @@ export default function PosClient() {
                 type="text"
                 value={menuSearch}
                 onChange={(e) => setMenuSearch(e.target.value)}
-                placeholder="品目名で検索..."
+                placeholder={"\u54C1\u76EE\u540D\u3067\u691C\u7D22..."}
                 className="w-full rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
               />
 
               {/* Cart summary */}
               {cart.length > 0 && (
                 <div className="space-y-1 rounded-xl border border-accent bg-accent-dim p-3">
-                  <span className="text-xs font-medium text-accent">カート ({cart.length} 品目)</span>
+                  <span className="text-xs font-medium text-accent">{"\u30AB\u30FC\u30C8"} ({cart.length} {"\u54C1\u76EE"})</span>
                   {cart.map((c) => (
                     <div key={c.id} className="flex items-center justify-between text-sm">
                       <span className="text-primary">{c.name}</span>
@@ -693,7 +586,7 @@ export default function PosClient() {
                     </div>
                   ))}
                   <div className="flex justify-between border-t border-accent/30 pt-1 text-sm font-semibold">
-                    <span className="text-accent">合計</span>
+                    <span className="text-accent">{"\u5408\u8A08"}</span>
                     <span className="text-accent">{formatJpy(amount)}</span>
                   </div>
                 </div>
@@ -708,7 +601,7 @@ export default function PosClient() {
                 </div>
               ) : filteredMenuItems.length === 0 ? (
                 <div className="rounded-xl border border-border-subtle bg-surface p-8 text-center text-sm text-muted">
-                  {menuSearch ? "該当する品目がありません" : "品目マスタが登録されていません"}
+                  {menuSearch ? "\u8A72\u5F53\u3059\u308B\u54C1\u76EE\u304C\u3042\u308A\u307E\u305B\u3093" : "\u54C1\u76EE\u30DE\u30B9\u30BF\u304C\u767B\u9332\u3055\u308C\u3066\u3044\u307E\u305B\u3093"}
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
@@ -753,20 +646,20 @@ export default function PosClient() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-primary">会計完了</h3>
+                  <h3 className="text-lg font-semibold text-primary">{"\u4F1A\u8A08\u5B8C\u4E86"}</h3>
                   <p className="mt-1 text-sm text-secondary">
-                    {result.doc_number && <>領収書: {result.doc_number}</>}
+                    {result.doc_number && <>{"\u9818\u53CE\u66F8"}: {result.doc_number}</>}
                   </p>
                 </div>
 
                 <div className="space-y-2 rounded-xl bg-surface-hover p-4 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-secondary">お会計</span>
+                    <span className="text-secondary">{"\u304A\u4F1A\u8A08"}</span>
                     <span className="font-semibold">{formatJpy(result.amount)}</span>
                   </div>
                   {result.change > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-secondary">お釣り</span>
+                      <span className="text-secondary">{"\u304A\u91E3\u308A"}</span>
                       <span className="font-semibold text-accent">{formatJpy(result.change)}</span>
                     </div>
                   )}
@@ -781,15 +674,116 @@ export default function PosClient() {
                   }}
                   className="btn-primary w-full rounded-xl py-3 text-sm font-medium"
                 >
-                  次の会計へ
+                  {"\u6B21\u306E\u4F1A\u8A08\u3078"}
                 </button>
+              </div>
+            ) : qrStep !== "idle" && paymentMethod === "card" ? (
+              /* ── QR Code payment screen ── */
+              <div className="glass-card space-y-4 rounded-2xl p-6">
+                {(qrStep === "showing" || qrStep === "paid" || qrStep === "recording") && (
+                  <div className="text-center space-y-4">
+                    {/* Amount */}
+                    <div className="text-3xl font-bold text-primary">
+                      {formatJpy(amount)}
+                    </div>
+
+                    {qrStep === "showing" && qrDataUrl ? (
+                      <>
+                        {/* QR Code */}
+                        <div className="flex justify-center">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={qrDataUrl}
+                            alt="QR Code"
+                            width={250}
+                            height={250}
+                            className="rounded-xl border border-border-subtle"
+                          />
+                        </div>
+
+                        {/* Instructions */}
+                        <p className="text-sm font-semibold text-primary">
+                          {"\u304A\u5BA2\u69D8\u306E\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u3067\u30B9\u30AD\u30E3\u30F3\u3057\u3066\u304A\u652F\u6255\u3044\u304F\u3060\u3055\u3044"}
+                        </p>
+                        <p className="text-xs text-secondary">
+                          {"\u30AB\u30FC\u30C9 / Apple Pay / Google Pay \u304C\u4F7F\u3048\u307E\u3059"}
+                        </p>
+
+                        {/* Spinner */}
+                        <div className="flex items-center justify-center gap-2 text-sm text-info-text">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-info-text border-t-transparent" />
+                          {"\u6C7A\u6E08\u5F85\u3061..."}
+                        </div>
+
+                        {/* Cancel button */}
+                        <button
+                          type="button"
+                          onClick={handleCancelQr}
+                          className="w-full rounded-xl border border-border-subtle bg-surface py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-surface-hover"
+                        >
+                          {"\u30AD\u30E3\u30F3\u30BB\u30EB"}
+                        </button>
+                      </>
+                    ) : (qrStep === "paid" || qrStep === "recording") ? (
+                      <>
+                        {/* Payment success */}
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success-dim">
+                          <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-success-text">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        </div>
+                        <p className="text-lg font-semibold text-success-text">{"\u6C7A\u6E08\u5B8C\u4E86"}</p>
+                        <div className="flex items-center justify-center gap-2 text-sm text-secondary">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+                          {"\u8A18\u9332\u4E2D..."}
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                )}
+
+                {qrStep === "creating" && (
+                  <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-info-text border-t-transparent" />
+                    <p className="text-sm font-medium text-info-text">{"QR\u30B3\u30FC\u30C9\u3092\u751F\u6210\u4E2D..."}</p>
+                  </div>
+                )}
+
+                {qrStep === "error" && (
+                  <div className="space-y-3 text-center py-4">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger-dim">
+                      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-danger-text">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-semibold text-danger-text">
+                      {qrError ?? "QR\u30B3\u30FC\u30C9\u6C7A\u6E08\u306B\u5931\u6557\u3057\u307E\u3057\u305F"}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCancelQr}
+                        className="flex-1 rounded-xl border border-border-subtle bg-surface py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-surface-hover"
+                      >
+                        {"\u623B\u308B"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCheckout}
+                        className="flex-1 rounded-xl bg-[#635BFF] py-2.5 text-sm font-semibold text-white shadow-lg transition-transform active:scale-95"
+                      >
+                        {"\u518D\u8A66\u884C"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : hasSelection ? (
               /* ── Checkout form ── */
               <div className="glass-card space-y-5 rounded-2xl p-6">
                 <div>
                   <h3 className="text-base font-semibold text-primary">
-                    {mode === "reservation" ? (selected?.title || "無題") : "ウォークイン会計"}
+                    {mode === "reservation" ? (selected?.title || "\u7121\u984C") : "\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08"}
                   </h3>
                   {mode === "reservation" && selected?.customer_name && (
                     <p className="mt-0.5 text-xs text-secondary">{selected.customer_name}</p>
@@ -799,7 +793,7 @@ export default function PosClient() {
                 {/* Items */}
                 {checkoutItems.length > 0 && (
                   <div className="space-y-1.5">
-                    <span className="text-xs font-medium text-secondary">明細</span>
+                    <span className="text-xs font-medium text-secondary">{"\u660E\u7D30"}</span>
                     <div className="space-y-1 rounded-xl bg-surface-hover p-3">
                       {checkoutItems.map((item, i) => (
                         <div key={i} className="flex items-center justify-between text-sm">
@@ -818,13 +812,13 @@ export default function PosClient() {
 
                 {/* Total */}
                 <div className="flex items-center justify-between border-t border-border-subtle pt-3">
-                  <span className="text-sm font-medium text-secondary">合計</span>
+                  <span className="text-sm font-medium text-secondary">{"\u5408\u8A08"}</span>
                   <span className="text-2xl font-bold text-primary">{formatJpy(amount)}</span>
                 </div>
 
                 {/* Payment method */}
                 <div className="space-y-2">
-                  <span className="text-xs font-medium text-secondary">支払方法</span>
+                  <span className="text-xs font-medium text-secondary">{"\u652F\u6255\u65B9\u6CD5"}</span>
                   <div className="grid grid-cols-3 gap-2">
                     {PAYMENT_METHODS.map((pm) => (
                       <button
@@ -847,7 +841,7 @@ export default function PosClient() {
                 {/* Received amount (cash only) */}
                 {paymentMethod === "cash" && (
                   <div className="space-y-2">
-                    <span className="text-xs font-medium text-secondary">預り金額</span>
+                    <span className="text-xs font-medium text-secondary">{"\u9810\u308A\u91D1\u984D"}</span>
                     <input
                       type="number"
                       inputMode="numeric"
@@ -873,12 +867,12 @@ export default function PosClient() {
                         onClick={() => setReceivedAmount(String(amount))}
                         className="rounded-lg border border-border-subtle bg-surface px-2.5 py-1 text-xs text-secondary transition-colors hover:border-border hover:text-primary"
                       >
-                        ぴったり
+                        {"\u3074\u3063\u305F\u308A"}
                       </button>
                     </div>
                     {change > 0 && (
                       <div className="flex items-center justify-between rounded-xl bg-accent-dim px-4 py-2.5">
-                        <span className="text-sm text-accent">お釣り</span>
+                        <span className="text-sm text-accent">{"\u304A\u91E3\u308A"}</span>
                         <span className="text-lg font-bold text-accent">{formatJpy(change)}</span>
                       </div>
                     )}
@@ -887,12 +881,12 @@ export default function PosClient() {
 
                 {/* Note */}
                 <div className="space-y-1.5">
-                  <span className="text-xs font-medium text-secondary">メモ（任意）</span>
+                  <span className="text-xs font-medium text-secondary">{"\u30E1\u30E2\uFF08\u4EFB\u610F\uFF09"}</span>
                   <input
                     type="text"
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder="備考を入力"
+                    placeholder={"\u5099\u8003\u3092\u5165\u529B"}
                     className="w-full rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </div>
@@ -904,64 +898,11 @@ export default function PosClient() {
                   </div>
                 )}
 
-                {/* Terminal status (card payment) */}
-                {terminalStatus !== "idle" && paymentMethod === "card" && (
-                  <div className={`rounded-xl p-4 text-sm ${
-                    terminalStatus === "succeeded" ? "bg-success-dim text-success-text" :
-                    terminalStatus === "failed" ? "bg-danger-dim text-danger-text" :
-                    "bg-info-dim text-info-text"
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      {terminalStatus !== "succeeded" && terminalStatus !== "failed" && (
-                        <svg className="h-5 w-5 animate-spin flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                      )}
-                      <div>
-                        <p className="font-medium">
-                          {terminalStatus === "connecting" && "リーダーに接続中..."}
-                          {terminalStatus === "waiting_card" && "💳 Stripeアプリでカード決済を実行してください"}
-                          {terminalStatus === "processing" && "決済処理中..."}
-                          {terminalStatus === "succeeded" && "✅ カード決済完了"}
-                          {terminalStatus === "failed" && `❌ ${terminalError || "カード決済に失敗しました"}`}
-                        </p>
-                        {terminalStatus === "waiting_card" && (
-                          <>
-                            <p className="mt-1 text-xs opacity-80">
-                              Stripeモバイルアプリで {formatJpy(amount)} の決済を確認・実行してください（最大2分）
-                            </p>
-                            {activePaymentIntentId && (
-                              <a
-                                href={`${activeConnectAccount ? `https://dashboard.stripe.com/${activeConnectAccount}` : "https://dashboard.stripe.com"}/payments/${activePaymentIntentId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-medium backdrop-blur hover:bg-white/30"
-                              >
-                                📱 Stripeアプリを開く
-                              </a>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {terminalStatus === "failed" && (
-                      <button
-                        type="button"
-                        onClick={() => { setTerminalStatus("idle"); setTerminalError(null); }}
-                        className="mt-2 rounded-lg border border-danger-text/30 px-3 py-1 text-xs font-medium hover:bg-danger-text/10"
-                      >
-                        やり直す
-                      </button>
-                    )}
-                  </div>
-                )}
-
                 {/* Submit */}
                 <button
                   type="button"
                   onClick={handleCheckout}
-                  disabled={!canCheckout || terminalStatus === "waiting_card" || terminalStatus === "processing"}
+                  disabled={!canCheckout}
                   className="btn-primary w-full rounded-xl py-3.5 text-base font-semibold disabled:opacity-40"
                 >
                   {processing ? (
@@ -970,12 +911,12 @@ export default function PosClient() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      処理中...
+                      {"\u51E6\u7406\u4E2D..."}
                     </span>
                   ) : paymentMethod === "card" ? (
-                    `💳 ${formatJpy(amount)} カード決済を開始`
+                    `${formatJpy(amount)} \u30AB\u30FC\u30C9\u6C7A\u6E08\u3092\u958B\u59CB`
                   ) : (
-                    `${formatJpy(amount)} を会計する`
+                    `${formatJpy(amount)} \u3092\u4F1A\u8A08\u3059\u308B`
                   )}
                 </button>
               </div>
@@ -988,8 +929,8 @@ export default function PosClient() {
                   </svg>
                   <p className="text-sm text-muted">
                     {mode === "reservation"
-                      ? "左の一覧から予約を選択してください"
-                      : "左の品目をタップしてカートに追加してください"}
+                      ? "\u5DE6\u306E\u4E00\u89A7\u304B\u3089\u4E88\u7D04\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044"
+                      : "\u5DE6\u306E\u54C1\u76EE\u3092\u30BF\u30C3\u30D7\u3057\u3066\u30AB\u30FC\u30C8\u306B\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044"}
                   </p>
                 </div>
               </div>
