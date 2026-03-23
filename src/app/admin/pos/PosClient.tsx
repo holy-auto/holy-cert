@@ -186,6 +186,7 @@ export default function PosClient() {
     setTerminalError(null);
     setActivePaymentIntentId(null);
     setActiveConnectAccount(null);
+    setCardConfirmStep(false);
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
@@ -479,28 +480,47 @@ export default function PosClient() {
     }
   }, [selected, amount, checkoutItems, note, mutate, mode]);
 
+  // ── Card payment: 2ステップ確認フロー ──
+  const [cardConfirmStep, setCardConfirmStep] = useState(false);
+
+  const handleCardConfirm = useCallback(async () => {
+    // Stripeアプリで決済完了後、CARTRUSTに記録
+    setProcessing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/pos/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reservation_id: mode === "reservation" ? selected?.id : undefined,
+          customer_id: mode === "reservation" ? selected?.customer_id : undefined,
+          payment_method: "card",
+          amount,
+          items_json: checkoutItems,
+          tax_rate: 10,
+          note: note || undefined,
+          create_receipt: true,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j?.error ?? `HTTP ${res.status}`);
+      setResult(j);
+      setCardConfirmStep(false);
+      await mutate();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "記録に失敗しました");
+    } finally {
+      setProcessing(false);
+    }
+  }, [mode, selected, amount, checkoutItems, note, mutate]);
+
   // ── Main checkout handler ──
   const handleCheckout = useCallback(async () => {
     if (!hasSelection || processing) return;
 
-    // カード決済: Stripe連携フロー（Stripeアプリで決済）
+    // カード決済: Stripeアプリで決済する案内画面を表示
     if (paymentMethod === "card") {
-      setProcessing(true);
-      setError(null);
-      try {
-        // Terminal SDK が使える場合はSDKフロー
-        const terminal = await getTerminal();
-        if (terminal) {
-          await handleCardPaymentWithTerminal(terminal);
-        } else {
-          // SDKなし: Stripeアプリ連携フォールバック
-          await handleCardPaymentFallback();
-        }
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "カード決済に失敗しました");
-      } finally {
-        setProcessing(false);
-      }
+      setCardConfirmStep(true);
       return;
     }
 
@@ -532,7 +552,7 @@ export default function PosClient() {
     } finally {
       setProcessing(false);
     }
-  }, [hasSelection, processing, paymentMethod, amount, received, checkoutItems, note, mutate, mode, selected, getTerminal, handleCardPaymentWithTerminal, handleCardPaymentFallback]);
+  }, [hasSelection, processing, paymentMethod, amount, received, checkoutItems, note, mutate, mode, selected]);
 
   // ── Render ──
   return (
@@ -896,55 +916,35 @@ export default function PosClient() {
                   </div>
                 )}
 
-                {/* Terminal status (card payment) */}
-                {terminalStatus !== "idle" && paymentMethod === "card" && (
-                  <div className={`rounded-xl p-4 text-sm ${
-                    terminalStatus === "succeeded" ? "bg-success-dim text-success-text" :
-                    terminalStatus === "failed" ? "bg-danger-dim text-danger-text" :
-                    "bg-info-dim text-info-text"
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      {terminalStatus !== "succeeded" && terminalStatus !== "failed" && (
-                        <svg className="h-5 w-5 animate-spin flex-shrink-0" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                      )}
-                      <div>
-                        <p className="font-medium">
-                          {terminalStatus === "connecting" && "リーダーに接続中..."}
-                          {terminalStatus === "waiting_card" && "💳 Stripeアプリでカード決済を実行してください"}
-                          {terminalStatus === "processing" && "決済処理中..."}
-                          {terminalStatus === "succeeded" && "✅ カード決済完了"}
-                          {terminalStatus === "failed" && `❌ ${terminalError || "カード決済に失敗しました"}`}
-                        </p>
-                        {terminalStatus === "waiting_card" && (
-                          <>
-                            <p className="mt-1 text-xs opacity-80">
-                              Stripeモバイルアプリで {formatJpy(amount)} の決済を確認・実行してください（最大2分）
-                            </p>
-                            {activePaymentIntentId && (
-                              <a
-                                href={`${activeConnectAccount ? `https://dashboard.stripe.com/${activeConnectAccount}` : "https://dashboard.stripe.com"}/test/payments/${activePaymentIntentId}`}
-                                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#635BFF] px-4 py-3 text-sm font-semibold text-white shadow-lg transition-transform active:scale-95"
-                              >
-                                <span className="text-lg">📱</span>
-                                Stripeアプリで決済する
-                              </a>
-                            )}
-                          </>
-                        )}
-                      </div>
+                {/* Card confirm step */}
+                {cardConfirmStep && paymentMethod === "card" && (
+                  <div className="space-y-3 rounded-xl bg-info-dim p-4">
+                    <div className="text-center">
+                      <div className="text-3xl">💳</div>
+                      <p className="mt-2 text-sm font-semibold text-info-text">
+                        Stripeアプリで {formatJpy(amount)} を決済してください
+                      </p>
+                      <p className="mt-1 text-xs text-info-text/70">
+                        Stripeアプリ → 支払いを作成 → 金額入力 → タッチ決済
+                      </p>
                     </div>
-                    {terminalStatus === "failed" && (
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => { setTerminalStatus("idle"); setTerminalError(null); }}
-                        className="mt-2 rounded-lg border border-danger-text/30 px-3 py-1 text-xs font-medium hover:bg-danger-text/10"
+                        onClick={() => setCardConfirmStep(false)}
+                        className="flex-1 rounded-xl border border-border-subtle bg-surface py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-surface-hover"
                       >
-                        やり直す
+                        戻る
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        onClick={handleCardConfirm}
+                        disabled={processing}
+                        className="flex-1 rounded-xl bg-[#635BFF] py-2.5 text-sm font-semibold text-white shadow-lg transition-transform active:scale-95 disabled:opacity-40"
+                      >
+                        {processing ? "記録中..." : "✅ 決済完了・記録する"}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -952,7 +952,7 @@ export default function PosClient() {
                 <button
                   type="button"
                   onClick={handleCheckout}
-                  disabled={!canCheckout || terminalStatus === "waiting_card" || terminalStatus === "processing"}
+                  disabled={!canCheckout || cardConfirmStep}
                   className="btn-primary w-full rounded-xl py-3.5 text-base font-semibold disabled:opacity-40"
                 >
                   {processing ? (
