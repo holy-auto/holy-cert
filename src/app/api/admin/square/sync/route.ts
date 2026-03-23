@@ -43,9 +43,9 @@ async function refreshSquareToken(
     await admin
       .from("square_connections")
       .update({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        token_expires_at: data.expires_at,
+        square_access_token: data.access_token,
+        square_refresh_token: data.refresh_token,
+        square_token_expires_at: data.expires_at,
       })
       .eq("id", connectionId);
 
@@ -141,11 +141,11 @@ export async function POST(req: NextRequest) {
     // 接続情報を取得
     const { data: conn } = await admin
       .from("square_connections")
-      .select("id, access_token, refresh_token, token_expires_at, location_ids, status")
+      .select("id, square_access_token, square_refresh_token, square_token_expires_at, square_location_ids, status")
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
-    if (!conn || conn.status !== "connected") {
+    if (!conn || conn.status !== "active") {
       return apiError({
         code: "validation_error",
         message: "Squareが接続されていません。先に連携を行ってください。",
@@ -154,12 +154,12 @@ export async function POST(req: NextRequest) {
     }
 
     // トークン期限チェック＆リフレッシュ
-    let accessToken = conn.access_token as string;
-    const expiresAt = new Date(conn.token_expires_at as string);
+    let accessToken = conn.square_access_token as string;
+    const expiresAt = new Date(conn.square_token_expires_at as string);
     if (expiresAt <= new Date()) {
       const refreshed = await refreshSquareToken(
         conn.id as string,
-        conn.refresh_token as string,
+        conn.square_refresh_token as string,
       );
       if (!refreshed) {
         return apiError({
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
     const from = (body?.from as string) || defaultFrom;
     const to = (body?.to as string) || defaultTo;
 
-    const locationIds = (conn.location_ids as string[]) ?? [];
+    const locationIds = (conn.square_location_ids as string[]) ?? [];
     if (locationIds.length === 0) {
       return apiValidationError("Squareのロケーション情報がありません。再連携してください。");
     }
@@ -192,9 +192,10 @@ export async function POST(req: NextRequest) {
       .insert({
         tenant_id: caller.tenantId,
         status: "running",
-        date_from: from,
-        date_to: to,
-        started_by: caller.userId,
+        trigger_type: "manual",
+        triggered_by: caller.userId,
+        sync_from: new Date(from).toISOString(),
+        sync_to: new Date(to).toISOString(),
       })
       .select("id")
       .single();
@@ -215,7 +216,11 @@ export async function POST(req: NextRequest) {
     if (fetchError === "unauthorized") {
       await admin
         .from("square_sync_runs")
-        .update({ status: "failed", error_message: "Token expired" })
+        .update({
+          status: "failed",
+          errors_json: [{ message: "Token expired" }],
+          finished_at: new Date().toISOString(),
+        })
         .eq("id", syncRun.id);
       return apiError({
         code: "auth_error",
@@ -243,18 +248,41 @@ export async function POST(req: NextRequest) {
       }
 
       const totalMoney = order.total_money?.amount ?? 0;
+      const taxMoney = order.total_tax_money?.amount ?? 0;
+      const discountMoney = order.total_discount_money?.amount ?? 0;
+      const tipMoney = order.total_tip_money?.amount ?? 0;
+      const netAmount = totalMoney - taxMoney;
+
+      // Extract payment methods from tenders
+      const paymentMethods: string[] = (order.tenders ?? []).map(
+        (t: any) => t.type ?? "UNKNOWN",
+      );
+
+      // Extract receipt URL from tenders
+      const receiptUrl =
+        (order.tenders ?? []).find((t: any) => t.receipt_url)?.receipt_url ?? null;
+
       const { error: insertErr } = await admin
         .from("square_orders")
         .insert({
           tenant_id: caller.tenantId,
           square_order_id: order.id,
-          location_id: order.location_id,
-          state: order.state,
+          square_location_id: order.location_id,
+          order_state: order.state,
           total_amount: totalMoney,
+          tax_amount: taxMoney,
+          discount_amount: discountMoney,
+          tip_amount: tipMoney,
+          net_amount: netAmount,
           currency: order.total_money?.currency ?? "JPY",
-          order_created_at: order.created_at,
-          order_updated_at: order.updated_at,
-          raw_data: order,
+          payment_methods: paymentMethods,
+          items_json: order.line_items ?? [],
+          tenders_json: order.tenders ?? [],
+          square_customer_id: order.customer_id ?? null,
+          square_receipt_url: receiptUrl,
+          square_created_at: order.created_at,
+          square_closed_at: order.closed_at ?? null,
+          raw_json: order,
         });
 
       if (insertErr) {
@@ -266,6 +294,7 @@ export async function POST(req: NextRequest) {
     }
 
     // sync run 完了更新
+    const errorsJson = fetchError ? [{ message: fetchError }] : [];
     await admin
       .from("square_sync_runs")
       .update({
@@ -273,8 +302,8 @@ export async function POST(req: NextRequest) {
         orders_fetched: orders.length,
         orders_imported: imported,
         orders_skipped: skipped,
-        error_message: fetchError || null,
-        completed_at: new Date().toISOString(),
+        errors_json: errorsJson,
+        finished_at: new Date().toISOString(),
       })
       .eq("id", syncRun.id);
 

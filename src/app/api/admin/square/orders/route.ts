@@ -26,35 +26,58 @@ export async function GET(req: NextRequest) {
 
     const admin = getAdminClient();
 
+    // Fetch connection status for UI
+    const { data: conn } = await admin
+      .from("square_connections")
+      .select("id, tenant_id, square_merchant_id, status, connected_at, last_synced_at, square_location_ids")
+      .eq("tenant_id", caller.tenantId)
+      .maybeSingle();
+
     let query = admin
       .from("square_orders")
       .select(
-        "id, square_order_id, location_id, state, total_amount, currency, order_created_at, customer_id, vehicle_id, certificate_id, note, customers(id, name)",
+        "id, square_order_id, square_location_id, order_state, total_amount, tax_amount, net_amount, currency, payment_methods, square_customer_id, square_receipt_url, square_created_at, square_closed_at, customer_id, vehicle_id, certificate_id, note, synced_at, customers(id, name), vehicles(id, maker, model, plate_display)",
         { count: "exact" },
       )
       .eq("tenant_id", caller.tenantId)
-      .order("order_created_at", { ascending: false })
+      .order("square_created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (from) {
-      query = query.gte("order_created_at", new Date(from).toISOString());
+      query = query.gte("square_created_at", new Date(from).toISOString());
     }
     if (to) {
-      query = query.lte("order_created_at", new Date(to).toISOString());
+      query = query.lte("square_created_at", new Date(to).toISOString());
     }
 
-    const { data: orders, count, error } = await query;
+    const { data: rows, count, error } = await query;
 
     if (error) {
       console.error("[square orders] query error:", error.message);
       return apiInternalError(error, "square orders GET");
     }
 
+    // Map joined fields to flat shape expected by UI
+    const orders = (rows ?? []).map((r: any) => ({
+      ...r,
+      customer_name: r.customers?.name ?? null,
+      vehicle_display: r.vehicles
+        ? [r.vehicles.maker, r.vehicles.model, r.vehicles.plate_display].filter(Boolean).join(" ")
+        : null,
+      customers: undefined,
+      vehicles: undefined,
+    }));
+
+    const total = count ?? 0;
     return apiOk({
-      orders: orders ?? [],
-      total: count ?? 0,
-      page,
-      limit,
+      orders,
+      connection: conn,
+      pagination: {
+        page,
+        per_page: limit,
+        total,
+        total_pages: Math.ceil(total / limit),
+      },
     });
   } catch (e) {
     return apiInternalError(e, "square orders GET");

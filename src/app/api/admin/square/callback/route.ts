@@ -96,12 +96,13 @@ export async function GET(req: NextRequest) {
       .upsert(
         {
           tenant_id: tenantId,
-          access_token,
-          refresh_token,
-          token_expires_at: expires_at,
-          merchant_id: merchant_id ?? null,
-          location_ids: locationIds,
-          status: "connected",
+          square_access_token: access_token,
+          square_refresh_token: refresh_token,
+          square_token_expires_at: expires_at,
+          square_merchant_id: merchant_id ?? null,
+          square_location_ids: locationIds,
+          status: "active",
+          connected_at: new Date().toISOString(),
         },
         { onConflict: "tenant_id" },
       );

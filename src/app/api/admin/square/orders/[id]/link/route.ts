@@ -66,7 +66,7 @@ export async function PUT(
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
       .select(
-        "id, square_order_id, location_id, state, total_amount, currency, order_created_at, customer_id, vehicle_id, certificate_id, note",
+        "id, square_order_id, square_location_id, order_state, total_amount, currency, square_created_at, customer_id, vehicle_id, certificate_id, note",
       )
       .single();
 
