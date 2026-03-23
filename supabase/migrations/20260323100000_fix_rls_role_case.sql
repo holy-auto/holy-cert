@@ -4,7 +4,7 @@ RETURNS text
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = ''
 AS $$
-  SELECT lower(role) FROM public.tenant_memberships
+  SELECT lower(role::text) FROM public.tenant_memberships
   WHERE user_id = auth.uid() AND tenant_id = p_tenant_id
   LIMIT 1;
 $$;
