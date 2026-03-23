@@ -1,12 +1,23 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/swr";
 import { formatJpy, formatDate } from "@/lib/format";
 import Badge from "@/components/ui/Badge";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
+
+// NOTE: Stripe Terminal JS SDK を使う場合は `npm install @stripe/terminal-js` を実行してください
+// import { loadStripeTerminal } from '@stripe/terminal-js';
+
+/* ────────────────────────────────────────────── */
+/*  Stripe Terminal types (SDK未インストール時用)   */
+/* ────────────────────────────────────────────── */
+type TerminalStatus = "idle" | "connecting" | "waiting_card" | "processing" | "succeeded" | "failed";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StripeTerminalInstance = any;
 
 /* ────────────────────────────────────────────── */
 /*  Types                                         */
@@ -112,6 +123,12 @@ export default function PosClient() {
   const [result, setResult] = useState<CheckoutResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Stripe Terminal state ──
+  const [terminalStatus, setTerminalStatus] = useState<TerminalStatus>("idle");
+  const [terminalError, setTerminalError] = useState<string | null>(null);
+  const terminalRef = useRef<StripeTerminalInstance>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // ── Computed ──
   const amount = selected?.estimated_amount ?? 0;
   const received = receivedAmount ? parseInt(receivedAmount, 10) : amount;
@@ -135,11 +152,242 @@ export default function PosClient() {
     setNote("");
     setResult(null);
     setError(null);
+    setTerminalStatus("idle");
+    setTerminalError(null);
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
   }, [selected?.id]);
 
-  // ── Checkout handler ──
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
+  // ── Stripe Terminal: initialize (lazy) ──
+  const getTerminal = useCallback(async (): Promise<StripeTerminalInstance | null> => {
+    if (terminalRef.current) return terminalRef.current;
+
+    try {
+      // 動的インポートで @stripe/terminal-js をロード
+      // @ts-expect-error -- @stripe/terminal-js は別途 npm install が必要
+      const mod = await import("@stripe/terminal-js");
+      const loadStripeTerminal = mod.loadStripeTerminal ?? mod.default?.loadStripeTerminal;
+      if (!loadStripeTerminal) throw new Error("loadStripeTerminal not found");
+      const StripeTerminal = await loadStripeTerminal();
+      if (!StripeTerminal) throw new Error("Stripe Terminal SDK のロードに失敗しました");
+
+      const terminal = StripeTerminal.create({
+        onFetchConnectionToken: async () => {
+          const res = await fetch("/api/admin/pos/terminal/connection-token", { method: "POST" });
+          if (!res.ok) throw new Error("Connection token の取得に失敗しました");
+          const { secret } = await res.json();
+          return secret;
+        },
+        onUnexpectedReaderDisconnect: () => {
+          setTerminalError("リーダーが切断されました");
+          setTerminalStatus("failed");
+        },
+      });
+
+      terminalRef.current = terminal;
+      return terminal;
+    } catch {
+      // SDK未インストール時はnullを返す（フォールバックモードで動作）
+      return null;
+    }
+  }, []);
+
+  // ── Card payment: Full Terminal SDK flow ──
+  const handleCardPaymentWithTerminal = useCallback(async (terminal: StripeTerminalInstance) => {
+    if (!selected) return;
+
+    setTerminalStatus("processing");
+    setTerminalError(null);
+
+    try {
+      // 1. PaymentIntent 作成
+      const piRes = await fetch("/api/admin/pos/terminal/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          description: items.map((i) => i.description).join(", ") || selected.title || "POS会計",
+        }),
+      });
+      const piData = await piRes.json();
+      if (!piRes.ok) throw new Error(piData?.error ?? "PaymentIntent の作成に失敗しました");
+
+      // 2. リーダーに接続（未接続の場合）
+      setTerminalStatus("connecting");
+      const discoverResult = await terminal.discoverReaders();
+      if (discoverResult.error) throw new Error(discoverResult.error.message);
+
+      if (discoverResult.discoveredReaders.length === 0) {
+        throw new Error("利用可能なカードリーダーが見つかりません");
+      }
+
+      const connectResult = await terminal.connectReader(discoverResult.discoveredReaders[0]);
+      if (connectResult.error) throw new Error(connectResult.error.message);
+
+      // 3. カード決済実行
+      setTerminalStatus("waiting_card");
+      const collectResult = await terminal.collectPaymentMethod(piData.client_secret);
+      if (collectResult.error) throw new Error(collectResult.error.message);
+
+      setTerminalStatus("processing");
+      const processResult = await terminal.processPayment(collectResult.paymentIntent);
+      if (processResult.error) throw new Error(processResult.error.message);
+
+      // 4. サーバーで capture + DB記録
+      const captureRes = await fetch("/api/admin/pos/terminal/capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_intent_id: processResult.paymentIntent.id,
+          reservation_id: selected.id,
+          customer_id: selected.customer_id,
+          items_json: items.map((ci) => ({
+            description: ci.description,
+            quantity: ci.quantity,
+            unit_price: ci.unit_price,
+            amount: ci.amount,
+          })),
+          tax_rate: 10,
+          note: note || undefined,
+        }),
+      });
+      const captureData = await captureRes.json();
+      if (!captureRes.ok) throw new Error(captureData?.error ?? "決済の記録に失敗しました");
+
+      setResult(captureData);
+      setTerminalStatus("succeeded");
+      await mutate();
+    } catch (e) {
+      setTerminalError(e instanceof Error ? e.message : "カード決済に失敗しました");
+      setTerminalStatus("failed");
+    }
+  }, [selected, amount, items, note, mutate]);
+
+  // ── Card payment: Fallback polling flow (SDK未インストール時) ──
+  const handleCardPaymentFallback = useCallback(async () => {
+    if (!selected) return;
+
+    setTerminalStatus("processing");
+    setTerminalError(null);
+
+    try {
+      // 1. PaymentIntent 作成
+      const piRes = await fetch("/api/admin/pos/terminal/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          description: items.map((i) => i.description).join(", ") || selected.title || "POS会計",
+        }),
+      });
+      const piData = await piRes.json();
+      if (!piRes.ok) throw new Error(piData?.error ?? "PaymentIntent の作成に失敗しました");
+
+      const paymentIntentId = piData.payment_intent_id;
+
+      // 2. 「カード決済待ち」状態 - 端末側での決済を待つ
+      setTerminalStatus("waiting_card");
+
+      // ポーリングで PaymentIntent のステータスを確認
+      await new Promise<void>((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 120; // 最大2分 (1秒間隔)
+
+        pollingRef.current = setInterval(async () => {
+          attempts++;
+          if (attempts > maxAttempts) {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            reject(new Error("決済がタイムアウトしました。もう一度お試しください。"));
+            return;
+          }
+
+          try {
+            const statusRes = await fetch(`/api/admin/pos/terminal/create-payment-intent?id=${paymentIntentId}`, {
+              method: "GET",
+            });
+
+            // GET未実装の場合はポーリングをスキップ（端末側で処理される想定）
+            if (statusRes.status === 405) return;
+
+            const statusData = await statusRes.json();
+            if (statusData.status === "requires_capture" || statusData.status === "succeeded") {
+              if (pollingRef.current) clearInterval(pollingRef.current);
+              pollingRef.current = null;
+              resolve();
+            } else if (statusData.status === "canceled" || statusData.status === "requires_payment_method") {
+              if (pollingRef.current) clearInterval(pollingRef.current);
+              pollingRef.current = null;
+              reject(new Error("決済がキャンセルされました"));
+            }
+          } catch {
+            // ポーリング中のネットワークエラーは無視して次回リトライ
+          }
+        }, 1000);
+      });
+
+      // 3. Capture + DB記録
+      setTerminalStatus("processing");
+      const captureRes = await fetch("/api/admin/pos/terminal/capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_intent_id: paymentIntentId,
+          reservation_id: selected.id,
+          customer_id: selected.customer_id,
+          items_json: items.map((ci) => ({
+            description: ci.description,
+            quantity: ci.quantity,
+            unit_price: ci.unit_price,
+            amount: ci.amount,
+          })),
+          tax_rate: 10,
+          note: note || undefined,
+        }),
+      });
+      const captureData = await captureRes.json();
+      if (!captureRes.ok) throw new Error(captureData?.error ?? "決済の記録に失敗しました");
+
+      setResult(captureData);
+      setTerminalStatus("succeeded");
+      await mutate();
+    } catch (e) {
+      setTerminalError(e instanceof Error ? e.message : "カード決済に失敗しました");
+      setTerminalStatus("failed");
+    }
+  }, [selected, amount, items, note, mutate]);
+
+  // ── Main checkout handler ──
   const handleCheckout = useCallback(async () => {
     if (!selected || processing) return;
+
+    // カード決済の場合は Stripe Terminal フローへ
+    if (paymentMethod === "card") {
+      setProcessing(true);
+      setError(null);
+      try {
+        const terminal = await getTerminal();
+        if (terminal) {
+          await handleCardPaymentWithTerminal(terminal);
+        } else {
+          await handleCardPaymentFallback();
+        }
+      } finally {
+        setProcessing(false);
+      }
+      return;
+    }
+
+    // 現金・QR・振込・その他 → 従来通り即 pos_checkout
     setProcessing(true);
     setError(null);
     try {
@@ -167,7 +415,7 @@ export default function PosClient() {
     } finally {
       setProcessing(false);
     }
-  }, [selected, processing, paymentMethod, amount, received, items, note, mutate]);
+  }, [selected, processing, paymentMethod, amount, received, items, note, mutate, getTerminal, handleCardPaymentWithTerminal, handleCardPaymentFallback]);
 
   // ── Render ──
   return (
@@ -399,11 +647,58 @@ export default function PosClient() {
                   </div>
                 )}
 
+                {/* Terminal status (card payment) */}
+                {terminalStatus !== "idle" && paymentMethod === "card" && (
+                  <div className="rounded-xl bg-surface-hover p-4 text-center">
+                    {terminalStatus === "connecting" && (
+                      <div className="flex items-center justify-center gap-2 text-sm text-secondary">
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        リーダーに接続中...
+                      </div>
+                    )}
+                    {terminalStatus === "waiting_card" && (
+                      <div className="space-y-2">
+                        <div className="text-3xl">💳</div>
+                        <div className="text-sm font-medium text-primary">カードをタッチしてください</div>
+                        <div className="text-xs text-secondary">端末でカード決済を実行中...</div>
+                      </div>
+                    )}
+                    {terminalStatus === "processing" && (
+                      <div className="flex items-center justify-center gap-2 text-sm text-secondary">
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        決済処理中...
+                      </div>
+                    )}
+                    {terminalStatus === "failed" && (
+                      <div className="space-y-2">
+                        <div className="text-sm text-danger-text">{terminalError}</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTerminalStatus("idle");
+                            setTerminalError(null);
+                            setProcessing(false);
+                          }}
+                          className="rounded-lg border border-border-subtle bg-surface px-4 py-1.5 text-xs font-medium text-secondary transition-colors hover:border-border hover:text-primary"
+                        >
+                          リトライ
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Submit */}
                 <button
                   type="button"
                   onClick={handleCheckout}
-                  disabled={processing || amount <= 0 || (paymentMethod === "cash" && received < amount)}
+                  disabled={processing || amount <= 0 || (paymentMethod === "cash" && received < amount) || (paymentMethod === "card" && terminalStatus !== "idle" && terminalStatus !== "failed")}
                   className="btn-primary w-full rounded-xl py-3.5 text-base font-semibold disabled:opacity-40"
                 >
                   {processing ? (
