@@ -418,6 +418,35 @@ body {
     background: var(--bg-surface-hover);
   }
 
+  /* ── Select/Input option styling for dark mode ── */
+  .select-field option,
+  .input-field option,
+  select option {
+    background: var(--bg-surface-solid);
+    color: var(--text-primary);
+  }
+
+  /* ── Native form element dark-mode reset ──
+     Catches inputs/selects/textareas that don't use .input-field / .select-field */
+  [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]):not(.hidden),
+  [data-theme="dark"] select:not(.hidden),
+  [data-theme="dark"] textarea:not(.hidden) {
+    background-color: var(--bg-surface-solid);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+  [data-theme="dark"] input::placeholder,
+  [data-theme="dark"] textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  /* ── Dialog dark mode ── */
+  [data-theme="dark"] dialog {
+    background: var(--bg-surface-solid);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+
   /* ── Skeleton ── */
   .skeleton {
     background: rgba(0, 0, 0, 0.06);

@@ -37,7 +37,8 @@ export async function GET(req: NextRequest) {
         "id, tenant_id, public_id, vehicle_id, status, customer_name, created_at, updated_at, " +
         "vehicle_info_json, content_free_text, content_preset_json, expiry_type, expiry_value, " +
         "logo_asset_path, footer_variant, current_version, service_type, ppf_coverage_json, " +
-        "coating_products_json, warranty_period_end, warranty_exclusions"
+        "coating_products_json, warranty_period_end, warranty_exclusions, " +
+        "maintenance_json, body_repair_json"
       )
       .eq("public_id", pid)
       .limit(1)

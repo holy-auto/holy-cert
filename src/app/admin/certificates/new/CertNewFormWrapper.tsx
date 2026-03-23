@@ -8,6 +8,8 @@ import VehiclePickerSection from "./VehiclePickerSection";
 import FilmThicknessSection from "./FilmThicknessSection";
 import CoatingProductsSection from "./CoatingProductsSection";
 import PpfCoverageSection from "./PpfCoverageSection";
+import MaintenanceDetailsSection from "./MaintenanceDetailsSection";
+import BodyRepairDetailsSection from "./BodyRepairDetailsSection";
 import PhotoUploadSection, { type PhotoUploadHandle } from "./PhotoUploadSection";
 import Button from "@/components/ui/Button";
 import type { PlanTier } from "@/lib/billing/planFeatures";
@@ -59,12 +61,12 @@ type Props = {
 };
 
 const inputCls =
-  "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full rounded-xl border border-border-default bg-surface px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
 const labelCls = "block space-y-1.5";
-const labelTextCls = "text-sm font-medium text-neutral-700";
+const labelTextCls = "text-sm font-medium text-secondary";
 const sectionHeaderCls = "mb-4";
-const sectionTagCls = "text-xs font-semibold tracking-[0.18em] text-neutral-500";
-const sectionTitleCls = "mt-0.5 text-base font-semibold text-neutral-900";
+const sectionTagCls = "text-xs font-semibold tracking-[0.18em] text-muted";
+const sectionTitleCls = "mt-0.5 text-base font-semibold text-primary";
 
 const PLAN_LABELS: Record<PlanTier, string> = {
   free: "FREE",
@@ -85,6 +87,9 @@ export default function CertNewFormWrapper({
   serviceType,
 }: Props) {
   const isPpf = serviceType === "ppf";
+  const isMaintenance = serviceType === "maintenance";
+  const isBodyRepair = serviceType === "body_repair";
+  const isCoatingOrPpf = !isMaintenance && !isBodyRepair;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [submitStatus, setSubmitStatus] = useState<"active" | "draft">("active");
@@ -160,16 +165,16 @@ export default function CertNewFormWrapper({
   return (
     <>
       {/* ── テンプレート選択 ── */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <div className="glass-card p-5">
         <div className="mb-3">
           <div className={sectionTagCls}>TEMPLATE</div>
-          <div className="mt-1 text-base font-semibold text-neutral-900">テンプレートを選択</div>
+          <div className="mt-1 text-base font-semibold text-primary">テンプレートを選択</div>
         </div>
         <form action="/admin/certificates/new" method="get" className="flex gap-3 items-center">
           <select
             name="tid"
             defaultValue={tid}
-            className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+            className={`flex-1 ${inputCls}`}
           >
             {templates.length === 0 ? (
               <option value="">テンプレートがありません</option>
@@ -181,7 +186,7 @@ export default function CertNewFormWrapper({
           </select>
           <button
             type="submit"
-            className="rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 whitespace-nowrap"
+            className="rounded-xl border border-border-default bg-surface px-4 py-2.5 text-sm font-medium text-primary hover:bg-surface-hover whitespace-nowrap"
           >
             選択
           </button>
@@ -198,7 +203,7 @@ export default function CertNewFormWrapper({
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-0"
+        className="glass-card p-6 space-y-0"
       >
         <input type="hidden" name="template_id" value={selectedTemplate?.id ?? ""} />
         <input type="hidden" name="template_name" value={selectedTemplate?.name ?? ""} />
@@ -218,18 +223,34 @@ export default function CertNewFormWrapper({
 
         {/* ━━━ 2. PPF施工範囲（PPFテンプレート時のみ） ━━━ */}
         {isPpf && (
-          <section className="border-t border-neutral-100 py-6">
+          <section className="border-t border-border-subtle py-6">
             <PpfCoverageSection />
           </section>
         )}
 
-        {/* ━━━ 3. コーティング剤 / 使用フィルム ━━━ */}
-        <section className="border-t border-neutral-100 py-6">
-          <CoatingProductsSection serviceType={serviceType} />
-        </section>
+        {/* ━━━ 2b. 整備内容（整備テンプレート時のみ） ━━━ */}
+        {isMaintenance && (
+          <section className="border-t border-border-subtle py-6">
+            <MaintenanceDetailsSection />
+          </section>
+        )}
+
+        {/* ━━━ 2c. 鈑金塗装内容（鈑金塗装テンプレート時のみ） ━━━ */}
+        {isBodyRepair && (
+          <section className="border-t border-border-subtle py-6">
+            <BodyRepairDetailsSection />
+          </section>
+        )}
+
+        {/* ━━━ 3. コーティング剤 / 使用フィルム（コーティング・PPF時のみ） ━━━ */}
+        {isCoatingOrPpf && (
+          <section className="border-t border-border-subtle py-6">
+            <CoatingProductsSection serviceType={serviceType} />
+          </section>
+        )}
 
         {/* ━━━ 3. 有効期限・保証期間 ━━━ */}
-        <section className="border-t border-neutral-100 py-6 space-y-4">
+        <section className="border-t border-border-subtle py-6 space-y-4">
           <div className={sectionHeaderCls}>
             <div className={sectionTagCls}>EXPIRY & WARRANTY</div>
             <div className={sectionTitleCls}>有効期限・保証期間</div>
@@ -255,7 +276,7 @@ export default function CertNewFormWrapper({
         </section>
 
         {/* ━━━ 4. 施工写真 ━━━ */}
-        <section className="border-t border-neutral-100 py-6">
+        <section className="border-t border-border-subtle py-6">
           <PhotoUploadSection
             ref={photoRef}
             maxPhotos={maxPhotos}
@@ -264,7 +285,7 @@ export default function CertNewFormWrapper({
         </section>
 
         {/* ━━━ 5. 詳細な施工内容 ━━━ */}
-        <section className="border-t border-neutral-100 py-6 space-y-4">
+        <section className="border-t border-border-subtle py-6 space-y-4">
           <div className={sectionHeaderCls}>
             <div className={sectionTagCls}>WORK DETAILS</div>
             <div className={sectionTitleCls}>詳細な施工内容</div>
@@ -273,7 +294,7 @@ export default function CertNewFormWrapper({
             <span className={labelTextCls}>施工内容（自由記述）</span>
             <textarea
               name="content_free_text"
-              className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              className={inputCls}
               rows={5}
               placeholder="施工内容の詳細を記入してください（下地処理、コーティング工程、仕上げ等）"
             />
@@ -281,12 +302,12 @@ export default function CertNewFormWrapper({
         </section>
 
         {/* ━━━ 6. 膜厚計測 ━━━ */}
-        <section className="border-t border-neutral-100 py-6">
+        <section className="border-t border-border-subtle py-6">
           <FilmThicknessSection />
         </section>
 
         {/* ━━━ 7. メンテナンス実施日 ━━━ */}
-        <section className="border-t border-neutral-100 py-6 space-y-4">
+        <section className="border-t border-border-subtle py-6 space-y-4">
           <div className={sectionHeaderCls}>
             <div className={sectionTagCls}>MAINTENANCE</div>
             <div className={sectionTitleCls}>メンテナンス実施日</div>
@@ -298,7 +319,7 @@ export default function CertNewFormWrapper({
         </section>
 
         {/* ━━━ 8. 保証除外内容 ━━━ */}
-        <section className="border-t border-neutral-100 py-6 space-y-4">
+        <section className="border-t border-border-subtle py-6 space-y-4">
           <div className={sectionHeaderCls}>
             <div className={sectionTagCls}>WARRANTY EXCLUSIONS</div>
             <div className={sectionTitleCls}>保証除外内容</div>
@@ -307,7 +328,7 @@ export default function CertNewFormWrapper({
             <span className={labelTextCls}>保証対象外となる条件・注意事項</span>
             <textarea
               name="warranty_exclusions"
-              className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              className={inputCls}
               rows={4}
               placeholder="例: 飛び石による損傷、経年劣化、不適切な洗車方法による損傷等"
             />
@@ -315,7 +336,7 @@ export default function CertNewFormWrapper({
         </section>
 
         {/* ━━━ 9. 備考欄 ━━━ */}
-        <section className="border-t border-neutral-100 py-6 space-y-4">
+        <section className="border-t border-border-subtle py-6 space-y-4">
           <div className={sectionHeaderCls}>
             <div className={sectionTagCls}>REMARKS</div>
             <div className={sectionTitleCls}>備考</div>
@@ -324,7 +345,7 @@ export default function CertNewFormWrapper({
             <span className={labelTextCls}>備考・特記事項</span>
             <textarea
               name="remarks"
-              className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              className={inputCls}
               rows={3}
               placeholder="その他の特記事項があれば記入してください"
             />
@@ -335,20 +356,20 @@ export default function CertNewFormWrapper({
 
         {/* ── エラー ── */}
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-danger">
             {error}
           </div>
         )}
 
         {/* ── アップロード進捗 ── */}
         {uploadProgress && (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          <div className="rounded-xl border border-accent/20 bg-accent-dim px-4 py-3 text-sm text-accent">
             {uploadProgress}
           </div>
         )}
 
         {/* ── アクション ── */}
-        <div className="border-t border-neutral-100 pt-6 flex flex-wrap gap-3 items-center">
+        <div className="border-t border-border-subtle pt-6 flex flex-wrap gap-3 items-center">
           <Button
             type="submit"
             loading={isPending && submitStatus === "active"}
@@ -368,12 +389,12 @@ export default function CertNewFormWrapper({
           </Button>
           <Link
             href="/admin/certificates"
-            className="rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            className="rounded-xl border border-border-default bg-surface px-5 py-2.5 text-sm font-medium text-primary hover:bg-surface-hover"
           >
             キャンセル
           </Link>
           {isPending && (
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted">
               写真がある場合はアップロード完了までお待ちください
             </span>
           )}

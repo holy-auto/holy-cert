@@ -52,9 +52,9 @@ const QUICK_SETS = [
 ] as const;
 
 const selectCls =
-  "w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full rounded-lg border border-border-default bg-surface px-2.5 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
 const inputCls =
-  "w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full rounded-lg border border-border-default bg-surface px-2.5 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
 
 let nextId = 1;
 function newRow(): CoverageRow {
@@ -114,13 +114,13 @@ export default function PpfCoverageSection() {
       <input type="hidden" name="ppf_coverage_json" value={jsonValue} />
 
       <div>
-        <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+        <div className="text-xs font-semibold tracking-[0.18em] text-muted">
           PPF COVERAGE
         </div>
-        <div className="mt-0.5 text-base font-semibold text-neutral-900">
+        <div className="mt-0.5 text-base font-semibold text-primary">
           PPF施工範囲
         </div>
-        <p className="mt-1 text-xs text-neutral-500">
+        <p className="mt-1 text-xs text-muted">
           施工したパネルを選択し、フル施工か部分施工かを指定してください。
         </p>
       </div>
@@ -141,20 +141,20 @@ export default function PpfCoverageSection() {
 
       {/* ヘッダー行 */}
       <div className="hidden sm:grid sm:grid-cols-[2.5fr_1fr_2fr_auto] gap-2 px-1">
-        <span className="text-[11px] font-semibold text-neutral-500 uppercase">パネル</span>
-        <span className="text-[11px] font-semibold text-neutral-500 uppercase">施工範囲</span>
-        <span className="text-[11px] font-semibold text-neutral-500 uppercase">備考</span>
+        <span className="text-[11px] font-semibold text-muted uppercase">パネル</span>
+        <span className="text-[11px] font-semibold text-muted uppercase">施工範囲</span>
+        <span className="text-[11px] font-semibold text-muted uppercase">備考</span>
         <span />
       </div>
 
       {rows.map((row) => (
         <div
           key={row.id}
-          className="grid grid-cols-1 sm:grid-cols-[2.5fr_1fr_2fr_auto] gap-2 items-start rounded-xl border border-neutral-100 bg-neutral-50 p-3 sm:p-0 sm:bg-transparent sm:border-0"
+          className="grid grid-cols-1 sm:grid-cols-[2.5fr_1fr_2fr_auto] gap-2 items-start rounded-xl border border-border-subtle bg-inset p-3 sm:p-0 sm:bg-transparent sm:border-0"
         >
           {/* パネル選択 */}
           <div>
-            <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">
               パネル
             </span>
             <select
@@ -188,7 +188,7 @@ export default function PpfCoverageSection() {
 
           {/* フル/パーシャル */}
           <div>
-            <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">
               施工範囲
             </span>
             <select
@@ -203,7 +203,7 @@ export default function PpfCoverageSection() {
 
           {/* 部分施工時の備考 */}
           <div>
-            <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">
               備考
             </span>
             <input
@@ -211,7 +211,7 @@ export default function PpfCoverageSection() {
               onChange={(e) => update(row.id, "partial_note", e.target.value)}
               placeholder={row.coverage === "partial" ? "例: 下部15cmのみ" : "任意"}
               disabled={row.coverage === "full"}
-              className={`${inputCls} disabled:bg-neutral-100 disabled:text-neutral-400`}
+              className={`${inputCls} disabled:bg-surface-hover disabled:text-muted`}
             />
           </div>
 
@@ -220,7 +220,7 @@ export default function PpfCoverageSection() {
             type="button"
             onClick={() => removeRow(row.id)}
             disabled={rows.length === 1}
-            className="mt-1 self-center rounded-lg border border-neutral-200 px-2 py-1.5 text-xs text-neutral-500 hover:border-red-200 hover:text-red-500 disabled:opacity-30 sm:mt-0"
+            className="mt-1 self-center rounded-lg border border-border-default px-2 py-1.5 text-xs text-muted hover:border-red-200 hover:text-red-500 disabled:opacity-30 sm:mt-0"
           >
             ✕
           </button>
@@ -230,13 +230,13 @@ export default function PpfCoverageSection() {
       <button
         type="button"
         onClick={addRow}
-        className="rounded-lg border border-dashed border-neutral-300 px-4 py-2 text-sm text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+        className="rounded-lg border border-dashed border-border-default px-4 py-2 text-sm text-muted hover:border-border-strong hover:text-primary"
       >
         ＋ パネルを追加
       </button>
 
       {validRows.length > 0 && (
-        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-2.5 text-xs text-neutral-500">
+        <div className="rounded-xl border border-border-default bg-neutral-50 p-2.5 text-xs text-muted">
           {validRows.length} パネルを記録します
           （フル: {validRows.filter((r) => r.coverage === "full").length}、
           部分: {validRows.filter((r) => r.coverage === "partial").length}）

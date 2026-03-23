@@ -49,7 +49,7 @@ function newRow(): Row {
 }
 
 const inputCls =
-  "w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full rounded-lg border border-border-default bg-surface px-2.5 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
 
 function CarDiagramSvg({ rows }: { rows: Row[] }) {
   // 部位ごとの after_um を取得
@@ -61,8 +61,8 @@ function CarDiagramSvg({ rows }: { rows: Row[] }) {
   }
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-      <p className="text-xs font-semibold text-neutral-500 mb-2">膜厚マップ（施工後 μm）</p>
+    <div className="rounded-xl border border-border-default bg-inset p-4">
+      <p className="text-xs font-semibold text-muted mb-2">膜厚マップ（施工後 μm）</p>
       <svg viewBox="0 0 300 330" className="w-full max-w-[360px] mx-auto" aria-label="車両膜厚マップ">
         {/* 車体アウトライン（トップダウン） */}
         <path
@@ -158,12 +158,12 @@ export default function FilmThicknessSection() {
       <input type="hidden" name="film_thickness_json" value={jsonValue} />
 
       <div>
-        <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">FILM THICKNESS</div>
-        <div className="mt-0.5 text-base font-semibold text-neutral-900">
+        <div className="text-xs font-semibold tracking-[0.18em] text-muted">FILM THICKNESS</div>
+        <div className="mt-0.5 text-base font-semibold text-primary">
           膜厚計測
-          <span className="ml-2 text-xs font-normal text-neutral-500">任意</span>
+          <span className="ml-2 text-xs font-normal text-muted">任意</span>
         </div>
-        <p className="mt-1 text-xs text-neutral-500">各部位の施工前後の膜厚（μm）を記録します。</p>
+        <p className="mt-1 text-xs text-muted">各部位の施工前後の膜厚（μm）を記録します。</p>
       </div>
 
       {/* 車展開図 */}
@@ -171,17 +171,17 @@ export default function FilmThicknessSection() {
 
       {/* ヘッダー行 */}
       <div className="hidden sm:grid sm:grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 px-1">
-        <span className="text-[11px] font-semibold text-neutral-500 uppercase">部位</span>
-        <span className="text-[11px] font-semibold text-neutral-500 uppercase">施工前(μm)</span>
-        <span className="text-[11px] font-semibold text-neutral-500 uppercase">施工後(μm)</span>
-        <span className="text-[11px] font-semibold text-neutral-500 uppercase">備考</span>
+        <span className="text-[11px] font-semibold text-muted uppercase">部位</span>
+        <span className="text-[11px] font-semibold text-muted uppercase">施工前(μm)</span>
+        <span className="text-[11px] font-semibold text-muted uppercase">施工後(μm)</span>
+        <span className="text-[11px] font-semibold text-muted uppercase">備考</span>
         <span />
       </div>
 
       {rows.map((row) => (
-        <div key={row.id} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 items-start rounded-xl border border-neutral-100 bg-neutral-50 p-3 sm:p-0 sm:bg-transparent sm:border-0">
+        <div key={row.id} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 items-start rounded-xl border border-border-subtle bg-inset p-3 sm:p-0 sm:bg-transparent sm:border-0">
           <div>
-            <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">部位</span>
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">部位</span>
             <input
               list={`loc-list-${row.id}`}
               value={row.location}
@@ -196,7 +196,7 @@ export default function FilmThicknessSection() {
             </datalist>
           </div>
           <div>
-            <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">施工前(μm)</span>
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">施工前(μm)</span>
             <input
               type="number"
               min="0"
@@ -208,7 +208,7 @@ export default function FilmThicknessSection() {
             />
           </div>
           <div>
-            <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">施工後(μm)</span>
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">施工後(μm)</span>
             <input
               type="number"
               min="0"
@@ -220,7 +220,7 @@ export default function FilmThicknessSection() {
             />
           </div>
           <div>
-            <span className="sm:hidden text-[11px] font-semibold text-neutral-500 uppercase mb-1 block">備考</span>
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">備考</span>
             <input
               value={row.notes}
               onChange={(e) => update(row.id, "notes", e.target.value)}
@@ -232,7 +232,7 @@ export default function FilmThicknessSection() {
             type="button"
             onClick={() => removeRow(row.id)}
             disabled={rows.length === 1}
-            className="mt-1 self-center rounded-lg border border-neutral-200 px-2 py-1.5 text-xs text-neutral-500 hover:border-red-200 hover:text-red-500 disabled:opacity-30 sm:mt-0"
+            className="mt-1 self-center rounded-lg border border-border-default px-2 py-1.5 text-xs text-muted hover:border-red-200 hover:text-red-500 disabled:opacity-30 sm:mt-0"
           >
             ✕
           </button>
@@ -242,13 +242,13 @@ export default function FilmThicknessSection() {
       <button
         type="button"
         onClick={addRow}
-        className="rounded-lg border border-dashed border-neutral-300 px-4 py-2 text-sm text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+        className="rounded-lg border border-dashed border-border-default px-4 py-2 text-sm text-muted hover:border-neutral-400 hover:text-neutral-700"
       >
         ＋ 部位を追加
       </button>
 
       {validRows.length > 0 && (
-        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-500">
+        <div className="rounded-xl border border-border-default bg-inset p-3 text-xs text-muted">
           {validRows.length} 部位を記録します
         </div>
       )}

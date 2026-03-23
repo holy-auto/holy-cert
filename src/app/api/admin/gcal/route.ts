@@ -3,7 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerBasic } from "@/lib/api/auth";
 import { getAdminClient } from "@/lib/api/auth";
 import { apiOk, apiUnauthorized, apiInternalError, apiValidationError, apiError } from "@/lib/api/response";
-import { getAuthUrl, exchangeCodeAndSave, pullEventsFromCalendar } from "@/lib/gcal/client";
+import { getAuthUrl, exchangeCodeAndSave, pullEventsFromCalendar, pushReservationsToCalendar } from "@/lib/gcal/client";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     const admin = getAdminClient();
     const { data: tenant } = await admin
       .from("tenants")
-      .select("gcal_sync_enabled, gcal_calendar_id")
+      .select("gcal_sync_enabled, gcal_calendar_id, gcal_last_synced_at")
       .eq("id", caller.tenantId)
       .single();
 
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     return apiOk({
       connected: !!tenant?.gcal_sync_enabled,
       calendar_id: tenant?.gcal_calendar_id || null,
-      last_synced_at: lastSync?.created_at || null,
+      last_synced_at: tenant?.gcal_last_synced_at || lastSync?.created_at || null,
     });
   } catch (e) {
     return apiInternalError(e, "gcal status");
@@ -125,15 +125,34 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "sync") {
-      // Google Calendar から予約を pull
+      // 双方向同期: push（CARTRUST→GCal）+ pull（GCal→CARTRUST）
       const from = body?.from;
       const to = body?.to;
       if (!from || !to) return apiValidationError("from / to (YYYY-MM-DD) が必要です");
+
+      const pushed = await pushReservationsToCalendar(caller.tenantId, from, to);
       const imported = await pullEventsFromCalendar(caller.tenantId, from, to);
-      return apiOk({ imported, synced_at: new Date().toISOString() });
+
+      // 最終同期日時を更新
+      const admin = getAdminClient();
+      await admin
+        .from("tenants")
+        .update({ gcal_last_synced_at: new Date().toISOString() })
+        .eq("id", caller.tenantId);
+
+      return apiOk({ pushed, imported, synced_at: new Date().toISOString() });
     }
 
-    return apiValidationError("action は connect / callback / disconnect / set-calendar / sync のいずれかです");
+    if (action === "push") {
+      // CARTRUST → Google Calendar に一括 push のみ
+      const from = body?.from;
+      const to = body?.to;
+      if (!from || !to) return apiValidationError("from / to (YYYY-MM-DD) が必要です");
+      const pushed = await pushReservationsToCalendar(caller.tenantId, from, to);
+      return apiOk({ pushed, synced_at: new Date().toISOString() });
+    }
+
+    return apiValidationError("action は connect / callback / disconnect / set-calendar / sync / push のいずれかです");
   } catch (e) {
     return apiInternalError(e, "gcal action");
   }

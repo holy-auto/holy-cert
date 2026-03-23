@@ -765,7 +765,7 @@ export default function ReservationsClient() {
                             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                               selected
                                 ? "border-accent bg-accent-dim text-accent"
-                                : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+                                : "border-border-default bg-surface text-secondary hover:border-border-strong"
                             }`}
                           >
                             {mi.name} ({formatJpy(mi.unit_price)})

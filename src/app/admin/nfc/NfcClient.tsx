@@ -46,7 +46,7 @@ function tagStatusMeta(status?: string | null) {
   if (s === "lost")     return { label: "紛失",   cls: "bg-red-50 text-red-700 border-red-200" };
   if (s === "retired")  return { label: "廃止",   cls: "bg-red-50 text-red-700 border-red-200" };
   if (s === "error")    return { label: "エラー", cls: "bg-red-50 text-red-700 border-red-200" };
-  return { label: status ?? "未設定", cls: "bg-neutral-50 text-neutral-600 border-neutral-200" };
+  return { label: status ?? "未設定", cls: "bg-inset text-secondary border-neutral-200" };
 }
 
 function certStatusMeta(status?: string | null) {
@@ -55,7 +55,7 @@ function certStatusMeta(status?: string | null) {
   if (s === "void")     return { label: "無効",     cls: "bg-red-50 text-red-700 border-red-200" };
   if (s === "draft")    return { label: "下書き",   cls: "bg-blue-50 text-blue-700 border-blue-200" };
   if (s === "expired")  return { label: "期限切れ", cls: "bg-amber-50 text-amber-700 border-amber-200" };
-  return { label: status ?? "不明", cls: "bg-neutral-50 text-neutral-600 border-neutral-200" };
+  return { label: status ?? "不明", cls: "bg-inset text-secondary border-neutral-200" };
 }
 
 function vehicleLabel(v: VehicleInfo | null) {
@@ -109,10 +109,10 @@ export default function NfcClient({ initialRows, vehicleMap, certMap, isAdmin }:
     <>
       {/* Stats */}
       <section className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">合計</div>
-          <div className="mt-2 text-2xl font-bold text-neutral-900">{total}</div>
-          <div className="mt-1 text-xs text-neutral-500">登録タグ数</div>
+        <div className="glass-card p-5">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
+          <div className="mt-2 text-2xl font-bold text-primary">{total}</div>
+          <div className="mt-1 text-xs text-muted">登録タグ数</div>
         </div>
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
           <div className="text-xs font-semibold tracking-[0.18em] text-emerald-600">紐付済</div>
@@ -132,29 +132,29 @@ export default function NfcClient({ initialRows, vehicleMap, certMap, isAdmin }:
       </section>
 
       {/* Table */}
-      <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-        <div className="p-5 border-b border-neutral-100">
-          <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">タグ一覧</div>
-          <div className="mt-1 text-base font-semibold text-neutral-900">タグ台帳</div>
+      <section className="glass-card">
+        <div className="p-5 border-b border-border-subtle">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">タグ一覧</div>
+          <div className="mt-1 text-base font-semibold text-primary">タグ台帳</div>
         </div>
 
         {rows.length === 0 ? (
-          <div className="p-8 text-center text-sm text-neutral-500">
+          <div className="p-8 text-center text-sm text-muted">
             NFCタグがまだ登録されていません。
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-neutral-100 bg-neutral-50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500">状態</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500">タグコード</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500">車両 / 顧客</th>
-                  <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-semibold text-neutral-500">証明書</th>
-                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-neutral-500">UID</th>
-                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-neutral-500">書込日時</th>
-                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-neutral-500">貼付日時</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500">操作</th>
+                <tr className="border-b border-border-subtle bg-inset">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted">状態</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted">タグコード</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted">車両 / 顧客</th>
+                  <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-semibold text-muted">証明書</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-muted">UID</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-muted">書込日時</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-muted">貼付日時</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
@@ -168,7 +168,7 @@ export default function NfcClient({ initialRows, vehicleMap, certMap, isAdmin }:
                   const isLoading = loading === row.id;
 
                   return (
-                    <tr key={row.id} className="hover:bg-neutral-50 align-top">
+                    <tr key={row.id} className="hover:bg-surface-hover align-top">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tagMeta.cls}`}>
                           {tagMeta.label}
@@ -177,12 +177,12 @@ export default function NfcClient({ initialRows, vehicleMap, certMap, isAdmin }:
                       <td className="px-4 py-3 font-mono text-xs">{row.tag_code ?? "-"}</td>
                       <td className="px-4 py-3">
                         {v ? (
-                          <Link href={`/admin/vehicles/${row.vehicle_id}`} className="font-medium text-neutral-900 hover:underline">
+                          <Link href={`/admin/vehicles/${row.vehicle_id}`} className="font-medium text-primary hover:underline">
                             {vehicleLabel(v)}
                           </Link>
-                        ) : <span className="text-neutral-500">-</span>}
+                        ) : <span className="text-muted">-</span>}
                         {v?.customer_name && (
-                          <div className="mt-0.5 text-xs text-neutral-500">{v.customer_name}</div>
+                          <div className="mt-0.5 text-xs text-muted">{v.customer_name}</div>
                         )}
                       </td>
                       <td className="hidden sm:table-cell px-4 py-3">
@@ -197,11 +197,11 @@ export default function NfcClient({ initialRows, vehicleMap, certMap, isAdmin }:
                               </span>
                             </div>
                           </div>
-                        ) : <span className="text-neutral-500">-</span>}
+                        ) : <span className="text-muted">-</span>}
                       </td>
-                      <td className="hidden md:table-cell px-4 py-3 font-mono text-xs text-neutral-500">{row.uid ?? "-"}</td>
-                      <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-xs text-neutral-500">{formatDateTime(row.written_at)}</td>
-                      <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-xs text-neutral-500">{formatDateTime(row.attached_at)}</td>
+                      <td className="hidden md:table-cell px-4 py-3 font-mono text-xs text-muted">{row.uid ?? "-"}</td>
+                      <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-xs text-muted">{formatDateTime(row.written_at)}</td>
+                      <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-xs text-muted">{formatDateTime(row.attached_at)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           {!isRetired && (
@@ -226,7 +226,7 @@ export default function NfcClient({ initialRows, vehicleMap, certMap, isAdmin }:
                                   </button>
                                   <button
                                     onClick={() => setConfirmDelete(null)}
-                                    className="rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                                    className="rounded-md border border-border-default bg-surface px-2.5 py-1 text-[11px] font-medium text-secondary hover:bg-surface-hover transition-colors"
                                   >
                                     取消
                                   </button>

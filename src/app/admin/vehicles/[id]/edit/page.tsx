@@ -278,15 +278,15 @@ export default function AdminVehicleEditPage() {
                 </span>
               )}
               {customerDropdownOpen && customerResults.length > 0 && (
-                <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-md">
+                <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-border-default bg-surface shadow-md">
                   {customerResults.map((c) => (
                     <li key={c.id}>
                       <button
                         type="button"
                         onMouseDown={() => { setCustomerId(c.id); setCustomerSearch(c.name); setCustomerDropdownOpen(false); }}
-                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-neutral-50"
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover"
                       >
-                        <span className="font-medium text-neutral-900">{c.name}</span>
+                        <span className="font-medium text-primary">{c.name}</span>
                         {c.phone && <span className="ml-2 text-xs text-neutral-500">{c.phone}</span>}
                       </button>
                     </li>

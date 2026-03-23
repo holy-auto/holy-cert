@@ -110,7 +110,12 @@ export default async function Page({
         tenantLogoPath={tenantLogoPath}
         planTier={planTier}
         tid={tid}
-        serviceType={(selected as any)?.category === "ppf" ? "ppf" : undefined}
+        serviceType={
+          (selected as any)?.category === "ppf" ? "ppf"
+          : (selected as any)?.category === "maintenance" ? "maintenance"
+          : (selected as any)?.category === "body_repair" ? "body_repair"
+          : undefined
+        }
       />
     </div>
   );

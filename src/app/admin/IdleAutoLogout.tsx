@@ -103,7 +103,7 @@ export default function IdleAutoLogout() {
   return (
     <dialog
       ref={warningDialogRef}
-      className="fixed inset-0 z-[9999] m-auto w-[90vw] max-w-md rounded-2xl border border-amber-200 bg-white p-0 shadow-2xl backdrop:bg-black/50"
+      className="fixed inset-0 z-[9999] m-auto w-[90vw] max-w-md rounded-2xl border border-amber-500/30 bg-[var(--bg-surface-solid)] p-0 shadow-2xl backdrop:bg-black/50"
     >
       <div className="p-6 space-y-4">
         <div className="flex items-center gap-3">
@@ -113,13 +113,13 @@ export default function IdleAutoLogout() {
             </svg>
           </div>
           <div>
-            <h3 className="text-base font-bold text-neutral-900">セッション期限切れ間近</h3>
-            <p className="text-sm text-neutral-600">
+            <h3 className="text-base font-bold text-primary">セッション期限切れ間近</h3>
+            <p className="text-sm text-secondary">
               操作が検出されないため、まもなく自動ログアウトされます。
             </p>
           </div>
         </div>
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-muted">
           このまま操作がなければ60秒後に自動的にログアウトされます。
         </p>
         <div className="flex gap-3 justify-end">
@@ -133,7 +133,7 @@ export default function IdleAutoLogout() {
           <button
             type="button"
             onClick={doLogout}
-            className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+            className="rounded-xl border border-border-default px-5 py-2.5 text-sm font-medium text-secondary hover:bg-surface-hover transition-colors"
           >
             ログアウト
           </button>

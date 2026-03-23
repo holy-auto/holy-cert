@@ -248,7 +248,7 @@ async function PlatformStats() {
                           <span className="text-sm text-secondary">{CATEGORY_LABELS[cat.category] ?? cat.category}</span>
                           <span className="text-sm font-semibold text-primary">{cat.count}</span>
                         </div>
-                        <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+                        <div className="h-2 rounded-full bg-surface-active overflow-hidden">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-accent to-violet-500"
                             style={{ width: `${pct}%` }}
@@ -277,7 +277,7 @@ async function PlatformStats() {
                           <span className="text-sm text-secondary">{reg.prefecture}</span>
                           <span className="text-sm font-semibold text-primary">{reg.count}</span>
                         </div>
-                        <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+                        <div className="h-2 rounded-full bg-surface-active overflow-hidden">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-success to-emerald-500"
                             style={{ width: `${pct}%` }}

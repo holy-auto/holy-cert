@@ -258,7 +258,7 @@ export default function StoresClient() {
                       </span>
                     )}
                     {!store.is_active && (
-                      <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                      <span className="inline-flex items-center rounded bg-surface-active px-1.5 py-0.5 text-[10px] font-medium text-muted">
                         無効
                       </span>
                     )}

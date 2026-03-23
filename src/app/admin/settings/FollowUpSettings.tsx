@@ -63,17 +63,17 @@ export default function FollowUpSettings() {
     setSettings((prev) => ({ ...prev, [field]: days }));
   };
 
-  if (loading) return <div className="text-sm text-neutral-500">読み込み中…</div>;
+  if (loading) return <div className="text-sm text-muted">読み込み中…</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-neutral-900">フォロー自動化</label>
+        <label className="text-sm font-medium text-primary">フォロー自動化</label>
         <button
           type="button"
           onClick={() => setSettings((prev) => ({ ...prev, enabled: !prev.enabled }))}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            settings.enabled ? "bg-emerald-500" : "bg-neutral-300"
+            settings.enabled ? "bg-emerald-500" : "bg-surface-active"
           }`}
         >
           <span
@@ -82,32 +82,32 @@ export default function FollowUpSettings() {
             }`}
           />
         </button>
-        <span className="text-xs text-neutral-500">{settings.enabled ? "有効" : "無効"}</span>
+        <span className="text-xs text-muted">{settings.enabled ? "有効" : "無効"}</span>
       </div>
 
       <div className="space-y-3">
         <div className="space-y-1">
-          <label className="text-xs text-neutral-500">有効期限リマインダー（期限の何日前に送信）</label>
+          <label className="text-xs text-secondary">有効期限リマインダー（期限の何日前に送信）</label>
           <input
             type="text"
             value={settings.reminder_days_before.join(", ")}
             onChange={(e) => updateDays("reminder_days_before", e.target.value)}
             placeholder="30, 7, 1"
-            className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="input-field"
           />
-          <p className="text-[11px] text-neutral-400">カンマ区切りで日数を指定（例: 30, 7, 1）</p>
+          <p className="text-[11px] text-muted">カンマ区切りで日数を指定（例: 30, 7, 1）</p>
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-neutral-500">施工後フォロー（施工後何日後に送信）</label>
+          <label className="text-xs text-secondary">施工後フォロー（施工後何日後に送信）</label>
           <input
             type="text"
             value={settings.follow_up_days_after.join(", ")}
             onChange={(e) => updateDays("follow_up_days_after", e.target.value)}
             placeholder="90, 180"
-            className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="input-field"
           />
-          <p className="text-[11px] text-neutral-400">カンマ区切りで日数を指定（例: 90, 180）</p>
+          <p className="text-[11px] text-muted">カンマ区切りで日数を指定（例: 90, 180）</p>
         </div>
       </div>
 

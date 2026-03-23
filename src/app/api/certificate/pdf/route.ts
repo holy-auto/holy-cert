@@ -248,7 +248,7 @@ export async function GET(req: Request) {
           // Fetch additional fields for PPF support
           const { data: fullCert } = await adm2
             .from("certificates")
-            .select("ppf_coverage_json, service_type, coating_products_json, warranty_period_end, warranty_exclusions, current_version")
+            .select("ppf_coverage_json, service_type, coating_products_json, warranty_period_end, warranty_exclusions, current_version, maintenance_json, body_repair_json")
             .eq("public_id", pid)
             .limit(1)
             .maybeSingle();
@@ -261,6 +261,8 @@ export async function GET(req: Request) {
             content_preset_json: cert.content_preset_json ?? {},
             coating_products_json: (fullCert?.coating_products_json as any[] | null) ?? null,
             ppf_coverage_json: (fullCert?.ppf_coverage_json as any[] | null) ?? null,
+            maintenance_json: (fullCert?.maintenance_json as any) ?? null,
+            body_repair_json: (fullCert?.body_repair_json as any) ?? null,
             service_type: (fullCert?.service_type as string | null) ?? null,
             expiry_type: cert.expiry_type ?? null,
             expiry_value: cert.expiry_value ?? null,

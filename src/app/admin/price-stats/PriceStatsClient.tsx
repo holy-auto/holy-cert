@@ -170,7 +170,7 @@ export default function PriceStatsClient() {
                       </div>
                       {/* Price range bar */}
                       <div className="mt-1">
-                        <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+                        <div className="h-2 rounded-full bg-surface-active overflow-hidden">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-success via-accent to-danger"
                             style={{ width: `${Math.min(100, Math.round((r.avg / (data.overall.max || 1)) * 100))}%` }}

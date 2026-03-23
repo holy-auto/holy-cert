@@ -21,7 +21,7 @@ type Brand = {
 };
 
 const inputCls =
-  "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full rounded-xl border border-border-default bg-surface px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
 
 export default function BrandsClient({ initialBrands }: { initialBrands: Brand[] }) {
   const [brands, setBrands] = useState<Brand[]>(initialBrands);
@@ -206,8 +206,8 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
 
                     {/* Add product form */}
                     {addingProductFor === brand.id ? (
-                      <form onSubmit={(e) => addProduct(brand.id, e)} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 space-y-3 mt-3">
-                        <div className="text-xs font-semibold text-neutral-700">製品を追加</div>
+                      <form onSubmit={(e) => addProduct(brand.id, e)} className="rounded-xl border border-border-default bg-inset p-4 space-y-3 mt-3">
+                        <div className="text-xs font-semibold text-primary">製品を追加</div>
                         <div className="grid gap-3 sm:grid-cols-2">
                           <input value={newProductName} onChange={(e) => setNewProductName(e.target.value)} placeholder="製品名 *" required className={inputCls} />
                           <input value={newProductCode} onChange={(e) => setNewProductCode(e.target.value)} placeholder="品番（任意）" className={inputCls} />
@@ -216,14 +216,14 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
                         {productErr && <p className="text-xs text-red-500">{productErr}</p>}
                         <div className="flex gap-2">
                           <Button type="submit" size="sm" loading={savingProduct}>追加する</Button>
-                          <button type="button" onClick={() => setAddingProductFor(null)} className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-600 hover:bg-neutral-100">キャンセル</button>
+                          <button type="button" onClick={() => setAddingProductFor(null)} className="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-xs text-secondary hover:bg-surface-hover">キャンセル</button>
                         </div>
                       </form>
                     ) : (
                       <button
                         type="button"
                         onClick={() => { setAddingProductFor(brand.id); setProductErr(null); }}
-                        className="rounded-lg border border-dashed border-neutral-300 px-4 py-2 text-xs text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+                        className="rounded-lg border border-dashed border-border-default px-4 py-2 text-xs text-muted hover:border-neutral-400 hover:text-primary"
                       >
                         ＋ 製品を追加
                       </button>
@@ -255,7 +255,7 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
         <button
           type="button"
           onClick={() => setShowNewBrand(true)}
-          className="rounded-xl border border-dashed border-neutral-300 w-full py-3 text-sm text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+          className="rounded-xl border border-dashed border-border-default w-full py-3 text-sm text-muted hover:border-neutral-400 hover:text-primary"
         >
           ＋ ブランドを追加
         </button>

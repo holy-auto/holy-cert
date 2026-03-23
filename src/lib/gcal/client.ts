@@ -106,6 +106,12 @@ type ReservationData = {
   vehicle_label?: string | null;
 };
 
+/** HH:MM or HH:MM:SS → HH:MM:SS に正規化 */
+function normalizeTime(t: string): string {
+  // "10:00" → "10:00:00", "10:00:00" → "10:00:00"
+  return t.length === 5 ? `${t}:00` : t;
+}
+
 function buildEvent(r: ReservationData): calendar_v3.Schema$Event {
   const date = r.scheduled_date; // YYYY-MM-DD
 
@@ -119,11 +125,13 @@ function buildEvent(r: ReservationData): calendar_v3.Schema$Event {
     .join("\n");
 
   if (r.start_time && r.end_time) {
+    const startTime = normalizeTime(r.start_time);
+    const endTime = normalizeTime(r.end_time);
     return {
       summary: r.title,
       description,
-      start: { dateTime: `${date}T${r.start_time}`, timeZone: "Asia/Tokyo" },
-      end: { dateTime: `${date}T${r.end_time}`, timeZone: "Asia/Tokyo" },
+      start: { dateTime: `${date}T${startTime}`, timeZone: "Asia/Tokyo" },
+      end: { dateTime: `${date}T${endTime}`, timeZone: "Asia/Tokyo" },
     };
   }
 
@@ -281,6 +289,88 @@ export async function pullEventsFromCalendar(
     return imported;
   } catch (e) {
     await logSync(tenantId, null, "pull", null, "error", String(e));
+    return 0;
+  }
+}
+
+/**
+ * 既存予約を一括で Google Calendar に push 同期
+ * gcal_event_id が未設定の予約のみ対象
+ */
+export async function pushReservationsToCalendar(
+  tenantId: string,
+  dateFrom: string,
+  dateTo: string,
+): Promise<number> {
+  try {
+    const client = await getCalendarClient(tenantId);
+    if (!client) return 0;
+
+    const admin = getAdminClient();
+    const { data: reservations } = await admin
+      .from("reservations")
+      .select("id, title, scheduled_date, start_time, end_time, note, customer_id")
+      .eq("tenant_id", tenantId)
+      .is("gcal_event_id", null)
+      .neq("status", "cancelled")
+      .gte("scheduled_date", dateFrom)
+      .lte("scheduled_date", dateTo)
+      .order("scheduled_date")
+      .limit(200);
+
+    if (!reservations || reservations.length === 0) return 0;
+
+    // 顧客名を一括取得
+    const customerIds = [...new Set(reservations.map((r: any) => r.customer_id).filter(Boolean))];
+    const customerMap: Record<string, string> = {};
+    if (customerIds.length > 0) {
+      const { data: customers } = await admin
+        .from("customers")
+        .select("id, name")
+        .in("id", customerIds);
+      (customers ?? []).forEach((c: any) => {
+        customerMap[c.id] = c.name;
+      });
+    }
+
+    let pushed = 0;
+
+    for (const r of reservations) {
+      try {
+        const event = buildEvent({
+          id: r.id,
+          title: r.title,
+          scheduled_date: r.scheduled_date,
+          start_time: r.start_time,
+          end_time: r.end_time,
+          note: r.note,
+          customer_name: r.customer_id ? customerMap[r.customer_id] ?? null : null,
+        });
+
+        const res = await client.calendar.events.insert({
+          calendarId: client.calendarId,
+          requestBody: event,
+        });
+
+        const eventId = res.data.id ?? null;
+        if (eventId) {
+          await admin
+            .from("reservations")
+            .update({ gcal_event_id: eventId })
+            .eq("id", r.id);
+        }
+
+        await logSync(tenantId, r.id, "create", eventId, "success");
+        pushed++;
+      } catch (e) {
+        await logSync(tenantId, r.id, "create", null, "error", String(e));
+        // 個別エラーはスキップして続行
+      }
+    }
+
+    return pushed;
+  } catch (e) {
+    await logSync(tenantId, null, "push", null, "error", String(e));
     return 0;
   }
 }

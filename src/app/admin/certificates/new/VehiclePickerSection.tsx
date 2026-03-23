@@ -38,9 +38,9 @@ function vehicleModel(v: Vehicle) {
 }
 
 const inputCls =
-  "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400";
+  "w-full rounded-xl border border-border-default bg-surface px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
 const labelCls = "block space-y-1.5";
-const labelTextCls = "text-sm font-medium text-neutral-700";
+const labelTextCls = "text-sm font-medium text-secondary";
 
 export default function VehiclePickerSection({
   vehicles: initialVehicles,
@@ -201,13 +201,13 @@ export default function VehiclePickerSection({
       {/* Vehicle picker */}
       <div>
         <div className="mb-4">
-          <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">
             VEHICLE LINK
           </div>
-          <div className="mt-1 text-base font-semibold text-neutral-900">
+          <div className="mt-1 text-base font-semibold text-primary">
             車両を選択 <span className="text-red-500">*</span>
           </div>
-          <p className="mt-0.5 text-xs text-neutral-500">
+          <p className="mt-0.5 text-xs text-muted">
             登録済みの車両から選択してください（必須）
           </p>
         </div>
@@ -215,9 +215,9 @@ export default function VehiclePickerSection({
         <input type="hidden" name="vehicle_id" value={selectedId} />
 
         {selected ? (
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5">
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-200/50 bg-emerald-500/10 px-4 py-2.5">
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-emerald-900 truncate">
+              <div className="text-sm font-semibold text-emerald-600 truncate">
                 {vehicleLabel(selected)}
               </div>
               {selected.customer && (
@@ -229,7 +229,7 @@ export default function VehiclePickerSection({
             <button
               type="button"
               onClick={handleClear}
-              className="shrink-0 rounded-lg border border-emerald-300 bg-white px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+              className="shrink-0 rounded-lg border border-emerald-300/50 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-500/20"
             >
               解除
             </button>
@@ -254,15 +254,15 @@ export default function VehiclePickerSection({
                 className={`${inputCls} pr-10 disabled:bg-neutral-100 disabled:text-neutral-500`}
               />
               {vehicleDropdownOpen && filtered.length > 0 && (
-                <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-md">
+                <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border-default bg-surface shadow-md">
                   {filtered.map((v) => (
                     <li key={v.id}>
                       <button
                         type="button"
                         onMouseDown={() => handleSelect(v.id)}
-                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-neutral-50"
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover"
                       >
-                        <span className="font-medium text-neutral-900">
+                        <span className="font-medium text-primary">
                           {vehicleLabel(v)}
                         </span>
                         {v.customer && (
@@ -284,12 +284,12 @@ export default function VehiclePickerSection({
 
             {/* No match — show new vehicle option */}
             {vehicleDropdownOpen && search && filtered.length === 0 && !showNewVehicleForm && (
-              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 flex items-center justify-between gap-3">
-                <span className="text-sm text-neutral-500">一致する車両が見つかりません</span>
+              <div className="rounded-xl border border-border-default bg-inset p-3 flex items-center justify-between gap-3">
+                <span className="text-sm text-muted">一致する車両が見つかりません</span>
                 <button
                   type="button"
                   onClick={() => setShowNewVehicleForm(true)}
-                  className="shrink-0 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+                  className="shrink-0 rounded-lg border border-border-default bg-surface px-3 py-1.5 text-xs font-medium text-primary hover:bg-surface-hover"
                 >
                   新規登録して選択
                 </button>
@@ -298,8 +298,8 @@ export default function VehiclePickerSection({
 
             {/* Inline new vehicle form */}
             {showNewVehicleForm && (
-              <form onSubmit={createNewVehicle} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 space-y-3">
-                <div className="text-xs font-semibold text-neutral-700">新規車両を登録</div>
+              <form onSubmit={createNewVehicle} className="rounded-xl border border-border-default bg-inset p-4 space-y-3">
+                <div className="text-xs font-semibold text-primary">新規車両を登録</div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <input value={newMaker} onChange={(e) => setNewMaker(e.target.value)} placeholder="メーカー *" required className={inputCls} />
                   <input value={newModel} onChange={(e) => setNewModel(e.target.value)} placeholder="車種 *" required className={inputCls} />
@@ -310,7 +310,7 @@ export default function VehiclePickerSection({
                 {newVehicleErr && <p className="text-xs text-red-500">{newVehicleErr}</p>}
                 <div className="flex gap-2">
                   <Button type="submit" size="sm" loading={newVehicleBusy}>登録して選択</Button>
-                  <button type="button" onClick={() => setShowNewVehicleForm(false)} className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-600 hover:bg-neutral-100">キャンセル</button>
+                  <button type="button" onClick={() => setShowNewVehicleForm(false)} className="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-xs text-secondary hover:bg-surface-hover">キャンセル</button>
                 </div>
               </form>
             )}
@@ -319,12 +319,12 @@ export default function VehiclePickerSection({
       </div>
 
       {/* Basic info */}
-      <div className="border-t border-neutral-100 pt-4">
+      <div className="border-t border-border-subtle pt-4">
         <div className="mb-4">
-          <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">
             BASIC INFO
           </div>
-          <div className="mt-1 text-base font-semibold text-neutral-900">
+          <div className="mt-1 text-base font-semibold text-primary">
             基本情報
           </div>
         </div>
@@ -365,22 +365,22 @@ export default function VehiclePickerSection({
                 </span>
               )}
               {customerSearchOpen && customerResults.length > 0 && (
-                <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-md">
+                <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-border-default bg-surface shadow-md">
                   {customerResults.map((c) => (
                     <li key={c.id}>
                       <button
                         type="button"
                         onMouseDown={() => handleCustomerSelect(c)}
-                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-neutral-50"
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover"
                       >
-                        <span className="font-medium text-neutral-900">{c.name}</span>
-                        {c.phone && <span className="ml-2 text-xs text-neutral-500">{c.phone}</span>}
+                        <span className="font-medium text-primary">{c.name}</span>
+                        {c.phone && <span className="ml-2 text-xs text-muted">{c.phone}</span>}
                       </button>
                     </li>
                   ))}
                 </ul>
               )}
-              <p className="mt-1 text-[11px] text-neutral-400">入力すると顧客マスタを検索します。手入力のみでもOK</p>
+              <p className="mt-1 text-[11px] text-muted">入力すると顧客マスタを検索します。手入力のみでもOK</p>
             </div>
           </div>
 

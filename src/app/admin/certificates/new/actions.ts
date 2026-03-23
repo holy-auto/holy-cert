@@ -88,7 +88,27 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     // ignore parse errors — field is optional
   }
 
-  // Service type (ppf | coating | etc)
+  // Maintenance JSON (optional — maintenance templates only)
+  let maintenance_data: Record<string, any> = {};
+  try {
+    const raw = String(formData.get("maintenance_json") || "{}");
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null) maintenance_data = parsed;
+  } catch {
+    // ignore parse errors — field is optional
+  }
+
+  // Body repair JSON (optional — body_repair templates only)
+  let body_repair_data: Record<string, any> = {};
+  try {
+    const raw = String(formData.get("body_repair_json") || "{}");
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null) body_repair_data = parsed;
+  } catch {
+    // ignore parse errors — field is optional
+  }
+
+  // Service type (ppf | coating | maintenance | body_repair | etc)
   const service_type = String(formData.get("service_type") || "").trim() || null;
 
   if (!customer_name) return { ok: false, error: "customer_name_required" };
@@ -131,6 +151,8 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     },
     coating_products_json: coating_products.length > 0 ? coating_products : [],
     ppf_coverage_json: ppf_coverage.length > 0 ? ppf_coverage : [],
+    maintenance_json: Object.keys(maintenance_data).length > 0 ? maintenance_data : {},
+    body_repair_json: Object.keys(body_repair_data).length > 0 ? body_repair_data : {},
     service_type: service_type || null,
     expiry_type: "text",
     expiry_value,
