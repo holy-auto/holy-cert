@@ -15,13 +15,13 @@ export async function GET(req: NextRequest) {
   // ユーザーが拒否した場合
   if (error) {
     return NextResponse.redirect(
-      new URL("/admin/settings?square=denied", baseUrl),
+      new URL("/admin/square?square=denied", baseUrl),
     );
   }
 
   if (!code || !state) {
     return NextResponse.redirect(
-      new URL("/admin/settings?square=error&reason=missing_params", baseUrl),
+      new URL("/admin/square?square=error&reason=missing_params", baseUrl),
     );
   }
 
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   if (!tenant) {
     console.error("[square callback] invalid state (tenant not found):", state);
     return NextResponse.redirect(
-      new URL("/admin/settings?square=error&reason=invalid_state", baseUrl),
+      new URL("/admin/square?square=error&reason=invalid_state", baseUrl),
     );
   }
 
@@ -44,24 +44,29 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. Exchange code for tokens
+    // redirect_uri MUST match the one sent during /oauth2/authorize
     const redirectUri = `${baseUrl}/api/admin/square/callback`;
+    const tokenBody: Record<string, string> = {
+      client_id: process.env.SQUARE_APP_ID!,
+      client_secret: process.env.SQUARE_APP_SECRET!,
+      code,
+      grant_type: "authorization_code",
+      redirect_uri: redirectUri,
+    };
+
     const tokenRes = await fetch("https://connect.squareup.com/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: process.env.SQUARE_APP_ID,
-        client_secret: process.env.SQUARE_APP_SECRET,
-        code,
-        grant_type: "authorization_code",
-        redirect_uri: redirectUri,
-      }),
+      body: JSON.stringify(tokenBody),
     });
 
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text();
       console.error("[square callback] token exchange failed:", tokenRes.status, errBody);
+      // Include status in redirect for easier debugging
+      const reason = `token_exchange_${tokenRes.status}`;
       return NextResponse.redirect(
-        new URL("/admin/settings?square=error&reason=token_exchange", baseUrl),
+        new URL(`/admin/square?square=error&reason=${reason}`, baseUrl),
       );
     }
 
@@ -96,12 +101,13 @@ export async function GET(req: NextRequest) {
       .upsert(
         {
           tenant_id: tenantId,
-          access_token,
-          refresh_token,
-          token_expires_at: expires_at,
-          merchant_id: merchant_id ?? null,
-          location_ids: locationIds,
-          status: "connected",
+          square_access_token: access_token,
+          square_refresh_token: refresh_token,
+          square_token_expires_at: expires_at,
+          square_merchant_id: merchant_id ?? null,
+          square_location_ids: locationIds,
+          status: "active",
+          connected_at: new Date().toISOString(),
         },
         { onConflict: "tenant_id" },
       );
@@ -109,17 +115,17 @@ export async function GET(req: NextRequest) {
     if (dbError) {
       console.error("[square callback] db upsert error:", dbError.message);
       return NextResponse.redirect(
-        new URL("/admin/settings?square=error&reason=db_save", baseUrl),
+        new URL("/admin/square?square=error&reason=db_save", baseUrl),
       );
     }
 
     return NextResponse.redirect(
-      new URL("/admin/settings?square=connected", baseUrl),
+      new URL("/admin/square?square=connected", baseUrl),
     );
   } catch (e) {
     console.error("[square callback] unexpected error:", e);
     return NextResponse.redirect(
-      new URL("/admin/settings?square=error&reason=unexpected", baseUrl),
+      new URL("/admin/square?square=error&reason=unexpected", baseUrl),
     );
   }
 }

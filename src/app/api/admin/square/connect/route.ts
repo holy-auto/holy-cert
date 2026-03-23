@@ -22,17 +22,23 @@ export async function GET(_req: NextRequest) {
     const admin = getAdminClient();
     const { data: conn } = await admin
       .from("square_connections")
-      .select("merchant_id, status, last_synced_at, location_ids")
+      .select("id, tenant_id, square_merchant_id, status, connected_at, last_synced_at, square_location_ids")
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
-    return apiOk({
-      connected: conn?.status === "connected",
-      merchant_id: conn?.merchant_id ?? null,
-      status: conn?.status ?? "disconnected",
-      last_synced_at: conn?.last_synced_at ?? null,
-      location_ids: conn?.location_ids ?? [],
-    });
+    if (!conn) {
+      return apiOk({
+        id: null,
+        tenant_id: caller.tenantId,
+        square_merchant_id: null,
+        status: "disconnected",
+        connected_at: null,
+        last_synced_at: null,
+        square_location_ids: [],
+      });
+    }
+
+    return apiOk(conn);
   } catch (e) {
     return apiInternalError(e, "square connect GET");
   }
