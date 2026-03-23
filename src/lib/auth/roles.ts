@@ -1,8 +1,9 @@
-export type Role = "owner" | "admin" | "staff" | "viewer";
+export type Role = "super_admin" | "owner" | "admin" | "staff" | "viewer";
 
-export const ROLES: Role[] = ["owner", "admin", "staff", "viewer"];
+export const ROLES: Role[] = ["super_admin", "owner", "admin", "staff", "viewer"];
 
 export const ROLE_LABELS: Record<Role, string> = {
+  super_admin: "プラットフォーム管理者",
   owner: "オーナー",
   admin: "管理者",
   staff: "スタッフ",
@@ -10,6 +11,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 const ROLE_RANK: Record<Role, number> = {
+  super_admin: 5,
   owner: 4,
   admin: 3,
   staff: 2,
@@ -18,6 +20,7 @@ const ROLE_RANK: Record<Role, number> = {
 
 export function normalizeRole(v: unknown): Role {
   const s = String(v ?? "").toLowerCase();
+  if (s === "super_admin" || s === "superadmin") return "super_admin";
   if (s === "owner") return "owner";
   if (s === "staff") return "staff";
   if (s === "viewer") return "viewer";
@@ -29,5 +32,10 @@ export function hasMinRole(role: Role, minRole: Role): boolean {
   return ROLE_RANK[role] >= ROLE_RANK[minRole];
 }
 
-/** Assignable roles (owner can't be assigned via UI) */
+/** Assignable roles (super_admin and owner can't be assigned via UI) */
 export const ASSIGNABLE_ROLES: Role[] = ["admin", "staff", "viewer"];
+
+/** Check if user is platform super admin */
+export function isSuperAdmin(role: Role): boolean {
+  return role === "super_admin";
+}

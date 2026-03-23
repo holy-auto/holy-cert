@@ -41,13 +41,40 @@ export type Permission =
   // Other
   | "announcements:view" | "news:view" | "price_stats:view"
   | "management:view" | "audit:view" | "insurers:view" | "insurers:manage"
-  | "logo:manage";
+  | "logo:manage"
+  // Platform (super_admin only)
+  | "platform:manage";
 
 /**
  * Permission matrix by role.
- * owner gets everything. Other roles get explicit permissions.
+ * super_admin gets everything including platform management.
+ * owner gets everything within their tenant.
  */
 const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
+  super_admin: [
+    "dashboard:view",
+    "certificates:view", "certificates:create", "certificates:edit", "certificates:void",
+    "vehicles:view", "vehicles:create", "vehicles:edit", "vehicles:delete",
+    "customers:view", "customers:create", "customers:edit",
+    "reservations:view", "reservations:create", "reservations:edit",
+    "invoices:view", "invoices:create", "invoices:edit",
+    "market:view", "market:create", "market:edit",
+    "orders:view", "orders:create",
+    "templates:manage", "menu_items:manage",
+    "members:view", "members:manage",
+    "settings:view", "settings:edit",
+    "billing:view", "billing:manage",
+    "stores:view", "stores:manage",
+    "registers:view", "registers:manage",
+    "register_sessions:view", "register_sessions:operate", "register_sessions:manage",
+    "announcements:view", "news:view", "price_stats:view",
+    "management:view", "audit:view",
+    "insurers:view", "insurers:manage",
+    "payments:view", "payments:create", "payments:manage",
+    "logo:manage",
+    "template_options:view", "template_options:manage",
+    "platform:manage",
+  ],
   owner: [
     "dashboard:view",
     "certificates:view", "certificates:create", "certificates:edit", "certificates:void",
