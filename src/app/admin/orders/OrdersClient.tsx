@@ -114,7 +114,7 @@ export default function OrdersClient() {
   const [searchingTenants, setSearchingTenants] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<TenantSearchResult | null>(null);
   const [showTenantDropdown, setShowTenantDropdown] = useState(false);
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // New order form
   const [formData, setFormData] = useState({
