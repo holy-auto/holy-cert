@@ -85,40 +85,26 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Extract optional referral/agency params
-  const referralCode = (rawBody as any)?.referral_code || null;
-  const agencyId = (rawBody as any)?.agency_id || null;
+  // --- Hybrid approach: create auth user via SDK, then insurer data via RPC ---
+  // This avoids direct INSERT into auth.users (fragile on Supabase upgrades)
+  // and keeps insurer+insurer_users creation atomic in one RPC.
 
-  // Call transactional RPC
-  const { data: result, error: rpcError } = await supabase.rpc("register_insurer_v2", {
-    p_email: data.email,
-    p_password: data.password,
-    p_company_name: data.company_name,
-    p_contact_person: data.contact_person,
-    p_phone: data.phone || "",
-    p_requested_plan: data.requested_plan,
-    p_corporate_number: data.corporate_number || null,
-    p_address: data.address || null,
-    p_representative_name: data.representative_name || null,
-    p_terms_accepted: data.terms_accepted,
-    p_referral_code: referralCode,
-    p_agency_id: agencyId,
+  // Step 1: Create auth user via Supabase Admin SDK
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    email: data.email,
+    password: data.password,
+    email_confirm: true, // OTP was already verified
+    user_metadata: { display_name: data.contact_person },
   });
 
-  if (rpcError) {
-    const msg = rpcError.message ?? "";
-    console.error("[insurer-register] rpc error:", msg);
+  if (authError) {
+    const msg = authError.message ?? "";
+    console.error("[insurer-register] auth.createUser error:", msg);
 
-    if (msg.includes("email_exists")) {
+    if (msg.includes("already been registered") || msg.includes("already exists")) {
       return NextResponse.json(
         { error: "email_exists", message: "このメールアドレスは既に登録されています" },
         { status: 409 },
-      );
-    }
-    if (msg.includes("terms_not_accepted")) {
-      return NextResponse.json(
-        { error: "terms_required", message: "利用規約への同意が必要です" },
-        { status: 400 },
       );
     }
 
@@ -127,6 +113,46 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+
+  const userId = authData.user.id;
+
+  // Step 2: Create insurer + insurer_users via RPC (atomic)
+  const { data: result, error: rpcError } = await supabase.rpc("create_insurer_for_user", {
+    p_user_id: userId,
+    p_company_name: data.company_name,
+    p_contact_person: data.contact_person,
+    p_email: data.email,
+    p_phone: data.phone || "",
+    p_requested_plan: data.requested_plan,
+    p_corporate_number: data.corporate_number || null,
+    p_address: data.address || null,
+    p_representative_name: data.representative_name || null,
+    p_terms_accepted: data.terms_accepted,
+    p_referral_code: data.referral_code || null,
+    p_agency_id: data.agency_id || null,
+  });
+
+  if (rpcError) {
+    const msg = rpcError.message ?? "";
+    console.error("[insurer-register] RPC error, rolling back auth user:", msg);
+
+    // Rollback: delete the auth user we just created
+    await supabase.auth.admin.deleteUser(userId).catch((err: unknown) =>
+      console.error("[insurer-register] rollback deleteUser failed:", err),
+    );
+
+    return NextResponse.json(
+      { error: "registration_failed", message: "登録に失敗しました。しばらくしてから再度お試しください。" },
+      { status: 500 },
+    );
+  }
+
+  // Step 3: Consume the email verification token (one-time use)
+  await supabase
+    .from("insurer_email_verifications")
+    .delete()
+    .eq("email", data.email.toLowerCase())
+    .eq("verified", true);
 
   return NextResponse.json(
     {

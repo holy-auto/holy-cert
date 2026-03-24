@@ -27,16 +27,25 @@ export async function GET() {
       return NextResponse.json({ error: "db_error" }, { status: 500 });
     }
 
-    // Fetch emails for each user
-    const users = await Promise.all(
-      (data ?? []).map(async (iu) => {
-        const { data: userData } = await admin.auth.admin.getUserById(iu.user_id);
-        return {
-          ...iu,
-          email: userData?.user?.email ?? null,
-        };
-      }),
-    );
+    // Batch-fetch all user emails via a single RPC call instead of N+1 getUserById
+    const userIds = (data ?? []).map((iu) => iu.user_id);
+    const emailMap = new Map<string, string>();
+
+    if (userIds.length > 0) {
+      const { data: emailRows } = await admin.rpc("get_auth_emails_by_ids", {
+        p_user_ids: userIds,
+      });
+      if (emailRows && Array.isArray(emailRows)) {
+        for (const row of emailRows) {
+          emailMap.set(row.id, row.email);
+        }
+      }
+    }
+
+    const users = (data ?? []).map((iu) => ({
+      ...iu,
+      email: emailMap.get(iu.user_id) ?? null,
+    }));
 
     return NextResponse.json({ users });
   } catch (e) {

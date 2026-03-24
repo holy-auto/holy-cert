@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
+import { randomInt } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { emailSchema } from "@/lib/validation/schemas";
 
 export const runtime = "nodejs";
 
+/** Generate a cryptographically secure 6-digit OTP code */
 function genCode6(): string {
-  const n = Math.floor(Math.random() * 1000000);
-  return String(n).padStart(6, "0");
+  return String(randomInt(0, 1000000)).padStart(6, "0");
 }
 
 async function sendEmailResend(to: string, code: string) {
@@ -65,6 +66,8 @@ async function sendEmailResend(to: string, code: string) {
  */
 export async function POST(req: Request) {
   const ip = getClientIp(req);
+
+  // IP-based rate limit: 5 requests per 10 minutes
   const rl = checkRateLimit(`join-code:${ip}`, { limit: 5, windowSec: 600 });
   if (!rl.allowed) {
     return NextResponse.json(
@@ -89,14 +92,23 @@ export async function POST(req: Request) {
   }
   const email = parsed.data;
 
+  // Email-based rate limit: 3 codes per 10 minutes per email address
+  const emailRl = checkRateLimit(`join-code-email:${email}`, { limit: 3, windowSec: 600 });
+  if (!emailRl.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", message: "このメールアドレスへの送信が多すぎます。しばらくお待ちください。" },
+      { status: 429, headers: { "Retry-After": String(emailRl.retryAfterSec) } },
+    );
+  }
+
   const supabase = createAdminClient();
 
-  // Check if email is already registered as auth user
-  const { data: existingUsers } = await supabase.auth.admin.listUsers({ perPage: 1 });
-  const existing = existingUsers?.users?.find(
-    (u) => u.email?.toLowerCase() === email.toLowerCase(),
-  );
-  if (existing) {
+  // Check if email is already registered via security-definer RPC
+  // (listUsers API only returns page 1, so we use a direct auth.users query)
+  const { data: emailExists } = await supabase.rpc("check_auth_email_exists", {
+    p_email: email,
+  });
+  if (emailExists === true) {
     return NextResponse.json(
       { error: "email_exists", message: "このメールアドレスは既に登録されています" },
       { status: 409 },
