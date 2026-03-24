@@ -316,9 +316,11 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="glass-card p-4">
           <div className="text-xs text-muted">ステータス</div>
-          <Badge variant={STATUS_VARIANTS[order.status]} className="mt-1">
-            {STATUS_LABELS[order.status] ?? order.status}
-          </Badge>
+          <div className="mt-1">
+            <Badge variant={STATUS_VARIANTS[order.status]}>
+              {STATUS_LABELS[order.status] ?? order.status}
+            </Badge>
+          </div>
         </div>
         <div className="glass-card p-4">
           <div className="text-xs text-muted">発注元</div>
