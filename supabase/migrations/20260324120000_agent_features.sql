@@ -25,9 +25,9 @@ create index if not exists idx_an_user on agent_notifications (user_id);
 
 alter table agent_notifications enable row level security;
 create policy "an_select" on agent_notifications for select
-  using (agent_id in (select unnest(my_agent_ids())));
+  using (agent_id in (select my_agent_ids()));
 create policy "an_update" on agent_notifications for update
-  using (agent_id in (select unnest(my_agent_ids())));
+  using (agent_id in (select my_agent_ids()));
 
 -- =============================================================
 -- 2) agent_referral_links — 紹介リンク・QRコード
@@ -48,9 +48,9 @@ create index if not exists idx_arl_code on agent_referral_links (code);
 
 alter table agent_referral_links enable row level security;
 create policy "arl_select" on agent_referral_links for select
-  using (agent_id in (select unnest(my_agent_ids())));
+  using (agent_id in (select my_agent_ids()));
 create policy "arl_insert" on agent_referral_links for insert
-  with check (agent_id in (select unnest(my_agent_ids())));
+  with check (agent_id in (select my_agent_ids()));
 
 -- =============================================================
 -- 3) agent_faq_categories + agent_faqs — FAQ・ナレッジベース
@@ -124,15 +124,15 @@ create index if not exists idx_atm_ticket on agent_ticket_messages (ticket_id, c
 alter table agent_support_tickets enable row level security;
 alter table agent_ticket_messages enable row level security;
 create policy "ast_select" on agent_support_tickets for select
-  using (agent_id in (select unnest(my_agent_ids())));
+  using (agent_id in (select my_agent_ids()));
 create policy "ast_insert" on agent_support_tickets for insert
-  with check (agent_id in (select unnest(my_agent_ids())));
+  with check (agent_id in (select my_agent_ids()));
 create policy "ast_update" on agent_support_tickets for update
-  using (agent_id in (select unnest(my_agent_ids())));
+  using (agent_id in (select my_agent_ids()));
 create policy "atm_select" on agent_ticket_messages for select
-  using (ticket_id in (select id from agent_support_tickets where agent_id in (select unnest(my_agent_ids()))));
+  using (ticket_id in (select id from agent_support_tickets where agent_id in (select my_agent_ids())));
 create policy "atm_insert" on agent_ticket_messages for insert
-  with check (ticket_id in (select id from agent_support_tickets where agent_id in (select unnest(my_agent_ids()))));
+  with check (ticket_id in (select id from agent_support_tickets where agent_id in (select my_agent_ids())));
 
 -- =============================================================
 -- 5) agent_campaigns — キャンペーン管理
@@ -171,12 +171,12 @@ create policy "ac_select" on agent_campaigns for select
       target_agents = 'all'
       or id in (
         select campaign_id from agent_campaign_agents
-        where agent_id in (select unnest(my_agent_ids()))
+        where agent_id in (select my_agent_ids())
       )
     )
   );
 create policy "aca_select" on agent_campaign_agents for select
-  using (agent_id in (select unnest(my_agent_ids())));
+  using (agent_id in (select my_agent_ids()));
 
 -- =============================================================
 -- 6) Rankings — via RPC (no extra table needed, computed from referrals/commissions)
@@ -307,9 +307,9 @@ create index if not exists idx_ail_invoice on agent_invoice_lines (invoice_id);
 alter table agent_invoices enable row level security;
 alter table agent_invoice_lines enable row level security;
 create policy "ainv_select" on agent_invoices for select
-  using (agent_id in (select unnest(my_agent_ids())));
+  using (agent_id in (select my_agent_ids()));
 create policy "ail_select" on agent_invoice_lines for select
-  using (invoice_id in (select id from agent_invoices where agent_id in (select unnest(my_agent_ids()))));
+  using (invoice_id in (select id from agent_invoices where agent_id in (select my_agent_ids())));
 
 -- =============================================================
 -- updated_at triggers for new tables
