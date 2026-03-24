@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { sendExpiryReminder, sendFollowUpEmail } from "@/lib/follow-up/email";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { verifyCronRequest } from "@/lib/cronAuth";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -11,19 +12,12 @@ export const dynamic = "force-dynamic";
  * 2. Send post-service follow-up emails
  */
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return apiUnauthorized();
+  const { authorized, error: authError } = verifyCronRequest(req);
+  if (!authorized) {
+    return apiUnauthorized(authError);
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return apiInternalError(new Error("Missing Supabase config"), "cron/follow-up");
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = getSupabaseAdmin();
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
   let remindersSent = 0;
