@@ -6,31 +6,20 @@ import { enforceBilling } from "@/lib/billing/guard";
 import { logCertificateAction } from "@/lib/audit/certificateLog";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 async function supaInsertCertificate(row: any) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const srk = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !srk) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("certificates")
+    .insert(row)
+    .select()
+    .single();
 
-  const res = await fetch(`${url}/rest/v1/certificates`, {
-    method: "POST",
-    cache: "no-store",
-    headers: {
-      apikey: srk,
-      Authorization: `Bearer ${srk}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify(row),
-  });
-
-  const txt = await res.text().catch(() => "");
-  if (!res.ok) throw new Error(`Supabase insert failed: ${res.status} ${txt}`);
-
-  const json = txt ? JSON.parse(txt) : null;
-  return Array.isArray(json) ? json[0] : json;
+  if (error) throw new Error(`Supabase insert failed: ${error.message}`);
+  return data;
 }
 
 export async function POST(req: Request) {

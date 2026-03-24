@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import Parser from "rss-parser";
 import * as cheerio from "cheerio";
+import { verifyCronRequest } from "@/lib/cronAuth";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 // ── 業界キーワード（これにマッチする記事だけ保存）──
 const RELEVANT_KEYWORDS = [
@@ -343,21 +344,12 @@ async function scrapesite(target: ScrapeTarget): Promise<ScrapedArticle[]> {
 
 export async function GET(req: NextRequest) {
   // cron秘密キーで認証
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { authorized, error: authError } = verifyCronRequest(req);
+  if (!authorized) {
+    return NextResponse.json({ error: authError ?? "Unauthorized" }, { status: 401 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json({ error: "Missing Supabase config" }, { status: 500 });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = getSupabaseAdmin();
 
   let totalFetched = 0;
   let totalSaved = 0;

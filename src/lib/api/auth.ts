@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { normalizeRole, type Role } from "@/lib/auth/roles";
 import { normalizePlanTier, type PlanTier } from "@/lib/billing/planFeatures";
 
@@ -21,12 +21,7 @@ export type CallerBasic = {
 };
 
 /** Supabase Admin クライアント取得 */
-export function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-}
+export { getSupabaseAdmin as getAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Read the active_tenant_id cookie.

@@ -1,12 +1,76 @@
 /**
- * Simple in-memory rate limiter for API routes.
+ * Rate limiter for API routes with Upstash Redis support.
  *
- * Uses a sliding-window counter keyed by IP (or custom key).
- * Not shared across serverless instances — provides best-effort
- * protection. For strict enforcement, swap to Upstash Redis.
+ * When UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN env vars are set,
+ * uses Upstash Redis for distributed rate limiting across serverless instances.
+ * Otherwise, falls back to the in-memory sliding-window counter (best-effort,
+ * not shared across instances).
+ *
+ * The return type is `RateLimitResult | Promise<RateLimitResult>`:
+ * - In-memory (no env vars): returns synchronous `RateLimitResult`
+ * - Upstash Redis: returns `Promise<RateLimitResult>` — callers should `await`
  */
 
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+// ---------------------------------------------------------------------------
+// Types (unchanged)
+// ---------------------------------------------------------------------------
+
 type Entry = { count: number; resetAt: number };
+
+type RateLimitOptions = {
+  /** Maximum requests allowed within the window */
+  limit: number;
+  /** Window duration in seconds */
+  windowSec: number;
+};
+
+type RateLimitResult = {
+  allowed: boolean;
+  remaining: number;
+  retryAfterSec: number;
+};
+
+// ---------------------------------------------------------------------------
+// Upstash Redis singleton
+// ---------------------------------------------------------------------------
+
+let redis: Redis | null | undefined; // undefined = not initialised yet
+
+function getRedis(): Redis | null {
+  if (redis !== undefined) return redis;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (url && token) {
+    redis = new Redis({ url, token });
+  } else {
+    redis = null;
+  }
+  return redis;
+}
+
+// Cache Ratelimit instances per (limit, windowSec) pair to avoid re-creation.
+const limiterCache = new Map<string, Ratelimit>();
+
+function getUpstashLimiter(opts: RateLimitOptions): Ratelimit {
+  const cacheKey = `${opts.limit}:${opts.windowSec}`;
+  let limiter = limiterCache.get(cacheKey);
+  if (!limiter) {
+    limiter = new Ratelimit({
+      redis: getRedis()!,
+      limiter: Ratelimit.slidingWindow(opts.limit, `${opts.windowSec} s`),
+      prefix: "rl:lib",
+    });
+    limiterCache.set(cacheKey, limiter);
+  }
+  return limiter;
+}
+
+// ---------------------------------------------------------------------------
+// In-memory fallback (original implementation)
+// ---------------------------------------------------------------------------
 
 const buckets = new Map<string, Entry>();
 
@@ -22,32 +86,7 @@ function cleanup(now: number) {
   }
 }
 
-type RateLimitOptions = {
-  /** Maximum requests allowed within the window */
-  limit: number;
-  /** Window duration in seconds */
-  windowSec: number;
-};
-
-type RateLimitResult = {
-  allowed: boolean;
-  remaining: number;
-  retryAfterSec: number;
-};
-
-/**
- * Check rate limit for a given key.
- *
- * @example
- * ```ts
- * const ip = req.headers.get("x-forwarded-for") ?? "unknown";
- * const rl = checkRateLimit(`otp:${ip}`, { limit: 5, windowSec: 300 });
- * if (!rl.allowed) {
- *   return NextResponse.json({ error: "rate_limited" }, { status: 429 });
- * }
- * ```
- */
-export function checkRateLimit(key: string, opts: RateLimitOptions): RateLimitResult {
+function checkRateLimitInMemory(key: string, opts: RateLimitOptions): RateLimitResult {
   const now = Date.now();
   cleanup(now);
 
@@ -67,6 +106,54 @@ export function checkRateLimit(key: string, opts: RateLimitOptions): RateLimitRe
   }
 
   return { allowed: true, remaining: opts.limit - existing.count, retryAfterSec: 0 };
+}
+
+// ---------------------------------------------------------------------------
+// Upstash Redis implementation
+// ---------------------------------------------------------------------------
+
+async function checkRateLimitRedis(key: string, opts: RateLimitOptions): Promise<RateLimitResult> {
+  const limiter = getUpstashLimiter(opts);
+  const result = await limiter.limit(key);
+
+  if (!result.success) {
+    const retryAfterSec = Math.ceil((result.reset - Date.now()) / 1000);
+    return { allowed: false, remaining: 0, retryAfterSec: Math.max(retryAfterSec, 0) };
+  }
+
+  return { allowed: true, remaining: result.remaining, retryAfterSec: 0 };
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Check rate limit for a given key.
+ *
+ * When Upstash Redis is configured (UPSTASH_REDIS_REST_URL / _TOKEN env vars),
+ * returns a `Promise<RateLimitResult>` — callers should `await` the result.
+ * When Redis is not configured, returns a synchronous `RateLimitResult`
+ * (backward-compatible with existing callers).
+ *
+ * @example
+ * ```ts
+ * const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+ * const rl = await checkRateLimit(`otp:${ip}`, { limit: 5, windowSec: 300 });
+ * if (!rl.allowed) {
+ *   return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+ * }
+ * ```
+ */
+export function checkRateLimit(
+  key: string,
+  opts: RateLimitOptions,
+): RateLimitResult | Promise<RateLimitResult> {
+  const r = getRedis();
+  if (r) {
+    return checkRateLimitRedis(key, opts);
+  }
+  return checkRateLimitInMemory(key, opts);
 }
 
 /**

@@ -1,17 +1,10 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { signupSchema } from "@/lib/validations/signup";
 import { apiOk, apiError, apiInternalError, apiValidationError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
-
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-}
 
 /** slug生成: 店舗名からURL-safeなslugを作成 */
 function generateSlug(name: string): string {

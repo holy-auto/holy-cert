@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const REQUIRED_ENV = [
   "NEXT_PUBLIC_SUPABASE_URL",
@@ -27,18 +27,12 @@ export async function GET() {
   let dbOk = false;
   let dbError: string | undefined;
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (url && key) {
-      const supabase = createClient(url, key, { auth: { persistSession: false } });
-      const { error } = await supabase.from("tenants").select("id").limit(1);
-      if (error) {
-        dbError = error.message;
-      } else {
-        dbOk = true;
-      }
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.from("tenants").select("id").limit(1);
+    if (error) {
+      dbError = error.message;
     } else {
-      dbError = "Missing Supabase credentials";
+      dbOk = true;
     }
   } catch (e) {
     dbError = e instanceof Error ? e.message : "Unknown error";
