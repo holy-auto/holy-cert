@@ -532,10 +532,10 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
               <div key={i} className="flex items-center gap-3 text-xs">
                 <span className="text-muted w-32 shrink-0">{formatDate(entry.created_at)}</span>
                 <span className="text-secondary">{entry.action}</span>
-                {entry.old_value?.status && entry.new_value?.status && (
+                {typeof entry.old_value?.status === "string" && typeof entry.new_value?.status === "string" && (
                   <span className="text-muted">
-                    {STATUS_LABELS[entry.old_value.status as OrderStatus] ?? String(entry.old_value.status)} →{" "}
-                    {STATUS_LABELS[entry.new_value.status as OrderStatus] ?? String(entry.new_value.status)}
+                    {STATUS_LABELS[entry.old_value.status as OrderStatus] ?? entry.old_value.status} →{" "}
+                    {STATUS_LABELS[entry.new_value.status as OrderStatus] ?? entry.new_value.status}
                   </span>
                 )}
               </div>
