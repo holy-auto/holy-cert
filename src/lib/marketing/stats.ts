@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 /**
  * マーケティングページ用のリアルタイム統計情報を取得
@@ -8,14 +8,6 @@ export type MarketingStats = {
   shopCount: string;
   certificateCount: string;
 };
-
-/** Supabase Admin で集計（RLS バイパス） */
-async function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-}
 
 /** 数値を "500+" 形式にフォーマット */
 function formatCount(n: number): string {
@@ -35,8 +27,8 @@ export async function getMarketingStats(): Promise<MarketingStats> {
   const fallback: MarketingStats = { shopCount: "—", certificateCount: "—" };
 
   try {
-    const supabase = await getAdminClient();
-    if (!supabase) return fallback;
+    let supabase;
+    try { supabase = getSupabaseAdmin(); } catch { return fallback; }
 
     const [tenants, certs] = await Promise.all([
       supabase.from("tenants").select("id", { count: "exact", head: true }).eq("is_active", true),

@@ -95,7 +95,7 @@ export async function getTenantIdBySlug(slug: string): Promise<string | null> {
 
 export async function tenantHasPhoneHash(tenantId: string, phoneHash: string): Promise<boolean> {
   const rows = await supaGet(
-    `certificates?select=id&tenant_id=eq.${tenantId}&customer_phone_last4_hash=eq.${phoneHash}&limit=1`
+    `certificates?select=id&tenant_id=eq.${encodeURIComponent(tenantId)}&customer_phone_last4_hash=eq.${encodeURIComponent(phoneHash)}&limit=1`
   );
   return Array.isArray(rows) && rows.length > 0;
 }
@@ -114,17 +114,17 @@ export async function createLoginCode(tenantId: string, email: string, phoneHash
 export async function getLatestValidCodeRow(tenantId: string, email: string, phoneHash: string) {
   const e = encodeURIComponent(normalizeEmail(email));
   const rows = await supaGet(
-    `customer_login_codes?select=id,code_hash,expires_at,used_at,attempts&tenant_id=eq.${tenantId}&email=eq.${e}&phone_last4_hash=eq.${phoneHash}&order=created_at.desc&limit=1`
+    `customer_login_codes?select=id,code_hash,expires_at,used_at,attempts&tenant_id=eq.${encodeURIComponent(tenantId)}&email=eq.${e}&phone_last4_hash=eq.${encodeURIComponent(phoneHash)}&order=created_at.desc&limit=1`
   );
   return rows?.[0] ?? null;
 }
 
 export async function markCodeAttempt(id: string, attempts: number) {
-  await supaPatch(`customer_login_codes?id=eq.${id}`, { attempts });
+  await supaPatch(`customer_login_codes?id=eq.${encodeURIComponent(id)}`, { attempts });
 }
 
 export async function markCodeUsed(id: string) {
-  await supaPatch(`customer_login_codes?id=eq.${id}`, { used_at: new Date().toISOString() });
+  await supaPatch(`customer_login_codes?id=eq.${encodeURIComponent(id)}`, { used_at: new Date().toISOString() });
 }
 
 export async function createSession(tenantId: string, email: string, phoneHash: string, last4Plain: string) {
@@ -145,13 +145,13 @@ export async function createSession(tenantId: string, email: string, phoneHash: 
 
 export async function revokeSessionByToken(token: string) {
   const sHash = sessionHash(token);
-  await supaPatch(`customer_sessions?session_hash=eq.${sHash}`, { revoked_at: new Date().toISOString() });
+  await supaPatch(`customer_sessions?session_hash=eq.${encodeURIComponent(sHash)}`, { revoked_at: new Date().toISOString() });
 }
 
 export async function validateSession(tenantId: string, token: string) {
   const sHash = sessionHash(token);
   const rows = await supaGet(
-    `customer_sessions?select=id,email,phone_last4_hash,phone_last4_plain,expires_at,revoked_at&tenant_id=eq.${tenantId}&session_hash=eq.${sHash}&limit=1`
+    `customer_sessions?select=id,email,phone_last4_hash,phone_last4_plain,expires_at,revoked_at&tenant_id=eq.${encodeURIComponent(tenantId)}&session_hash=eq.${encodeURIComponent(sHash)}&limit=1`
   );
   const r = rows?.[0];
   if (!r) return null;
@@ -164,8 +164,8 @@ export async function listCertificatesForCustomer(tenantId: string, phoneHash: s
   // 1) 新方式：hash一致
   const q1 =
     `certificates?select=public_id,customer_name,vehicle_info_json,created_at,status` +
-    `&tenant_id=eq.${tenantId}` +
-    `&customer_phone_last4_hash=eq.${phoneHash}` +
+    `&tenant_id=eq.${encodeURIComponent(tenantId)}` +
+    `&customer_phone_last4_hash=eq.${encodeURIComponent(phoneHash)}` +
     `&status=eq.active&order=created_at.desc`;
   const r1 = await supaGet(q1);
   if (Array.isArray(r1) && r1.length > 0) return r1;
@@ -173,8 +173,8 @@ export async function listCertificatesForCustomer(tenantId: string, phoneHash: s
   // 2) 旧方式：customer_phone_last4 に平文が入っている
   const q2 =
     `certificates?select=public_id,customer_name,vehicle_info_json,created_at,status` +
-    `&tenant_id=eq.${tenantId}` +
-    `&customer_phone_last4=eq.${last4Plain}` +
+    `&tenant_id=eq.${encodeURIComponent(tenantId)}` +
+    `&customer_phone_last4=eq.${encodeURIComponent(last4Plain)}` +
     `&status=eq.active&order=created_at.desc`;
   const r2 = await supaGet(q2);
   if (Array.isArray(r2) && r2.length > 0) return r2;
@@ -182,8 +182,8 @@ export async function listCertificatesForCustomer(tenantId: string, phoneHash: s
   // 3) 旧バグ救済：hash列に平文(1234等)が入っていた
   const q3 =
     `certificates?select=public_id,customer_name,vehicle_info_json,created_at,status` +
-    `&tenant_id=eq.${tenantId}` +
-    `&customer_phone_last4_hash=eq.${last4Plain}` +
+    `&tenant_id=eq.${encodeURIComponent(tenantId)}` +
+    `&customer_phone_last4_hash=eq.${encodeURIComponent(last4Plain)}` +
     `&status=eq.active&order=created_at.desc`;
   const r3 = await supaGet(q3);
   return Array.isArray(r3) ? r3 : [];
@@ -198,12 +198,12 @@ export async function listHistoryForCustomer(tenantId: string, phoneHash: string
   const certPublicIds = certs.map((c: any) => c.public_id);
   // vehicle_histories から certificate に紐づくイベントを取得
   // certificate_id ベースで検索するために certificates の id が必要
-  const certIdQuery = `certificates?select=id,public_id&tenant_id=eq.${tenantId}&public_id=in.(${certPublicIds.map((id: string) => `"${id}"`).join(",")})`;
+  const certIdQuery = `certificates?select=id,public_id&tenant_id=eq.${encodeURIComponent(tenantId)}&public_id=in.(${certPublicIds.map((id: string) => `"${encodeURIComponent(id)}"`).join(",")})`;
   const certRows = await supaGet(certIdQuery);
   if (!certRows || certRows.length === 0) return [];
 
   const certIds = certRows.map((c: any) => c.id);
-  const histQuery = `vehicle_histories?select=id,type,title,description,performed_at,certificate_id&tenant_id=eq.${tenantId}&certificate_id=in.(${certIds.map((id: string) => `"${id}"`).join(",")})&order=performed_at.desc&limit=50`;
+  const histQuery = `vehicle_histories?select=id,type,title,description,performed_at,certificate_id&tenant_id=eq.${encodeURIComponent(tenantId)}&certificate_id=in.(${certIds.map((id: string) => `"${encodeURIComponent(id)}"`).join(",")})&order=performed_at.desc&limit=50`;
   const histories = await supaGet(histQuery);
   return Array.isArray(histories) ? histories : [];
 }
@@ -220,13 +220,13 @@ export async function listReservationsForCustomer(tenantId: string, phoneHash: s
 
   // 名前の最初の値で customers を検索
   const nameParam = encodeURIComponent(customerNames[0]);
-  const customerQuery = `customers?select=id&tenant_id=eq.${tenantId}&name=eq.${nameParam}&limit=1`;
+  const customerQuery = `customers?select=id&tenant_id=eq.${encodeURIComponent(tenantId)}&name=eq.${nameParam}&limit=1`;
   const customers = await supaGet(customerQuery);
   if (!customers || customers.length === 0) return [];
 
   const customerId = customers[0].id;
   const today = new Date().toISOString().slice(0, 10);
-  const reservationQuery = `reservations?select=id,date,time_slot,menu,status,note&tenant_id=eq.${tenantId}&customer_id=eq.${customerId}&date=gte.${today}&status=neq.cancelled&order=date.asc&limit=10`;
+  const reservationQuery = `reservations?select=id,date,time_slot,menu,status,note&tenant_id=eq.${encodeURIComponent(tenantId)}&customer_id=eq.${encodeURIComponent(customerId)}&date=gte.${encodeURIComponent(today)}&status=neq.cancelled&order=date.asc&limit=10`;
   const reservations = await supaGet(reservationQuery);
   return Array.isArray(reservations) ? reservations : [];
 }
@@ -240,7 +240,7 @@ export async function getCustomerProfile(tenantId: string, phoneHash: string, la
   if (customerNames.length === 0) return null;
 
   const nameParam = encodeURIComponent(customerNames[0]);
-  const customerQuery = `customers?select=id,name,email,phone&tenant_id=eq.${tenantId}&name=eq.${nameParam}&limit=1`;
+  const customerQuery = `customers?select=id,name,email,phone&tenant_id=eq.${encodeURIComponent(tenantId)}&name=eq.${nameParam}&limit=1`;
   const customers = await supaGet(customerQuery);
   if (!customers || customers.length === 0) {
     return { name: customerNames[0], email: null, phone: null, certificateCount: certs.length };

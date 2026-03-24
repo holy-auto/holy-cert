@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { apiUnauthorized, apiInternalError, apiOk } from "@/lib/api/response";
+import { verifyCronRequest } from "@/lib/cronAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +11,9 @@ export const dynamic = "force-dynamic";
  * 2. Clean up old stripe_processed_events (>90 days)
  */
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return apiUnauthorized();
+  const { authorized, error: authError } = verifyCronRequest(req);
+  if (!authorized) {
+    return apiUnauthorized(authError);
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
