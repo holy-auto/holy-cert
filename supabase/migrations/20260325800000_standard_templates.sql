@@ -6,6 +6,9 @@
 -- 1. templates.tenant_id を NULLABLE に変更（共通テンプレート用）
 ALTER TABLE templates ALTER COLUMN tenant_id DROP NOT NULL;
 
+-- 1b. scope/tenant_id のチェック制約を緩和（共通テンプレートは tenant_id NULL を許可）
+ALTER TABLE templates DROP CONSTRAINT IF EXISTS templates_scope_tenant_chk;
+
 -- 2. RLSポリシー更新: tenant_id IS NULL の共通テンプレートは全認証ユーザーがSELECT可能
 DROP POLICY IF EXISTS "tpl_select" ON templates;
 CREATE POLICY "tpl_select" ON templates
