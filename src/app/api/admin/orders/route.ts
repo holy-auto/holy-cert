@@ -80,9 +80,10 @@ export async function GET(req: NextRequest) {
       // 自テナントの案件は除外
       query = query.neq("from_tenant_id", tenantId);
 
-      // カテゴリ or タイトル検索
+      // カテゴリ or タイトル検索（PostgREST特殊文字をエスケープ）
       if (browseQuery) {
-        query = query.or(`title.ilike.%${browseQuery}%,category.ilike.%${browseQuery}%,description.ilike.%${browseQuery}%`);
+        const sanitized = browseQuery.replace(/[%_\\,().]/g, (ch) => `\\${ch}`);
+        query = query.or(`title.ilike.%${sanitized}%,category.ilike.%${sanitized}%,description.ilike.%${sanitized}%`);
       }
       if (status && status !== "all") {
         query = query.eq("status", status);
@@ -188,7 +189,7 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error("[orders] insert_failed:", JSON.stringify({ message: error.message, details: error.details, hint: error.hint, code: error.code }));
       return NextResponse.json(
-        { error: error.message, details: error.details, hint: error.hint, code: error.code },
+        { error: "注文の作成に失敗しました" },
         { status: 500 },
       );
     }
