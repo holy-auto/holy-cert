@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "cartrust",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -58,7 +59,8 @@
         {
           "photosPermission": "CARTRUSTは施工写真の選択に使用します"
         }
-      ]
+      ],
+      "expo-sqlite"
     ]
   }
 }
