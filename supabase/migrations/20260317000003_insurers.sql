@@ -89,6 +89,7 @@ as $$
 $$;
 
 -- insurers: read own insurer
+drop policy if exists "insurers_select" on insurers;
 create policy "insurers_select" on insurers
   for select using (id in (select my_insurer_ids()));
 

@@ -151,5 +151,6 @@ create policy "aal_select_platform_admin" on admin_audit_logs
 -- RLS for platform_config: read-only for authenticated, no public writes
 alter table platform_config enable row level security;
 
+drop policy if exists "platform_config_select" on platform_config;
 create policy "platform_config_select" on platform_config
   for select using (true);

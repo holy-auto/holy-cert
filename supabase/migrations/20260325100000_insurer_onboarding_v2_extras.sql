@@ -79,11 +79,18 @@ end $$;
 
 -- =============================================================
 -- M-6: Corporate number validation (prep for API integration)
--- Add index for lookup
+-- Add index for lookup (guard: column must exist from 20260325000000)
 -- =============================================================
-create index if not exists idx_insurers_corporate_number
-  on insurers (corporate_number)
-  where corporate_number is not null;
+do $$ begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'insurers' and column_name = 'corporate_number'
+  ) then
+    create index if not exists idx_insurers_corporate_number
+      on insurers (corporate_number)
+      where corporate_number is not null;
+  end if;
+end $$;
 
 -- =============================================================
 -- M-1: Slug generation with retry (replace register_insurer_v2)
