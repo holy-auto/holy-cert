@@ -1,26 +1,24 @@
 -- =============================================================
--- job_orders: 全カラムの NOT NULL 制約を正規化
--- 本来 nullable であるべきカラムから NOT NULL を除去し、
--- DB手動変更による不整合を一括修正する
+-- job_orders: 全カラムの NOT NULL 制約を動的に正規化
+-- DB上に手動追加されたカラムも含め、必須カラム以外の
+-- NOT NULL を一括で除去する
 -- =============================================================
 
--- 任意カラム: NOT NULL を DROP（すでに nullable なら no-op）
-ALTER TABLE job_orders ALTER COLUMN description DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN category DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN budget DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN deadline DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN vehicle_id DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN order_number DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN accepted_amount DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN payment_method DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN vendor_completed_at DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN client_approved_at DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN cancelled_by DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN cancel_reason DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN created_at DROP NOT NULL;
-ALTER TABLE job_orders ALTER COLUMN updated_at DROP NOT NULL;
-
--- 必須カラム: NOT NULL を確保（本来 NOT NULL であるべきもの）
--- from_tenant_id, title, status, payment_status,
--- payment_confirmed_by_client, payment_confirmed_by_vendor, public_id
--- → これらは既にマイグレーションで NOT NULL 設定済みなので触らない
+DO $$
+DECLARE
+  col record;
+  -- 本当に NOT NULL であるべきカラムのみ列挙
+  required_cols text[] := ARRAY['id', 'from_tenant_id', 'title', 'status'];
+BEGIN
+  FOR col IN
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'job_orders'
+      AND is_nullable = 'NO'
+      AND column_name != ALL(required_cols)
+  LOOP
+    RAISE NOTICE 'Dropping NOT NULL from job_orders.%', col.column_name;
+    EXECUTE format('ALTER TABLE job_orders ALTER COLUMN %I DROP NOT NULL', col.column_name);
+  END LOOP;
+END $$;
