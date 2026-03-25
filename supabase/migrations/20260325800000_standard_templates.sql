@@ -66,3 +66,6 @@ DELETE FROM platform_templates WHERE name IN (
   'クリーンホワイト',
   'クラフトナチュラル'
 );
+
+-- 5. テナント固有の旧テンプレートを削除
+DELETE FROM templates WHERE name LIKE 'HOLY標準テンプレ%';
