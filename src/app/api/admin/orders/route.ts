@@ -181,14 +181,18 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error("[orders] insert_failed:", error.message, error.details, error.hint);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[orders] insert_failed:", JSON.stringify({ message: error.message, details: error.details, hint: error.hint, code: error.code }));
+      return NextResponse.json(
+        { error: error.message, details: error.details, hint: error.hint, code: error.code },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ order: data }, { status: 201 });
   } catch (e: unknown) {
-    console.error("[orders] POST failed:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[orders] POST failed:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
