@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS partner_scores (
 ALTER TABLE partner_scores ENABLE ROW LEVEL SECURITY;
 
 -- SELECT: 全認証ユーザーが参照可（取引先選定に使うため）
+DROP POLICY IF EXISTS "partner_scores_select" ON partner_scores;
 CREATE POLICY "partner_scores_select" ON partner_scores FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
