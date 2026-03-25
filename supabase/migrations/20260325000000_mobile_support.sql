@@ -63,7 +63,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_idempotency
   ON payments(idempotency_key) WHERE idempotency_key IS NOT NULL;
 
 
--- 5. 車両履歴テーブル拡張: 顧客公開フラグ
+-- 5. 車両履歴テーブル拡張: performed_at(防御的追加) + 顧客公開フラグ
+ALTER TABLE vehicle_histories ADD COLUMN IF NOT EXISTS performed_at timestamptz NOT NULL DEFAULT now();
 ALTER TABLE vehicle_histories ADD COLUMN IF NOT EXISTS is_public boolean DEFAULT false;
 ALTER TABLE vehicle_histories ADD COLUMN IF NOT EXISTS progress_label text;
 
