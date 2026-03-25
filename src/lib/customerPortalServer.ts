@@ -1,7 +1,6 @@
 ﻿import crypto from "crypto";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SRK = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const PEPPER = process.env.CUSTOMER_AUTH_PEPPER!;
 
 export const CUSTOMER_COOKIE = "hc_cs";
@@ -9,9 +8,8 @@ export const OTP_TTL_MIN = 10;
 export const SESSION_TTL_DAYS = 30;
 
 function assertEnv() {
-  if (!SUPA_URL) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
-  if (!SRK) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
   if (!PEPPER) throw new Error("Missing CUSTOMER_AUTH_PEPPER");
+  // getSupabaseAdmin() will throw if Supabase credentials are missing
 }
 
 export function sha256Hex(s: string) {
@@ -49,82 +47,73 @@ export function sessionHash(token: string) {
   return sha256Hex(`sess|v1|${token}|${PEPPER}`);
 }
 
-async function supaGet(path: string) {
+/** Get the shared admin Supabase client (singleton) */
+function admin() {
   assertEnv();
-  const res = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-    method: "GET",
-    cache: "no-store",
-    headers: { apikey: SRK, Authorization: `Bearer ${SRK}` },
-  });
-  if (!res.ok) throw new Error(`Supabase GET ${path} failed: ${res.status} ${await res.text().catch(() => "")}`);
-  return await res.json();
-}
-
-async function supaPost(path: string, body: any, preferReturn = true) {
-  assertEnv();
-  const res = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-    method: "POST",
-    cache: "no-store",
-    headers: {
-      apikey: SRK,
-      Authorization: `Bearer ${SRK}`,
-      "Content-Type": "application/json",
-      Prefer: preferReturn ? "return=representation" : "return=minimal",
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Supabase POST ${path} failed: ${res.status} ${await res.text().catch(() => "")}`);
-  return preferReturn ? await res.json() : null;
-}
-
-async function supaPatch(path: string, body: any) {
-  assertEnv();
-  const res = await fetch(`${SUPA_URL}/rest/v1/${path}`, {
-    method: "PATCH",
-    cache: "no-store",
-    headers: { apikey: SRK, Authorization: `Bearer ${SRK}`, "Content-Type": "application/json", Prefer: "return=minimal" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Supabase PATCH ${path} failed: ${res.status} ${await res.text().catch(() => "")}`);
+  return getSupabaseAdmin();
 }
 
 export async function getTenantIdBySlug(slug: string): Promise<string | null> {
-  const rows = await supaGet(`tenants?select=id&slug=eq.${encodeURIComponent(slug)}&limit=1`);
-  return rows?.[0]?.id ?? null;
+  const { data } = await admin()
+    .from("tenants")
+    .select("id")
+    .eq("slug", slug)
+    .limit(1)
+    .maybeSingle();
+  return data?.id ?? null;
 }
 
 export async function tenantHasPhoneHash(tenantId: string, phoneHash: string): Promise<boolean> {
-  const rows = await supaGet(
-    `certificates?select=id&tenant_id=eq.${tenantId}&customer_phone_last4_hash=eq.${phoneHash}&limit=1`
-  );
-  return Array.isArray(rows) && rows.length > 0;
+  const { data } = await admin()
+    .from("certificates")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("customer_phone_last4_hash", phoneHash)
+    .limit(1);
+  return Array.isArray(data) && data.length > 0;
 }
 
 export async function createLoginCode(tenantId: string, email: string, phoneHash: string, code: string, expiresAtIso: string) {
   const code_hash = otpCodeHash(tenantId, email, phoneHash, code);
-  await supaPost("customer_login_codes", {
-    tenant_id: tenantId,
-    email: normalizeEmail(email),
-    phone_last4_hash: phoneHash,
-    code_hash,
-    expires_at: expiresAtIso,
-  }, false);
+  const { error } = await admin()
+    .from("customer_login_codes")
+    .insert({
+      tenant_id: tenantId,
+      email: normalizeEmail(email),
+      phone_last4_hash: phoneHash,
+      code_hash,
+      expires_at: expiresAtIso,
+    });
+  if (error) throw new Error(`createLoginCode failed: ${error.message}`);
 }
 
 export async function getLatestValidCodeRow(tenantId: string, email: string, phoneHash: string) {
-  const e = encodeURIComponent(normalizeEmail(email));
-  const rows = await supaGet(
-    `customer_login_codes?select=id,code_hash,expires_at,used_at,attempts&tenant_id=eq.${tenantId}&email=eq.${e}&phone_last4_hash=eq.${phoneHash}&order=created_at.desc&limit=1`
-  );
-  return rows?.[0] ?? null;
+  const { data } = await admin()
+    .from("customer_login_codes")
+    .select("id, code_hash, expires_at, used_at, attempts")
+    .eq("tenant_id", tenantId)
+    .eq("email", normalizeEmail(email))
+    .eq("phone_last4_hash", phoneHash)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ?? null;
 }
 
 export async function markCodeAttempt(id: string, attempts: number) {
-  await supaPatch(`customer_login_codes?id=eq.${id}`, { attempts });
+  const { error } = await admin()
+    .from("customer_login_codes")
+    .update({ attempts })
+    .eq("id", id);
+  if (error) throw new Error(`markCodeAttempt failed: ${error.message}`);
 }
 
 export async function markCodeUsed(id: string) {
-  await supaPatch(`customer_login_codes?id=eq.${id}`, { used_at: new Date().toISOString() });
+  const { error } = await admin()
+    .from("customer_login_codes")
+    .update({ used_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(`markCodeUsed failed: ${error.message}`);
 }
 
 export async function createSession(tenantId: string, email: string, phoneHash: string, last4Plain: string) {
@@ -132,103 +121,135 @@ export async function createSession(tenantId: string, email: string, phoneHash: 
   const sHash = sessionHash(token);
   const expires = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-  await supaPost("customer_sessions", {
-    tenant_id: tenantId,
-    email: normalizeEmail(email),
-    phone_last4_hash: phoneHash,
-    session_hash: sHash,
-    expires_at: expires,
-  }, false);
+  const { error } = await admin()
+    .from("customer_sessions")
+    .insert({
+      tenant_id: tenantId,
+      email: normalizeEmail(email),
+      phone_last4_hash: phoneHash,
+      session_hash: sHash,
+      expires_at: expires,
+    });
+  if (error) throw new Error(`createSession failed: ${error.message}`);
 
   return { token, expiresAtIso: expires };
 }
 
 export async function revokeSessionByToken(token: string) {
   const sHash = sessionHash(token);
-  await supaPatch(`customer_sessions?session_hash=eq.${sHash}`, { revoked_at: new Date().toISOString() });
+  const { error } = await admin()
+    .from("customer_sessions")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("session_hash", sHash);
+  if (error) throw new Error(`revokeSessionByToken failed: ${error.message}`);
 }
 
 export async function validateSession(tenantId: string, token: string) {
   const sHash = sessionHash(token);
-  const rows = await supaGet(
-    `customer_sessions?select=id,email,phone_last4_hash,phone_last4_plain,expires_at,revoked_at&tenant_id=eq.${tenantId}&session_hash=eq.${sHash}&limit=1`
-  );
-  const r = rows?.[0];
-  if (!r) return null;
-  if (r.revoked_at) return null;
-  if (new Date(r.expires_at).getTime() < Date.now()) return null;
-  return r as { email: string; phone_last4_hash: string; phone_last4_plain: string | null };
+  const { data } = await admin()
+    .from("customer_sessions")
+    .select("id, email, phone_last4_hash, phone_last4_plain, expires_at, revoked_at")
+    .eq("tenant_id", tenantId)
+    .eq("session_hash", sHash)
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  if (data.revoked_at) return null;
+  if (new Date(data.expires_at).getTime() < Date.now()) return null;
+  return data as { email: string; phone_last4_hash: string; phone_last4_plain: string | null };
 }
 
 export async function listCertificatesForCustomer(tenantId: string, phoneHash: string, last4Plain: string) {
+  const selectCols = "public_id, customer_name, vehicle_info_json, created_at, status";
+  const db = admin();
+
   // 1) 新方式：hash一致
-  const q1 =
-    `certificates?select=public_id,customer_name,vehicle_info_json,created_at,status` +
-    `&tenant_id=eq.${tenantId}` +
-    `&customer_phone_last4_hash=eq.${phoneHash}` +
-    `&status=eq.active&order=created_at.desc`;
-  const r1 = await supaGet(q1);
-  if (Array.isArray(r1) && r1.length > 0) return r1;
+  const { data: r1 } = await db
+    .from("certificates")
+    .select(selectCols)
+    .eq("tenant_id", tenantId)
+    .eq("customer_phone_last4_hash", phoneHash)
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+  if (r1 && r1.length > 0) return r1;
 
   // 2) 旧方式：customer_phone_last4 に平文が入っている
-  const q2 =
-    `certificates?select=public_id,customer_name,vehicle_info_json,created_at,status` +
-    `&tenant_id=eq.${tenantId}` +
-    `&customer_phone_last4=eq.${last4Plain}` +
-    `&status=eq.active&order=created_at.desc`;
-  const r2 = await supaGet(q2);
-  if (Array.isArray(r2) && r2.length > 0) return r2;
+  const { data: r2 } = await db
+    .from("certificates")
+    .select(selectCols)
+    .eq("tenant_id", tenantId)
+    .eq("customer_phone_last4", last4Plain)
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+  if (r2 && r2.length > 0) return r2;
 
   // 3) 旧バグ救済：hash列に平文(1234等)が入っていた
-  const q3 =
-    `certificates?select=public_id,customer_name,vehicle_info_json,created_at,status` +
-    `&tenant_id=eq.${tenantId}` +
-    `&customer_phone_last4_hash=eq.${last4Plain}` +
-    `&status=eq.active&order=created_at.desc`;
-  const r3 = await supaGet(q3);
-  return Array.isArray(r3) ? r3 : [];
+  const { data: r3 } = await db
+    .from("certificates")
+    .select(selectCols)
+    .eq("tenant_id", tenantId)
+    .eq("customer_phone_last4_hash", last4Plain)
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+  return r3 ?? [];
 }
 
 /** 顧客の施工履歴（vehicle_histories）を取得 */
 export async function listHistoryForCustomer(tenantId: string, phoneHash: string, last4Plain: string) {
-  // まず証明書IDを取得
   const certs = await listCertificatesForCustomer(tenantId, phoneHash, last4Plain);
   if (!certs || certs.length === 0) return [];
 
   const certPublicIds = certs.map((c: any) => c.public_id);
-  // vehicle_histories から certificate に紐づくイベントを取得
+  const db = admin();
+
   // certificate_id ベースで検索するために certificates の id が必要
-  const certIdQuery = `certificates?select=id,public_id&tenant_id=eq.${tenantId}&public_id=in.(${certPublicIds.map((id: string) => `"${id}"`).join(",")})`;
-  const certRows = await supaGet(certIdQuery);
+  const { data: certRows } = await db
+    .from("certificates")
+    .select("id, public_id")
+    .eq("tenant_id", tenantId)
+    .in("public_id", certPublicIds);
   if (!certRows || certRows.length === 0) return [];
 
   const certIds = certRows.map((c: any) => c.id);
-  const histQuery = `vehicle_histories?select=id,type,title,description,performed_at,certificate_id&tenant_id=eq.${tenantId}&certificate_id=in.(${certIds.map((id: string) => `"${id}"`).join(",")})&order=performed_at.desc&limit=50`;
-  const histories = await supaGet(histQuery);
-  return Array.isArray(histories) ? histories : [];
+  const { data: histories } = await db
+    .from("vehicle_histories")
+    .select("id, type, title, description, performed_at, certificate_id")
+    .eq("tenant_id", tenantId)
+    .in("certificate_id", certIds)
+    .order("performed_at", { ascending: false })
+    .limit(50);
+  return histories ?? [];
 }
 
 /** 顧客の今後の予約を取得 */
 export async function listReservationsForCustomer(tenantId: string, phoneHash: string, last4Plain: string) {
-  // 顧客を特定：customer_phone_last4_hash または customer_phone_last4 で certificates → customer_id
   const certs = await listCertificatesForCustomer(tenantId, phoneHash, last4Plain);
   if (!certs || certs.length === 0) return [];
 
-  // customer_name から customers テーブルで顧客を検索
   const customerNames = [...new Set(certs.map((c: any) => c.customer_name).filter(Boolean))];
   if (customerNames.length === 0) return [];
 
-  // 名前の最初の値で customers を検索
-  const nameParam = encodeURIComponent(customerNames[0]);
-  const customerQuery = `customers?select=id&tenant_id=eq.${tenantId}&name=eq.${nameParam}&limit=1`;
-  const customers = await supaGet(customerQuery);
+  const db = admin();
+  const { data: customers } = await db
+    .from("customers")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("name", customerNames[0])
+    .limit(1);
   if (!customers || customers.length === 0) return [];
 
   const customerId = customers[0].id;
   const today = new Date().toISOString().slice(0, 10);
-  const reservationQuery = `reservations?select=id,date,time_slot,menu,status,note&tenant_id=eq.${tenantId}&customer_id=eq.${customerId}&date=gte.${today}&status=neq.cancelled&order=date.asc&limit=10`;
-  const reservations = await supaGet(reservationQuery);
-  return Array.isArray(reservations) ? reservations : [];
+  const { data: reservations } = await db
+    .from("reservations")
+    .select("id, date, time_slot, menu, status, note")
+    .eq("tenant_id", tenantId)
+    .eq("customer_id", customerId)
+    .gte("date", today)
+    .neq("status", "cancelled")
+    .order("date", { ascending: true })
+    .limit(10);
+  return reservations ?? [];
 }
 
 /** 顧客プロフィール情報を取得 */
@@ -239,9 +260,12 @@ export async function getCustomerProfile(tenantId: string, phoneHash: string, la
   const customerNames = [...new Set(certs.map((c: any) => c.customer_name).filter(Boolean))];
   if (customerNames.length === 0) return null;
 
-  const nameParam = encodeURIComponent(customerNames[0]);
-  const customerQuery = `customers?select=id,name,email,phone&tenant_id=eq.${tenantId}&name=eq.${nameParam}&limit=1`;
-  const customers = await supaGet(customerQuery);
+  const { data: customers } = await admin()
+    .from("customers")
+    .select("id, name, email, phone")
+    .eq("tenant_id", tenantId)
+    .eq("name", customerNames[0])
+    .limit(1);
   if (!customers || customers.length === 0) {
     return { name: customerNames[0], email: null, phone: null, certificateCount: certs.length };
   }

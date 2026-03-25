@@ -34,10 +34,12 @@ export async function GET(
     const mapTenant = (d: Record<string, unknown> | null) =>
       d ? { id: d.id, company_name: d.name, slug: d.slug } : null;
 
-    const fromTenant = await supabase.from("tenants").select("id, name, slug").eq("id", order.from_tenant_id).single();
-    const toTenant = order.to_tenant_id
-      ? await supabase.from("tenants").select("id, name, slug").eq("id", order.to_tenant_id).single()
-      : { data: null };
+    const [fromTenant, toTenant] = await Promise.all([
+      supabase.from("tenants").select("id, name, slug").eq("id", order.from_tenant_id).single(),
+      order.to_tenant_id
+        ? supabase.from("tenants").select("id, name, slug").eq("id", order.to_tenant_id).single()
+        : Promise.resolve({ data: null }),
+    ]);
 
     // 紐づく帳票
     const { data: documents } = await supabase

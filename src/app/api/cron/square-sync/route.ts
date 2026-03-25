@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getAdminClient } from "@/lib/api/auth";
 import { apiOk, apiUnauthorized, apiInternalError, apiError } from "@/lib/api/response";
+import { verifyCronRequest } from "@/lib/cronAuth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -130,16 +131,10 @@ export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Auth: verify CRON_SECRET
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret) {
-      console.error("[square cron] CRON_SECRET env var is not set");
-      return apiInternalError(new Error("CRON_SECRET not configured"), "square cron");
-    }
-
-    const authHeader = req.headers.get("authorization");
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return apiUnauthorized("Invalid cron authorization.");
+    // Auth: verify cron request
+    const { authorized, error: authError } = verifyCronRequest(req);
+    if (!authorized) {
+      return apiUnauthorized(authError);
     }
 
     const admin = getAdminClient();
