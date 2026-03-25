@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { makePublicId } from "@/lib/publicId";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -165,6 +166,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await admin
       .from("job_orders")
       .insert({
+        public_id: makePublicId(),
         from_tenant_id: tenantId,
         to_tenant_id: to_tenant_id || null,
         title,
