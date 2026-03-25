@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 /**
  * POST /api/admin/orders/[id]/review
@@ -26,8 +27,10 @@ export async function POST(
       return NextResponse.json({ error: "rating は 1〜5 の整数で指定してください" }, { status: 400 });
     }
 
+    const admin = getSupabaseAdmin();
+
     // 注文取得
-    const { data: order } = await supabase
+    const { data: order } = await admin
       .from("job_orders")
       .select("id, from_tenant_id, to_tenant_id, status")
       .eq("id", id)
@@ -42,13 +45,17 @@ export async function POST(
       return NextResponse.json({ error: "完了済みの取引のみ評価可能です" }, { status: 400 });
     }
 
+    if (!order.to_tenant_id) {
+      return NextResponse.json({ error: "受注者が未確定のため評価できません" }, { status: 400 });
+    }
+
     // reviewer / reviewed を特定
     const isFrom = order.from_tenant_id === tenantId;
     const reviewerTenantId = tenantId;
     const reviewedTenantId = isFrom ? order.to_tenant_id : order.from_tenant_id;
 
     // 重複チェック
-    const { data: existing } = await supabase
+    const { data: existing } = await admin
       .from("order_reviews")
       .select("id")
       .eq("job_order_id", id)
@@ -59,7 +66,7 @@ export async function POST(
       return NextResponse.json({ error: "この取引への評価は既に送信済みです" }, { status: 409 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("order_reviews")
       .insert({
         job_order_id: id,
@@ -77,10 +84,10 @@ export async function POST(
     }
 
     // パートナースコア更新（fire-and-forget）
-    supabase.rpc("refresh_partner_score", { p_tenant_id: reviewedTenantId }).then(() => {});
+    admin.rpc("refresh_partner_score", { p_tenant_id: reviewedTenantId }).then(() => {});
 
     // 監査ログ
-    supabase
+    admin
       .from("order_audit_log")
       .insert({
         job_order_id: id,

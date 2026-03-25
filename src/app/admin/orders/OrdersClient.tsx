@@ -84,6 +84,47 @@ const CATEGORY_OPTIONS = [
   "インテリアリペア", "デントリペア", "その他",
 ];
 
+interface PartnerScore {
+  total_orders: number;
+  completed_orders: number;
+  on_time_orders: number;
+  cancelled_orders: number;
+  avg_rating: number | null;
+  rating_count: number;
+}
+
+interface PartnerRank {
+  key: string;
+  label: string;
+  color: string;
+  bgColor: string;
+  minCompleted: number;
+  minRating: number | null;
+}
+
+const PARTNER_RANKS: PartnerRank[] = [
+  { key: "platinum", label: "プラチナ", color: "text-violet-600 dark:text-violet-400", bgColor: "bg-violet-100 dark:bg-violet-900/40", minCompleted: 50, minRating: 4.0 },
+  { key: "gold",     label: "ゴールド", color: "text-yellow-600 dark:text-yellow-400", bgColor: "bg-yellow-100 dark:bg-yellow-900/40", minCompleted: 20, minRating: 3.5 },
+  { key: "silver",   label: "シルバー", color: "text-gray-500 dark:text-gray-400",     bgColor: "bg-gray-100 dark:bg-gray-800/60",     minCompleted: 5,  minRating: null },
+  { key: "bronze",   label: "ブロンズ", color: "text-orange-600 dark:text-orange-400", bgColor: "bg-orange-100 dark:bg-orange-900/40", minCompleted: 1,  minRating: null },
+  { key: "starter",  label: "スターター", color: "text-muted",                          bgColor: "bg-surface-hover",                    minCompleted: 0,  minRating: null },
+];
+
+function resolveRank(completedOrders: number, avgRating: number | null): PartnerRank {
+  for (const rank of PARTNER_RANKS) {
+    if (completedOrders >= rank.minCompleted) {
+      if (rank.minRating == null || (avgRating != null && avgRating >= rank.minRating)) {
+        return rank;
+      }
+    }
+  }
+  return PARTNER_RANKS[PARTNER_RANKS.length - 1];
+}
+
+const RANK_LETTERS: Record<string, string> = {
+  platinum: "P", gold: "G", silver: "S", bronze: "B", starter: "—",
+};
+
 interface TenantOption {
   tenant_id: string;
   tenant_name: string;
@@ -105,8 +146,19 @@ export default function OrdersClient() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
 
-  // テナント一覧
+  // タブ: "my" = 自社案件, "browse" = 公開案件を検索
+  const [activeTab, setActiveTab] = useState<"my" | "browse">("my");
+
+  // 公開案件検索
+  const [browseOrders, setBrowseOrders] = useState<OrderRow[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(false);
+  const [browseQuery, setBrowseQuery] = useState("");
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const browseTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // テナント一覧 & 自社スコア
   const [myTenants, setMyTenants] = useState<TenantOption[]>([]);
+  const [myScore, setMyScore] = useState<PartnerScore | null>(null);
 
   // テナント検索
   const [tenantQuery, setTenantQuery] = useState("");
@@ -142,6 +194,21 @@ export default function OrdersClient() {
     }
   }, []);
 
+  const fetchBrowseOrders = useCallback(async (q?: string) => {
+    setBrowseLoading(true);
+    try {
+      const params = new URLSearchParams({ type: "browse" });
+      if (q) params.set("q", q);
+      const res = await fetch(`/api/admin/orders?${params.toString()}`, { cache: "no-store" });
+      const j = await res.json().catch(() => null);
+      setBrowseOrders(j?.orders ?? []);
+    } catch {
+      setBrowseOrders([]);
+    } finally {
+      setBrowseLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -149,6 +216,7 @@ export default function OrdersClient() {
         const res = await fetch("/api/admin/orders?_tenants=1", { cache: "no-store" });
         const j = await res.json().catch(() => null);
         if (j?.myTenants?.length) setMyTenants(j.myTenants);
+        if (j?.myScore) setMyScore(j.myScore);
       } catch (e) {
         console.error("[orders] tenant fetch failed:", e);
       }
@@ -156,6 +224,22 @@ export default function OrdersClient() {
       setLoading(false);
     })();
   }, [fetchOrders]);
+
+  // 公開案件タブ切り替え時に初回読み込み
+  useEffect(() => {
+    if (activeTab === "browse" && browseOrders.length === 0 && !browseLoading) {
+      fetchBrowseOrders();
+    }
+  }, [activeTab, browseOrders.length, browseLoading, fetchBrowseOrders]);
+
+  // 公開案件検索（debounce）
+  useEffect(() => {
+    if (activeTab !== "browse") return;
+    if (browseTimeoutRef.current) clearTimeout(browseTimeoutRef.current);
+    browseTimeoutRef.current = setTimeout(() => {
+      fetchBrowseOrders(browseQuery || undefined);
+    }, 400);
+  }, [browseQuery, activeTab, fetchBrowseOrders]);
 
   // ─── テナント検索（debounce） ───
   useEffect(() => {
@@ -216,6 +300,29 @@ export default function OrdersClient() {
     }
   };
 
+  // 公開案件を受注
+  const handleAcceptOrder = async (orderId: string) => {
+    if (!confirm("この案件を受注しますか？")) return;
+    setAcceptingId(orderId);
+    try {
+      const res = await fetch("/api/admin/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: orderId }),
+      });
+      const j = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(j?.error ?? `HTTP ${res.status}`);
+      alert("受注しました！");
+      // ブラウズリストから削除し、自社案件を更新
+      setBrowseOrders((prev) => prev.filter((o) => o.id !== orderId));
+      await fetchOrders(typeFilter, statusFilter);
+    } catch (e: unknown) {
+      alert("受注に失敗しました: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setAcceptingId(null);
+    }
+  };
+
   const pendingSent = orders.filter((o) => o.status === "pending" || o.status === "quoting").length;
   const activeCount = orders.filter((o) =>
     ["accepted", "in_progress", "approval_pending", "payment_pending"].includes(o.status),
@@ -258,6 +365,67 @@ export default function OrdersClient() {
         </div>
       </div>
 
+      {/* Partner Score */}
+      {myScore && (() => {
+        const rank = resolveRank(myScore.completed_orders, myScore.avg_rating);
+        const completionRate = myScore.total_orders > 0
+          ? Math.round((myScore.completed_orders / myScore.total_orders) * 100) : null;
+        const onTimeRate = myScore.completed_orders > 0
+          ? Math.round((myScore.on_time_orders / myScore.completed_orders) * 100) : null;
+        const currentIdx = PARTNER_RANKS.findIndex((r) => r.key === rank.key);
+        const nextRank = currentIdx > 0 ? PARTNER_RANKS[currentIdx - 1] : null;
+        return (
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-4 mb-4">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${rank.bgColor}`}>
+                <span className={`text-xl font-bold ${rank.color}`}>{RANK_LETTERS[rank.key] ?? "—"}</span>
+              </div>
+              <div>
+                <div className={`text-base font-bold ${rank.color}`}>{rank.label}</div>
+                <div className="text-[11px] text-muted">自社パートナーランク</div>
+              </div>
+              {myScore.avg_rating != null && (
+                <div className="ml-auto text-right">
+                  <div className="text-lg font-bold text-yellow-500">
+                    {"★".repeat(Math.round(myScore.avg_rating))}{"☆".repeat(5 - Math.round(myScore.avg_rating))}
+                  </div>
+                  <div className="text-[11px] text-muted">{myScore.avg_rating.toFixed(1)} / 5.0（{myScore.rating_count}件）</div>
+                </div>
+              )}
+            </div>
+            <div className="grid gap-3 grid-cols-4 text-center">
+              <div className="p-2 rounded-lg bg-surface-hover">
+                <div className="text-xl font-bold text-primary">{myScore.completed_orders}</div>
+                <div className="text-[10px] text-muted">完了取引</div>
+              </div>
+              <div className="p-2 rounded-lg bg-surface-hover">
+                <div className="text-xl font-bold text-primary">{completionRate != null ? `${completionRate}%` : "—"}</div>
+                <div className="text-[10px] text-muted">完了率</div>
+              </div>
+              <div className="p-2 rounded-lg bg-surface-hover">
+                <div className="text-xl font-bold text-primary">{onTimeRate != null ? `${onTimeRate}%` : "—"}</div>
+                <div className="text-[10px] text-muted">納期遵守率</div>
+              </div>
+              <div className="p-2 rounded-lg bg-surface-hover">
+                <div className="text-xl font-bold text-danger">{myScore.cancelled_orders}</div>
+                <div className="text-[10px] text-muted">キャンセル</div>
+              </div>
+            </div>
+            {nextRank && (
+              <div className="mt-3 p-2 rounded-lg bg-surface-hover text-[11px] text-muted">
+                <span className={`font-semibold ${nextRank.color}`}>{nextRank.label}</span>まであと
+                {myScore.completed_orders < nextRank.minCompleted && (
+                  <span className="font-semibold text-primary"> {nextRank.minCompleted - myScore.completed_orders}件の完了取引</span>
+                )}
+                {nextRank.minRating != null && (myScore.avg_rating == null || myScore.avg_rating < nextRank.minRating) && (
+                  <span className="font-semibold text-primary"> 平均評価{nextRank.minRating}以上</span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* New order form */}
       {showForm && (
         <section className="glass-card p-5">
@@ -275,7 +443,7 @@ export default function OrdersClient() {
                 <p className="text-[10px] text-muted">※ 発注元は自動設定されます</p>
               </div>
               <div className="space-y-1 relative">
-                <label className="text-xs text-muted">発注先</label>
+                <label className="text-xs text-muted">発注先（未指定で公開案件として掲載）</label>
                 {selectedTenant ? (
                   <div className="flex items-center gap-2">
                     <div className="input-field bg-surface-hover flex-1 flex items-center justify-between">
@@ -301,7 +469,7 @@ export default function OrdersClient() {
                       onChange={(e) => setTenantQuery(e.target.value)}
                       onFocus={() => tenantResults.length > 0 && setShowTenantDropdown(true)}
                       onBlur={() => setTimeout(() => setShowTenantDropdown(false), 200)}
-                      placeholder="施工店名で検索..."
+                      placeholder="施工店名で検索... (空欄で公開案件)"
                     />
                     {searchingTenants && <p className="text-[10px] text-muted">検索中...</p>}
                     {showTenantDropdown && tenantResults.length > 0 && (
@@ -406,99 +574,218 @@ export default function OrdersClient() {
 
       {!loading && (
         <>
-          {/* Filters */}
-          <section className="glass-card p-5">
-            <div className="flex gap-4 items-end flex-wrap">
-              <div className="space-y-1">
-                <label className="text-xs text-muted">種別</label>
-                <select
-                  className="select-field"
-                  value={typeFilter}
-                  onChange={(e) => applyFilters(e.target.value, undefined)}
-                >
-                  {TYPE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
+          {/* Tab switcher */}
+          <div className="flex border-b border-border">
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "my"
+                  ? "border-accent text-accent"
+                  : "border-transparent text-muted hover:text-primary"
+              }`}
+              onClick={() => setActiveTab("my")}
+            >
+              自社の受発注
+            </button>
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "browse"
+                  ? "border-accent text-accent"
+                  : "border-transparent text-muted hover:text-primary"
+              }`}
+              onClick={() => setActiveTab("browse")}
+            >
+              公開案件を探す
+            </button>
+          </div>
+
+          {/* ─── My orders tab ─── */}
+          {activeTab === "my" && (
+            <>
+              {/* Filters */}
+              <section className="glass-card p-5">
+                <div className="flex gap-4 items-end flex-wrap">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted">種別</label>
+                    <select
+                      className="select-field"
+                      value={typeFilter}
+                      onChange={(e) => applyFilters(e.target.value, undefined)}
+                    >
+                      {TYPE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted">ステータス</label>
+                    <select
+                      className="select-field"
+                      value={statusFilter}
+                      onChange={(e) => applyFilters(undefined, e.target.value)}
+                    >
+                      {STATUS_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              {/* Order list */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-semibold tracking-[0.18em] text-muted">受発注一覧</div>
+                    <div className="mt-1 text-base font-semibold text-primary">受発注一覧</div>
+                  </div>
+                  <div className="text-sm text-muted">{orders.length} 件</div>
+                </div>
+
+                {orders.length === 0 && (
+                  <div className="glass-card p-8 text-center text-muted">
+                    受発注データがありません。「新規発注」から他の施工店に仕事を依頼できます。
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {orders.map((order) => (
+                    <Link key={order.id} href={`/admin/orders/${order.id}`} className="block">
+                      <div className="glass-card p-4 space-y-3 hover:ring-1 hover:ring-accent/30 transition-shadow">
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              {order.order_number && (
+                                <span className="text-xs text-muted font-mono">{order.order_number}</span>
+                              )}
+                              <span className="text-sm font-semibold text-primary truncate">{order.title}</span>
+                            </div>
+                            {order.category && (
+                              <span className="text-xs text-secondary">{order.category}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <Badge variant={statusVariant(order.status)}>
+                              {statusLabel(order.status)}
+                            </Badge>
+                            <span className="text-xs text-muted">{formatDate(order.created_at)}</span>
+                          </div>
+                        </div>
+
+                        {order.description && (
+                          <p className="text-[13px] text-secondary line-clamp-2">{order.description}</p>
+                        )}
+
+                        <div className="flex items-center gap-6 text-xs text-muted">
+                          {(order.accepted_amount || order.budget) && (
+                            <span>
+                              {order.accepted_amount ? "合意金額" : "予算"}:{" "}
+                              <span className="font-semibold text-primary">
+                                {formatJpy(order.accepted_amount ?? order.budget!)}
+                              </span>
+                            </span>
+                          )}
+                          {order.deadline && (
+                            <span>納期: <span className="font-semibold text-primary">{formatDate(order.deadline)}</span></span>
+                          )}
+                          <span>発注先: <span className="text-secondary">{order.to_company || (order.to_tenant_id ? order.to_tenant_id.slice(0, 8) : "未指定（公開中）")}</span></span>
+                        </div>
+                      </div>
+                    </Link>
                   ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted">ステータス</label>
-                <select
-                  className="select-field"
-                  value={statusFilter}
-                  onChange={(e) => applyFilters(undefined, e.target.value)}
-                >
-                  {STATUS_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </section>
+                </div>
+              </section>
+            </>
+          )}
 
-          {/* Order list */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-muted">受発注一覧</div>
-                <div className="mt-1 text-base font-semibold text-primary">受発注一覧</div>
+          {/* ─── Browse open orders tab ─── */}
+          {activeTab === "browse" && (
+            <section className="space-y-4">
+              <div className="glass-card p-5">
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-semibold tracking-[0.18em] text-muted">公開案件</div>
+                    <div className="mt-1 text-base font-semibold text-primary">受注できる案件を探す</div>
+                    <p className="text-xs text-muted mt-1">
+                      他の施工店が公開している案件を検索して受注できます。
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs text-muted">キーワード検索</label>
+                      <input
+                        type="text"
+                        className="input-field"
+                        value={browseQuery}
+                        onChange={(e) => setBrowseQuery(e.target.value)}
+                        placeholder="カテゴリ・タイトル・内容で検索..."
+                      />
+                    </div>
+                    <Button
+                      onClick={() => fetchBrowseOrders(browseQuery || undefined)}
+                      disabled={browseLoading}
+                      loading={browseLoading}
+                    >
+                      検索
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <div className="text-sm text-muted">{orders.length} 件</div>
-            </div>
 
-            {orders.length === 0 && (
-              <div className="glass-card p-8 text-center text-muted">
-                受発注データがありません。「新規発注」から他の施工店に仕事を依頼できます。
-              </div>
-            )}
+              {browseLoading && <div className="text-sm text-muted text-center py-4">検索中...</div>}
 
-            <div className="space-y-3">
-              {orders.map((order) => (
-                <Link key={order.id} href={`/admin/orders/${order.id}`} className="block">
-                  <div className="glass-card p-4 space-y-3 hover:ring-1 hover:ring-accent/30 transition-shadow">
+              {!browseLoading && browseOrders.length === 0 && (
+                <div className="glass-card p-8 text-center text-muted">
+                  現在公開されている案件はありません。
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {browseOrders.map((order) => (
+                  <div key={order.id} className="glass-card p-4 space-y-3">
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          {order.order_number && (
-                            <span className="text-xs text-muted font-mono">{order.order_number}</span>
-                          )}
                           <span className="text-sm font-semibold text-primary truncate">{order.title}</span>
                         </div>
                         {order.category && (
-                          <span className="text-xs text-secondary">{order.category}</span>
+                          <span className="inline-block mt-1 text-xs bg-accent/10 text-accent px-2 py-0.5 rounded">{order.category}</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
-                        <Badge variant={statusVariant(order.status)}>
-                          {statusLabel(order.status)}
-                        </Badge>
-                        <span className="text-xs text-muted">{formatDate(order.created_at)}</span>
+                        <Badge variant="warning">受注者募集中</Badge>
+                        <Button
+                          onClick={() => handleAcceptOrder(order.id)}
+                          loading={acceptingId === order.id}
+                          disabled={acceptingId !== null}
+                        >
+                          受注する
+                        </Button>
                       </div>
                     </div>
 
                     {order.description && (
-                      <p className="text-[13px] text-secondary line-clamp-2">{order.description}</p>
+                      <p className="text-[13px] text-secondary line-clamp-3">{order.description}</p>
                     )}
 
-                    <div className="flex items-center gap-6 text-xs text-muted">
-                      {(order.accepted_amount || order.budget) && (
-                        <span>
-                          {order.accepted_amount ? "合意金額" : "予算"}:{" "}
-                          <span className="font-semibold text-primary">
-                            {formatJpy(order.accepted_amount ?? order.budget!)}
-                          </span>
-                        </span>
+                    <div className="flex items-center gap-6 text-xs text-muted flex-wrap">
+                      {order.from_company && (
+                        <span>発注元: <span className="font-semibold text-primary">{order.from_company}</span></span>
+                      )}
+                      {order.budget && (
+                        <span>予算: <span className="font-semibold text-primary">{formatJpy(order.budget)}</span></span>
                       )}
                       {order.deadline && (
                         <span>納期: <span className="font-semibold text-primary">{formatDate(order.deadline)}</span></span>
                       )}
-                      <span>発注先: <span className="text-secondary">{order.to_company || (order.to_tenant_id ? order.to_tenant_id.slice(0, 8) : "未指定")}</span></span>
+                      <span>掲載日: {formatDate(order.created_at)}</span>
                     </div>
                   </div>
-                </Link>
-              ))}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+          )}
         </>
       )}
     </div>

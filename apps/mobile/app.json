@@ -38,6 +38,13 @@
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
     },
+    "extra": {
+      "eas": {
+        "projectId": "5d5394bd-6242-48ef-9e36-3151e0d3dc8a"
+      },
+      "router": {}
+    },
+    "owner": "cartrust",
     "plugins": [
       "expo-router",
       "expo-secure-store",
