@@ -9,11 +9,15 @@ import {
   apiInternalError,
   apiError,
 } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET: Square 連携ステータスを取得 ───
 export async function GET(_req: NextRequest) {
+  const limited = await checkRateLimit(_req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -46,6 +50,9 @@ export async function GET(_req: NextRequest) {
 
 // ─── POST: Square OAuth フロー開始 ───
 export async function POST(_req: NextRequest) {
+  const limited = await checkRateLimit(_req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -81,6 +88,9 @@ export async function POST(_req: NextRequest) {
 
 // ─── DELETE: Square 連携解除 ───
 export async function DELETE(_req: NextRequest) {
+  const limited = await checkRateLimit(_req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);

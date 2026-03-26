@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 import { normalizePlanTier, STORE_LIMITS } from "@/lib/billing/planFeatures";
+import { enforceBilling } from "@/lib/billing/guard";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -51,6 +56,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -58,6 +66,9 @@ export async function POST(req: NextRequest) {
     if (!requirePermission(caller, "stores:manage")) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
+
+    const billing = await enforceBilling(req, { minPlan: "starter" });
+    if (billing) return billing;
 
     // Check plan store limit
     const { data: tenant } = await supabase
@@ -117,6 +128,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -124,6 +138,9 @@ export async function PUT(req: NextRequest) {
     if (!requirePermission(caller, "stores:manage")) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
+
+    const billing = await enforceBilling(req, { minPlan: "starter" });
+    if (billing) return billing;
 
     const body = await req.json();
     const { id, name, address, phone, email, manager_name, business_hours, is_active } = body;
@@ -157,6 +174,9 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -164,6 +184,9 @@ export async function DELETE(req: NextRequest) {
     if (!requirePermission(caller, "stores:manage")) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
+
+    const billing = await enforceBilling(req, { minPlan: "starter" });
+    if (billing) return billing;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

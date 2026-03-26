@@ -2,9 +2,13 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient, resolveCallerFull } from "@/lib/api/auth";
 import { apiOk, apiUnauthorized, apiValidationError, apiInternalError, apiForbidden } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 /** GET: 全テナントのテンプレートオーダー一覧（管理者用） */
 export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createClient();
     const caller = await resolveCallerFull(supabase);
@@ -52,6 +56,9 @@ export async function GET(req: NextRequest) {
 
 /** PUT: オーダーステータス更新（管理者用） */
 export async function PUT(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const { order_id, status, notes, assigned_to } = body;

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { apiUnauthorized, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -11,16 +13,19 @@ const ACTIVE_TENANT_COOKIE = "active_tenant_id";
  * GET /api/admin/tenants
  * Returns all tenants the current user belongs to, plus which is active.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createClient();
-    const { data: userRes } = await supabase.auth.getUser();
-    if (!userRes?.user) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return apiUnauthorized();
 
     const { data: memberships, error } = await supabase
       .from("tenant_memberships")
       .select("tenant_id, role, tenants(id, name, slug, plan_tier, is_active, logo_asset_path)")
-      .eq("user_id", userRes.user.id)
+      .eq("user_id", caller.userId)
       .order("created_at", { ascending: true })
       .limit(100);
 
@@ -52,10 +57,13 @@ export async function GET() {
  * Switch active tenant. Body: { tenant_id: string }
  */
 export async function PUT(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createClient();
-    const { data: userRes } = await supabase.auth.getUser();
-    if (!userRes?.user) return apiUnauthorized();
+    const caller = await resolveCallerWithRole(supabase);
+    if (!caller) return apiUnauthorized();
 
     const body = await req.json().catch(() => ({}));
     const tenantId = body?.tenant_id;
@@ -68,7 +76,7 @@ export async function PUT(req: NextRequest) {
     const { data: mem, error } = await supabase
       .from("tenant_memberships")
       .select("tenant_id, role")
-      .eq("user_id", userRes.user.id)
+      .eq("user_id", caller.userId)
       .eq("tenant_id", tenantId)
       .maybeSingle();
 

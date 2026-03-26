@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
+import { enforceBilling } from "@/lib/billing/guard";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET: レジ一覧 ───
 export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -76,6 +81,9 @@ export async function GET(req: NextRequest) {
 
 // ─── POST: レジ作成 ───
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -83,6 +91,9 @@ export async function POST(req: NextRequest) {
     if (!requirePermission(caller, "registers:manage")) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
+
+    const billing = await enforceBilling(req, { minPlan: "starter" });
+    if (billing) return billing;
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
     const name = (String(body?.name ?? "")).trim();
@@ -129,6 +140,9 @@ export async function POST(req: NextRequest) {
 
 // ─── PUT: レジ更新 ───
 export async function PUT(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -136,6 +150,9 @@ export async function PUT(req: NextRequest) {
     if (!requirePermission(caller, "registers:manage")) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
+
+    const billing = await enforceBilling(req, { minPlan: "starter" });
+    if (billing) return billing;
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
     const id = (String(body?.id ?? "")).trim();
@@ -168,6 +185,9 @@ export async function PUT(req: NextRequest) {
 
 // ─── DELETE: レジ削除 ───
 export async function DELETE(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -175,6 +195,9 @@ export async function DELETE(req: NextRequest) {
     if (!requirePermission(caller, "registers:manage")) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
+
+    const billing = await enforceBilling(req, { minPlan: "starter" });
+    if (billing) return billing;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/api/auth";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET: Square OAuth コールバック ───
 export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   const url = req.nextUrl;
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state"); // tenantId
