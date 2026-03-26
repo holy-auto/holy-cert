@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function GET(_request: NextRequest, ctx: RouteContext) {
-  try {
-    const { id } = await ctx.params;
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+export async function GET(_request: NextRequest, routeCtx: RouteContext) {
+  const limited = await checkRateLimit(_request, "general");
+  if (limited) return limited;
 
-    const { data: agentData } = await supabase.rpc("get_my_agent_status");
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    if (!agent?.agent_id) return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+  try {
+    const { id } = await routeCtx.params;
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
+    const supabase = await createClient();
 
     const [invoiceRes, linesRes, agentRes] = await Promise.all([
       supabase
         .from("agent_invoices")
         .select("*")
         .eq("id", id)
-        .eq("agent_id", agent.agent_id)
+        .eq("agent_id", ctx.agentId)
         .single(),
       supabase
         .from("agent_invoice_lines")
@@ -29,7 +31,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
       supabase
         .from("agents")
         .select("name, contact_name, contact_email, address")
-        .eq("id", agent.agent_id)
+        .eq("id", ctx.agentId)
         .single(),
     ]);
 

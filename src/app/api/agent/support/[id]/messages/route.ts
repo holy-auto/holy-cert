@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, ctx: RouteContext) {
+  const limited = await checkRateLimit(_request, "general");
+  if (limited) return limited;
+
   try {
     const { id } = await ctx.params;
     const supabase = await createClient();
@@ -23,6 +27,9 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
 }
 
 export async function POST(request: NextRequest, ctx: RouteContext) {
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
+
   try {
     const { id } = await ctx.params;
     const supabase = await createClient();

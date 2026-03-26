@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
 
-    const { data: agentData } = await supabase.rpc("get_my_agent_status");
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    if (!agent?.agent_id) return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+  try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
+    const supabase = await createClient();
 
     const url = new URL(request.url);
     const limit = Math.min(100, parseInt(url.searchParams.get("limit") ?? "50", 10));
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
     const { data: notifications } = await supabase
       .from("agent_notifications")
       .select("*")
-      .eq("agent_id", agent.agent_id)
+      .eq("agent_id", ctx.agentId)
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -33,14 +35,14 @@ export async function GET(request: NextRequest) {
 
 // Mark notifications as read
 export async function PUT(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
 
-    const { data: agentData } = await supabase.rpc("get_my_agent_status");
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    if (!agent?.agent_id) return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+  try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
+    const supabase = await createClient();
 
     const body = await request.json().catch(() => ({}));
     const ids = body.ids as string[] | undefined;
@@ -48,7 +50,7 @@ export async function PUT(request: NextRequest) {
     let query = supabase
       .from("agent_notifications")
       .update({ is_read: true })
-      .eq("agent_id", agent.agent_id);
+      .eq("agent_id", ctx.agentId);
 
     if (ids && ids.length > 0) {
       query = query.in("id", ids);

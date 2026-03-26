@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
+import { apiInternalError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
 
-    const { data: agentData } = await supabase.rpc("get_my_agent_status");
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    if (!agent?.agent_id) return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+  try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
+    const supabase = await createClient();
 
     // Fetch courses
     const { data: courses } = await supabase
@@ -24,7 +27,7 @@ export async function GET() {
     const { data: progress } = await supabase
       .from("agent_training_progress")
       .select("*")
-      .eq("user_id", auth.user.id);
+      .eq("user_id", ctx.userId);
 
     const progressMap = new Map((progress ?? []).map((p) => [p.course_id, p]));
 
@@ -44,20 +47,20 @@ export async function GET() {
       stats: { total: totalCourses, completed: completedCourses, required: requiredCourses, required_completed: requiredCompleted },
     });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "internal_error" }, { status: 500 });
+    return apiInternalError(e, "agent training GET");
   }
 }
 
 // Update progress
 export async function PUT(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
 
-    const { data: agentData } = await supabase.rpc("get_my_agent_status");
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    if (!agent?.agent_id) return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+  try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
+    const supabase = await createClient();
 
     const body = await request.json().catch(() => ({}));
     const courseId = body.course_id as string;
@@ -70,8 +73,8 @@ export async function PUT(request: NextRequest) {
       .upsert(
         {
           course_id: courseId,
-          user_id: auth.user.id,
-          agent_id: agent.agent_id,
+          user_id: ctx.userId,
+          agent_id: ctx.agentId,
           status,
           progress: progressVal,
           started_at: progressVal > 0 ? now : null,
@@ -82,9 +85,9 @@ export async function PUT(request: NextRequest) {
       .select()
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiInternalError(error, "agent training PUT");
     return NextResponse.json({ progress: data });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "internal_error" }, { status: 500 });
+    return apiInternalError(e, "agent training PUT");
   }
 }

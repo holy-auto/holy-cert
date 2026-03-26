@@ -1,30 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET: Agent profile settings and current user's role ───
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
     const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
-    if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
-    }
-
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    const agentId = agent.agent_id as string;
 
     // Fetch agent profile
     const { data: profile, error: profileErr } = await supabase
       .from("agents")
       .select("*")
-      .eq("id", agentId)
+      .eq("id", ctx.agentId)
       .single();
 
     if (profileErr || !profile) {
@@ -36,8 +32,8 @@ export async function GET() {
     const { data: membership, error: memberErr } = await supabase
       .from("agent_users")
       .select("role, display_name")
-      .eq("agent_id", agentId)
-      .eq("user_id", auth.user.id)
+      .eq("agent_id", ctx.agentId)
+      .eq("user_id", ctx.userId)
       .single();
 
     if (memberErr) {
@@ -47,8 +43,8 @@ export async function GET() {
     return NextResponse.json({
       agent: profile,
       current_user: {
-        user_id: auth.user.id,
-        role: membership?.role ?? agent.role ?? "viewer",
+        user_id: ctx.userId,
+        role: membership?.role ?? ctx.role ?? "viewer",
         display_name: membership?.display_name ?? null,
       },
     });
@@ -60,29 +56,22 @@ export async function GET() {
 
 // ─── PUT: Update agent profile settings ───
 export async function PUT(request: NextRequest) {
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
+
   try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
-    if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
-    }
-
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    const agentId = agent.agent_id as string;
-    const role = agent.role as string;
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
 
     // Only admin can update settings
-    if (role !== "admin") {
+    if (ctx.role !== "admin") {
       return NextResponse.json(
         { error: "forbidden", message: "設定を更新する権限がありません。" },
         { status: 403 }
       );
     }
+
+    const supabase = await createClient();
 
     const body = await request.json().catch(() => ({} as Record<string, unknown>));
 
@@ -131,7 +120,7 @@ export async function PUT(request: NextRequest) {
     const { data: updated, error: updateErr } = await supabase
       .from("agents")
       .update(updates)
-      .eq("id", agentId)
+      .eq("id", ctx.agentId)
       .select()
       .single();
 

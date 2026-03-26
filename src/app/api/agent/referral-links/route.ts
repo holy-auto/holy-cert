@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
 
-    const { data: agentData } = await supabase.rpc("get_my_agent_status");
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    if (!agent?.agent_id) return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+  try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
+    const supabase = await createClient();
 
     const { data: links } = await supabase
       .from("agent_referral_links")
       .select("*")
-      .eq("agent_id", agent.agent_id)
+      .eq("agent_id", ctx.agentId)
       .order("created_at", { ascending: false });
 
     return NextResponse.json({ links: links ?? [] });
@@ -26,29 +28,29 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
 
-    const { data: agentData } = await supabase.rpc("get_my_agent_status");
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    if (!agent?.agent_id) return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+  try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
+    const supabase = await createClient();
 
     const body = await request.json().catch(() => ({}));
     const label = ((body.label as string) ?? "").trim();
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://cartrust.jp";
-    const code = `AL-${agent.agent_id.substring(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+    const code = `AL-${ctx.agentId.substring(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
     const url = `${baseUrl}/ref/${code}`;
 
     const { data: link, error } = await supabase
       .from("agent_referral_links")
       .insert({
-        agent_id: agent.agent_id,
+        agent_id: ctx.agentId,
         code,
         label: label || null,
         url,
-        created_by: auth.user.id,
+        created_by: ctx.userId,
       })
       .select()
       .single();

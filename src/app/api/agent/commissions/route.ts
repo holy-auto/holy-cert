@@ -1,24 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET: List agent commissions with period filters and summary ───
 export async function GET(request: NextRequest) {
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
+
   try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
     const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
-    if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
-    }
-
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    const agentId = agent.agent_id as string;
 
     const url = new URL(request.url);
     const periodFrom = url.searchParams.get("period_from");
@@ -28,7 +24,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("agent_commissions")
       .select("*, agent_referrals(shop_name)")
-      .eq("agent_id", agentId)
+      .eq("agent_id", ctx.agentId)
       .order("period_start", { ascending: false });
 
     if (periodFrom) {
@@ -58,7 +54,7 @@ export async function GET(request: NextRequest) {
     const { data: allCommissions, error: summaryErr } = await supabase
       .from("agent_commissions")
       .select("amount, status, period_start")
-      .eq("agent_id", agentId);
+      .eq("agent_id", ctx.agentId);
 
     if (summaryErr) {
       console.error("[agent/commissions] summary error:", summaryErr.message);

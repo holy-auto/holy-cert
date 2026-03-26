@@ -1,24 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
+import { checkRateLimit } from "@/lib/api/rateLimit";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(_request: NextRequest, ctx: RouteContext) {
+  const limited = await checkRateLimit(_request, "general");
+  if (limited) return limited;
+
   try {
     const { id } = await ctx.params;
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
 
-    // Verify agent membership
-    const { data: agentStatus } = await supabase.rpc("get_my_agent_status");
-    const agentRow = Array.isArray(agentStatus) ? agentStatus[0] : agentStatus;
-    if (!agentRow?.agent_id) {
-      return NextResponse.json({ error: "not_agent" }, { status: 403 });
-    }
+    const { ctx: agentCtx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
+    const supabase = await createClient();
 
     // Fetch material
     const { data: material, error: matErr } = await supabase
@@ -48,8 +46,8 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
     await Promise.all([
       admin.from("agent_material_downloads").insert({
         material_id: id,
-        user_id: auth.user.id,
-        agent_id: agentRow.agent_id,
+        user_id: agentCtx.userId,
+        agent_id: agentCtx.agentId,
       }),
       admin
         .from("agent_materials")

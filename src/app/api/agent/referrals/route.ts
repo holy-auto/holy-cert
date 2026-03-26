@@ -1,24 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/api/rateLimit";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET: List agent referrals with filtering and pagination ───
 export async function GET(request: NextRequest) {
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
+
   try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
     const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
-    if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
-    }
-
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    const agentId = agent.agent_id as string;
 
     const url = new URL(request.url);
     const q = (url.searchParams.get("q") ?? "").trim();
@@ -29,7 +25,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("agent_referrals")
       .select("*", { count: "exact" })
-      .eq("agent_id", agentId)
+      .eq("agent_id", ctx.agentId)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -64,29 +60,22 @@ export async function GET(request: NextRequest) {
 
 // ─── POST: Create a new referral ───
 export async function POST(request: NextRequest) {
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
+
   try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
-    if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
-    }
-
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    const agentId = agent.agent_id as string;
-    const role = agent.role as string;
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
 
     // Only admin or staff can create referrals
-    if (role !== "admin" && role !== "staff") {
+    if (ctx.role !== "admin" && ctx.role !== "staff") {
       return NextResponse.json(
         { error: "forbidden", message: "紹介を作成する権限がありません。" },
         { status: 403 }
       );
     }
+
+    const supabase = await createClient();
 
     const body = await request.json().catch(() => ({} as Record<string, unknown>));
     const shopName = ((body?.shop_name as string) ?? "").trim();
@@ -98,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     const row = {
-      agent_id: agentId,
+      agent_id: ctx.agentId,
       shop_name: shopName,
       contact_name: ((body?.contact_name as string) ?? "").trim() || null,
       contact_email: ((body?.contact_email as string) ?? "").trim() || null,

@@ -1,31 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET: List agent members ───
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
     const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
-    if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
-    }
-
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    const agentId = agent.agent_id as string;
 
     // Fetch all agent_users for this agent
     const { data: members, error } = await supabase
       .from("agent_users")
       .select("id, user_id, agent_id, role, display_name, created_at")
-      .eq("agent_id", agentId)
+      .eq("agent_id", ctx.agentId)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -49,7 +45,7 @@ export async function GET() {
           display_name: m.display_name ?? null,
           email,
           created_at: m.created_at,
-          is_self: m.user_id === auth.user.id,
+          is_self: m.user_id === ctx.userId,
         };
       })
     );
@@ -63,29 +59,22 @@ export async function GET() {
 
 // ─── POST: Invite / add a member to the agent organization ───
 export async function POST(request: NextRequest) {
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
+
   try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
-    if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
-    }
-
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    const agentId = agent.agent_id as string;
-    const callerRole = agent.role as string;
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
 
     // Only admin can invite members
-    if (callerRole !== "admin") {
+    if (ctx.role !== "admin") {
       return NextResponse.json(
         { error: "forbidden", message: "メンバーを招待する権限がありません。" },
         { status: 403 }
       );
     }
+
+    const supabase = await createClient();
 
     const body = await request.json().catch(() => ({} as Record<string, unknown>));
     const email = ((body?.email as string) ?? "").trim().toLowerCase();
@@ -109,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     // Upsert the agent user via RPC
     const { data: member, error: upsertErr } = await supabase.rpc("upsert_agent_user", {
-      p_agent_id: agentId,
+      p_agent_id: ctx.agentId,
       p_email: email,
       p_role: role,
       p_display_name: displayName,

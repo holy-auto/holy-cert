@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -21,35 +23,28 @@ function safeUrl(candidate?: string | null, fallback?: string): string {
 
 // ─── POST: Create or retrieve Stripe Connect onboarding link ───
 export async function POST(request: NextRequest) {
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
+
   try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
-    if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
-    }
-
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    const agentId = agent.agent_id as string;
-    const role = agent.role as string;
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
 
     // Only admin can set up Stripe Connect
-    if (role !== "admin") {
+    if (ctx.role !== "admin") {
       return NextResponse.json(
         { error: "forbidden", message: "Stripe Connect を設定する権限がありません。" },
         { status: 403 }
       );
     }
 
+    const supabase = await createClient();
+
     // Fetch agent record to check for existing Stripe account
     const { data: agentProfile, error: profileErr } = await supabase
       .from("agents")
       .select("id, stripe_connect_account_id, name, contact_email")
-      .eq("id", agentId)
+      .eq("id", ctx.agentId)
       .single();
 
     if (profileErr || !agentProfile) {
@@ -78,7 +73,7 @@ export async function POST(request: NextRequest) {
           stripe_connect_account_id: accountId,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", agentId);
+        .eq("id", ctx.agentId);
 
       if (saveErr) {
         console.error("[agent/stripe-connect] save account_id error:", saveErr.message);
@@ -111,26 +106,20 @@ export async function POST(request: NextRequest) {
 }
 
 // ─── GET: Check Stripe Connect status for this agent ───
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
     const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
-    if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
-    }
-
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    const agentId = agent.agent_id as string;
 
     const { data: agentProfile, error: profileErr } = await supabase
       .from("agents")
       .select("stripe_connect_account_id, stripe_connect_onboarded")
-      .eq("id", agentId)
+      .eq("id", ctx.agentId)
       .single();
 
     if (profileErr || !agentProfile) {
@@ -160,7 +149,7 @@ export async function GET() {
           stripe_connect_onboarded: onboarded,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", agentId);
+        .eq("id", ctx.agentId);
     }
 
     return NextResponse.json({

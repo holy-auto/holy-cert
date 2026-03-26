@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAgentContextWithEnforce } from "@/lib/agent/statusGuard";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
 
-    const { data: agentData } = await supabase.rpc("get_my_agent_status");
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    if (!agent?.agent_id) return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+  try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
+    const supabase = await createClient();
 
     const { data: tickets } = await supabase
       .from("agent_support_tickets")
       .select("*")
-      .eq("agent_id", agent.agent_id)
+      .eq("agent_id", ctx.agentId)
       .order("updated_at", { ascending: false });
 
     return NextResponse.json({ tickets: tickets ?? [] });
@@ -26,14 +28,14 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const limited = await checkRateLimit(request, "general");
+  if (limited) return limited;
 
-    const { data: agentData } = await supabase.rpc("get_my_agent_status");
-    const agent = Array.isArray(agentData) ? agentData[0] : agentData;
-    if (!agent?.agent_id) return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+  try {
+    const { ctx, deny } = await resolveAgentContextWithEnforce();
+    if (deny) return deny;
+
+    const supabase = await createClient();
 
     const body = await request.json().catch(() => ({}));
     const subject = ((body.subject as string) ?? "").trim();
@@ -49,8 +51,8 @@ export async function POST(request: NextRequest) {
     const { data: ticket, error: ticketErr } = await supabase
       .from("agent_support_tickets")
       .insert({
-        agent_id: agent.agent_id,
-        user_id: auth.user.id,
+        agent_id: ctx.agentId,
+        user_id: ctx.userId,
         subject,
         category,
         priority,
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
     // Add initial message
     await supabase.from("agent_ticket_messages").insert({
       ticket_id: ticket.id,
-      sender_id: auth.user.id,
+      sender_id: ctx.userId,
       is_admin: false,
       body: message,
     });
