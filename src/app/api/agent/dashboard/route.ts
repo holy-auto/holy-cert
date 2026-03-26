@@ -1,10 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET: Agent dashboard stats ───
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createClient();
     const { data: auth } = await supabase.auth.getUser();
@@ -32,10 +36,11 @@ export async function GET() {
     }
 
     // Flatten stats and map field names to match DashboardData type
-    const s = (stats as Record<string, unknown>) ?? {};
+    const s = ((Array.isArray(stats) ? stats[0] : stats) as Record<string, unknown>) ?? {};
     return NextResponse.json({
       agent_name: agent.agent_name,
       agent_status: agent.status,
+      role: agent.role,
       total_referrals: s.total_referrals ?? 0,
       contracted_referrals: s.contracted_referrals ?? 0,
       this_month_commission: s.this_month_commissions ?? 0,

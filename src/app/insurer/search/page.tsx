@@ -140,6 +140,14 @@ function getRowPlate(row: any): string {
   ) || "-";
 }
 
+function getRowVin(row: any): string {
+  return asText(
+    row?.vehicle_vin ??
+    row?.vin_code ??
+    row?.vin
+  ) || "-";
+}
+
 function getRowCreatedAt(row: any): string {
   return asText(
     row?.latest_active_certificate_created_at ??
@@ -187,7 +195,7 @@ export default async function Page({
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
-              INSURER SEARCH
+              証明書検索
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
@@ -224,8 +232,9 @@ export default async function Page({
               className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-3 text-sm"
             >
               <option value="">全ステータス</option>
-              <option value="active">active</option>
-              <option value="void">void</option>
+              <option value="active">有効 (active)</option>
+              <option value="void">無効 (void)</option>
+              <option value="expired">期限切れ (expired)</option>
             </select>
 
             <button
@@ -285,6 +294,7 @@ export default async function Page({
                   <th className="p-3 text-left">顧客名</th>
                   <th className="p-3 text-left">車種</th>
                   <th className="p-3 text-left">ナンバー</th>
+                  <th className="p-3 text-left">車台番号</th>
                   <th className="p-3 text-left">画像</th>
                   <th className="p-3 text-left">操作</th>
                 </tr>
@@ -317,6 +327,7 @@ export default async function Page({
                       <td className="p-3">{getRowCustomer(row)}</td>
                       <td className="p-3">{getRowModel(row)}</td>
                       <td className="p-3">{getRowPlate(row)}</td>
+                      <td className="p-3 font-mono text-xs">{getRowVin(row)}</td>
                       <td className="p-3">
                         <div className="space-y-2">
                           <div>{imageCount}枚</div>
@@ -337,7 +348,7 @@ export default async function Page({
                         {hasCertificate ? (
                           <div className="flex flex-col gap-2">
                             <Link
-                              href={`/insurer/certificate/${encodeURIComponent(publicId)}`}
+                              href={`/insurer/c/${encodeURIComponent(publicId)}`}
                               className="underline"
                             >
                               詳細
@@ -362,7 +373,7 @@ export default async function Page({
 
                 {rows.length === 0 ? (
                   <tr>
-                    <td className="p-6 text-neutral-500" colSpan={8}>
+                    <td className="p-6 text-neutral-500" colSpan={9}>
                       該当なし
                     </td>
                   </tr>
@@ -375,5 +386,3 @@ export default async function Page({
     </main>
   );
 }
-
-
