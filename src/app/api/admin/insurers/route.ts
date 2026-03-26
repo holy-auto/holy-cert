@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getClientIp } from "@/lib/rateLimit";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -161,7 +162,10 @@ async function sendInsurerNotification(params: {
  * GET /api/admin/insurers?status=active_pending_review
  * 全保険会社一覧（プラットフォーム管理者専用）
  */
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   const supabase = await createClient();
   const caller = await requirePlatformAdmin(supabase);
   if (!caller) {
@@ -195,7 +199,10 @@ export async function GET(req: Request) {
  * PATCH /api/admin/insurers
  * 保険会社のステータス・プラン更新（プラットフォーム管理者専用）
  */
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   const supabase = await createClient();
   const caller = await requirePlatformAdmin(supabase);
   if (!caller) {

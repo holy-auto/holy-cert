@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { escapeIlike } from "@/lib/sanitize";
+import { enforceBilling } from "@/lib/billing/guard";
+import { parsePagination } from "@/lib/api/pagination";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 // ─── GET: 顧客一覧 ───
 export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -14,8 +20,7 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url);
     const q = (url.searchParams.get("q") ?? "").trim();
-    const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "0", 10) || 0);
-    const perPage = Math.min(200, Math.max(1, parseInt(url.searchParams.get("per_page") ?? "50", 10)));
+    const { page, perPage, from, to } = parsePagination(req, { maxPerPage: 200 });
 
     // Count query for pagination metadata
     let countQuery = supabase
@@ -38,8 +43,6 @@ export async function GET(req: NextRequest) {
 
     // Apply pagination if page param is provided
     if (page > 0) {
-      const from = (page - 1) * perPage;
-      const to = from + perPage - 1;
       query = query.range(from, to);
     }
 
@@ -118,10 +121,16 @@ export async function GET(req: NextRequest) {
 
 // ─── POST: 顧客追加 ───
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_create" });
+    if (deny) return deny as any;
 
     const body = await req.json().catch(() => ({} as any));
     const name = (body?.name ?? "").trim();
@@ -154,10 +163,16 @@ export async function POST(req: NextRequest) {
 
 // ─── PUT: 顧客更新 ───
 export async function PUT(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_update" });
+    if (deny) return deny as any;
 
     const body = await req.json().catch(() => ({} as any));
     const id = (body?.id ?? "").trim();
@@ -219,10 +234,16 @@ export async function PUT(req: NextRequest) {
 
 // ─── DELETE: 顧客削除 ───
 export async function DELETE(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_delete" });
+    if (deny) return deny as any;
 
     const body = await req.json().catch(() => ({} as any));
     const id = (body?.id ?? "").trim();

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerBasic } from "@/lib/api/auth";
 import { getAdminClient } from "@/lib/api/auth";
-import { apiOk, apiUnauthorized, apiInternalError, apiValidationError, apiError } from "@/lib/api/response";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiOk, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError, apiError } from "@/lib/api/response";
 import { getAuthUrl, exchangeCodeAndSave, pullEventsFromCalendar, pushReservationsToCalendar, listCalendars } from "@/lib/gcal/client";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,9 @@ export const dynamic = "force-dynamic";
  * - それ以外 → 連携状態を取得
  */
 export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get("code");
@@ -21,7 +25,7 @@ export async function GET(req: NextRequest) {
     // OAuth コールバック: Google からリダイレクトされた場合
     if (code) {
       const supabase = await createSupabaseServerClient();
-      const caller = await resolveCallerBasic(supabase);
+      const caller = await resolveCallerWithRole(supabase);
 
       // state（tenantId）またはログイン中のテナントを使用
       const tenantId = state || caller?.tenantId;
@@ -41,8 +45,9 @@ export async function GET(req: NextRequest) {
 
     // 通常のステータス取得
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const admin = getAdminClient();
     const { data: tenant } = await admin
@@ -75,10 +80,14 @@ export async function GET(req: NextRequest) {
  * アクション: connect / disconnect / sync / set-calendar
  */
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const body = await req.json().catch(() => ({}));
     const action = body?.action;
@@ -149,7 +158,6 @@ export async function POST(req: NextRequest) {
         pushed,
         imported: pullResult.imported,
         updated: pullResult.updated,
-        cancelled: pullResult.cancelled,
         skipped: pullResult.skipped,
         synced_at: new Date().toISOString(),
       });

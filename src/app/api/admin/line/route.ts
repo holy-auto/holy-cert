@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerBasic } from "@/lib/api/auth";
 import { getAdminClient } from "@/lib/api/auth";
-import { apiOk, apiUnauthorized, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiOk, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +11,15 @@ export const dynamic = "force-dynamic";
  * GET /api/admin/line
  * LINE 連携状態を取得
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const admin = getAdminClient();
     const { data: tenant } = await admin
@@ -48,10 +53,14 @@ export async function GET() {
  *   liff_id?: string
  */
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const body = await req.json().catch(() => ({}));
     const action = body?.action;

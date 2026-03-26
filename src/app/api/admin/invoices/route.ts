@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { checkRateLimit } from "@/lib/api/rateLimit";
+import { parsePagination } from "@/lib/api/pagination";
+import { enforceBilling } from "@/lib/billing/guard";
 
 export const dynamic = "force-dynamic";
 
@@ -43,8 +46,7 @@ export async function GET(req: NextRequest) {
     const action = url.searchParams.get("action") ?? "";
     const status = url.searchParams.get("status") ?? "";
     const customerId = url.searchParams.get("customer_id") ?? "";
-    const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "0", 10) || 0);
-    const perPage = Math.min(200, Math.max(1, parseInt(url.searchParams.get("per_page") ?? "50", 10)));
+    const { page, perPage, from, to } = parsePagination(req, { maxPerPage: 200 });
 
     // 証明書取得アクション
     if (action === "certificates" && customerId) {
@@ -83,8 +85,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (page > 0) {
-      const from = (page - 1) * perPage;
-      query = query.range(from, from + perPage - 1);
+      query = query.range(from, to);
     }
 
     const [{ data: docs, error }, { count: totalCount }] = await Promise.all([query, countQuery]);
@@ -149,9 +150,15 @@ export async function GET(req: NextRequest) {
 // ─── POST: 請求書作成 ───
 export async function POST(req: NextRequest) {
   try {
+    const limited = await checkRateLimit(req, "general");
+    if (limited) return limited;
+
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    const billing = await enforceBilling(req, { minPlan: "starter" });
+    if (billing) return billing;
 
     const body = await req.json().catch(() => ({} as any));
 
