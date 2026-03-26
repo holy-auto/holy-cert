@@ -1,6 +1,8 @@
+import { NextRequest } from "next/server";
 import { apiInternalError, apiUnauthorized, apiValidationError } from "@/lib/api/response";
-import { resolveCallerBasic } from "@/lib/api/auth";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +20,10 @@ const OCR_PROMPT = `これは日本の自動車検査証（車検証）の写真
 
 読み取れない項目は null としてください。推測による補完は行わないでください。JSONのみ返してください。`;
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
@@ -26,7 +31,7 @@ export async function POST(req: Request) {
     }
 
     const supabase = await createSupabaseServerClient();
-    const caller = await resolveCallerBasic(supabase);
+    const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
     const formData = await req.formData();

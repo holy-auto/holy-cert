@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Webhook } from "svix";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,12 +28,20 @@ type ResendEvent = {
 };
 
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "webhook");
+  if (limited) return limited;
+
   const secret = process.env.RESEND_WEBHOOK_SECRET;
 
   const rawBody = await req.text();
 
   // Verify webhook signature using Svix HMAC-SHA256
-  if (secret) {
+  if (!secret) {
+    console.error("[resend-webhook] RESEND_WEBHOOK_SECRET not configured");
+    return NextResponse.json({ error: "webhook_secret_not_configured" }, { status: 500 });
+  }
+
+  {
     const signature = req.headers.get("svix-signature");
     const timestamp = req.headers.get("svix-timestamp");
     const id = req.headers.get("svix-id");

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getAdminClient } from "@/lib/api/auth";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +55,9 @@ type SquareWebhookEvent = {
 // ─── POST handler ───
 
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "webhook");
+  if (limited) return limited;
+
   const signatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;
   if (!signatureKey) {
     console.error("[square-webhook] SQUARE_WEBHOOK_SIGNATURE_KEY not configured");
