@@ -8,7 +8,10 @@ import {
   apiUnauthorized,
   apiNotFound,
   apiValidationError,
+  apiForbidden,
 } from "@/lib/api/response";
+import { hasPermission } from "@/lib/auth/permissions";
+import type { Role } from "@/lib/auth/roles";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +26,7 @@ export async function GET(_req: NextRequest,
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!hasPermission(caller.role as Role, "certificates:view")) return apiForbidden();
 
     const { data: products, error } = await supabase
       .from("coating_products")
@@ -48,6 +52,7 @@ export async function POST(req: NextRequest,
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!hasPermission(caller.role as Role, "certificates:create")) return apiForbidden();
 
     const body = await req.json();
     const parsed = coatingProductCreateSchema.safeParse({ ...body, brand_id });
@@ -86,6 +91,7 @@ export async function PUT(req: NextRequest,
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!hasPermission(caller.role as Role, "certificates:edit")) return apiForbidden();
 
     const body = await req.json();
     const parsed = coatingProductUpdateSchema.safeParse({ ...body, brand_id });
@@ -124,6 +130,7 @@ export async function DELETE(req: NextRequest,
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!hasPermission(caller.role as Role, "certificates:edit")) return apiForbidden();
 
     const { id } = await req.json();
     if (!id) return apiValidationError("IDが必要です。");
