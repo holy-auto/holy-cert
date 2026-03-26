@@ -4,6 +4,7 @@ import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+import { enforceBilling } from "@/lib/billing/guard";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,9 @@ export async function POST(request: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
+
+    const billing = await enforceBilling(request, { minPlan: "starter" });
+    if (billing) return billing;
 
     const body = await request.json();
     const admin = getAdminClient();

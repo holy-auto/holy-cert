@@ -4,6 +4,7 @@ import { getAdminClient } from "@/lib/api/auth";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+import { enforceBilling } from "@/lib/billing/guard";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -56,6 +57,9 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
+
+    const billing = await enforceBilling(request, { minPlan: "starter" });
+    if (billing) return billing;
 
     const body = await request.json();
     const admin = getAdminClient();
