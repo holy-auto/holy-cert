@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { resolve } from "path";
 
 let withSentryConfig: typeof import("@sentry/nextjs").withSentryConfig | undefined;
 try {
@@ -16,7 +17,7 @@ const nextConfig: NextConfig = {
 
   // Pin Turbopack root to this directory to prevent path resolution issues in worktrees
   turbopack: {
-    root: ".",
+    root: resolve("."),
   },
 
   // Next 16.1.6: Server Actions config is under experimental
