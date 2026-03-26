@@ -35,21 +35,33 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "failed_to_fetch_stats" }, { status: 500 });
     }
 
-    // Flatten stats into top-level to match frontend DashboardData type
-    const s = (Array.isArray(stats) ? stats[0] : stats) ?? {};
+    // Flatten stats and map field names to match DashboardData type
+    const s = ((Array.isArray(stats) ? stats[0] : stats) as Record<string, unknown>) ?? {};
     return NextResponse.json({
-      agent_id: agentId,
       agent_name: agent.agent_name,
       agent_status: agent.status,
       role: agent.role,
       total_referrals: s.total_referrals ?? 0,
       contracted_referrals: s.contracted_referrals ?? 0,
-      this_month_commission: s.this_month_commission ?? 0,
-      total_commission: s.total_commission ?? 0,
-      conversion_rate: s.conversion_rate ?? 0,
+      this_month_commission: s.this_month_commissions ?? 0,
+      total_commission: s.total_commission_amount ?? 0,
+      conversion_rate: ((s.conversion_rate as number) ?? 0) / 100,
       unread_announcements: s.unread_announcements ?? 0,
-      recent_referrals: s.recent_referrals ?? [],
-      monthly_commissions: s.monthly_commissions ?? [],
+      recent_referrals: (Array.isArray(s.recent_referrals) ? s.recent_referrals : []).map(
+        (r: Record<string, unknown>) => ({
+          id: r.id ?? "",
+          shop_name: r.shop_name ?? "",
+          contact_name: r.contact_name ?? "",
+          status: r.status ?? "",
+          created_at: r.created_at ?? "",
+        }),
+      ),
+      monthly_commissions: (Array.isArray(s.monthly_commissions) ? s.monthly_commissions : []).map(
+        (m: Record<string, unknown>) => ({
+          month: m.month ?? "",
+          total_amount: (m.total as number) ?? 0,
+        }),
+      ),
     });
   } catch (e: unknown) {
     console.error("[agent/dashboard] error:", e);

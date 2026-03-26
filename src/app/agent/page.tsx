@@ -261,7 +261,7 @@ export default function AgentDashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.recent_referrals.map((r) => {
+                    {(data.recent_referrals ?? []).map((r) => {
                       const s = getStatusEntry(AGENT_REFERRAL_STATUS_MAP, r.status);
                       return (
                         <tr key={r.id} className="border-t hover:bg-neutral-50">
@@ -284,7 +284,7 @@ export default function AgentDashboardPage() {
                         </tr>
                       );
                     })}
-                    {data.recent_referrals.length === 0 && (
+                    {(data.recent_referrals ?? []).length === 0 && (
                       <tr>
                         <td colSpan={5} className="p-8 text-center text-sm text-neutral-500">
                           紹介がまだありません。「新規紹介を作成」から始めましょう。
@@ -303,9 +303,9 @@ export default function AgentDashboardPage() {
                 <div className="mt-1 text-base font-semibold text-neutral-900">月別コミッション推移</div>
               </div>
 
-              {data.monthly_commissions.length > 0 ? (
+              {(data.monthly_commissions ?? []).length > 0 ? (
                 <div className="flex items-end gap-2 h-48">
-                  {data.monthly_commissions.map((m) => {
+                  {(data.monthly_commissions ?? []).map((m) => {
                     const pct = (m.total_amount / chartMax) * 100;
                     return (
                       <div key={m.month} className="flex flex-1 flex-col items-center gap-1">

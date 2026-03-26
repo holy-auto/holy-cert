@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 /* ------------------------------------------------------------------ */
@@ -18,10 +18,15 @@ type AgentStatus = {
 /* ------------------------------------------------------------------ */
 export default function AgentRouteGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [state, setState] = useState<"loading" | "ok" | "suspended" | "pending">("loading");
   const [checked, setChecked] = useState(false);
 
+  // Don't guard the login page — it must render without auth
+  const isLoginPage = pathname === "/agent/login";
+
   useEffect(() => {
+    if (isLoginPage) return;
     let cancelled = false;
 
     (async () => {
@@ -69,7 +74,12 @@ export default function AgentRouteGuard({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, isLoginPage]);
+
+  // Login page — render children directly without guard
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   // Still loading — show nothing to avoid flash
   if (!checked || state === "loading") {
