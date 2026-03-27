@@ -43,7 +43,9 @@ export async function GET() {
       member_count: memberCounts[s.id] || 0,
     }));
 
-    return NextResponse.json({ stores: storesWithCounts });
+    const res = NextResponse.json({ stores: storesWithCounts });
+    res.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+    return res;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ error: msg }, { status: 500 });

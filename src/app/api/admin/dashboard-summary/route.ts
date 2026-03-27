@@ -172,6 +172,10 @@ export async function GET() {
       orders,
       recentCertificates,
       alerts,
+    }, {
+      headers: {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+      },
     });
   } catch (e: unknown) {
     console.error("[dashboard-summary] GET failed:", e);

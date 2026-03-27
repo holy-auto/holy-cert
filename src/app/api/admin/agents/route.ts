@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     let query = admin
       .from("agents")
-      .select("*")
+      .select("id, name, contact_name, contact_email, contact_phone, address, status, created_at")
       .order("created_at", { ascending: false });
 
     if (status) {

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     // ── 元の証明書を取得 ──
     const { data: source, error: fetchErr } = await admin
       .from("certificates")
-      .select("*")
+      .select("vehicle_id, vehicle_info_json, customer_name, customer_id, customer_phone_last4, customer_phone_last4_hash, content_free_text, content_preset_json, service_type, service_price, coating_products_json, expiry_type, expiry_value, logo_asset_path, footer_variant, template_id")
       .eq("public_id", sourcePublicId)
       .eq("tenant_id", caller.tenantId)
       .limit(1)
