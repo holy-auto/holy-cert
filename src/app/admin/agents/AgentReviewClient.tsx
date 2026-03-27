@@ -738,3 +738,466 @@ function ApplicationsTab() {
     </div>
   );
 }
+
+/* ─── Shared Files Tab ─── */
+
+type SharedFile = {
+  id: string;
+  agent_id: string;
+  direction: string;
+  file_name: string;
+  file_size: number;
+  file_type: string;
+  note: string | null;
+  created_at: string;
+};
+
+function SharedFilesTab() {
+  const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState("");
+  const [files, setFiles] = useState<SharedFile[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [note, setNote] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/agents", { cache: "no-store" });
+        const json = await res.json();
+        if (res.ok) setAgents((json.agents ?? []).map((a: Agent) => ({ id: a.id, name: a.name })));
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
+  const fetchFiles = async () => {
+    if (!selectedAgent) { setFiles([]); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/agent-shared-files?agent_id=${selectedAgent}`, { cache: "no-store" });
+      const json = await res.json();
+      if (res.ok) setFiles(json.files ?? []);
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchFiles(); }, [selectedAgent]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedAgent) return;
+    setUploading(true);
+    setMsg(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("agent_id", selectedAgent);
+    if (note.trim()) fd.append("note", note.trim());
+    try {
+      const res = await fetch("/api/admin/agent-shared-files", { method: "POST", body: fd });
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        throw new Error(j?.message ?? `HTTP ${res.status}`);
+      }
+      setMsg("アップロードしました");
+      setNote("");
+      fetchFiles();
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDelete = async (fileId: string) => {
+    if (!confirm("このファイルを削除しますか？")) return;
+    try {
+      const res = await fetch(`/api/admin/agent-shared-files/${fileId}`, { method: "DELETE" });
+      if (res.ok) {
+        setFiles((prev) => prev.filter((f) => f.id !== fileId));
+        setMsg("削除しました");
+      }
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3 items-end">
+        <div>
+          <label className="text-sm text-secondary mb-1 block">代理店を選択</label>
+          <select
+            value={selectedAgent}
+            onChange={(e) => setSelectedAgent(e.target.value)}
+            className="rounded-xl border border-default bg-surface-solid px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--border-focus)]"
+          >
+            <option value="">選択してください</option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {msg && (
+        <div className="rounded-xl border border-default bg-surface-solid p-3 text-sm text-secondary">{msg}</div>
+      )}
+
+      {selectedAgent && (
+        <div className="glass-card p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-primary">ファイルを送信（本部→代理店）</h3>
+          <div className="flex gap-3 items-end flex-wrap">
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="input-field flex-1 min-w-[200px]"
+              placeholder="メモ（任意）"
+            />
+            <label className="btn-primary cursor-pointer text-sm">
+              {uploading ? "アップロード中..." : "ファイルを選択"}
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                onChange={handleUpload}
+                className="hidden"
+                disabled={uploading}
+              />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="animate-pulse space-y-3">
+          {[1, 2].map((i) => <div key={i} className="h-12 rounded-2xl bg-[rgba(0,0,0,0.04)]" />)}
+        </div>
+      ) : files.length === 0 && selectedAgent ? (
+        <div className="glass-card p-8 text-center text-muted">ファイルはまだありません</div>
+      ) : files.length > 0 ? (
+        <div className="glass-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-[var(--bg-inset)]">
+                <tr>
+                  <th className="p-3 text-left font-semibold text-secondary">ファイル名</th>
+                  <th className="p-3 text-left font-semibold text-secondary">方向</th>
+                  <th className="p-3 text-left font-semibold text-secondary">サイズ</th>
+                  <th className="p-3 text-left font-semibold text-secondary">メモ</th>
+                  <th className="p-3 text-left font-semibold text-secondary">日時</th>
+                  <th className="p-3 text-left font-semibold text-secondary">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {files.map((f) => {
+                  const d = getStatusEntry(SHARED_FILE_DIRECTION_MAP, f.direction);
+                  return (
+                    <tr key={f.id} className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-surface-hover)]">
+                      <td className="p-3 font-medium text-primary truncate max-w-[200px]">{f.file_name}</td>
+                      <td className="p-3"><Badge variant={d.variant}>{d.label}</Badge></td>
+                      <td className="p-3 text-muted">{(f.file_size / 1024).toFixed(0)} KB</td>
+                      <td className="p-3 text-muted truncate max-w-[150px]">{f.note || "-"}</td>
+                      <td className="p-3 whitespace-nowrap text-muted">{formatDateTime(f.created_at)}</td>
+                      <td className="p-3">
+                        <button
+                          onClick={() => handleDelete(f.id)}
+                          className="text-red-500 hover:text-red-700 text-xs"
+                        >
+                          削除
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* ─── Contracts Tab ─── */
+
+type SigningRequest = {
+  id: string;
+  agent_id: string;
+  template_type: string;
+  title: string;
+  status: string;
+  signer_email: string;
+  signer_name: string;
+  sent_at: string | null;
+  signed_at: string | null;
+  signed_pdf_path: string | null;
+  created_at: string;
+};
+
+const TEMPLATE_TYPES = [
+  { value: "agent_contract", label: "代理店契約書" },
+  { value: "nda", label: "秘密保持契約（NDA）" },
+  { value: "other", label: "その他" },
+];
+
+function ContractsTab() {
+  const [agents, setAgents] = useState<{ id: string; name: string; contact_email: string | null; contact_name: string | null }[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState("");
+  const [contracts, setContracts] = useState<SigningRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    template_type: "agent_contract",
+    title: "",
+    signer_email: "",
+    signer_name: "",
+  });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/agents", { cache: "no-store" });
+        const json = await res.json();
+        if (res.ok) setAgents((json.agents ?? []).map((a: Agent) => ({
+          id: a.id, name: a.name, contact_email: a.contact_email, contact_name: a.contact_name,
+        })));
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
+  const fetchContracts = async () => {
+    if (!selectedAgent) { setContracts([]); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/agent-contracts?agent_id=${selectedAgent}`, { cache: "no-store" });
+      const json = await res.json();
+      if (res.ok) setContracts(json.contracts ?? []);
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchContracts(); }, [selectedAgent]);
+
+  const openCreate = () => {
+    const agent = agents.find((a) => a.id === selectedAgent);
+    setCreateForm({
+      template_type: "agent_contract",
+      title: "",
+      signer_email: agent?.contact_email ?? "",
+      signer_name: agent?.contact_name ?? "",
+    });
+    setShowCreate(true);
+  };
+
+  const handleCreate = async () => {
+    if (!createForm.title.trim() || !createForm.signer_email.trim() || !createForm.signer_name.trim()) {
+      setMsg("タイトル・署名者メール・署名者名は必須です");
+      return;
+    }
+    setCreateBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/agent-contracts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ agent_id: selectedAgent, ...createForm }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message ?? json?.error ?? `HTTP ${res.status}`);
+      setMsg("署名依頼を送信しました");
+      setShowCreate(false);
+      fetchContracts();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCreateBusy(false);
+    }
+  };
+
+  const handleDownload = async (contractId: string) => {
+    try {
+      const res = await fetch(`/api/admin/agent-contracts/${contractId}/download`);
+      const json = await res.json();
+      if (res.ok && json.url) window.open(json.url, "_blank");
+    } catch { /* ignore */ }
+  };
+
+  const handleAction = async (contractId: string, action: string) => {
+    const label = action === "resend" ? "再送" : "キャンセル";
+    if (!confirm(`${label}しますか？`)) return;
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/admin/agent-contracts/${contractId}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        throw new Error(j?.message ?? `HTTP ${res.status}`);
+      }
+      setMsg(`${label}しました`);
+      fetchContracts();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3 items-end">
+        <div>
+          <label className="text-sm text-secondary mb-1 block">代理店を選択</label>
+          <select
+            value={selectedAgent}
+            onChange={(e) => setSelectedAgent(e.target.value)}
+            className="rounded-xl border border-default bg-surface-solid px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--border-focus)]"
+          >
+            <option value="">選択してください</option>
+            {agents.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
+        </div>
+        {selectedAgent && (
+          <button onClick={openCreate} className="btn-primary text-sm">
+            新規署名依頼
+          </button>
+        )}
+      </div>
+
+      {msg && (
+        <div className="rounded-xl border border-default bg-surface-solid p-3 text-sm text-secondary">{msg}</div>
+      )}
+
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-overlay)]">
+          <div className="glass-card w-full max-w-md p-6 space-y-4">
+            <h3 className="text-lg font-bold text-primary">新規署名依頼</h3>
+            <div>
+              <label className="text-sm text-secondary mb-1 block">テンプレート種別</label>
+              <select
+                value={createForm.template_type}
+                onChange={(e) => setCreateForm((f) => ({ ...f, template_type: e.target.value }))}
+                className="input-field w-full"
+              >
+                {TEMPLATE_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-secondary mb-1 block">タイトル <span className="text-red-500">*</span></label>
+              <input
+                value={createForm.title}
+                onChange={(e) => setCreateForm((f) => ({ ...f, title: e.target.value }))}
+                className="input-field w-full"
+                placeholder="代理店契約書 2026年度"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-secondary mb-1 block">署名者メール <span className="text-red-500">*</span></label>
+              <input
+                type="email"
+                value={createForm.signer_email}
+                onChange={(e) => setCreateForm((f) => ({ ...f, signer_email: e.target.value }))}
+                className="input-field w-full"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-secondary mb-1 block">署名者名 <span className="text-red-500">*</span></label>
+              <input
+                value={createForm.signer_name}
+                onChange={(e) => setCreateForm((f) => ({ ...f, signer_name: e.target.value }))}
+                className="input-field w-full"
+              />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowCreate(false)}
+                className="rounded-xl border border-default bg-surface-solid px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover"
+              >
+                キャンセル
+              </button>
+              <button onClick={handleCreate} disabled={createBusy} className="btn-primary">
+                {createBusy ? "送信中..." : "署名依頼を送信"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="animate-pulse space-y-3">
+          {[1, 2].map((i) => <div key={i} className="h-12 rounded-2xl bg-[rgba(0,0,0,0.04)]" />)}
+        </div>
+      ) : contracts.length === 0 && selectedAgent ? (
+        <div className="glass-card p-8 text-center text-muted">契約書はまだありません</div>
+      ) : contracts.length > 0 ? (
+        <div className="glass-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-[var(--bg-inset)]">
+                <tr>
+                  <th className="p-3 text-left font-semibold text-secondary">タイトル</th>
+                  <th className="p-3 text-left font-semibold text-secondary">種別</th>
+                  <th className="p-3 text-left font-semibold text-secondary">署名者</th>
+                  <th className="p-3 text-left font-semibold text-secondary">ステータス</th>
+                  <th className="p-3 text-left font-semibold text-secondary">送信日</th>
+                  <th className="p-3 text-left font-semibold text-secondary">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contracts.map((c) => {
+                  const s = getStatusEntry(SIGNING_STATUS_MAP, c.status);
+                  const typeLabel = TEMPLATE_TYPES.find((t) => t.value === c.template_type)?.label ?? c.template_type;
+                  return (
+                    <tr key={c.id} className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-surface-hover)]">
+                      <td className="p-3 font-medium text-primary">{c.title}</td>
+                      <td className="p-3 text-muted">{typeLabel}</td>
+                      <td className="p-3">
+                        <div className="text-primary">{c.signer_name}</div>
+                        <div className="text-xs text-muted">{c.signer_email}</div>
+                      </td>
+                      <td className="p-3"><Badge variant={s.variant}>{s.label}</Badge></td>
+                      <td className="p-3 whitespace-nowrap text-muted">{c.sent_at ? formatDateTime(c.sent_at) : "-"}</td>
+                      <td className="p-3">
+                        <div className="flex gap-2">
+                          {c.status === "signed" && c.signed_pdf_path && (
+                            <button
+                              onClick={() => handleDownload(c.id)}
+                              className="text-accent hover:underline text-xs"
+                            >
+                              PDF
+                            </button>
+                          )}
+                          {(c.status === "sent" || c.status === "viewed") && (
+                            <>
+                              <button
+                                onClick={() => handleAction(c.id, "resend")}
+                                className="text-blue-600 hover:underline text-xs"
+                              >
+                                再送
+                              </button>
+                              <button
+                                onClick={() => handleAction(c.id, "cancel")}
+                                className="text-red-500 hover:underline text-xs"
+                              >
+                                キャンセル
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
