@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import JSZip from "jszip";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { renderCertificatePdf } from "@/lib/pdfCertificate";
 import { checkAdminFeature, billingDenyResponse } from "@/lib/billing/adminFeatureGate";
@@ -51,6 +50,7 @@ export async function GET(req: Request) {
   const proto = req.headers.get("x-forwarded-proto") ?? "http";
   const baseUrl = `${proto}://${host}`;
 
+  const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
 
   for (const r of rows ?? []) {
