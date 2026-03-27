@@ -316,6 +316,62 @@ export async function POST(req: NextRequest) {
         const customerId = asStringId(session.customer);
         const subscriptionId = asStringId(session.subscription);
 
+        // ─── 案件決済 (order payment via Stripe Connect) ───
+        if (session.metadata?.source === "order_payment") {
+          const jobOrderId = session.metadata.job_order_id;
+          const fromTenantId = session.metadata.from_tenant_id;
+          const toTenantId = session.metadata.to_tenant_id;
+          const paymentIntentId = asStringId(session.payment_intent);
+
+          if (jobOrderId) {
+            const now = new Date().toISOString();
+
+            // Update order: mark payment confirmed by both parties and complete
+            await supabase
+              .from("job_orders")
+              .update({
+                payment_method: "stripe_connect",
+                payment_confirmed_by_client: true,
+                payment_confirmed_by_vendor: true,
+                payment_status: "both_confirmed",
+                status: "completed",
+                completed_at: now,
+                updated_at: now,
+              })
+              .eq("id", jobOrderId);
+
+            // Insert payment record
+            if (fromTenantId) {
+              await supabase.from("payments").insert({
+                tenant_id: fromTenantId,
+                job_order_id: jobOrderId,
+                payment_method: "card",
+                amount: session.amount_total ?? 0,
+                status: "completed",
+                paid_at: now,
+                stripe_payment_intent_id: paymentIntentId ?? null,
+              });
+            }
+
+            // Audit log
+            await supabase.from("order_audit_log").insert({
+              job_order_id: jobOrderId,
+              action: "payment_completed",
+              old_value: JSON.stringify({ status: "payment_pending" }),
+              new_value: JSON.stringify({
+                status: "completed",
+                payment_method: "stripe_connect",
+                amount: session.amount_total,
+                stripe_payment_intent_id: paymentIntentId,
+              }),
+              actor_tenant_id: fromTenantId ?? null,
+            });
+
+            console.log("webhook: order payment completed", { jobOrderId, fromTenantId, toTenantId });
+          }
+          break;
+        }
+
         // ─── テンプレートオプション checkout ───
         if (isTemplateOptionEvent(session.metadata as Record<string, string> | null)) {
           const tenantId = session.metadata?.tenant_id;

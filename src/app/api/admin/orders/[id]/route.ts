@@ -39,7 +39,7 @@ export async function GET(
     const [fromTenant, toTenant] = await Promise.all([
       admin.from("tenants").select("id, name, slug").eq("id", order.from_tenant_id).single(),
       order.to_tenant_id
-        ? admin.from("tenants").select("id, name, slug").eq("id", order.to_tenant_id).single()
+        ? admin.from("tenants").select("id, name, slug, stripe_connect_account_id, stripe_connect_onboarded").eq("id", order.to_tenant_id).single()
         : Promise.resolve({ data: null }),
     ]);
 
@@ -86,6 +86,12 @@ export async function GET(
       counterpartyScore = ps;
     }
 
+    // 受注者の Stripe Connect 状態（発注者にのみ公開）
+    const vendorStripeReady = order.from_tenant_id === tenantId && toTenant.data
+      ? !!(toTenant.data as Record<string, unknown>).stripe_connect_account_id
+          && !!(toTenant.data as Record<string, unknown>).stripe_connect_onboarded
+      : false;
+
     return NextResponse.json({
       order,
       from_tenant: mapTenant(fromTenant.data),
@@ -97,6 +103,7 @@ export async function GET(
       is_from: order.from_tenant_id === tenantId,
       is_to: order.to_tenant_id != null && order.to_tenant_id === tenantId,
       counterparty_score: counterpartyScore,
+      vendor_stripe_ready: vendorStripeReady,
     });
   } catch (e: unknown) {
     console.error("[orders/[id]] GET failed:", e);

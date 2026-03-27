@@ -224,6 +224,10 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
   // Payment confirm
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
+  const [stripePayBusy, setStripePayBusy] = useState(false);
+  const [stripePayError, setStripePayError] = useState<string | null>(null);
+  const [vendorStripeReady, setVendorStripeReady] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -240,6 +244,7 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
       setCounterpartyScore(j.counterparty_score ?? null);
       setIsFrom(j.is_from);
       setIsTo(j.is_to);
+      setVendorStripeReady(j.vendor_stripe_ready ?? false);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : String(e));
     }
@@ -248,6 +253,21 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
   useEffect(() => {
     setLoading(true);
     fetchDetail().finally(() => setLoading(false));
+  }, [fetchDetail]);
+
+  // Handle ?payment=success query param
+  useEffect(() => {
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      if (qs.get("payment") === "success") {
+        setPaymentSuccess(true);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("payment");
+        window.history.replaceState({}, "", url.toString());
+        // Refetch to get updated status
+        fetchDetail();
+      }
+    } catch { /* ignore */ }
   }, [fetchDetail]);
 
   useEffect(() => {
@@ -323,6 +343,26 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
       if (res.ok) await fetchDetail();
     } finally {
       setConfirmingPayment(false);
+    }
+  };
+
+  // ─── Stripe Connect payment ───
+  const handleStripePay = async () => {
+    setStripePayBusy(true);
+    setStripePayError(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+      if (!j.checkout_url) throw new Error("checkout url missing");
+      window.location.href = j.checkout_url;
+    } catch (e: unknown) {
+      setStripePayError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setStripePayBusy(false);
     }
   };
 
@@ -480,29 +520,72 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
         </section>
       )}
 
+      {/* ─── Payment Success Banner ─── */}
+      {paymentSuccess && (
+        <div className="glass-card p-4 text-sm text-accent glow-cyan">
+          決済が完了しました。支払確認が自動的に更新されます。
+        </div>
+      )}
+
       {/* ─── Payment Confirmation ─── */}
       {order.status === "payment_pending" && (
-        <section className="glass-card p-5 space-y-3">
+        <section className="glass-card p-5 space-y-4">
           <h3 className="text-sm font-semibold text-primary">支払確認</h3>
           <div className="text-xs text-muted">
             発注者: {order.payment_confirmed_by_client ? "確認済" : "未確認"} /
             受注者: {order.payment_confirmed_by_vendor ? "確認済" : "未確認"}
           </div>
-          {((isFrom && !order.payment_confirmed_by_client) || (isTo && !order.payment_confirmed_by_vendor)) && (
-            <div className="flex items-end gap-3">
-              <div className="space-y-1">
-                <label className="text-xs text-muted">支払方法</label>
-                <select className="select-field" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                  <option value="bank_transfer">銀行振込</option>
-                  <option value="cash">現金</option>
-                  <option value="card">カード</option>
-                  <option value="stripe_connect">Stripe</option>
-                  <option value="other">その他</option>
-                </select>
+
+          {/* Stripe Connect payment (発注者向け) */}
+          {isFrom && !order.payment_confirmed_by_client && vendorStripeReady && (
+            <div className="p-4 rounded-lg bg-accent/5 border border-accent/20 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-accent">
+                    <path d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-primary">オンライン決済（Stripe）</div>
+                  <div className="text-xs text-muted">
+                    クレジットカードで即時決済。支払確認は自動で完了します。
+                  </div>
+                </div>
               </div>
-              <Button onClick={handleConfirmPayment} loading={confirmingPayment} disabled={confirmingPayment}>
-                支払を確認する
-              </Button>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-primary">
+                  支払金額: <span className="font-bold">{formatJpy(Number(order.accepted_amount ?? order.budget ?? 0))}</span>
+                  <span className="text-xs text-muted ml-1">（手数料5%込）</span>
+                </div>
+                <Button onClick={handleStripePay} loading={stripePayBusy} disabled={stripePayBusy}>
+                  {stripePayBusy ? "処理中…" : "Stripeで支払う"}
+                </Button>
+              </div>
+              {stripePayError && <div className="text-xs text-red-500">{stripePayError}</div>}
+            </div>
+          )}
+
+          {/* Manual payment confirmation */}
+          {((isFrom && !order.payment_confirmed_by_client) || (isTo && !order.payment_confirmed_by_vendor)) && (
+            <div className="space-y-3">
+              {isFrom && vendorStripeReady && (
+                <div className="text-xs text-muted border-t pt-3">または、銀行振込等で支払い済みの場合は以下から確認してください</div>
+              )}
+              <div className="flex items-end gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted">支払方法</label>
+                  <select className="select-field" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                    <option value="bank_transfer">銀行振込</option>
+                    <option value="cash">現金</option>
+                    <option value="card">カード</option>
+                    <option value="stripe_connect">Stripe</option>
+                    <option value="other">その他</option>
+                  </select>
+                </div>
+                <Button onClick={handleConfirmPayment} loading={confirmingPayment} disabled={confirmingPayment}>
+                  支払を確認する
+                </Button>
+              </div>
             </div>
           )}
         </section>
