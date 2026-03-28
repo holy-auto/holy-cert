@@ -5,6 +5,7 @@ import { CERTIFICATE_IMAGE_BUCKET } from "@/lib/certificateImages";
 import { normalizePlanTier, PHOTO_LIMITS } from "@/lib/billing/planFeatures";
 import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound } from "@/lib/api/response";
 import { apiError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -39,6 +40,9 @@ function validateMagicBytes(buffer: Buffer): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     // ── Auth ──────────────────────────────────────────────────────
     const supabase = await createSupabaseServerClient();

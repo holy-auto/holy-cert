@@ -15,36 +15,36 @@ export async function GET() {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: campaigns } = await supabase
-      .from("agent_campaigns")
-      .select("*")
-      .eq("is_active", true)
-      .lte("start_date", today)
-      .gte("end_date", today)
-      .order("end_date", { ascending: true });
+    const [{ data: campaigns }, { data: upcoming }, { data: past }] = await Promise.all([
+      supabase
+        .from("agent_campaigns")
+        .select("id, title, description, campaign_type, bonus_rate, bonus_fixed, start_date, end_date, banner_text")
+        .eq("is_active", true)
+        .lte("start_date", today)
+        .gte("end_date", today)
+        .order("end_date", { ascending: true }),
+      supabase
+        .from("agent_campaigns")
+        .select("id, title, description, campaign_type, bonus_rate, bonus_fixed, start_date, end_date, banner_text")
+        .eq("is_active", true)
+        .gt("start_date", today)
+        .order("start_date", { ascending: true })
+        .limit(5),
+      supabase
+        .from("agent_campaigns")
+        .select("id, title, description, campaign_type, bonus_rate, bonus_fixed, start_date, end_date, banner_text")
+        .lt("end_date", today)
+        .order("end_date", { ascending: false })
+        .limit(10),
+    ]);
 
-    // Also get upcoming campaigns
-    const { data: upcoming } = await supabase
-      .from("agent_campaigns")
-      .select("*")
-      .eq("is_active", true)
-      .gt("start_date", today)
-      .order("start_date", { ascending: true })
-      .limit(5);
-
-    // Past campaigns
-    const { data: past } = await supabase
-      .from("agent_campaigns")
-      .select("*")
-      .lt("end_date", today)
-      .order("end_date", { ascending: false })
-      .limit(10);
-
-    return NextResponse.json({
+    const res = NextResponse.json({
       active: campaigns ?? [],
       upcoming: upcoming ?? [],
       past: past ?? [],
     });
+    res.headers.set("Cache-Control", "private, max-age=300, stale-while-revalidate=600");
+    return res;
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "internal_error" }, { status: 500 });
   }

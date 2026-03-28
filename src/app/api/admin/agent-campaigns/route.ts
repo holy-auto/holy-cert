@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
-import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -11,12 +12,12 @@ export async function GET() {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const admin = getAdminClient();
     const { data } = await admin
       .from("agent_campaigns")
-      .select("*")
+      .select("id, title, description, campaign_type, bonus_rate, bonus_fixed, start_date, end_date, is_active, target_agents, banner_text, created_at, updated_at")
       .order("created_at", { ascending: false });
 
     return NextResponse.json({ campaigns: data ?? [] });
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const body = await request.json();
     const admin = getAdminClient();

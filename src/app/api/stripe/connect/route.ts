@@ -4,6 +4,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { apiInternalError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,9 @@ function safeUrl(candidate?: string | null, fallback?: string): string {
 
 // ─── POST: Create Connect account + onboarding link ───
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "auth");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);

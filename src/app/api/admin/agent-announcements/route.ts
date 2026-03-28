@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
-import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -11,16 +12,18 @@ export async function GET() {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const admin = getAdminClient();
     const { data, error } = await admin
       .from("agent_announcements")
-      .select("*")
+      .select("id, title, body, category, is_pinned, published_at, created_by, created_at, updated_at")
       .order("created_at", { ascending: false });
 
     if (error) return apiInternalError(error, "agent-announcements GET");
-    return NextResponse.json({ announcements: data ?? [] });
+    const res = NextResponse.json({ announcements: data ?? [] });
+    res.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+    return res;
   } catch (e) {
     return apiInternalError(e, "agent-announcements GET");
   }
@@ -31,7 +34,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const body = await request.json();
     const admin = getAdminClient();

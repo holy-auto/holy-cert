@@ -6,6 +6,8 @@ import { normalizePlanTier } from "@/lib/billing/planFeatures";
 import { memberLimit, canAddMember } from "@/lib/billing/memberLimits";
 import { logAuditEvent } from "@/lib/audit/certificateLog";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { memberAddSchema, memberRoleChangeSchema, memberDeleteSchema } from "@/lib/validations/member";
+import { apiValidationError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -91,14 +93,18 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithPlan(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({} as any));
-    const email = (body?.email ?? "").trim().toLowerCase();
-    const displayName = (body?.display_name ?? "").trim() || null;
-    const role = (body?.role ?? "").trim() || null; // null → DB default
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "invalid_email" }, { status: 400 });
+    // Only owner/admin can add members
+    if (caller.role !== "owner" && caller.role !== "admin" && caller.role !== "super_admin") {
+      return NextResponse.json({ error: "forbidden", message: "メンバー追加の権限がありません" }, { status: 403 });
     }
+
+    const body = await req.json().catch(() => ({}));
+    const parsed = memberAddSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力が無効です。");
+    }
+
+    const { email, display_name: displayName, role } = parsed.data;
 
     const admin = getSupabaseAdmin();
 
@@ -217,18 +223,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "forbidden", message: "ロール変更の権限がありません。" }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({} as any));
-    const targetUserId = (body?.user_id ?? "").trim();
-    const newRole = (body?.role ?? "").trim();
-
-    if (!targetUserId || !newRole) {
-      return NextResponse.json({ error: "missing_params", message: "user_id と role は必須です。" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = memberRoleChangeSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力が無効です。");
     }
 
-    const validRoles = ["admin", "staff", "viewer"];
-    if (!validRoles.includes(newRole)) {
-      return NextResponse.json({ error: "invalid_role", message: "無効なロールです。" }, { status: 400 });
-    }
+    const { user_id: targetUserId, role: newRole } = parsed.data;
 
     // 自分自身のロール変更は不可
     if (targetUserId === caller.userId) {
@@ -288,12 +289,13 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "forbidden", message: "メンバー削除の権限がありません。" }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({} as any));
-    const targetUserId = (body?.user_id ?? "").trim();
-
-    if (!targetUserId) {
-      return NextResponse.json({ error: "missing_user_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = memberDeleteSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力が無効です。");
     }
+
+    const { user_id: targetUserId } = parsed.data;
 
     // 自分自身は削除不可
     if (targetUserId === caller.userId) {

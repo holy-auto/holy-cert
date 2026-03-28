@@ -1,6 +1,84 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+// ─── Global API rate limiter (120 req / 60s per IP) ───
+let globalLimiter: Ratelimit | null = null;
+
+function getGlobalLimiter(): Ratelimit | null {
+  if (globalLimiter) return globalLimiter;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  globalLimiter = new Ratelimit({
+    redis: new Redis({ url, token }),
+    limiter: Ratelimit.slidingWindow(120, "60 s"),
+    prefix: "rl:global",
+  });
+  return globalLimiter;
+}
+
+function getClientIp(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+/**
+ * Global rate limit check for all API routes.
+ * Returns a 429 response if exceeded, or null to continue.
+ */
+async function globalRateLimit(request: NextRequest): Promise<NextResponse | null> {
+  const { pathname } = request.nextUrl;
+  if (!pathname.startsWith("/api/")) return null;
+
+  // Skip webhook routes — they have their own rate limits and come from trusted servers
+  if (pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/stripe/webhook") || pathname.startsWith("/api/line/webhook")) {
+    return null;
+  }
+
+  // Skip cron routes — server-to-server calls
+  if (pathname.startsWith("/api/cron/")) return null;
+
+  const limiter = getGlobalLimiter();
+  if (!limiter) {
+    // Fail-closed in production
+    if (process.env.NODE_ENV === "production") {
+      console.error("[globalRateLimit] Redis not configured in production");
+      return NextResponse.json(
+        { error: "service_unavailable", message: "サービスが一時的に利用できません。" },
+        { status: 503 },
+      );
+    }
+    return null;
+  }
+
+  try {
+    const ip = getClientIp(request);
+    const result = await limiter.limit(ip);
+    if (!result.success) {
+      const retryAfter = Math.ceil((result.reset - Date.now()) / 1000);
+      return NextResponse.json(
+        { error: "rate_limited", message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。", retry_after: retryAfter },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
+      );
+    }
+  } catch (e) {
+    console.error("[globalRateLimit] Redis error:", e);
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "service_unavailable", message: "サービスが一時的に利用できません。" },
+        { status: 503 },
+      );
+    }
+  }
+
+  return null;
+}
 
 const PUBLIC_PREFIXES = [
   "/login",
@@ -29,6 +107,51 @@ const HIDDEN_ADMIN_PREFIXES = [
   "/admin/price-stats",
   "/admin/insurers",
 ];
+
+// ─── Content-Type validation for API mutation routes ───
+const NON_JSON_ROUTES = new Set([
+  "/api/webhooks/resend",
+  "/api/webhooks/cloudsign",
+  "/api/webhooks/square",
+  "/api/stripe/webhook",
+  "/api/line/webhook",
+  "/api/certificate/pdf",
+  "/api/admin/market-vehicles/images",
+  "/api/admin/logo",
+  "/api/certificates/images/upload",
+  "/api/vehicles/import-csv",
+  "/api/template-options/upload-logo",
+]);
+
+function isNonJsonRoute(pathname: string): boolean {
+  return NON_JSON_ROUTES.has(pathname) || Array.from(NON_JSON_ROUTES).some((r) => pathname.startsWith(r));
+}
+
+/**
+ * Validate Content-Type header for API mutation requests.
+ * Returns a 415 response if Content-Type is invalid, or null to continue.
+ */
+function contentTypeCheck(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  const method = request.method;
+
+  if (!pathname.startsWith("/api/")) return null;
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) return null;
+  if (isNonJsonRoute(pathname)) return null;
+
+  const contentType = request.headers.get("content-type") ?? "";
+  const contentLength = request.headers.get("content-length");
+  const hasBody = contentLength !== null && contentLength !== "0";
+
+  if (hasBody && !contentType.includes("application/json") && !contentType.includes("multipart/form-data")) {
+    return NextResponse.json(
+      { error: "unsupported_content_type", message: "Content-Type must be application/json" },
+      { status: 415 },
+    );
+  }
+
+  return null;
+}
 
 /**
  * CSRF protection for API mutation routes.
@@ -96,6 +219,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Global rate limit for API routes
+  const rateLimitResponse = await globalRateLimit(request);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  // Content-Type validation for API mutations
+  const contentTypeResponse = contentTypeCheck(request);
+  if (contentTypeResponse) return contentTypeResponse;
+
   // CSRF protection for API mutations
   const csrfResponse = csrfCheck(request);
   if (csrfResponse) return csrfResponse;
@@ -116,7 +247,13 @@ export async function proxy(request: NextRequest) {
 
   // Marketing pages and public routes: pass through
   if (MARKETING_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
-    return refreshSession(request);
+    const response = await refreshSession(request);
+    // Add security headers for API responses
+    if (pathname.startsWith("/api/")) {
+      response.headers.set("X-Content-Type-Options", "nosniff");
+      response.headers.set("X-Robots-Tag", "noindex");
+    }
+    return response;
   }
 
   // Protected routes: refresh session then check auth
@@ -183,9 +320,65 @@ async function refreshSession(request: NextRequest) {
   return response;
 }
 
+/** Maximum idle time before forcing re-login (24 hours in milliseconds) */
+const IDLE_SESSION_TIMEOUT_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Check if the session has been idle too long by examining the JWT's `iat`.
+ * Supabase SSR refreshes access tokens on activity, so a stale `iat` means
+ * the user has not made any authenticated requests recently.
+ * Returns true if the session should be considered expired.
+ */
+function isSessionIdleExpired(request: NextRequest): boolean {
+  const authCookie = request.cookies.getAll().find((c) => c.name.includes("auth-token"));
+  if (!authCookie?.value) return false; // No token — let getUser() handle it
+
+  try {
+    const payload = JSON.parse(
+      atob(authCookie.value.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+    );
+    const issuedAt = (payload.iat ?? 0) * 1000;
+    return Date.now() - issuedAt > IDLE_SESSION_TIMEOUT_MS;
+  } catch {
+    return false; // Can't decode — fall through to normal auth flow
+  }
+}
+
+/** Redirect to the appropriate login page based on pathname */
+function redirectToLogin(request: NextRequest): NextResponse {
+  const { pathname } = request.nextUrl;
+  const redirectUrl = request.nextUrl.clone();
+
+  if (pathname.startsWith("/insurer")) {
+    redirectUrl.pathname = "/insurer/login";
+  } else if (pathname.startsWith("/market")) {
+    redirectUrl.pathname = "/market/login";
+  } else {
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("next", pathname);
+  }
+
+  // Clear auth cookies so the client doesn't keep the stale session
+  const response = NextResponse.redirect(redirectUrl);
+  request.cookies.getAll()
+    .filter((c) => c.name.includes("auth-token"))
+    .forEach((c) => response.cookies.delete(c.name));
+  return response;
+}
+
 /** Refresh session + redirect unauthenticated users */
 async function refreshSessionAndProtect(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // ── Server-side idle session timeout ──
+  // If the access token was issued more than 24 hours ago, the user has been
+  // idle (no requests that would trigger a Supabase token refresh). Force
+  // re-login even if Supabase would still honour the refresh token.
+  if (isSessionIdleExpired(request)) {
+    console.warn(`[idle-timeout] Session expired for ${pathname}`);
+    return redirectToLogin(request);
+  }
+
   const response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -209,22 +402,7 @@ async function refreshSessionAndProtect(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    if (pathname.startsWith("/admin")) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/login";
-      redirectUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(redirectUrl);
-    }
-    if (pathname.startsWith("/insurer")) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/insurer/login";
-      return NextResponse.redirect(redirectUrl);
-    }
-    if (pathname.startsWith("/market")) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/market/login";
-      return NextResponse.redirect(redirectUrl);
-    }
+    return redirectToLogin(request);
   }
 
   return response;

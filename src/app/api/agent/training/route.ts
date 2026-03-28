@@ -17,14 +17,14 @@ export async function GET() {
     // Fetch courses
     const { data: courses } = await supabase
       .from("agent_training_courses")
-      .select("*")
+      .select("id, title, description, category, content_type, content_url, thumbnail_url, duration_min, is_required, sort_order")
       .eq("is_published", true)
       .order("sort_order", { ascending: true });
 
     // Fetch user progress
     const { data: progress } = await supabase
       .from("agent_training_progress")
-      .select("*")
+      .select("course_id, status, progress, completed_at")
       .eq("user_id", auth.user.id);
 
     const progressMap = new Map((progress ?? []).map((p) => [p.course_id, p]));
@@ -40,10 +40,12 @@ export async function GET() {
     const requiredCourses = enriched.filter((c: any) => c.is_required).length;
     const requiredCompleted = enriched.filter((c: any) => c.is_required && c.progress?.status === "completed").length;
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       courses: enriched,
       stats: { total: totalCourses, completed: completedCourses, required: requiredCourses, required_completed: requiredCompleted },
     });
+    res.headers.set("Cache-Control", "private, max-age=120, stale-while-revalidate=300");
+    return res;
   } catch (e) {
     return apiInternalError(e, "agent training GET");
   }

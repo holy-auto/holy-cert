@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     p_ip: ip,
     p_user_agent: ua,
   });
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("エクスポートに失敗しました。");
 
   const row = Array.isArray(data) ? data[0] : null;
   if (!row) return apiNotFound("証明書が見つかりません。");

@@ -3,6 +3,8 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { parsePagination } from "@/lib/api/pagination";
+import { invoiceCreateSchema, invoiceUpdateSchema, invoiceDeleteSchema } from "@/lib/validations/invoice";
+import { apiValidationError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +72,7 @@ export async function GET(req: NextRequest) {
 
     let countQuery = supabase
       .from("documents")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("tenant_id", caller.tenantId)
       .eq("doc_type", "invoice");
 
@@ -156,23 +158,27 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}));
+    const parsed = invoiceCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError("入力内容に誤りがあります。", { issues: parsed.error.flatten().fieldErrors });
+    }
 
-    const docNumber = body?.invoice_number?.trim() || (await generateInvoiceNumber(supabase, caller.tenantId));
-    const customerId = body?.customer_id?.trim() || null;
-    const issuedAt = body?.issued_at || new Date().toISOString().slice(0, 10);
-    const dueDate = body?.due_date || null;
-    const note = (body?.note ?? "").trim() || null;
-    const items = body?.items ?? [];
-    const status = body?.status || "draft";
-    const isInvoiceCompliant = !!body?.is_invoice_compliant;
-    const showSeal = !!body?.show_seal;
-    const showLogo = body?.show_logo !== false;
-    const showBankInfo = !!body?.show_bank_info;
-    const recipientName = (body?.recipient_name ?? "").trim() || null;
-    const taxRate = parseInt(String(body?.tax_rate ?? 10), 10);
-    const vehicleId = (body?.vehicle_id ?? "").trim() || null;
-    const vehicleInfo = body?.vehicle_info ?? null;
+    const docNumber = (body as any)?.invoice_number?.trim() || (await generateInvoiceNumber(supabase, caller.tenantId));
+    const customerId = parsed.data.customer_id ?? null;
+    const issuedAt = parsed.data.issued_at || new Date().toISOString().slice(0, 10);
+    const dueDate = parsed.data.due_date || null;
+    const note = parsed.data.note ?? null;
+    const items = (body as any)?.items ?? [];
+    const status = parsed.data.status;
+    const isInvoiceCompliant = !!(body as any)?.is_invoice_compliant;
+    const showSeal = parsed.data.show_seal;
+    const showLogo = parsed.data.show_logo;
+    const showBankInfo = parsed.data.show_bank_info;
+    const recipientName = parsed.data.recipient_name ?? null;
+    const taxRate = parsed.data.tax_rate ?? 10;
+    const vehicleId = ((body as any)?.vehicle_id ?? "").trim() || null;
+    const vehicleInfo = (body as any)?.vehicle_info ?? null;
 
     // 金額計算
     let subtotal = 0;
@@ -242,29 +248,32 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({} as any));
-    const id = (body?.id ?? "").trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = invoiceUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError("入力内容に誤りがあります。", { issues: parsed.error.flatten().fieldErrors });
+    }
 
+    const id = parsed.data.id;
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
     // ステータス更新
-    if (body.status !== undefined) updates.status = body.status;
-    if (body.customer_id !== undefined) updates.customer_id = body.customer_id || null;
-    if (body.issued_at !== undefined) updates.issued_at = body.issued_at;
-    if (body.due_date !== undefined) updates.due_date = body.due_date;
-    if (body.note !== undefined) updates.note = (body.note ?? "").trim() || null;
-    if (body.invoice_number !== undefined) updates.doc_number = body.invoice_number;
-    if (body.is_invoice_compliant !== undefined) updates.is_invoice_compliant = !!body.is_invoice_compliant;
-    if (body.show_seal !== undefined) updates.show_seal = !!body.show_seal;
-    if (body.show_logo !== undefined) updates.show_logo = !!body.show_logo;
-    if (body.show_bank_info !== undefined) updates.show_bank_info = !!body.show_bank_info;
-    if (body.recipient_name !== undefined) updates.recipient_name = (body.recipient_name ?? "").trim() || null;
-    if (body.payment_date !== undefined) updates.payment_date = body.payment_date || null;
+    if (parsed.data.status !== undefined) updates.status = parsed.data.status;
+    if (parsed.data.customer_id !== undefined) updates.customer_id = parsed.data.customer_id || null;
+    if (parsed.data.issued_at !== undefined) updates.issued_at = parsed.data.issued_at;
+    if (parsed.data.due_date !== undefined) updates.due_date = parsed.data.due_date;
+    if (parsed.data.note !== undefined) updates.note = parsed.data.note ?? null;
+    if ((body as any).invoice_number !== undefined) updates.doc_number = (body as any).invoice_number;
+    if ((body as any).is_invoice_compliant !== undefined) updates.is_invoice_compliant = !!(body as any).is_invoice_compliant;
+    if (parsed.data.show_seal !== undefined) updates.show_seal = parsed.data.show_seal;
+    if (parsed.data.show_logo !== undefined) updates.show_logo = parsed.data.show_logo;
+    if (parsed.data.show_bank_info !== undefined) updates.show_bank_info = parsed.data.show_bank_info;
+    if (parsed.data.recipient_name !== undefined) updates.recipient_name = parsed.data.recipient_name ?? null;
+    if (parsed.data.payment_date !== undefined) updates.payment_date = parsed.data.payment_date || null;
 
     // 明細更新
-    if (body.items !== undefined) {
-      const items = body.items ?? [];
+    if ((body as any).items !== undefined) {
+      const items = (body as any).items ?? [];
       let subtotal = 0;
       const itemsJson = items.map((item: any) => {
         const qty = parseInt(String(item.quantity || 0), 10);
@@ -282,7 +291,7 @@ export async function PUT(req: NextRequest) {
         if (item.certificate_public_id) mapped.certificate_public_id = item.certificate_public_id;
         return mapped;
       });
-      const taxRate = parseInt(String(body.tax_rate ?? 10), 10);
+      const taxRate = parsed.data.tax_rate ?? 10;
       const tax = Math.floor(subtotal * (taxRate / 100));
       updates.items_json = itemsJson;
       updates.subtotal = subtotal;
@@ -323,9 +332,13 @@ export async function DELETE(req: NextRequest) {
     }
     const caller = { userId: callerWithRole.userId, tenantId: callerWithRole.tenantId };
 
-    const body = await req.json().catch(() => ({} as any));
-    const id = (body?.id ?? "").trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = invoiceDeleteSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError("入力内容に誤りがあります。", { issues: parsed.error.flatten().fieldErrors });
+    }
+
+    const id = parsed.data.id;
 
     // 下書きか確認
     const { data: inv } = await supabase

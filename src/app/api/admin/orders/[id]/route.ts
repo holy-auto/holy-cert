@@ -23,7 +23,7 @@ export async function GET(
     // 注文取得 (admin client to bypass RLS)
     const { data: order, error } = await admin
       .from("job_orders")
-      .select("*")
+      .select("id, order_number, from_tenant_id, to_tenant_id, title, description, category, budget, accepted_amount, deadline, status, payment_method, payment_status, payment_confirmed_by_client, payment_confirmed_by_vendor, vendor_completed_at, client_approved_at, cancel_reason, created_at")
       .eq("id", id)
       .or(`from_tenant_id.eq.${tenantId},to_tenant_id.eq.${tenantId}`)
       .single();
@@ -43,48 +43,48 @@ export async function GET(
         : Promise.resolve({ data: null }),
     ]);
 
-    // 紐づく帳票
-    const { data: documents } = await admin
-      .from("documents")
-      .select("id, doc_type, doc_number, status, total, issued_at")
-      .eq("job_order_id", id)
-      .order("created_at", { ascending: false });
-
-    // チャット最新5件
-    const { data: recentMessages } = await admin
-      .from("chat_messages")
-      .select("id, sender_tenant_id, body, is_system, created_at")
-      .eq("job_order_id", id)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    // 評価
-    const { data: reviews } = await admin
-      .from("order_reviews")
-      .select("id, reviewer_tenant_id, reviewed_tenant_id, rating, comment, published_at")
-      .eq("job_order_id", id);
-
-    // 監査ログ（最新20件）
-    const { data: auditLog } = await admin
-      .from("order_audit_log")
-      .select("action, old_value, new_value, actor_tenant_id, created_at")
-      .eq("job_order_id", id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    // 相手方のパートナースコアを取得
+    // Fetch all related data in parallel
     const counterpartyId = order.from_tenant_id === tenantId
       ? order.to_tenant_id
       : order.from_tenant_id;
-    let counterpartyScore = null;
-    if (counterpartyId) {
-      const { data: ps } = await admin
-        .from("partner_scores")
-        .select("total_orders, completed_orders, on_time_orders, cancelled_orders, avg_rating, rating_count")
-        .eq("tenant_id", counterpartyId)
-        .maybeSingle();
-      counterpartyScore = ps;
-    }
+
+    const [
+      { data: documents },
+      { data: recentMessages },
+      { data: reviews },
+      { data: auditLog },
+      counterpartyScoreResult,
+    ] = await Promise.all([
+      admin
+        .from("documents")
+        .select("id, doc_type, doc_number, status, total, issued_at")
+        .eq("job_order_id", id)
+        .order("created_at", { ascending: false }),
+      admin
+        .from("chat_messages")
+        .select("id, sender_tenant_id, body, is_system, created_at")
+        .eq("job_order_id", id)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      admin
+        .from("order_reviews")
+        .select("id, reviewer_tenant_id, reviewed_tenant_id, rating, comment, published_at")
+        .eq("job_order_id", id),
+      admin
+        .from("order_audit_log")
+        .select("action, old_value, new_value, actor_tenant_id, created_at")
+        .eq("job_order_id", id)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      counterpartyId
+        ? admin
+            .from("partner_scores")
+            .select("total_orders, completed_orders, on_time_orders, cancelled_orders, avg_rating, rating_count")
+            .eq("tenant_id", counterpartyId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    const counterpartyScore = counterpartyScoreResult.data;
 
     return NextResponse.json({
       order,

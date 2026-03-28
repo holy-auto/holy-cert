@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiForbidden, apiValidationError } from "@/lib/api/response";
 import { DOC_TYPES, type DocType } from "@/types/document";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { parsePagination } from "@/lib/api/pagination";
+import { documentCreateSchema, documentUpdateSchema, documentDeleteSchema } from "@/lib/validations/document";
 
 export const dynamic = "force-dynamic";
 
@@ -85,7 +87,7 @@ export async function GET(req: NextRequest) {
 
     let countQuery = supabase
       .from("documents")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("tenant_id", caller.tenantId);
 
     if (docType) { query = query.eq("doc_type", docType); countQuery = countQuery.eq("doc_type", docType); }
@@ -151,28 +153,35 @@ export async function POST(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
-    const body = await req.json().catch(() => ({} as any));
-    const docType = (body?.doc_type ?? "").trim() as DocType;
+    const body = await req.json().catch(() => ({}));
+    const parsed = documentCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
+    }
+    const d = parsed.data;
+
+    const docType = d.doc_type as DocType;
     if (!DOC_TYPES[docType]) {
       return NextResponse.json({ error: "invalid_doc_type" }, { status: 400 });
     }
 
-    const docNumber = body?.doc_number?.trim() || (await generateDocNumber(supabase, caller.tenantId, docType));
-    const customerId = body?.customer_id?.trim() || null;
-    const issuedAt = body?.issued_at || new Date().toISOString().slice(0, 10);
-    const dueDate = body?.due_date || null;
-    const note = (body?.note ?? "").trim() || null;
-    const items = body?.items ?? [];
-    const taxRate = parseInt(String(body?.tax_rate ?? 10), 10);
-    const status = body?.status || "draft";
-    const isInvoiceCompliant = !!body?.is_invoice_compliant;
-    const sourceDocumentId = body?.source_document_id || null;
-    const showSeal = !!body?.show_seal;
-    const showLogo = body?.show_logo !== false;
-    const showBankInfo = !!body?.show_bank_info;
-    const recipientName = (body?.recipient_name ?? "").trim() || null;
-    const metaJson = body?.meta_json ?? {};
+    const docNumber = d.doc_number || (await generateDocNumber(supabase, caller.tenantId, docType));
+    const customerId = d.customer_id || null;
+    const issuedAt = d.issued_at || new Date().toISOString().slice(0, 10);
+    const dueDate = d.due_date || null;
+    const note = d.note;
+    const items = d.items;
+    const taxRate = parseInt(String(d.tax_rate), 10);
+    const status = d.status;
+    const isInvoiceCompliant = d.is_invoice_compliant;
+    const sourceDocumentId = d.source_document_id || null;
+    const showSeal = d.show_seal;
+    const showLogo = d.show_logo;
+    const showBankInfo = d.show_bank_info;
+    const recipientName = d.recipient_name;
+    const metaJson = d.meta_json;
 
     const { itemsJson, subtotal, tax, total } = calcItems(items, taxRate);
 
@@ -219,29 +228,33 @@ export async function PUT(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
-    const body = await req.json().catch(() => ({} as any));
-    const id = (body?.id ?? "").trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = documentUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
+    }
+    const { id, ...fields } = parsed.data;
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-    if (body.status !== undefined) updates.status = body.status;
-    if (body.customer_id !== undefined) updates.customer_id = body.customer_id || null;
-    if (body.issued_at !== undefined) updates.issued_at = body.issued_at;
-    if (body.due_date !== undefined) updates.due_date = body.due_date;
-    if (body.note !== undefined) updates.note = (body.note ?? "").trim() || null;
-    if (body.doc_number !== undefined) updates.doc_number = body.doc_number;
-    if (body.is_invoice_compliant !== undefined) updates.is_invoice_compliant = !!body.is_invoice_compliant;
-    if (body.show_seal !== undefined) updates.show_seal = !!body.show_seal;
-    if (body.show_logo !== undefined) updates.show_logo = !!body.show_logo;
-    if (body.show_bank_info !== undefined) updates.show_bank_info = !!body.show_bank_info;
-    if (body.recipient_name !== undefined) updates.recipient_name = (body.recipient_name ?? "").trim() || null;
-    if (body.meta_json !== undefined) updates.meta_json = body.meta_json;
+    if (fields.status !== undefined) updates.status = fields.status;
+    if (fields.customer_id !== undefined) updates.customer_id = fields.customer_id || null;
+    if (fields.issued_at !== undefined) updates.issued_at = fields.issued_at;
+    if (fields.due_date !== undefined) updates.due_date = fields.due_date;
+    if (fields.note !== undefined) updates.note = fields.note;
+    if (fields.doc_number !== undefined) updates.doc_number = fields.doc_number;
+    if (fields.is_invoice_compliant !== undefined) updates.is_invoice_compliant = fields.is_invoice_compliant;
+    if (fields.show_seal !== undefined) updates.show_seal = fields.show_seal;
+    if (fields.show_logo !== undefined) updates.show_logo = fields.show_logo;
+    if (fields.show_bank_info !== undefined) updates.show_bank_info = fields.show_bank_info;
+    if (fields.recipient_name !== undefined) updates.recipient_name = fields.recipient_name;
+    if (fields.meta_json !== undefined) updates.meta_json = fields.meta_json;
 
-    if (body.items !== undefined) {
-      const taxRate = parseInt(String(body.tax_rate ?? 10), 10);
-      const { itemsJson, subtotal, tax, total } = calcItems(body.items ?? [], taxRate);
+    if (fields.items !== undefined) {
+      const taxRate = parseInt(String(fields.tax_rate ?? 10), 10);
+      const { itemsJson, subtotal, tax, total } = calcItems(fields.items ?? [], taxRate);
       updates.items_json = itemsJson;
       updates.subtotal = subtotal;
       updates.tax = tax;
@@ -275,10 +288,14 @@ export async function DELETE(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
-    const body = await req.json().catch(() => ({} as any));
-    const id = (body?.id ?? "").trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = documentDeleteSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "IDが必要です。");
+    }
+    const { id } = parsed.data;
 
     const { data: doc } = await supabase
       .from("documents")

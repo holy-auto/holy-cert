@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiForbidden } from "@/lib/api/response";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 /**
  * POST /api/admin/orders/[id]/confirm-payment
@@ -12,11 +14,15 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
     const tenantId = caller.tenantId;
 
     const admin = getSupabaseAdmin();
@@ -25,7 +31,7 @@ export async function POST(
     // 注文取得
     const { data: order, error: fetchErr } = await admin
       .from("job_orders")
-      .select("*")
+      .select("id, status, from_tenant_id, to_tenant_id, payment_method, accepted_amount, payment_confirmed_by_client, payment_confirmed_by_vendor, payment_status")
       .eq("id", id)
       .or(`from_tenant_id.eq.${tenantId},to_tenant_id.eq.${tenantId}`)
       .single();

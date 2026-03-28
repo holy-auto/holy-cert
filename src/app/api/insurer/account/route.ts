@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest) {
     .eq("id", caller.insurerId)
     .maybeSingle();
 
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("操作に失敗しました。");
 
   const { count } = await admin
     .from("insurer_users")
@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest) {
     .select()
     .single();
 
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("操作に失敗しました。");
 
   return NextResponse.json({ insurer: data });
 }

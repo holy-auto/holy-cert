@@ -3,6 +3,7 @@ import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
 import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
 
 export const runtime = "nodejs";
 
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
     // Build query
     let query = admin
       .from("insurer_cases")
-      .select("*", { count: "exact" })
+      .select("id, case_number, title, status, priority, category, description, created_at, insurer_id, certificate_id, vehicle_id, tenant_id", { count: "exact" })
       .eq("insurer_id", caller.insurerId)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (category) {
-      query = query.ilike("category", `%${category}%`);
+      query = query.ilike("category", `%${escapeIlike(category)}%`);
     }
 
     if (dateFrom) {
@@ -82,12 +83,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (q) {
-      query = query.or(`title.ilike.%${q}%,case_number.ilike.%${q}%,description.ilike.%${q}%`);
+      const safe = escapePostgrestValue(escapeIlike(q));
+      query = query.or(`title.ilike.%${safe}%,case_number.ilike.%${safe}%,description.ilike.%${safe}%`);
     }
 
     const { data, error, count } = await query;
 
-    if (error) return apiValidationError(error.message);
+    if (error) return apiValidationError("操作に失敗しました。");
 
     return NextResponse.json({ cases: data ?? [], total: count ?? 0 });
   } catch (err) {
@@ -166,10 +168,10 @@ export async function POST(req: NextRequest) {
     const { data: newCase, error } = await admin
       .from("insurer_cases")
       .insert(insertData)
-      .select("*")
+      .select("id, case_number, title, status, priority, category, description, created_at, insurer_id, certificate_id, vehicle_id, tenant_id, created_by, assigned_to, resolved_at, closed_at, updated_at")
       .single();
 
-    if (error) return apiValidationError(error.message);
+    if (error) return apiValidationError("操作に失敗しました。");
 
     // Log to insurer_access_logs
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;

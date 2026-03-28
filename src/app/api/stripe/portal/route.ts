@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { portalSchema } from "@/lib/validations/stripe";
 import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound, apiError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +27,9 @@ function safeReturnUrl(req: NextRequest, candidate?: string | null) {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "auth");
+  if (limited) return limited;
+
   try {
     const stripe = getStripe();
     const admin = getSupabaseAdmin();

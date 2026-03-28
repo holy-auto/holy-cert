@@ -23,11 +23,11 @@ export async function GET(
 
   const { data: cert, error } = await sb
     .from("certificates")
-    .select("*")
+    .select("id, public_id, tenant_id, vehicle_id, status, customer_name, vehicle_model, vehicle_plate, vehicle_vin, vehicle_info_json, service_type, expiry_type, expiry_value, warranty_period_end, tenant_name, content_preset_json, content_free_text, pii_disclosed, certificate_no, created_at, updated_at")
     .eq("id", id)
     .maybeSingle();
 
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("証明書の取得に失敗しました。");
   if (!cert) return apiNotFound("証明書が見つかりません。");
 
   // Verify insurer has an active contract with the certificate's tenant

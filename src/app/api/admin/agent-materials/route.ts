@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
-import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -11,14 +12,14 @@ export async function GET() {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const admin = getAdminClient();
 
     const [catResult, matResult] = await Promise.all([
       admin
         .from("agent_material_categories")
-        .select("*")
+        .select("id, name, slug, sort_order")
         .order("sort_order", { ascending: true }),
       admin
         .from("agent_materials")
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;

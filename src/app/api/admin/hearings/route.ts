@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiForbidden, apiValidationError } from "@/lib/api/response";
+import { hearingCreateSchema } from "@/lib/validations/hearing";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("hearings")
-      .select("*")
+      .select("id, status, customer_name, customer_phone, customer_email, vehicle_maker, vehicle_model, vehicle_year, vehicle_plate, vehicle_color, vehicle_vin, service_type, vehicle_size, coating_history, desired_menu, budget_range, concern_areas, scratches_dents, parking_environment, usage_frequency, additional_requests, customer_id, vehicle_id, created_at")
       .eq("tenant_id", caller.tenantId)
       .order("created_at", { ascending: false });
 
@@ -38,34 +40,40 @@ export async function POST(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const parsed = hearingCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
+    }
+    const d = parsed.data;
 
     // ヒアリングレコード作成
     const { data, error } = await supabase
       .from("hearings")
       .insert({
         tenant_id: caller.tenantId,
-        customer_name: body.customer_name || "",
-        customer_phone: body.customer_phone || "",
-        customer_email: body.customer_email || "",
-        vehicle_maker: body.vehicle_maker || "",
-        vehicle_model: body.vehicle_model || "",
-        vehicle_year: body.vehicle_year ? Number(body.vehicle_year) : null,
-        vehicle_plate: body.vehicle_plate || "",
-        vehicle_color: body.vehicle_color || "",
-        vehicle_vin: body.vehicle_vin || "",
-        service_type: body.service_type || "",
-        vehicle_size: body.vehicle_size || "",
-        coating_history: body.coating_history || "",
-        desired_menu: body.desired_menu || "",
-        budget_range: body.budget_range || "",
-        concern_areas: body.concern_areas || "",
-        scratches_dents: body.scratches_dents || "",
-        parking_environment: body.parking_environment || "",
-        usage_frequency: body.usage_frequency || "",
-        additional_requests: body.additional_requests || "",
-        hearing_json: body.hearing_json || {},
+        customer_name: d.customer_name,
+        customer_phone: d.customer_phone,
+        customer_email: d.customer_email,
+        vehicle_maker: d.vehicle_maker,
+        vehicle_model: d.vehicle_model,
+        vehicle_year: d.vehicle_year ? Number(d.vehicle_year) : null,
+        vehicle_plate: d.vehicle_plate,
+        vehicle_color: d.vehicle_color,
+        vehicle_vin: d.vehicle_vin,
+        service_type: d.service_type,
+        vehicle_size: d.vehicle_size,
+        coating_history: d.coating_history,
+        desired_menu: d.desired_menu,
+        budget_range: d.budget_range,
+        concern_areas: d.concern_areas,
+        scratches_dents: d.scratches_dents,
+        parking_environment: d.parking_environment,
+        usage_frequency: d.usage_frequency,
+        additional_requests: d.additional_requests,
+        hearing_json: d.hearing_json,
         status: "draft",
       })
       .select("id")
@@ -85,6 +93,7 @@ export async function PUT(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const body = await req.json();
     const { id, action, ...fields } = body;
@@ -95,7 +104,7 @@ export async function PUT(req: NextRequest) {
       // 顧客レコード作成
       const { data: hearing } = await supabase
         .from("hearings")
-        .select("*")
+        .select("id, customer_name, customer_email, customer_phone, vehicle_maker, vehicle_model, vehicle_year, vehicle_plate, vehicle_vin, vehicle_size")
         .eq("id", id)
         .eq("tenant_id", caller.tenantId)
         .single();

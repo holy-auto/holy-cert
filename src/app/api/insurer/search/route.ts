@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
         p_user_agent: ua,
       });
 
-      if (fallbackErr) return apiValidationError(fallbackErr.message);
+      if (fallbackErr) return apiValidationError("検索に失敗しました。");
 
       let rows: any[] = fallbackData ?? [];
 
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ rows });
     }
 
-    return apiValidationError(error.message);
+    return apiValidationError("検索に失敗しました。");
   }
 
   return NextResponse.json({ rows: data ?? [] });

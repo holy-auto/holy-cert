@@ -94,7 +94,15 @@ export async function verifySignature(
   );
   const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
   const expected = btoa(String.fromCharCode(...new Uint8Array(sig)));
-  return expected === signature;
+  // Use constant-time comparison to prevent timing attacks
+  if (expected.length !== signature.length) return false;
+  const enc = new TextEncoder();
+  const a = enc.encode(expected);
+  const b = enc.encode(signature);
+  // globalThis.crypto.subtle is available in Edge/Node 20+; fall back to byte comparison
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
 }
 
 /** 予約確認メッセージを送信 */

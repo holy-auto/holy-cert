@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
-import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const admin = getAdminClient();
     const status = request.nextUrl.searchParams.get("status");
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const body = await request.json();
     const { name, contact_name, contact_email, contact_phone, address } = body;

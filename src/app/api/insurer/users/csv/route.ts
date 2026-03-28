@@ -198,7 +198,7 @@ export async function POST(req: Request) {
         if (upErr) throw new Error(`upsert_insurer_user failed: ${upErr.message}`);
         upserted++;
       } catch (e) {
-        errors.push({ email: r.email, error: e instanceof Error ? e.message : String(e) });
+        errors.push({ email: r.email, error: "ユーザー登録に失敗しました。" });
       }
     }
 

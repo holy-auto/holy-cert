@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeCodeAndSave } from "@/lib/gcal/client";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,15 @@ export async function GET(req: NextRequest) {
   if (!code || !state) {
     return NextResponse.redirect(
       new URL("/admin/reservations?gcal=error&reason=missing_params", req.url),
+    );
+  }
+
+  // 認証チェック: ログイン済みユーザーが state のテナントに所属しているか確認
+  const supabase = await createSupabaseServerClient();
+  const caller = await resolveCallerWithRole(supabase);
+  if (!caller || caller.tenantId !== state) {
+    return NextResponse.redirect(
+      new URL("/admin/reservations?gcal=error&reason=unauthorized", req.url),
     );
   }
 

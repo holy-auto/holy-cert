@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiForbidden } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ export async function PUT(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const body = await req.json().catch(() => ({} as any));
     const reminderDays = Array.isArray(body.reminder_days_before)

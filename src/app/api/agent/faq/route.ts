@@ -16,7 +16,7 @@ export async function GET() {
     const [catRes, faqRes] = await Promise.all([
       supabase
         .from("agent_faq_categories")
-        .select("*")
+        .select("id, name, slug")
         .order("sort_order", { ascending: true }),
       supabase
         .from("agent_faqs")
@@ -31,7 +31,9 @@ export async function GET() {
       agent_faq_categories: undefined,
     }));
 
-    return NextResponse.json({ categories: catRes.data ?? [], faqs });
+    const res = NextResponse.json({ categories: catRes.data ?? [], faqs });
+    res.headers.set("Cache-Control", "private, max-age=300, stale-while-revalidate=600");
+    return res;
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "internal_error" }, { status: 500 });
   }

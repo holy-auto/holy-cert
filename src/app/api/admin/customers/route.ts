@@ -1,9 +1,12 @@
+import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { escapeIlike } from "@/lib/sanitize";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiForbidden, apiValidationError } from "@/lib/api/response";
+import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
 import { enforceBilling } from "@/lib/billing/guard";
 import { parsePagination } from "@/lib/api/pagination";
+import { customerSchema } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -21,17 +24,17 @@ export async function GET(req: NextRequest) {
     // Count query for pagination metadata
     let countQuery = supabase
       .from("customers")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("tenant_id", caller.tenantId);
 
     let query = supabase
       .from("customers")
-      .select("*")
+      .select("id, name, name_kana, email, phone, postal_code, address, note, created_at")
       .eq("tenant_id", caller.tenantId)
       .order("created_at", { ascending: false });
 
     if (q) {
-      const sq = escapeIlike(q);
+      const sq = escapePostgrestValue(escapeIlike(q));
       const filter = `name.ilike.%${sq}%,email.ilike.%${sq}%,phone.ilike.%${sq}%,name_kana.ilike.%${sq}%`;
       query = query.or(filter);
       countQuery = countQuery.or(filter);
@@ -121,24 +124,27 @@ export async function POST(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_create" });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
-    const name = (body?.name ?? "").trim();
-    if (!name) return NextResponse.json({ error: "name_required", message: "顧客名は必須です。" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = customerSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues.map((i) => i.message).join(", "));
+    }
 
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
-      name,
-      name_kana: (body?.name_kana ?? "").trim() || null,
-      email: (body?.email ?? "").trim() || null,
-      phone: (body?.phone ?? "").trim() || null,
-      postal_code: (body?.postal_code ?? "").trim() || null,
-      address: (body?.address ?? "").trim() || null,
-      note: (body?.note ?? "").trim() || null,
+      name: parsed.data.name,
+      name_kana: parsed.data.name_kana || null,
+      email: parsed.data.email || null,
+      phone: parsed.data.phone || null,
+      postal_code: parsed.data.postal_code || null,
+      address: parsed.data.address || null,
+      note: parsed.data.note || null,
     };
 
     const { data, error } = await supabase.from("customers").insert(row).select().single();
@@ -160,25 +166,28 @@ export async function PUT(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_update" });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
-    const id = (body?.id ?? "").trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const putSchema = customerSchema.extend({ id: z.string().uuid("idはUUID形式である必要があります") });
+    const parsed = putSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues.map((i) => i.message).join(", "));
+    }
 
-    const name = (body?.name ?? "").trim();
-    if (!name) return NextResponse.json({ error: "name_required", message: "顧客名は必須です。" }, { status: 400 });
+    const { id, ...fields } = parsed.data;
 
     const updates: Record<string, unknown> = {
-      name,
-      name_kana: (body?.name_kana ?? "").trim() || null,
-      email: (body?.email ?? "").trim() || null,
-      phone: (body?.phone ?? "").trim() || null,
-      postal_code: (body?.postal_code ?? "").trim() || null,
-      address: (body?.address ?? "").trim() || null,
-      note: (body?.note ?? "").trim() || null,
+      name: fields.name,
+      name_kana: fields.name_kana || null,
+      email: fields.email || null,
+      phone: fields.phone || null,
+      postal_code: fields.postal_code || null,
+      address: fields.address || null,
+      note: fields.note || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -228,27 +237,33 @@ export async function DELETE(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_delete" });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
-    const id = (body?.id ?? "").trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const deleteSchema = z.object({ id: z.string().uuid("idはUUID形式である必要があります") });
+    const parsed = deleteSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues.map((i) => i.message).join(", "));
+    }
+    const { id } = parsed.data;
 
-    // リンク済み証明書/請求書があるか確認
-    const { count: certCount } = await supabase
-      .from("certificates")
-      .select("id", { count: "exact", head: true })
-      .eq("tenant_id", caller.tenantId)
-      .eq("customer_id", id);
-
-    const { count: invCount } = await supabase
-      .from("documents")
-      .select("id", { count: "exact", head: true })
-      .eq("tenant_id", caller.tenantId)
-      .in("doc_type", ["invoice", "consolidated_invoice"])
-      .eq("customer_id", id);
+    // リンク済み証明書/請求書があるか並列で確認
+    const [{ count: certCount }, { count: invCount }] = await Promise.all([
+      supabase
+        .from("certificates")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", caller.tenantId)
+        .eq("customer_id", id),
+      supabase
+        .from("documents")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", caller.tenantId)
+        .in("doc_type", ["invoice", "consolidated_invoice"])
+        .eq("customer_id", id),
+    ]);
 
     if ((certCount ?? 0) > 0 || (invCount ?? 0) > 0) {
       return NextResponse.json({

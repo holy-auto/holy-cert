@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     p_ip: ip,
     p_user_agent: ua,
   });
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("PDF生成に失敗しました。");
 
   const cert = Array.isArray(data) ? data[0] : null;
   if (!cert) return apiNotFound("証明書が見つかりません。");

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { makePublicId } from "@/lib/publicId";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiForbidden, apiValidationError } from "@/lib/api/response";
+import { orderCreateSchema, orderUpdateSchema } from "@/lib/validations/order";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
+import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 // ─── 有効なステータス一覧 ───
 const VALID_STATUSES = [
@@ -95,8 +99,8 @@ export async function GET(req: NextRequest) {
 
       // カテゴリ or タイトル検索（PostgREST特殊文字をエスケープ）
       if (browseQuery) {
-        const sanitized = browseQuery.replace(/[%_\\,().]/g, (ch) => `\\${ch}`);
-        query = query.or(`title.ilike.%${sanitized}%,category.ilike.%${sanitized}%,description.ilike.%${sanitized}%`);
+        const safe = escapePostgrestValue(escapeIlike(browseQuery));
+        query = query.or(`title.ilike.%${safe}%,category.ilike.%${safe}%,description.ilike.%${safe}%`);
       }
       if (status && status !== "all") {
         query = query.eq("status", status);
@@ -162,10 +166,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await checkRateLimit(req, "general");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const deny = await enforceBilling(req as any, { minPlan: "free", action: "order_create" });
     if (deny) return deny as any;
@@ -173,11 +181,21 @@ export async function POST(req: NextRequest) {
     const tenantId = caller.tenantId;
 
     const body = await req.json();
-    const { to_tenant_id, title, description, category, budget, deadline, vehicle_id } = body;
 
-    if (!title) {
-      return NextResponse.json({ error: "title is required" }, { status: 400 });
+    // Coerce budget from string if needed before validation
+    if (body.budget != null && body.budget !== "") {
+      body.budget = Number(body.budget);
+    } else if (body.budget === "") {
+      body.budget = null;
     }
+
+    const parsed = orderCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
+    }
+
+    const { to_tenant_id, title, description, category, budget, deadline } = parsed.data;
+    const vehicle_id = body.vehicle_id; // not in schema, pass through
 
     // Use admin client to bypass RLS (API already validated auth above)
     const admin = getSupabaseAdmin();
@@ -187,13 +205,13 @@ export async function POST(req: NextRequest) {
     const insertPayload: Record<string, unknown> = {
       public_id: makePublicId(),
       from_tenant_id: tenantId,
-      title: title.trim(),
+      title,
       status: "pending",
     };
     if (to_tenant_id) insertPayload.to_tenant_id = to_tenant_id;
     if (description) insertPayload.description = description;
     if (category) insertPayload.category = category;
-    if (budget != null && budget !== "") insertPayload.budget = Number(budget);
+    if (budget != null) insertPayload.budget = budget;
     if (deadline) insertPayload.deadline = deadline;
     if (vehicle_id) insertPayload.vehicle_id = vehicle_id;
 
@@ -225,6 +243,7 @@ export async function PUT(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const deny = await enforceBilling(req as any, { minPlan: "free", action: "order_update" });
     if (deny) return deny as any;
@@ -232,15 +251,14 @@ export async function PUT(req: NextRequest) {
     const tenantId = caller.tenantId;
 
     const body = await req.json();
-    const { id, status, cancel_reason } = body;
 
-    if (!id || !status) {
-      return NextResponse.json({ error: "id and status are required" }, { status: 400 });
+    const parsed = orderUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
     }
 
-    if (!VALID_STATUSES.includes(status)) {
-      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
+    const { id, status } = parsed.data;
+    const cancel_reason = body.cancel_reason;
 
     // Use admin client to bypass RLS
     const admin = getSupabaseAdmin();
@@ -332,6 +350,7 @@ export async function PATCH(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const deny = await enforceBilling(req as any, { minPlan: "free", action: "order_accept" });
     if (deny) return deny as any;

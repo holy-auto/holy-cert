@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
-import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -12,7 +13,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const admin = getAdminClient();
 
@@ -28,7 +29,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
 
     const { data: messages, error: msgError } = await admin
       .from("agent_ticket_messages")
-      .select("*")
+      .select("id, ticket_id, sender_id, is_admin, body, created_at")
       .eq("ticket_id", id)
       .order("created_at", { ascending: true });
 
@@ -48,7 +49,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const body = await request.json();
     const admin = getAdminClient();

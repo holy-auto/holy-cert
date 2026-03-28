@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
-import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 import {
   getTemplateId,
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const agentId = request.nextUrl.searchParams.get("agent_id");
     if (!agentId) return apiValidationError("agent_id is required");
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
     const admin = getAdminClient();
     const { data, error } = await admin
       .from("agent_signing_requests")
-      .select("*")
+      .select("id, agent_id, template_type, title, status, signer_email, signer_name, sent_at, signed_at, signed_pdf_path, created_at")
       .eq("agent_id", agentId)
       .order("created_at", { ascending: false });
 
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const body = await request.json();
     const { agent_id, template_type, title, signer_email, signer_name } = body;

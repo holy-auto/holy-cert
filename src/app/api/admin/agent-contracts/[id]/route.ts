@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
-import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiNotFound, apiValidationError } from "@/lib/api/response";
 import { getDocumentStatus, sendSigningRequest } from "@/lib/agent/cloudsign";
 
@@ -17,12 +18,12 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const admin = getAdminClient();
     const { data, error } = await admin
       .from("agent_signing_requests")
-      .select("*")
+      .select("id, agent_id, template_type, title, status, signer_email, signer_name, cloudsign_document_id, sent_at, signed_at, signed_pdf_path, created_at")
       .eq("id", id)
       .single();
 
@@ -55,7 +56,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const body = await request.json();
     const { action } = body;
@@ -63,7 +64,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
 
     const { data: record, error: fetchErr } = await admin
       .from("agent_signing_requests")
-      .select("*")
+      .select("id, status, cloudsign_document_id")
       .eq("id", id)
       .single();
 

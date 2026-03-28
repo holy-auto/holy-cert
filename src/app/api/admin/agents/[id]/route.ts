@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/api/auth";
-import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiNotFound, apiValidationError } from "@/lib/api/response";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -12,12 +13,12 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const admin = getAdminClient();
     const { data, error } = await admin
       .from("agents")
-      .select("*")
+      .select("id, name, slug, status, contact_name, contact_email, contact_phone, address, default_commission_rate, commission_type, default_commission_fixed, stripe_account_id, stripe_onboarding_done, referral_count, contracted_count, total_commission, line_official_id, notes, created_at, updated_at")
       .eq("id", id)
       .single();
 
@@ -25,26 +26,24 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
       return apiNotFound("agent not found");
     }
 
-    // Get referrals
-    const { data: referrals } = await admin
-      .from("agent_referrals")
-      .select("*")
-      .eq("agent_id", id)
-      .order("created_at", { ascending: false });
-
-    // Get commissions
-    const { data: commissions } = await admin
-      .from("agent_commissions")
-      .select("*")
-      .eq("agent_id", id)
-      .order("period_start", { ascending: false });
-
-    // Get members
-    const { data: members } = await admin
-      .from("agent_users")
-      .select("*")
-      .eq("agent_id", id)
-      .order("created_at", { ascending: true });
+    // Get referrals, commissions, and members in parallel
+    const [{ data: referrals }, { data: commissions }, { data: members }] = await Promise.all([
+      admin
+        .from("agent_referrals")
+        .select("id, agent_id, referral_code, shop_name, contact_name, contact_email, contact_phone, status, commission_rate, note, created_at, updated_at, status_history")
+        .eq("agent_id", id)
+        .order("created_at", { ascending: false }),
+      admin
+        .from("agent_commissions")
+        .select("id, agent_id, referral_id, amount, status, period_start, period_end, paid_at, created_at")
+        .eq("agent_id", id)
+        .order("period_start", { ascending: false }),
+      admin
+        .from("agent_users")
+        .select("id, user_id, agent_id, role, display_name, created_at")
+        .eq("agent_id", id)
+        .order("created_at", { ascending: true }),
+    ]);
 
     return NextResponse.json({
       agent: data,
@@ -63,7 +62,7 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
-    if (!requireMinRole(caller, "admin")) return apiForbidden();
+    if (!isPlatformAdmin(caller)) return apiForbidden();
 
     const body = await request.json();
     const admin = getAdminClient();

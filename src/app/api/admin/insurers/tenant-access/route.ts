@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
         notes: notes || existing.id,
       })
       .eq("id", existing.id)
-      .select("*")
+      .select("id, insurer_id, tenant_id, granted_by, granted_at, revoked_at, is_active, notes, created_at")
       .single();
 
     if (error) {
@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
       is_active: true,
       notes: notes || null,
     })
-    .select("*")
+    .select("id, insurer_id, tenant_id, granted_by, granted_at, revoked_at, is_active, notes, created_at")
     .single();
 
   if (error) {
@@ -230,7 +230,7 @@ export async function PATCH(req: NextRequest) {
   // Fetch current state
   const { data: before } = await admin
     .from("insurer_tenant_access")
-    .select("*")
+    .select("id, is_active, notes")
     .eq("id", id)
     .maybeSingle();
 
@@ -246,7 +246,7 @@ export async function PATCH(req: NextRequest) {
         revoked_at: new Date().toISOString(),
       })
       .eq("id", id)
-      .select("*")
+      .select("id, insurer_id, tenant_id, granted_by, granted_at, revoked_at, is_active, notes, created_at")
       .single();
 
     if (error) {
@@ -279,7 +279,7 @@ export async function PATCH(req: NextRequest) {
     .from("insurer_tenant_access")
     .update(updates)
     .eq("id", id)
-    .select("*")
+    .select("id, insurer_id, tenant_id, granted_by, granted_at, revoked_at, is_active, notes, created_at")
     .single();
 
   if (error) {

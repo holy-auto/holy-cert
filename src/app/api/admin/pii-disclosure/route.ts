@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { piiDisclosureConsentSchema } from "@/lib/validations/pii-disclosure";
+import { apiValidationError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -45,7 +47,7 @@ export async function GET(req: NextRequest) {
     .eq("certificate_id", certificateId)
     .eq("is_active", true);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: "データの取得に失敗しました。" }, { status: 400 });
 
   return NextResponse.json({ consents: consents ?? [] });
 }
@@ -54,20 +56,25 @@ export async function POST(req: NextRequest) {
   const user = await getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
 
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  // Verify user has admin role via tenant membership
+  const adminCheck = createAdminClient();
+  const { data: membership } = await adminCheck
+    .from("tenant_memberships")
+    .select("role")
+    .eq("user_id", user.id)
+    .in("role", ["admin", "owner"])
+    .maybeSingle();
 
-  const { certificate_id, insurer_id } = body;
-  if (!certificate_id || !insurer_id) {
-    return NextResponse.json(
-      { error: "Missing certificate_id or insurer_id" },
-      { status: 400 },
-    );
-  }
+  if (!membership)
+    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+
+  const body = await req.json().catch(() => null);
+  if (!body) return apiValidationError("リクエストの形式が不正です。");
+
+  const parsed = piiDisclosureConsentSchema.safeParse(body);
+  if (!parsed.success) return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
+
+  const { certificate_id, insurer_id } = parsed.data;
 
   const admin = createAdminClient();
 
@@ -80,14 +87,14 @@ export async function POST(req: NextRequest) {
   if (!cert)
     return NextResponse.json({ error: "Certificate not found" }, { status: 404 });
 
-  const { data: membership } = await admin
+  const { data: tenantMember } = await admin
     .from("tenant_memberships")
     .select("id")
     .eq("user_id", user.id)
     .eq("tenant_id", cert.tenant_id)
     .maybeSingle();
 
-  if (!membership)
+  if (!tenantMember)
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
 
   const { data, error } = await admin
@@ -102,7 +109,7 @@ export async function POST(req: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return NextResponse.json({ error: "操作に失敗しました。" }, { status: 400 });
   if (!data)
     return NextResponse.json(
       { error: "No pending disclosure request found" },

@@ -28,7 +28,7 @@ async function verifyCase(
     .eq("id", caseId)
     .maybeSingle();
 
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("操作に失敗しました。");
   if (!data) return apiNotFound("ケースが見つかりません。");
   if (data.insurer_id !== insurerId) return apiForbidden();
   return data;
@@ -58,11 +58,11 @@ export async function GET(
     // Fetch messages
     const { data: messages, error } = await admin
       .from("insurer_case_messages")
-      .select("*")
+      .select("id, case_id, sender_id, sender_type, content, created_at")
       .eq("case_id", id)
       .order("created_at", { ascending: true });
 
-    if (error) return apiValidationError(error.message);
+    if (error) return apiValidationError("操作に失敗しました。");
 
     // Collect unique sender_ids to look up display names from insurer_users
     const senderIds = [
@@ -138,10 +138,10 @@ export async function POST(
         sender_type: "insurer",
         content: content.trim(),
       })
-      .select("*")
+      .select("id, case_id, sender_id, sender_type, content, created_at")
       .single();
 
-    if (error) return apiValidationError(error.message);
+    if (error) return apiValidationError("操作に失敗しました。");
 
     // Log to insurer_access_logs
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;

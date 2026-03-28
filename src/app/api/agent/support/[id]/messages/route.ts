@@ -12,7 +12,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
 
     const { data: messages } = await supabase
       .from("agent_ticket_messages")
-      .select("*")
+      .select("id, sender_id, is_admin, body, created_at")
       .eq("ticket_id", id)
       .order("created_at", { ascending: true });
 
@@ -44,7 +44,10 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
       .select()
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error("[agent/support/messages] db error:", error.message);
+      return NextResponse.json({ error: "db_error" }, { status: 500 });
+    }
 
     // Update ticket status
     await supabase

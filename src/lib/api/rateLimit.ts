@@ -98,10 +98,36 @@ export async function checkRateLimit(
   identifier?: string,
 ) {
   const limiter = presets[preset]();
-  if (!limiter) return null; // Redis 未設定 → スキップ
+  if (!limiter) {
+    // Redis 未設定: 本番環境ではフェイルクローズ（拒否）、開発環境ではスキップ
+    if (process.env.NODE_ENV === "production") {
+      console.error("[rateLimit] Redis not configured in production — blocking request");
+      return apiError({
+        code: "rate_limited",
+        message: "サービスが一時的に利用できません。しばらく経ってから再度お試しください。",
+        status: 503,
+      });
+    }
+    return null;
+  }
 
   const id = identifier || getClientIp(req);
-  const result = await limiter.limit(id);
+
+  let result: { success: boolean; reset: number };
+  try {
+    result = await limiter.limit(id);
+  } catch (e) {
+    // Redis 接続エラー: 本番ではフェイルクローズ
+    console.error("[rateLimit] Redis error:", e);
+    if (process.env.NODE_ENV === "production") {
+      return apiError({
+        code: "rate_limited",
+        message: "サービスが一時的に利用できません。しばらく経ってから再度お試しください。",
+        status: 503,
+      });
+    }
+    return null;
+  }
 
   if (!result.success) {
     return apiError({

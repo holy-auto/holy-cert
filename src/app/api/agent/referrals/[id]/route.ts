@@ -37,7 +37,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
     const { data: referral, error } = await supabase
       .from("agent_referrals")
-      .select("*")
+      .select("id, referral_code, shop_name, contact_name, contact_email, contact_phone, status, commission_rate, note, created_at, updated_at, status_history")
       .eq("id", id)
       .eq("agent_id", agentId)
       .single();
@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     // Fetch current referral to validate status transition
     const { data: existing, error: fetchErr } = await supabase
       .from("agent_referrals")
-      .select("*")
+      .select("id, status, contracted_at")
       .eq("id", id)
       .eq("agent_id", agentId)
       .single();

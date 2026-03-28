@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiForbidden, apiValidationError } from "@/lib/api/response";
+
+const defaultsUpdateSchema = z.object({
+  default_warranty_exclusions: z.string().default(""),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -37,15 +43,17 @@ export async function PUT(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const body = await req.json();
-    const value = typeof body.default_warranty_exclusions === "string"
-      ? body.default_warranty_exclusions
-      : "";
+    const body = await req.json().catch(() => ({}));
+    const parsed = defaultsUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues.map((i) => i.message).join(", "));
+    }
 
     const { error } = await supabase
       .from("tenants")
-      .update({ default_warranty_exclusions: value })
+      .update({ default_warranty_exclusions: parsed.data.default_warranty_exclusions })
       .eq("id", caller.tenantId);
 
     if (error) {

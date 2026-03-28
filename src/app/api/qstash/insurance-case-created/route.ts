@@ -94,7 +94,7 @@ async function handler(request: Request) {
     });
   } catch (e) {
     console.error("[QSTASH][insurance-case-created] error:", e);
-    return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+    return Response.json({ ok: false, error: "Internal processing error" }, { status: 500 });
   }
 }
 

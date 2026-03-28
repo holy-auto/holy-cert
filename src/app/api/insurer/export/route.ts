@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     p_ip: ip,
     p_user_agent: ua,
   });
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("エクスポートに失敗しました。");
 
   const { error: logErr } = await supabase.rpc("insurer_audit_log", {
     p_action: "insurer.export.csv",

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { brandCreateSchema, brandUpdateSchema } from "@/lib/validations/brand";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import {
   apiOk,
   apiInternalError,
   apiUnauthorized,
+  apiForbidden,
   apiNotFound,
   apiValidationError,
   apiError,
@@ -21,7 +22,7 @@ export async function GET(_req: Request) {
 
     const { data: brands, error } = await supabase
       .from("brands")
-      .select("*, coating_products(*)")
+      .select("id, name, description, website_url, tenant_id, coating_products(id, name, product_code, description, tenant_id)")
       .or(`tenant_id.is.null,tenant_id.eq.${caller.tenantId}`)
       .order("name");
 
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const body = await req.json();
     const parsed = brandCreateSchema.safeParse(body);
@@ -54,7 +56,7 @@ export async function POST(req: Request) {
         description: b.description ?? null,
         website_url: b.website_url ?? null,
       })
-      .select("*")
+      .select("id, name, description, website_url, tenant_id")
       .single();
 
     if (error) return apiInternalError(error, "brands POST");
@@ -70,6 +72,7 @@ export async function PUT(req: Request) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const body = await req.json();
     const parsed = brandUpdateSchema.safeParse(body);
@@ -83,7 +86,7 @@ export async function PUT(req: Request) {
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select("*")
+      .select("id, name, description, website_url, tenant_id, updated_at")
       .single();
 
     if (error || !brand) {

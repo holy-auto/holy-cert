@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     p_user_agent: ua,
   });
 
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("データの取得に失敗しました。");
 
   return NextResponse.json({ rows: data ?? [] });
 }

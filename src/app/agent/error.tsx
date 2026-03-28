@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
-export default function MarketError({
+export default function AgentError({
   error,
   reset,
 }: {

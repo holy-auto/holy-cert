@@ -94,11 +94,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { type, merchant_id: merchantId, data } = event;
+  const { type, merchant_id: merchantId, event_id: eventId, data } = event;
 
   if (!type || !merchantId) {
     console.warn("[square-webhook] Missing type or merchant_id");
     return NextResponse.json({ error: "Invalid event" }, { status: 400 });
+  }
+
+  // ── Idempotency: skip already-processed events ──
+  if (eventId) {
+    const admin = getAdminClient();
+    const { error: dupErr } = await admin
+      .from("webhook_processed_events")
+      .insert({ event_id: `square:${eventId}`, source: "square", processed_at: new Date().toISOString() });
+    if (dupErr?.code === "23505") {
+      console.log(`[square-webhook] Duplicate event skipped: ${eventId}`);
+      return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
+    }
   }
 
   // Process events asynchronously — return 200 quickly to avoid Square retries

@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("notifications")
-      .select("*")
+      .select("id, user_id, type, title, body, link, is_read, read_at, created_at")
+      .eq("tenant_id", caller.tenantId)
       .or(`user_id.is.null,user_id.eq.${caller.userId}`)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -35,7 +36,8 @@ export async function GET(req: NextRequest) {
     // 未読件数
     const { count } = await supabase
       .from("notifications")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", caller.tenantId)
       .or(`user_id.is.null,user_id.eq.${caller.userId}`)
       .is("read_at", null);
 

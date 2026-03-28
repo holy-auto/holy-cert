@@ -22,14 +22,14 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("registers")
-      .select("*")
+      .select("id, tenant_id, store_id, name, is_active, sort_order, created_at, updated_at")
       .eq("tenant_id", caller.tenantId)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
 
     let countQuery = supabase
       .from("registers")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("tenant_id", caller.tenantId);
 
     if (storeId) {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { escapeIlike } from "@/lib/sanitize";
+import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
 import MarketClient from "./MarketClient";
 
 export const dynamic = "force-dynamic";
@@ -19,12 +19,12 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
 
   let query = supabase
     .from("market_vehicles")
-    .select("*")
+    .select("id, tenant_id, maker, model, grade, year, mileage, color, body_type, asking_price, wholesale_price, status, listed_at, description, features, tenant_name")
     .eq("status", "listed")
     .order("listed_at", { ascending: false });
 
   if (q) {
-    const sq = escapeIlike(q);
+    const sq = escapePostgrestValue(escapeIlike(q));
     query = query.or(`maker.ilike.%${sq}%,model.ilike.%${sq}%`);
   }
 
@@ -37,7 +37,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
   if (vehicleIds.length > 0) {
     const { data: images } = await supabase
       .from("market_vehicle_images")
-      .select("*")
+      .select("id, vehicle_id, storage_path, sort_order")
       .in("vehicle_id", vehicleIds)
       .order("sort_order", { ascending: true });
 

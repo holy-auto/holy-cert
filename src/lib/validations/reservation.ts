@@ -3,6 +3,7 @@ import { z } from "zod";
 const statuses = ["confirmed", "arrived", "in_progress", "completed", "cancelled"] as const;
 
 export const reservationCreateSchema = z.object({
+  title: z.string().trim().min(1, "タイトルは必須です。").max(200),
   customer_id: z.string().uuid().nullable().optional(),
   vehicle_id: z.string().uuid().nullable().optional(),
   scheduled_date: z.string().min(1, "予約日は必須です。"),
@@ -22,4 +23,6 @@ export const reservationUpdateSchema = reservationCreateSchema.partial().extend(
 
 export const reservationDeleteSchema = z.object({
   id: z.string().uuid("無効なIDです。"),
+  hard_delete: z.boolean().optional().default(false),
+  cancel_reason: z.string().trim().max(500).nullable().optional().transform(v => v || null),
 });

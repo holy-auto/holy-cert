@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient();
   let query = admin
     .from("insurer_access_logs")
-    .select("*")
+    .select("id, insurer_id, insurer_user_id, action, certificate_id, meta, ip, user_agent, created_at")
     .eq("insurer_id", caller.insurerId)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error } = await query;
-  if (error) return apiValidationError(error.message);
+  if (error) return apiValidationError("ログの取得に失敗しました。");
 
   return NextResponse.json({ logs: data ?? [], limit, offset });
 }

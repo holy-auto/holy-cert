@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error("[mobile/pos/terminal/capture] rpc_error:", error.message);
       return NextResponse.json(
-        { error: "checkout_failed", detail: error.message },
+        { error: "checkout_failed" },
         { status: 500 },
       );
     }
