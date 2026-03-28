@@ -4,6 +4,7 @@ import { makePublicId } from "@/lib/publicId";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
+import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
 
 // ─── 有効なステータス一覧 ───
 const VALID_STATUSES = [
@@ -95,8 +96,8 @@ export async function GET(req: NextRequest) {
 
       // カテゴリ or タイトル検索（PostgREST特殊文字をエスケープ）
       if (browseQuery) {
-        const sanitized = browseQuery.replace(/[%_\\,().]/g, (ch) => `\\${ch}`);
-        query = query.or(`title.ilike.%${sanitized}%,category.ilike.%${sanitized}%,description.ilike.%${sanitized}%`);
+        const safe = escapePostgrestValue(escapeIlike(browseQuery));
+        query = query.or(`title.ilike.%${safe}%,category.ilike.%${safe}%,description.ilike.%${safe}%`);
       }
       if (status && status !== "all") {
         query = query.eq("status", status);

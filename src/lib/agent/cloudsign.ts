@@ -166,5 +166,8 @@ export async function verifyWebhookSignature(
   const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
   const computed = Buffer.from(sig).toString("hex");
 
-  return computed === signature;
+  // Use constant-time comparison to prevent timing attacks
+  if (computed.length !== signature.length) return false;
+  const { timingSafeEqual } = await import("crypto");
+  return timingSafeEqual(Buffer.from(computed), Buffer.from(signature));
 }

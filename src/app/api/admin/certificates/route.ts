@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { parsePagination } from "@/lib/api/pagination";
+import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -35,10 +36,9 @@ export async function GET(req: NextRequest) {
     }
 
     if (q) {
-      // Search by public_id, customer_name, or vehicle-related fields
-      // plate_display and vehicle_maker/vehicle_model are denormalized on the certificates table
+      const safe = escapePostgrestValue(escapeIlike(q));
       query = query.or(
-        `public_id.ilike.%${q}%,customer_name.ilike.%${q}%,plate_display.ilike.%${q}%,vehicle_maker.ilike.%${q}%,vehicle_model.ilike.%${q}%`,
+        `public_id.ilike.%${safe}%,customer_name.ilike.%${safe}%,plate_display.ilike.%${safe}%,vehicle_maker.ilike.%${safe}%,vehicle_model.ilike.%${safe}%`,
       );
     }
 
