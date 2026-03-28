@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const parsed = memberAddSchema.safeParse(body);
     if (!parsed.success) {
-      return apiValidationError(parsed.error.errors[0]?.message ?? "入力が無効です。");
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力が無効です。");
     }
 
     const { email, display_name: displayName, role } = parsed.data;
@@ -233,7 +233,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const parsed = memberRoleChangeSchema.safeParse(body);
     if (!parsed.success) {
-      return apiValidationError(parsed.error.errors[0]?.message ?? "入力が無効です。");
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力が無効です。");
     }
 
     const { user_id: targetUserId, role: newRole } = parsed.data;
@@ -299,7 +299,7 @@ export async function DELETE(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const parsed = memberDeleteSchema.safeParse(body);
     if (!parsed.success) {
-      return apiValidationError(parsed.error.errors[0]?.message ?? "入力が無効です。");
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力が無効です。");
     }
 
     const { user_id: targetUserId } = parsed.data;

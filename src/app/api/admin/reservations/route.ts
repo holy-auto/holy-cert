@@ -109,8 +109,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const parsed = reservationCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return apiValidationError(parsed.error.errors[0]?.message ?? "入力が不正です。", {
-        issues: parsed.error.errors,
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力が不正です。", {
+        issues: parsed.error.issues,
       });
     }
 
@@ -170,8 +170,8 @@ export async function PUT(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const parsed = reservationUpdateSchema.safeParse(body);
     if (!parsed.success) {
-      return apiValidationError(parsed.error.errors[0]?.message ?? "入力が不正です。", {
-        issues: parsed.error.errors,
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力が不正です。", {
+        issues: parsed.error.issues,
       });
     }
 
@@ -260,8 +260,8 @@ export async function DELETE(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const parsed = reservationDeleteSchema.safeParse(body);
     if (!parsed.success) {
-      return apiValidationError(parsed.error.errors[0]?.message ?? "入力が不正です。", {
-        issues: parsed.error.errors,
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力が不正です。", {
+        issues: parsed.error.issues,
       });
     }
 

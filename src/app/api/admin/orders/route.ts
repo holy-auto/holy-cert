@@ -191,7 +191,7 @@ export async function POST(req: NextRequest) {
 
     const parsed = orderCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return apiValidationError(parsed.error.errors[0]?.message ?? "入力内容に誤りがあります。");
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
     }
 
     const { to_tenant_id, title, description, category, budget, deadline } = parsed.data;
@@ -254,7 +254,7 @@ export async function PUT(req: NextRequest) {
 
     const parsed = orderUpdateSchema.safeParse(body);
     if (!parsed.success) {
-      return apiValidationError(parsed.error.errors[0]?.message ?? "入力内容に誤りがあります。");
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
     }
 
     const { id, status } = parsed.data;
