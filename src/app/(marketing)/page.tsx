@@ -42,20 +42,14 @@ const portalLinks = [
 const roleCtaItems = [
   {
     label: "施工店の方",
-    href: "/for-shops",
-    documentHref: "/contact/shops",
     description: "証明書発行の効率化と顧客満足度の向上",
   },
   {
     label: "代理店の方",
-    href: "/for-agents",
-    documentHref: "/contact/agents",
     description: "パートナープログラムで安定した収益を",
   },
   {
     label: "保険会社の方",
-    href: "/for-insurers",
-    documentHref: "/contact/insurers",
     description: "査定業務の精度とスピードを同時に向上",
   },
 ];
@@ -219,7 +213,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {roleCtaItems.map((item, i) => (
               <div
-                key={item.href}
+                key={item.label}
                 className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-6 hover:bg-white/[0.05] hover:border-white/[0.12] transition-all"
                 style={{
                   animationName: "hero-fade-up",
@@ -231,36 +225,22 @@ export default function HomePage() {
               >
                 <h3 className="text-lg font-bold text-white">{item.label}</h3>
                 <p className="mt-2 text-sm text-white/45 leading-relaxed">{item.description}</p>
-                <div className="mt-5 flex flex-col gap-2">
+                <div className="mt-5">
                   <Link
-                    href={item.href}
-                    className="text-center text-sm font-medium px-4 py-2.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition-colors"
+                    href="/contact"
+                    className="text-center block text-sm font-medium px-4 py-2.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition-colors"
                   >
-                    詳しく見る
-                  </Link>
-                  <Link
-                    href={item.documentHref}
-                    className="text-center text-sm px-4 py-2.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors"
-                  >
-                    資料請求
+                    お問い合わせ
                   </Link>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Pricing link */}
-          <div className="mt-12 text-center">
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
-            >
-              料金プラン・機能比較を見る
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                <path d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
+          {/* Note */}
+          <p className="mt-12 text-center text-sm text-white/30">
+            各サービスの詳細は準備中です。お気軽にお問い合わせください。
+          </p>
         </Container>
       </section>
     </>

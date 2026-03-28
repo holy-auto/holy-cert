@@ -38,6 +38,8 @@ export type Permission =
   // Registers
   | "registers:view" | "registers:manage"
   | "register_sessions:view" | "register_sessions:operate" | "register_sessions:manage"
+  // Shop
+  | "shop:view"
   // Other
   | "announcements:view" | "news:view" | "price_stats:view"
   | "management:view" | "audit:view" | "insurers:view" | "insurers:manage"
@@ -74,6 +76,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "payments:view", "payments:create", "payments:manage",
     "logo:manage",
     "template_options:view", "template_options:manage",
+    "shop:view",
     "platform:manage",
     "platform:operations",
   ],
@@ -99,6 +102,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "payments:view", "payments:create", "payments:manage",
     "logo:manage",
     "template_options:view", "template_options:manage",
+    "shop:view",
   ],
   admin: [
     "dashboard:view",
@@ -122,6 +126,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "payments:view", "payments:create", "payments:manage",
     "logo:manage",
     "template_options:view", "template_options:manage",
+    "shop:view",
   ],
   staff: [
     "dashboard:view",
@@ -138,6 +143,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "payments:view", "payments:create",
     "announcements:view", "news:view", "price_stats:view",
     "template_options:view",
+    "shop:view",
   ],
   viewer: [
     "dashboard:view",
@@ -154,6 +160,7 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "payments:view",
     "announcements:view", "news:view", "price_stats:view",
     "template_options:view",
+    "shop:view",
   ],
 };
 
@@ -211,6 +218,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/admin/deals": "market:view",
   "/admin/payments": "payments:view",
   "/admin/square": "payments:view",
+  "/admin/shop": "shop:view",
   "/admin/template-options": "template_options:view",
   "/admin/platform/template-orders": "template_options:manage",
   "/admin/platform/operations": "platform:operations",

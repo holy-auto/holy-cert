@@ -316,6 +316,64 @@ export async function POST(req: NextRequest) {
         const customerId = asStringId(session.customer);
         const subscriptionId = asStringId(session.subscription);
 
+        // ─── ショップ注文 checkout (mode=payment) ───
+        if (session.metadata?.shop_order_id) {
+          const shopOrderId = session.metadata.shop_order_id;
+          const tenantId = session.metadata.tenant_id;
+          const paymentIntentId = asStringId(session.payment_intent);
+
+          // 注文ステータスを paid に更新
+          const { error: updateErr } = await supabase
+            .from("shop_orders")
+            .update({
+              status: "paid",
+              stripe_payment_intent_id: paymentIntentId,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", shopOrderId);
+
+          if (updateErr) {
+            console.error("webhook: shop order update failed", { shopOrderId, error: updateErr });
+            break;
+          }
+
+          // NFCタグの自動プロビジョニング
+          if (tenantId) {
+            const { data: items } = await supabase
+              .from("shop_order_items")
+              .select("*")
+              .eq("order_id", shopOrderId);
+
+            for (const item of items ?? []) {
+              const meta = item.meta as Record<string, unknown> ?? {};
+              const qtyPerPack = (meta.quantity_per_pack as number) ?? 0;
+              if (qtyPerPack > 0) {
+                // NFCタグ: パックの枚数 × 注文数量分のタグ枠を作成
+                const totalTags = qtyPerPack * item.quantity;
+                const tagRows = Array.from({ length: totalTags }, (_, i) => ({
+                  tenant_id: tenantId,
+                  tag_code: `AUTO-${shopOrderId.slice(0, 8)}-${String(i + 1).padStart(4, "0")}`,
+                  status: "prepared",
+                }));
+
+                if (tagRows.length > 0) {
+                  const { error: tagErr } = await supabase
+                    .from("nfc_tags")
+                    .insert(tagRows);
+                  if (tagErr) {
+                    console.error("webhook: nfc_tags provisioning failed", { shopOrderId, tenantId, error: tagErr });
+                  } else {
+                    console.log("webhook: nfc_tags provisioned", { shopOrderId, tenantId, count: tagRows.length });
+                  }
+                }
+              }
+            }
+          }
+
+          console.log("webhook: shop order paid", { shopOrderId, tenantId });
+          break;
+        }
+
         // ─── テンプレートオプション checkout ───
         if (isTemplateOptionEvent(session.metadata as Record<string, string> | null)) {
           const tenantId = session.metadata?.tenant_id;

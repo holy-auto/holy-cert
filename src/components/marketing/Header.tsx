@@ -5,13 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { Container } from "./Container";
 import { MobileMenu } from "./MobileMenu";
 
-const navItems = [
-  { label: "料金", href: "/pricing" },
-  { label: "施工店の方", href: "/for-shops" },
-  { label: "代理店の方", href: "/for-agents" },
-  { label: "保険会社の方", href: "/for-insurers" },
-  { label: "FAQ", href: "/faq" },
-];
+const navItems: { label: string; href: string }[] = [];
 
 const portalItems = [
   { label: "施工店ログイン", href: "/login", description: "証明書の作成・管理" },

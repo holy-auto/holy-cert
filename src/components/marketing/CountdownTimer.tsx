@@ -25,8 +25,8 @@ function calcTimeLeft(): TimeLeft {
 function Digit({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="relative w-20 h-24 sm:w-28 sm:h-32 md:w-32 md:h-36 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
-        <span className="text-4xl sm:text-5xl md:text-6xl font-bold tabular-nums text-white">
+      <div className="relative w-16 h-20 sm:w-28 sm:h-32 md:w-32 md:h-36 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
+        <span className="text-3xl sm:text-5xl md:text-6xl font-bold tabular-nums text-white">
           {String(value).padStart(2, "0")}
         </span>
       </div>
@@ -49,7 +49,7 @@ export function CountdownTimer() {
   if (!timeLeft) {
     // SSR / hydration placeholder
     return (
-      <div className="flex items-center justify-center gap-3 sm:gap-5 md:gap-6">
+      <div className="flex items-center justify-center gap-2 sm:gap-5 md:gap-6">
         {["Days", "Hours", "Min", "Sec"].map((label) => (
           <Digit key={label} value={0} label={label} />
         ))}
@@ -68,13 +68,13 @@ export function CountdownTimer() {
   }
 
   return (
-    <div className="flex items-center justify-center gap-3 sm:gap-5 md:gap-6">
+    <div className="flex items-center justify-center gap-2 sm:gap-5 md:gap-6">
       <Digit value={timeLeft.days} label="Days" />
-      <div className="text-3xl md:text-4xl font-bold text-white/20 self-start mt-6 sm:mt-8 md:mt-10">:</div>
+      <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white/20 self-start mt-5 sm:mt-8 md:mt-10">:</div>
       <Digit value={timeLeft.hours} label="Hours" />
-      <div className="text-3xl md:text-4xl font-bold text-white/20 self-start mt-6 sm:mt-8 md:mt-10">:</div>
+      <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white/20 self-start mt-5 sm:mt-8 md:mt-10">:</div>
       <Digit value={timeLeft.minutes} label="Min" />
-      <div className="text-3xl md:text-4xl font-bold text-white/20 self-start mt-6 sm:mt-8 md:mt-10">:</div>
+      <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white/20 self-start mt-5 sm:mt-8 md:mt-10">:</div>
       <Digit value={timeLeft.seconds} label="Sec" />
     </div>
   );
