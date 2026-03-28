@@ -5,6 +5,7 @@ import { createAdminClient as createSupabaseAdminClient } from "@/lib/supabase/a
 import SettingsForm from "./SettingsForm";
 import FollowUpSettings from "./FollowUpSettings";
 import SquareConnectSection from "./SquareConnectSection";
+import LineConnectSection from "./LineConnectSection";
 import RestartTourButton from "./RestartTourButton";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatDate } from "@/lib/format";
@@ -178,6 +179,16 @@ export default async function AdminSettingsPage() {
             <p className="mt-1 text-xs text-muted">SquareのPOS売上データをLedraに取り込みます。</p>
           </div>
           <SquareConnectSection />
+        </section>
+
+        {/* LINE連携 */}
+        <section className="glass-card p-5">
+          <div className="mb-5">
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">外部連携</div>
+            <div className="mt-1 text-base font-semibold text-primary">LINE連携</div>
+            <p className="mt-1 text-xs text-muted">LINE公式アカウントと連携し、予約通知・リマインダー・書類送付を自動化します。</p>
+          </div>
+          <LineConnectSection />
         </section>
 
         {/* Coating products master */}
