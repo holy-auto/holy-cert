@@ -22,7 +22,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     const admin = getAdminClient();
     const { data, error } = await admin
       .from("agent_signing_requests")
-      .select("*")
+      .select("id, agent_id, template_type, title, status, signer_email, signer_name, cloudsign_document_id, sent_at, signed_at, signed_pdf_path, created_at")
       .eq("id", id)
       .single();
 
