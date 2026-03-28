@@ -84,7 +84,7 @@ export default function DealsClient() {
       const res = await fetch(`/api/market/deals?${params.toString()}`, { cache: "no-store" });
       const j = await res.json().catch(() => null);
       if (!res.ok) throw new Error(j?.error ?? `HTTP ${res.status}`);
-      setDeals(j.deals ?? j ?? []);
+      setDeals(j?.deals ?? []);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setErr(msg);

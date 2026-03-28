@@ -155,6 +155,7 @@ export default function OrdersClient() {
   const [browseQuery, setBrowseQuery] = useState("");
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const browseTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const browseInitialLoaded = useRef(false);
 
   // テナント一覧 & 自社スコア
   const [myTenants, setMyTenants] = useState<TenantOption[]>([]);
@@ -227,19 +228,22 @@ export default function OrdersClient() {
 
   // 公開案件タブ切り替え時に初回読み込み
   useEffect(() => {
-    if (activeTab === "browse" && browseOrders.length === 0 && !browseLoading) {
+    if (activeTab === "browse" && !browseInitialLoaded.current) {
+      browseInitialLoaded.current = true;
       fetchBrowseOrders();
     }
-  }, [activeTab, browseOrders.length, browseLoading, fetchBrowseOrders]);
+  }, [activeTab, fetchBrowseOrders]);
 
-  // 公開案件検索（debounce）
+  // 公開案件検索（debounce） — browseQuery変更時のみ
   useEffect(() => {
-    if (activeTab !== "browse") return;
+    if (activeTab !== "browse" || !browseInitialLoaded.current) return;
     if (browseTimeoutRef.current) clearTimeout(browseTimeoutRef.current);
     browseTimeoutRef.current = setTimeout(() => {
       fetchBrowseOrders(browseQuery || undefined);
     }, 400);
-  }, [browseQuery, activeTab, fetchBrowseOrders]);
+    return () => { if (browseTimeoutRef.current) clearTimeout(browseTimeoutRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [browseQuery]);
 
   // ─── テナント検索（debounce） ───
   useEffect(() => {

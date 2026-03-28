@@ -121,8 +121,8 @@ export default function MarketVehiclesClient() {
       const res = await fetch(`/api/admin/market-vehicles?${params.toString()}`, { cache: "no-store" });
       const j = await res.json().catch(() => null);
       if (!res.ok) throw new Error(j?.error ?? `HTTP ${res.status}`);
-      setVehicles(j.vehicles ?? []);
-      setStats(j.stats ?? { total: 0, listed: 0, draft: 0 });
+      setVehicles(j?.vehicles ?? []);
+      setStats(j?.stats ?? { total: 0, listed: 0, draft: 0 });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setErr(msg);

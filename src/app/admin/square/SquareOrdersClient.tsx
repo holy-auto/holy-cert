@@ -165,7 +165,7 @@ export default function SquareOrdersClient() {
         title="Square 売上"
         description="Square POSから取り込んだ売上データを管理します。"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               className="btn-ghost text-sm"
@@ -184,7 +184,7 @@ export default function SquareOrdersClient() {
               </button>
             )}
             {isConnected && data?.connection?.last_synced_at && (
-              <span className="text-xs text-muted">
+              <span className="text-xs text-muted w-full sm:w-auto text-right">
                 最終同期: {formatDateTime(data.connection.last_synced_at)}
               </span>
             )}
@@ -265,32 +265,32 @@ export default function SquareOrdersClient() {
               <table className="min-w-full text-sm">
                 <thead className="bg-surface-hover">
                   <tr>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">日時</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">金額</th>
-                    <th className="hidden sm:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">決済方法</th>
-                    <th className="hidden md:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">Square注文ID</th>
-                    <th className="hidden md:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">顧客</th>
-                    <th className="hidden lg:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">車両</th>
-                    <th className="hidden lg:table-cell text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">証明書</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">ステータス</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
+                    <th className="text-left px-3 sm:px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">日時</th>
+                    <th className="text-left px-3 sm:px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">金額</th>
+                    <th className="hidden sm:table-cell text-left px-3 sm:px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">決済方法</th>
+                    <th className="hidden md:table-cell text-left px-3 sm:px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">Square注文ID</th>
+                    <th className="hidden md:table-cell text-left px-3 sm:px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">顧客</th>
+                    <th className="hidden lg:table-cell text-left px-3 sm:px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">車両</th>
+                    <th className="hidden lg:table-cell text-left px-3 sm:px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">証明書</th>
+                    <th className="text-left px-3 sm:px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">ステータス</th>
+                    <th className="text-left px-3 sm:px-5 py-3 text-xs font-semibold tracking-[0.12em] text-muted">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
                   {(data.orders ?? []).map((order) => (
                     <tr key={order.id} className="hover:bg-surface-hover/60">
-                      <td className="px-5 py-3.5 whitespace-nowrap text-secondary">
+                      <td className="px-3 sm:px-5 py-3.5 whitespace-nowrap text-secondary">
                         {formatDateTime(order.square_created_at)}
                       </td>
-                      <td className="px-5 py-3.5 font-medium text-primary">
+                      <td className="px-3 sm:px-5 py-3.5 font-medium text-primary">
                         {formatJpy(order.total_amount)}
                       </td>
-                      <td className="hidden sm:table-cell px-5 py-3.5 text-secondary">
+                      <td className="hidden sm:table-cell px-3 sm:px-5 py-3.5 text-secondary">
                         {order.payment_methods.length > 0
                           ? order.payment_methods.join(", ")
                           : "-"}
                       </td>
-                      <td className="hidden md:table-cell px-5 py-3.5">
+                      <td className="hidden md:table-cell px-3 sm:px-5 py-3.5">
                         <span className="font-mono text-xs text-muted">
                           {order.square_order_id.slice(0, 12)}…
                         </span>
@@ -305,29 +305,29 @@ export default function SquareOrdersClient() {
                           </a>
                         )}
                       </td>
-                      <td className="hidden md:table-cell px-5 py-3.5 text-secondary">
+                      <td className="hidden md:table-cell px-3 sm:px-5 py-3.5 text-secondary">
                         {order.customer_name ?? (
                           <span className="text-muted">未紐付</span>
                         )}
                       </td>
-                      <td className="hidden lg:table-cell px-5 py-3.5 text-secondary">
+                      <td className="hidden lg:table-cell px-3 sm:px-5 py-3.5 text-secondary">
                         {order.vehicle_display ?? (
                           <span className="text-muted">-</span>
                         )}
                       </td>
-                      <td className="hidden lg:table-cell px-5 py-3.5 text-secondary">
+                      <td className="hidden lg:table-cell px-3 sm:px-5 py-3.5 text-secondary">
                         {order.certificate_id ? (
                           <Badge variant="success">紐付済</Badge>
                         ) : (
                           <span className="text-muted">-</span>
                         )}
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-3 sm:px-5 py-3.5">
                         <Badge variant={orderStateVariant(order.order_state)}>
                           {orderStateLabel(order.order_state)}
                         </Badge>
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-3 sm:px-5 py-3.5">
                         <button
                           type="button"
                           className="btn-ghost px-3 py-1 text-xs"
