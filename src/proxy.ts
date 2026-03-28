@@ -30,6 +30,51 @@ const HIDDEN_ADMIN_PREFIXES = [
   "/admin/insurers",
 ];
 
+// ─── Content-Type validation for API mutation routes ───
+const NON_JSON_ROUTES = new Set([
+  "/api/webhooks/resend",
+  "/api/webhooks/cloudsign",
+  "/api/webhooks/square",
+  "/api/stripe/webhook",
+  "/api/line/webhook",
+  "/api/certificate/pdf",
+  "/api/admin/market-vehicles/images",
+  "/api/admin/logo",
+  "/api/certificates/images/upload",
+  "/api/vehicles/import-csv",
+  "/api/template-options/upload-logo",
+]);
+
+function isNonJsonRoute(pathname: string): boolean {
+  return NON_JSON_ROUTES.has(pathname) || Array.from(NON_JSON_ROUTES).some((r) => pathname.startsWith(r));
+}
+
+/**
+ * Validate Content-Type header for API mutation requests.
+ * Returns a 415 response if Content-Type is invalid, or null to continue.
+ */
+function contentTypeCheck(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  const method = request.method;
+
+  if (!pathname.startsWith("/api/")) return null;
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) return null;
+  if (isNonJsonRoute(pathname)) return null;
+
+  const contentType = request.headers.get("content-type") ?? "";
+  const contentLength = request.headers.get("content-length");
+  const hasBody = contentLength !== null && contentLength !== "0";
+
+  if (hasBody && !contentType.includes("application/json") && !contentType.includes("multipart/form-data")) {
+    return NextResponse.json(
+      { error: "unsupported_content_type", message: "Content-Type must be application/json" },
+      { status: 415 },
+    );
+  }
+
+  return null;
+}
+
 /**
  * CSRF protection for API mutation routes.
  * Returns a 403 response if the request is cross-origin, or null to continue.
@@ -96,6 +141,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Content-Type validation for API mutations
+  const contentTypeResponse = contentTypeCheck(request);
+  if (contentTypeResponse) return contentTypeResponse;
+
   // CSRF protection for API mutations
   const csrfResponse = csrfCheck(request);
   if (csrfResponse) return csrfResponse;
@@ -116,7 +165,13 @@ export async function proxy(request: NextRequest) {
 
   // Marketing pages and public routes: pass through
   if (MARKETING_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
-    return refreshSession(request);
+    const response = await refreshSession(request);
+    // Add security headers for API responses
+    if (pathname.startsWith("/api/")) {
+      response.headers.set("X-Content-Type-Options", "nosniff");
+      response.headers.set("X-Robots-Tag", "noindex");
+    }
+    return response;
   }
 
   // Protected routes: refresh session then check auth
