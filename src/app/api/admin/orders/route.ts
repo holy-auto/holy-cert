@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { makePublicId } from "@/lib/publicId";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiForbidden } from "@/lib/api/response";
+import { apiForbidden, apiValidationError } from "@/lib/api/response";
+import { orderCreateSchema, orderUpdateSchema } from "@/lib/validations/order";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
 import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
@@ -180,11 +181,21 @@ export async function POST(req: NextRequest) {
     const tenantId = caller.tenantId;
 
     const body = await req.json();
-    const { to_tenant_id, title, description, category, budget, deadline, vehicle_id } = body;
 
-    if (!title) {
-      return NextResponse.json({ error: "title is required" }, { status: 400 });
+    // Coerce budget from string if needed before validation
+    if (body.budget != null && body.budget !== "") {
+      body.budget = Number(body.budget);
+    } else if (body.budget === "") {
+      body.budget = null;
     }
+
+    const parsed = orderCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.errors[0]?.message ?? "入力内容に誤りがあります。");
+    }
+
+    const { to_tenant_id, title, description, category, budget, deadline } = parsed.data;
+    const vehicle_id = body.vehicle_id; // not in schema, pass through
 
     // Use admin client to bypass RLS (API already validated auth above)
     const admin = getSupabaseAdmin();
@@ -194,13 +205,13 @@ export async function POST(req: NextRequest) {
     const insertPayload: Record<string, unknown> = {
       public_id: makePublicId(),
       from_tenant_id: tenantId,
-      title: title.trim(),
+      title,
       status: "pending",
     };
     if (to_tenant_id) insertPayload.to_tenant_id = to_tenant_id;
     if (description) insertPayload.description = description;
     if (category) insertPayload.category = category;
-    if (budget != null && budget !== "") insertPayload.budget = Number(budget);
+    if (budget != null) insertPayload.budget = budget;
     if (deadline) insertPayload.deadline = deadline;
     if (vehicle_id) insertPayload.vehicle_id = vehicle_id;
 
@@ -240,15 +251,14 @@ export async function PUT(req: NextRequest) {
     const tenantId = caller.tenantId;
 
     const body = await req.json();
-    const { id, status, cancel_reason } = body;
 
-    if (!id || !status) {
-      return NextResponse.json({ error: "id and status are required" }, { status: 400 });
+    const parsed = orderUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.errors[0]?.message ?? "入力内容に誤りがあります。");
     }
 
-    if (!VALID_STATUSES.includes(status)) {
-      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
+    const { id, status } = parsed.data;
+    const cancel_reason = body.cancel_reason;
 
     // Use admin client to bypass RLS
     const admin = getSupabaseAdmin();

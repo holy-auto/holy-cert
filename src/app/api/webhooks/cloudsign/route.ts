@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
 
     const event = JSON.parse(rawBody);
     const eventType = event.type as string;
+    const eventId = event.event_id as string | undefined;
     const documentId = event.data?.document_id as string;
 
     if (!documentId) {
@@ -36,6 +37,17 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = getAdminClient();
+
+    // ── Idempotency: skip already-processed events ──
+    if (eventId) {
+      const { error: dupErr } = await admin
+        .from("webhook_processed_events")
+        .insert({ event_id: `cloudsign:${eventId}`, source: "cloudsign", processed_at: new Date().toISOString() });
+      if (dupErr?.code === "23505") {
+        console.log(`[cloudsign-webhook] Duplicate event skipped: ${eventId}`);
+        return NextResponse.json({ ok: true, duplicate: true });
+      }
+    }
 
     // Find the signing request by CloudSign document ID
     const { data: record, error: findErr } = await admin

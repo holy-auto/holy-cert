@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
 import { apiUnauthorized, apiValidationError } from "@/lib/api/response";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+import { piiDisclosureConsentSchema } from "@/lib/validations/pii-disclosure";
 
 export const runtime = "nodejs";
 
@@ -47,15 +49,17 @@ export async function POST(req: NextRequest) {
   const caller = await resolveInsurerCaller();
   if (!caller) return apiUnauthorized();
 
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return apiValidationError("Invalid JSON");
+  const body = await req.json().catch(() => ({}));
+
+  const parsed = piiDisclosureConsentSchema
+    .pick({ certificate_id: true })
+    .extend({ reason: z.string().optional() })
+    .safeParse(body);
+  if (!parsed.success) {
+    return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
   }
 
-  const { certificate_id, reason } = body;
-  if (!certificate_id) return apiValidationError("Missing certificate_id");
+  const { certificate_id, reason } = parsed.data;
 
   const admin = createAdminClient();
 

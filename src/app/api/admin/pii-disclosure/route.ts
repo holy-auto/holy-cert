@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { piiDisclosureConsentSchema } from "@/lib/validations/pii-disclosure";
+import { apiValidationError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -66,20 +68,13 @@ export async function POST(req: NextRequest) {
   if (!membership)
     return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
 
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  const body = await req.json().catch(() => null);
+  if (!body) return apiValidationError("リクエストの形式が不正です。");
 
-  const { certificate_id, insurer_id } = body;
-  if (!certificate_id || !insurer_id) {
-    return NextResponse.json(
-      { error: "Missing certificate_id or insurer_id" },
-      { status: 400 },
-    );
-  }
+  const parsed = piiDisclosureConsentSchema.safeParse(body);
+  if (!parsed.success) return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
+
+  const { certificate_id, insurer_id } = parsed.data;
 
   const admin = createAdminClient();
 

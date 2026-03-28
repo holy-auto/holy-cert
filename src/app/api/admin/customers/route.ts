@@ -1,10 +1,12 @@
+import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiForbidden } from "@/lib/api/response";
+import { apiForbidden, apiValidationError } from "@/lib/api/response";
 import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
 import { enforceBilling } from "@/lib/billing/guard";
 import { parsePagination } from "@/lib/api/pagination";
+import { customerSchema } from "@/lib/validation/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -127,20 +129,22 @@ export async function POST(req: NextRequest) {
     const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_create" });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
-    const name = (body?.name ?? "").trim();
-    if (!name) return NextResponse.json({ error: "name_required", message: "顧客名は必須です。" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = customerSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues.map((i) => i.message).join(", "));
+    }
 
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
-      name,
-      name_kana: (body?.name_kana ?? "").trim() || null,
-      email: (body?.email ?? "").trim() || null,
-      phone: (body?.phone ?? "").trim() || null,
-      postal_code: (body?.postal_code ?? "").trim() || null,
-      address: (body?.address ?? "").trim() || null,
-      note: (body?.note ?? "").trim() || null,
+      name: parsed.data.name,
+      name_kana: parsed.data.name_kana || null,
+      email: parsed.data.email || null,
+      phone: parsed.data.phone || null,
+      postal_code: parsed.data.postal_code || null,
+      address: parsed.data.address || null,
+      note: parsed.data.note || null,
     };
 
     const { data, error } = await supabase.from("customers").insert(row).select().single();
@@ -167,21 +171,23 @@ export async function PUT(req: NextRequest) {
     const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_update" });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
-    const id = (body?.id ?? "").trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const putSchema = customerSchema.extend({ id: z.string().uuid("idはUUID形式である必要があります") });
+    const parsed = putSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues.map((i) => i.message).join(", "));
+    }
 
-    const name = (body?.name ?? "").trim();
-    if (!name) return NextResponse.json({ error: "name_required", message: "顧客名は必須です。" }, { status: 400 });
+    const { id, ...fields } = parsed.data;
 
     const updates: Record<string, unknown> = {
-      name,
-      name_kana: (body?.name_kana ?? "").trim() || null,
-      email: (body?.email ?? "").trim() || null,
-      phone: (body?.phone ?? "").trim() || null,
-      postal_code: (body?.postal_code ?? "").trim() || null,
-      address: (body?.address ?? "").trim() || null,
-      note: (body?.note ?? "").trim() || null,
+      name: fields.name,
+      name_kana: fields.name_kana || null,
+      email: fields.email || null,
+      phone: fields.phone || null,
+      postal_code: fields.postal_code || null,
+      address: fields.address || null,
+      note: fields.note || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -236,9 +242,13 @@ export async function DELETE(req: NextRequest) {
     const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_delete" });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
-    const id = (body?.id ?? "").trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const deleteSchema = z.object({ id: z.string().uuid("idはUUID形式である必要があります") });
+    const parsed = deleteSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues.map((i) => i.message).join(", "));
+    }
+    const { id } = parsed.data;
 
     // リンク済み証明書/請求書があるか並列で確認
     const [{ count: certCount }, { count: invCount }] = await Promise.all([

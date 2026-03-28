@@ -3,6 +3,8 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { parsePagination } from "@/lib/api/pagination";
+import { paymentCreateSchema, paymentUpdateSchema, paymentDeleteSchema } from "@/lib/validations/payment";
+import { apiValidationError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -131,47 +133,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+    const body = await req.json().catch(() => null);
+    if (!body) return apiValidationError("リクエストの形式が不正です。");
+    const parsed = paymentCreateSchema.safeParse(body);
+    if (!parsed.success) return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
 
-    const paymentMethod = (String(body?.payment_method ?? "")).trim();
-    if (!paymentMethod) return NextResponse.json({ error: "missing_payment_method" }, { status: 400 });
-
-    const validMethods = ["cash", "card", "qr", "bank_transfer", "other"];
-    if (!validMethods.includes(paymentMethod)) {
-      return NextResponse.json({ error: "invalid_payment_method" }, { status: 400 });
-    }
-
-    const amount = parseInt(String(body?.amount ?? ""), 10);
-    if (isNaN(amount) || amount < 1 || amount > 999_999_999) {
-      return NextResponse.json({ error: "invalid_amount" }, { status: 400 });
-    }
-
-    const receivedAmount = body?.received_amount != null
-      ? parseInt(String(body.received_amount), 10)
-      : null;
-    if (receivedAmount != null && (isNaN(receivedAmount) || receivedAmount < 0)) {
-      return NextResponse.json({ error: "invalid_received_amount" }, { status: 400 });
-    }
-    const changeAmount = receivedAmount != null && receivedAmount > amount
-      ? receivedAmount - amount
+    const { data: input } = parsed;
+    const receivedAmount = input.received_amount ?? null;
+    const changeAmount = receivedAmount != null && receivedAmount > input.amount
+      ? receivedAmount - input.amount
       : 0;
 
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
-      store_id: (String(body?.store_id ?? "")).trim() || null,
-      document_id: (String(body?.document_id ?? "")).trim() || null,
-      reservation_id: (String(body?.reservation_id ?? "")).trim() || null,
-      customer_id: (String(body?.customer_id ?? "")).trim() || null,
-      register_session_id: (String(body?.register_session_id ?? "")).trim() || null,
-      payment_method: paymentMethod,
-      amount,
+      store_id: input.store_id ?? null,
+      document_id: input.document_id ?? null,
+      reservation_id: input.reservation_id ?? null,
+      customer_id: input.customer_id ?? null,
+      register_session_id: input.register_session_id ?? null,
+      payment_method: input.payment_method,
+      amount: input.amount,
       received_amount: receivedAmount,
       change_amount: changeAmount,
       status: "completed",
       refund_amount: 0,
-      note: (String(body?.note ?? "")).trim() || null,
-      paid_at: body?.paid_at || new Date().toISOString(),
+      note: input.note ?? null,
+      paid_at: input.paid_at || new Date().toISOString(),
       created_by: caller.userId,
     };
 
@@ -199,36 +187,40 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => null);
+    if (!body) return apiValidationError("リクエストの形式が不正です。");
+    const parsed = paymentUpdateSchema.safeParse(body);
+    if (!parsed.success) return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
+
+    const { data: input } = parsed;
+    const { id, ...fields } = input;
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-    if (body.store_id !== undefined) updates.store_id = (String(body.store_id ?? "")).trim() || null;
-    if (body.document_id !== undefined) updates.document_id = (String(body.document_id ?? "")).trim() || null;
-    if (body.reservation_id !== undefined) updates.reservation_id = (String(body.reservation_id ?? "")).trim() || null;
-    if (body.customer_id !== undefined) updates.customer_id = (String(body.customer_id ?? "")).trim() || null;
-    if (body.payment_method !== undefined) updates.payment_method = body.payment_method;
-    if (body.amount !== undefined) updates.amount = parseInt(String(body.amount), 10);
-    if (body.received_amount !== undefined) updates.received_amount = body.received_amount != null ? parseInt(String(body.received_amount), 10) : null;
-    if (body.change_amount !== undefined) updates.change_amount = parseInt(String(body.change_amount ?? 0), 10);
-    if (body.note !== undefined) updates.note = (String(body.note ?? "")).trim() || null;
-    if (body.paid_at !== undefined) updates.paid_at = body.paid_at;
+    if (fields.store_id !== undefined) updates.store_id = fields.store_id;
+    if (fields.document_id !== undefined) updates.document_id = fields.document_id;
+    if (fields.reservation_id !== undefined) updates.reservation_id = fields.reservation_id;
+    if (fields.customer_id !== undefined) updates.customer_id = fields.customer_id;
+    if (fields.payment_method !== undefined) updates.payment_method = fields.payment_method;
+    if (fields.amount !== undefined) updates.amount = fields.amount;
+    if (fields.received_amount !== undefined) updates.received_amount = fields.received_amount;
+    if (fields.change_amount !== undefined) updates.change_amount = fields.change_amount;
+    if (fields.note !== undefined) updates.note = fields.note;
+    if (fields.paid_at !== undefined) updates.paid_at = fields.paid_at;
 
     // ステータス変更（返金処理）
-    if (body.status !== undefined) {
-      updates.status = body.status;
-      if (body.status === "refunded" || body.status === "partial_refund") {
-        if (body.refund_amount !== undefined) {
-          updates.refund_amount = parseInt(String(body.refund_amount), 10) || 0;
+    if (fields.status !== undefined) {
+      updates.status = fields.status;
+      if (fields.status === "refunded" || fields.status === "partial_refund") {
+        if (fields.refund_amount !== undefined) {
+          updates.refund_amount = fields.refund_amount;
         }
-        if (body.refund_reason !== undefined) {
-          updates.refund_reason = (String(body.refund_reason ?? "")).trim() || null;
+        if (fields.refund_reason !== undefined) {
+          updates.refund_reason = fields.refund_reason;
         }
       }
-      if (body.status === "voided") {
-        updates.refund_reason = (String(body.refund_reason ?? "")).trim() || null;
+      if (fields.status === "voided") {
+        updates.refund_reason = fields.refund_reason ?? null;
       }
     }
 
@@ -263,9 +255,12 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => null);
+    if (!body) return apiValidationError("リクエストの形式が不正です。");
+    const parsed = paymentDeleteSchema.safeParse(body);
+    if (!parsed.success) return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
+
+    const { id } = parsed.data;
 
     const { error } = await supabase
       .from("payments")

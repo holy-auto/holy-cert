@@ -1,11 +1,26 @@
 import crypto from "crypto";
 import { NextRequest } from "next/server";
+import { z } from "zod";
 import { getAdminClient } from "@/lib/api/auth";
 import { apiOk, apiInternalError, apiValidationError, apiError } from "@/lib/api/response";
 import { checkOverlap } from "@/lib/reservations/overlap";
 import { syncCreateEvent } from "@/lib/gcal/client";
 import { sendBookingConfirmation } from "@/lib/line/client";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+
+const bookingSchema = z.object({
+  tenant_slug: z.string().min(1, "tenant_slug は必須です"),
+  customer_name: z.string().min(1, "customer_name は必須です"),
+  customer_email: z.string().email("メールアドレスの形式が不正です").optional().nullable(),
+  customer_phone: z.string().optional().nullable(),
+  line_user_id: z.string().optional().nullable(),
+  title: z.string().min(1, "title は必須です"),
+  scheduled_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "scheduled_date は YYYY-MM-DD 形式です"),
+  start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "start_time は HH:MM 形式です"),
+  end_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "end_time は HH:MM 形式です"),
+  note: z.string().optional().nullable(),
+  source: z.enum(["google_maps", "line", "web"]).default("web"),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -55,27 +70,20 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
 
-    // 必須フィールド検証
-    const tenantSlug = body?.tenant_slug;
-    const customerName = body?.customer_name;
-    const title = body?.title;
-    const scheduledDate = body?.scheduled_date;
-    const startTime = body?.start_time;
-    const endTime = body?.end_time;
-
-    if (!tenantSlug || !customerName || !title || !scheduledDate || !startTime || !endTime) {
-      return apiValidationError(
-        "tenant_slug, customer_name, title, scheduled_date, start_time, end_time は必須です"
-      );
+    // Zod バリデーション
+    const parsed = bookingSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.issues[0]?.message ?? "入力内容に誤りがあります。");
     }
 
-    // 日付フォーマット検証
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)) {
-      return apiValidationError("scheduled_date は YYYY-MM-DD 形式です");
-    }
-    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(startTime) || !/^\d{2}:\d{2}(:\d{2})?$/.test(endTime)) {
-      return apiValidationError("start_time / end_time は HH:MM 形式です");
-    }
+    const {
+      tenant_slug: tenantSlug,
+      customer_name: customerName,
+      title,
+      scheduled_date: scheduledDate,
+      start_time: startTime,
+      end_time: endTime,
+    } = parsed.data;
 
     const admin = getAdminClient();
 
@@ -144,13 +152,13 @@ export async function POST(req: NextRequest) {
 
     // ── 顧客レコード作成/取得 ──
     let customerId: string | null = null;
-    if (body.line_user_id) {
+    if (parsed.data.line_user_id) {
       // LINE user_id で既存顧客検索
       const { data: existing } = await admin
         .from("customers")
         .select("id")
         .eq("tenant_id", tenant.id)
-        .eq("line_user_id", body.line_user_id)
+        .eq("line_user_id", parsed.data.line_user_id)
         .limit(1)
         .maybeSingle();
 
@@ -159,12 +167,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!customerId && body.customer_email) {
+    if (!customerId && parsed.data.customer_email) {
       const { data: existing } = await admin
         .from("customers")
         .select("id")
         .eq("tenant_id", tenant.id)
-        .eq("email", body.customer_email)
+        .eq("email", parsed.data.customer_email)
         .limit(1)
         .maybeSingle();
 
@@ -180,9 +188,9 @@ export async function POST(req: NextRequest) {
         .insert({
           tenant_id: tenant.id,
           name: customerName,
-          email: body.customer_email || null,
-          phone: body.customer_phone || null,
-          line_user_id: body.line_user_id || null,
+          email: parsed.data.customer_email || null,
+          phone: parsed.data.customer_phone || null,
+          line_user_id: parsed.data.line_user_id || null,
         })
         .select("id")
         .single();
@@ -202,9 +210,9 @@ export async function POST(req: NextRequest) {
         scheduled_date: scheduledDate,
         start_time: startTime.length === 5 ? `${startTime}:00` : startTime,
         end_time: endTime.length === 5 ? `${endTime}:00` : endTime,
-        note: body.note || null,
-        source: body.source || "web",
-        line_user_id: body.line_user_id || null,
+        note: parsed.data.note || null,
+        source: parsed.data.source,
+        line_user_id: parsed.data.line_user_id || null,
         status: "confirmed",
       })
       .select()
@@ -224,8 +232,8 @@ export async function POST(req: NextRequest) {
     }).catch(() => {});
 
     // ── LINE 予約確認通知（非ブロッキング） ──
-    if (body.line_user_id) {
-      sendBookingConfirmation(tenant.id, body.line_user_id, {
+    if (parsed.data.line_user_id) {
+      sendBookingConfirmation(tenant.id, parsed.data.line_user_id, {
         title: reservation.title,
         scheduled_date: reservation.scheduled_date,
         start_time: reservation.start_time,

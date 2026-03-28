@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiForbidden } from "@/lib/api/response";
+import { apiForbidden, apiValidationError } from "@/lib/api/response";
+import { reservationCreateSchema, reservationUpdateSchema, reservationDeleteSchema } from "@/lib/validations/reservation";
 import { syncCreateEvent, syncUpdateEvent, syncDeleteEvent } from "@/lib/gcal/client";
 import { enforceBilling } from "@/lib/billing/guard";
 
@@ -105,28 +106,29 @@ export async function POST(req: NextRequest) {
     const deny = await enforceBilling(req as any, { minPlan: "starter", action: "reservation_create" });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+    const body = await req.json().catch(() => ({}));
+    const parsed = reservationCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.errors[0]?.message ?? "入力が不正です。", {
+        issues: parsed.error.errors,
+      });
+    }
 
-    const title = (String(body?.title ?? "")).trim();
-    if (!title) return NextResponse.json({ error: "missing_title" }, { status: 400 });
-
-    const scheduledDate = String(body?.scheduled_date ?? "").trim();
-    if (!scheduledDate) return NextResponse.json({ error: "missing_scheduled_date" }, { status: 400 });
-
+    const d = parsed.data;
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
-      customer_id: (String(body?.customer_id ?? "")).trim() || null,
-      vehicle_id: (String(body?.vehicle_id ?? "")).trim() || null,
-      title,
-      menu_items_json: body?.menu_items_json ?? [],
-      note: (String(body?.note ?? "")).trim() || null,
-      scheduled_date: scheduledDate,
-      start_time: (String(body?.start_time ?? "")).trim() || null,
-      end_time: (String(body?.end_time ?? "")).trim() || null,
-      assigned_user_id: (String(body?.assigned_user_id ?? "")).trim() || null,
-      status: "confirmed",
-      estimated_amount: parseInt(String(body?.estimated_amount ?? 0), 10) || 0,
+      customer_id: d.customer_id ?? null,
+      vehicle_id: d.vehicle_id ?? null,
+      title: d.title,
+      menu_items_json: d.menu_items_json ?? [],
+      note: d.note ?? null,
+      scheduled_date: d.scheduled_date,
+      start_time: d.start_time ?? null,
+      end_time: d.end_time ?? null,
+      assigned_user_id: d.assigned_user_id ?? null,
+      status: d.status,
+      estimated_amount: d.estimated_amount ?? 0,
     };
 
     const { data, error } = await supabase.from("reservations").insert(row).select().single();
@@ -165,29 +167,34 @@ export async function PUT(req: NextRequest) {
     const deny = await enforceBilling(req as any, { minPlan: "starter", action: "reservation_update" });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = reservationUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.errors[0]?.message ?? "入力が不正です。", {
+        issues: parsed.error.errors,
+      });
+    }
 
+    const { id, ...fields } = parsed.data;
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-    if (body.title !== undefined) updates.title = (String(body.title)).trim();
-    if (body.customer_id !== undefined) updates.customer_id = (String(body.customer_id)).trim() || null;
-    if (body.vehicle_id !== undefined) updates.vehicle_id = (String(body.vehicle_id)).trim() || null;
-    if (body.menu_items_json !== undefined) updates.menu_items_json = body.menu_items_json;
-    if (body.note !== undefined) updates.note = (String(body.note ?? "")).trim() || null;
-    if (body.scheduled_date !== undefined) updates.scheduled_date = body.scheduled_date;
-    if (body.start_time !== undefined) updates.start_time = (String(body.start_time)).trim() || null;
-    if (body.end_time !== undefined) updates.end_time = (String(body.end_time)).trim() || null;
-    if (body.assigned_user_id !== undefined) updates.assigned_user_id = (String(body.assigned_user_id)).trim() || null;
-    if (body.estimated_amount !== undefined) updates.estimated_amount = parseInt(String(body.estimated_amount), 10) || 0;
+    if (fields.title !== undefined) updates.title = fields.title;
+    if (fields.customer_id !== undefined) updates.customer_id = fields.customer_id ?? null;
+    if (fields.vehicle_id !== undefined) updates.vehicle_id = fields.vehicle_id ?? null;
+    if (fields.menu_items_json !== undefined) updates.menu_items_json = fields.menu_items_json;
+    if (fields.note !== undefined) updates.note = fields.note ?? null;
+    if (fields.scheduled_date !== undefined) updates.scheduled_date = fields.scheduled_date;
+    if (fields.start_time !== undefined) updates.start_time = fields.start_time ?? null;
+    if (fields.end_time !== undefined) updates.end_time = fields.end_time ?? null;
+    if (fields.assigned_user_id !== undefined) updates.assigned_user_id = fields.assigned_user_id ?? null;
+    if (fields.estimated_amount !== undefined) updates.estimated_amount = fields.estimated_amount ?? 0;
 
     // ステータス変更
-    if (body.status !== undefined) {
-      updates.status = body.status;
-      if (body.status === "cancelled") {
+    if (fields.status !== undefined) {
+      updates.status = fields.status;
+      if (fields.status === "cancelled") {
         updates.cancelled_at = new Date().toISOString();
-        updates.cancel_reason = (String(body.cancel_reason ?? "")).trim() || null;
+        updates.cancel_reason = fields.cancel_reason ?? null;
       }
     }
 
@@ -250,11 +257,15 @@ export async function DELETE(req: NextRequest) {
     const deny = await enforceBilling(req as any, { minPlan: "starter", action: "reservation_delete" });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const parsed = reservationDeleteSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiValidationError(parsed.error.errors[0]?.message ?? "入力が不正です。", {
+        issues: parsed.error.errors,
+      });
+    }
 
-    const hardDelete = body?.hard_delete === true;
+    const { id, hard_delete: hardDelete, cancel_reason: parsedCancelReason } = parsed.data;
 
     if (hardDelete) {
       // 完全削除（キャンセル済み or 完了のみ許可）
@@ -284,7 +295,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // ソフトデリート（キャンセル扱い）
-    const cancelReason = (String(body?.cancel_reason ?? "")).trim() || null;
+    const cancelReason = parsedCancelReason ?? null;
 
     // キャンセル前に gcal_event_id を取得
     const { data: existing } = await supabase
