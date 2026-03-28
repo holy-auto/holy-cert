@@ -92,14 +92,14 @@ export async function POST(req: NextRequest) {
   if (!cert)
     return NextResponse.json({ error: "Certificate not found" }, { status: 404 });
 
-  const { data: membership } = await admin
+  const { data: tenantMember } = await admin
     .from("tenant_memberships")
     .select("id")
     .eq("user_id", user.id)
     .eq("tenant_id", cert.tenant_id)
     .maybeSingle();
 
-  if (!membership)
+  if (!tenantMember)
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
 
   const { data, error } = await admin
