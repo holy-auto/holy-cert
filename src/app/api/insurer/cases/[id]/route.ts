@@ -42,19 +42,19 @@ export async function GET(
     if (!caseData) return apiNotFound("ケースが見つかりません。");
     if (caseData.insurer_id !== caller.insurerId) return apiForbidden();
 
-    // Fetch messages
-    const { data: messages } = await admin
-      .from("insurer_case_messages")
-      .select("*")
-      .eq("case_id", id)
-      .order("created_at", { ascending: true });
-
-    // Fetch attachments
-    const { data: attachments } = await admin
-      .from("insurer_case_attachments")
-      .select("*")
-      .eq("case_id", id)
-      .order("created_at", { ascending: true });
+    // Fetch messages and attachments in parallel
+    const [{ data: messages }, { data: attachments }] = await Promise.all([
+      admin
+        .from("insurer_case_messages")
+        .select("*")
+        .eq("case_id", id)
+        .order("created_at", { ascending: true }),
+      admin
+        .from("insurer_case_attachments")
+        .select("*")
+        .eq("case_id", id)
+        .order("created_at", { ascending: true }),
+    ]);
 
     return NextResponse.json({
       case: caseData,

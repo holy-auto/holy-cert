@@ -25,26 +25,24 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
       return apiNotFound("agent not found");
     }
 
-    // Get referrals
-    const { data: referrals } = await admin
-      .from("agent_referrals")
-      .select("*")
-      .eq("agent_id", id)
-      .order("created_at", { ascending: false });
-
-    // Get commissions
-    const { data: commissions } = await admin
-      .from("agent_commissions")
-      .select("*")
-      .eq("agent_id", id)
-      .order("period_start", { ascending: false });
-
-    // Get members
-    const { data: members } = await admin
-      .from("agent_users")
-      .select("*")
-      .eq("agent_id", id)
-      .order("created_at", { ascending: true });
+    // Get referrals, commissions, and members in parallel
+    const [{ data: referrals }, { data: commissions }, { data: members }] = await Promise.all([
+      admin
+        .from("agent_referrals")
+        .select("*")
+        .eq("agent_id", id)
+        .order("created_at", { ascending: false }),
+      admin
+        .from("agent_commissions")
+        .select("*")
+        .eq("agent_id", id)
+        .order("period_start", { ascending: false }),
+      admin
+        .from("agent_users")
+        .select("*")
+        .eq("agent_id", id)
+        .order("created_at", { ascending: true }),
+    ]);
 
     return NextResponse.json({
       agent: data,

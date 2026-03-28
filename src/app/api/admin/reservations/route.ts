@@ -45,32 +45,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "db_error" }, { status: 500 });
     }
 
-    // 顧客名を取得
+    // 顧客名・車両情報を並列で取得
     const customerIds = [...new Set((reservations ?? []).map((r) => r.customer_id).filter(Boolean))];
-    const customerMap: Record<string, string> = {};
-    if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name")
-        .in("id", customerIds);
-      (customers ?? []).forEach((c) => {
-        customerMap[c.id] = c.name;
-      });
-    }
-
-    // 車両情報を取得
     const vehicleIds = [...new Set((reservations ?? []).map((r) => r.vehicle_id).filter(Boolean))];
+    const customerMap: Record<string, string> = {};
     const vehicleMap: Record<string, string> = {};
-    if (vehicleIds.length > 0) {
-      const { data: vehicles } = await supabase
-        .from("vehicles")
-        .select("id, maker, model, year, plate_display")
-        .in("id", vehicleIds);
-      (vehicles ?? []).forEach((v) => {
-        const label = [v.maker, v.model, v.year ? String(v.year) : null].filter(Boolean).join(" ") || "車両";
-        vehicleMap[v.id] = v.plate_display ? `${label} / ${v.plate_display}` : label;
-      });
-    }
+
+    const [customersResult, vehiclesResult] = await Promise.all([
+      customerIds.length > 0
+        ? supabase.from("customers").select("id, name").in("id", customerIds)
+        : Promise.resolve({ data: null }),
+      vehicleIds.length > 0
+        ? supabase.from("vehicles").select("id, maker, model, year, plate_display").in("id", vehicleIds)
+        : Promise.resolve({ data: null }),
+    ]);
+
+    (customersResult.data ?? []).forEach((c: { id: string; name: string }) => {
+      customerMap[c.id] = c.name;
+    });
+    (vehiclesResult.data ?? []).forEach((v: { id: string; maker: string; model: string; year: number | null; plate_display: string | null }) => {
+      const label = [v.maker, v.model, v.year ? String(v.year) : null].filter(Boolean).join(" ") || "車両";
+      vehicleMap[v.id] = v.plate_display ? `${label} / ${v.plate_display}` : label;
+    });
 
     const enriched = (reservations ?? []).map((r) => ({
       ...r,
