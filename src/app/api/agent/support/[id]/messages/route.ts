@@ -44,7 +44,10 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
       .select()
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error("[agent/support/messages] db error:", error.message);
+      return NextResponse.json({ error: "db_error" }, { status: 500 });
+    }
 
     // Update ticket status
     await supabase
