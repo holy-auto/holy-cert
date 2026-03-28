@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
   const limited = await checkRateLimit(req, "auth");
   if (limited) return limited;
 
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
