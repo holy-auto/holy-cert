@@ -18,7 +18,8 @@ type ErrorCode =
   | "plan_limit"
   | "db_error"
   | "auth_error"
-  | "internal_error";
+  | "internal_error"
+  | "service_unavailable";
 
 interface ApiErrorOptions {
   /** クライアントに表示するメッセージ */
