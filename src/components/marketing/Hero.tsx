@@ -1,4 +1,5 @@
 import { Container } from "./Container";
+import { CountdownTimer } from "./CountdownTimer";
 import { CTAButton } from "./CTAButton";
 
 export function Hero() {
@@ -55,6 +56,11 @@ export function Hero() {
           <br className="hidden md:block" />
           現場の技術を可視化し、業界全体に信頼と価値を届けるプラットフォームです。
         </p>
+
+        <div className="mt-14 animate-[hero-fade-up_0.8s_ease-out_0.8s_both]">
+          <p className="text-sm text-white/40 mb-6 tracking-wide">サービス公開までもう少しお待ちください。</p>
+          <CountdownTimer />
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12 animate-[hero-fade-up_0.8s_ease-out_0.9s_both]">
           <CTAButton variant="white" href="/signup">
