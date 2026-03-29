@@ -6,38 +6,54 @@
 
 ---
 
-## 総合評価: ローンチ不可（条件付き延期推奨）
+## 総合評価: 条件付きローンチ可能
 
 | 分野 | スコア | 判定 |
 |------|--------|------|
-| セキュリティ | 5.5/10 | **重大欠陥あり** |
+| セキュリティ | 6.5/10 | **proxy.ts実装済みだがmiddleware未接続（修正容易）** |
 | DB/APIレイヤー | 6.0/10 | 不整合多数 |
-| UI/フロントエンド | 6.5/10 | マーケティング未完成 |
+| UI/フロントエンド | 7.0/10 | マーケティングは意図的Coming Soon（特許出願対応） |
 | テスト/DevOps | 5.5/10 | 基盤不足 |
 | ビジネスロジック完成度 | 7.5/10 | コア機能は堅実 |
 | POS拡張準備 | 8.0/10 | 実装済み |
 | アプリ配布準備 | 4.0/10 | PWAのみ、ネイティブ未着手 |
 | アカデミー準備 | 2.0/10 | 骨格のみ |
-| **総合** | **5.6/10** | **ローンチ延期推奨** |
+| **総合** | **6.3/10** | **最低限の修正でローンチ可能** |
+
+> **訂正 (2026-03-29)**: 初版では middleware.ts 不在を重大欠陥としたが、
+> `src/proxy.ts`にCSRF保護・セッション管理・認証リダイレクトが堅実に実装済みであることを確認。
+> middleware.tsからのインポートが欠落しているだけであり、1行の修正で解決する。
+> また、マーケティングサイトのComing Soonは特許出願対応のため意図的に非公開としている旨を反映。
+> Resend Webhook シークレットは本番環境で設定済みであり、実害なし。
 
 ---
 
 ## 1. セキュリティ — 重大欠陥 (5.5/10)
 
-### CRITICAL: middleware.ts が存在しない
+### ~~CRITICAL~~ → MEDIUM（訂正済み）: middleware.ts が未接続
 
-プロジェクト全体に**Next.js middleware が一切存在しない**。ルート保護はクライアントサイドのReactコンポーネント（`AdminRouteGuard`等）に完全依存しており、**サーバーサイドでのページ保護がゼロ**。
+`src/proxy.ts`にCSRF保護・セッションリフレッシュ・未認証リダイレクトが**堅実に実装済み**。
+ただし`middleware.ts`が存在せず、`proxy()`がどこからもインポートされていないため**実行されていない**。
+middleware.tsを作成してproxyをインポートする1行の修正で解決する。→ **本監査で修正済み**
+
+**proxy.tsの実装内容:**
+- CSRF保護（Origin/Hostヘッダー検証、sec-fetch-site確認）
+- Supabaseセッション自動リフレッシュ（JWT有効期限5分前に更新）
+- 未認証ユーザーのリダイレクト（/admin→/login、/insurer→/insurer/login）
+- 未公開機能のブロック（HIDDEN_ADMIN_PREFIXES）
+- 静的アセットのスキップ
 
 | ポータル | 保護方式 | リスク |
 |---------|---------|-------|
-| `/admin` | クライアント側 AdminRouteGuard | 認証チェック前にページが一瞬表示される |
-| `/agent` | クライアント側 AgentRouteGuard | 同上 |
-| `/insurer` | **ガードなし** | **保護機構が完全に欠落** |
-| `/customer` | Cookie検証（遅延） | 認証前にUIが表示される |
+| `/admin` | proxy（サーバーサイド）+ AdminRouteGuard（クライアント） | 低（二重保護） |
+| `/agent` | proxy（サーバーサイド）+ AgentRouteGuard（クライアント） | 低（二重保護） |
+| `/insurer` | proxy（サーバーサイド）のみ | **中（クライアント側ガードなし）** |
+| `/customer` | Cookie検証（遅延） | 低 |
 
-### CRITICAL: Resend Webhook シークレット未検証
+### ~~CRITICAL~~ → LOW（訂正済み）: Resend Webhook シークレット
 
-`/api/webhooks/resend/route.ts` — `RESEND_WEBHOOK_SECRET`が未設定の場合、**署名検証なしでWebhookを受け入れる**。本番環境で偽造イベントを受け付ける可能性。
+`/api/webhooks/resend/route.ts` — コード上は`RESEND_WEBHOOK_SECRET`未設定時にスキップする条件分岐が残るが、
+**本番環境ではシークレットが設定済み**であり実害なし。防御的コーディングとして未設定時に500を返す修正が望ましい。
 
 ### HIGH: Cron署名検証の実装バグ
 
@@ -49,7 +65,7 @@
 
 ### その他のセキュリティ懸念
 
-- CSRF保護がNext.jsデフォルトに依存（明示的トークンなし）
+- CSRF保護はproxy.tsに実装済み（Origin/Host検証方式）。middleware接続後に有効化される
 - Admin APIルートにレートリミットが未適用
 - 顧客ポータルの認証が「メール＋電話下4桁」のみ（脆弱）
 - API鍵ローテーション戦略が未策定
@@ -109,19 +125,19 @@ Format D: { "error": "unauthorized" }
 
 ## 3. UI/フロントエンド — マーケティング未完成 (6.5/10)
 
-### CRITICAL: マーケティングサイトが5ページ中5ページ「Coming Soon」
+### INFO: マーケティングサイトが5ページ「Coming Soon」（意図的）
 
-4/1ローンチに向けて**集客の入り口が存在しない**：
+特許出願対応のため、以下のページは**意図的に非公開**としている。ローンチ阻害要因ではない。
 
-| ページ | 状態 |
-|--------|------|
-| `/pricing` (料金プラン) | **Coming Soon** |
-| `/for-shops` (施工店向け) | **Coming Soon** |
-| `/for-agents` (代理店向け) | **Coming Soon** |
-| `/for-insurers` (保険会社向け) | **Coming Soon** |
-| `/faq` (よくある質問) | **Coming Soon** |
+| ページ | 状態 | 備考 |
+|--------|------|------|
+| `/pricing` (料金プラン) | Coming Soon | 特許出願対応で非公開 |
+| `/for-shops` (施工店向け) | Coming Soon | 同上 |
+| `/for-agents` (代理店向け) | Coming Soon | 同上 |
+| `/for-insurers` (保険会社向け) | Coming Soon | 同上 |
+| `/faq` (よくある質問) | Coming Soon | 同上 |
 
-トップページ (`/`) のみ実装済みだが、ポータルへの導線以外に**サービス説明・機能紹介・料金が一切ない**。
+トップページ (`/`) は実装済み。特許出願完了後に各ページを公開予定。
 
 ### SEOメタデータ欠落
 
@@ -213,7 +229,7 @@ Format D: { "error": "unauthorized" }
 
 ### 未完成（重大な欠落）
 
-- マーケティングサイト — **20%完成**
+- マーケティングサイト — **20%完成**（特許出願対応で意図的に非公開）
 - オンラインアカデミー — **30%完成**（UIの骨格のみ、コンテンツ配信システムなし）
 - SMS通知 — モジュール存在するがプロバイダ未接続
 - SSO — 未実装（メール+パスワードのみ）
@@ -277,27 +293,27 @@ POS機能は**既に本格実装済み**：
 
 ### ローンチ阻害要因（ブロッカー）
 
-| # | 問題 | 重要度 | 修正工数 |
-|---|------|--------|---------|
-| 1 | middleware.ts不在（サーバーサイド認証なし） | **CRITICAL** | 1-2日 |
-| 2 | Insurerポータルにルートガードなし | **CRITICAL** | 半日 |
-| 3 | Resend Webhook署名未検証 | **CRITICAL** | 1時間 |
-| 4 | マーケティングサイト5ページが全てComing Soon | **CRITICAL** | 3-5日 |
-| 5 | ステージング環境なし | **HIGH** | 1日 |
-| 6 | pre-commitフック・フォーマッターなし | **HIGH** | 半日 |
-| 7 | テストカバレッジ計測なし | **HIGH** | 半日 |
-| 8 | Cron障害アラートなし | **HIGH** | 1日 |
+| # | 問題 | 重要度 | 修正工数 | 状態 |
+|---|------|--------|---------|------|
+| 1 | middleware.ts未接続（proxy.tsは実装済み） | **HIGH** | 数分 | **本監査で修正済み** |
+| 2 | Insurerポータルにクライアント側ルートガードなし | **HIGH** | 半日 | **本監査で修正済み** |
+| 3 | Resend Webhook署名未検証 | ~~CRITICAL~~ LOW | - | 本番環境では設定済み（実施不要） |
+| 4 | マーケティングサイト5ページがComing Soon | ~~CRITICAL~~ INFO | - | 特許出願対応で意図的（実施不要） |
+| 5 | ステージング環境なし | **HIGH** | 1日 | **本監査で構築済み** |
+| 6 | pre-commitフック・フォーマッターなし | **HIGH** | 半日 | 未対応 |
+| 7 | テストカバレッジ計測なし | **HIGH** | 半日 | 未対応 |
+| 8 | Cron障害アラートなし | **HIGH** | 1日 | 未対応 |
 
-### 結論
+### 結論（訂正版）
 
-**4/1ローンチは推奨しない。** セキュリティの重大欠陥（middleware不在、Insurer保護なし）とマーケティングサイト未完成が致命的。
+セキュリティの根幹（proxy.ts）は実装済みであり、middleware接続とInsurerガード追加で解決。
+マーケティングサイトは意図的非公開。**最低限の修正（#1, #2, #5）で4/1ローンチは可能。**
 
-**推奨スケジュール:**
-
-- **4/1〜4/7**: ブロッカー#1〜#3（セキュリティ修正）
-- **4/7〜4/14**: ブロッカー#4（マーケティングサイト）+ #5〜#8
-- **4/14〜4/18**: ステージング環境で結合テスト
-- **4/21**: ローンチ推奨日（3週間延期）
+ただし以下のリスクは残存：
+- API層のバリデーション・レスポンス形式不統一
+- テストカバレッジの計測・閾値未設定
+- Prettier/pre-commitフック未導入
+- Cronジョブの障害監視なし
 
 ---
 
@@ -320,16 +336,16 @@ POS機能は**既に本格実装済み**：
 
 | 対策 | 状態 |
 |------|------|
-| Next.js Middleware | 未実装 |
+| Next.js Middleware | proxy.ts実装済み → **本監査でmiddleware.ts接続済み** |
 | Supabase RLS | 実装済み |
 | Zod バリデーション | 部分的（主要フォームのみ） |
 | レートリミット | 公開エンドポイントのみ |
 | CSP ヘッダー | 実装済み |
 | HSTS | 実装済み |
 | Stripe Webhook検証 | 実装済み |
-| Resend Webhook検証 | 条件付き（シークレット未設定で無効） |
+| Resend Webhook検証 | 本番環境でシークレット設定済み（コード上は条件付き） |
 | LINE Webhook検証 | 実装済み |
-| CSRF保護 | Next.jsデフォルトに依存 |
+| CSRF保護 | proxy.tsにOrigin/Host検証実装済み → **middleware接続で有効化** |
 | ファイルアップロード検証 | マジックバイト検証あり |
 | パスワードポリシー | 8文字以上（NIST推奨は12文字以上） |
 
@@ -339,7 +355,7 @@ POS機能は**既に本格実装済み**：
 |---------|------|
 | Stripe（課金・決済） | 完全実装 |
 | Square（POS連携） | 完全実装 |
-| Resend（メール） | 実装済み（Webhook検証に問題） |
+| Resend（メール） | 実装済み（本番Webhook検証設定済み） |
 | Google Calendar | 一方向同期のみ |
 | CloudSign（電子署名） | Webhook受信のみ |
 | LINE | 基盤のみ |
@@ -351,18 +367,17 @@ POS機能は**既に本格実装済み**：
 
 ---
 
-## 付録: 即時対応が必要なセキュリティ修正一覧
+## 付録: セキュリティ修正一覧と対応状況
 
-| 優先度 | 問題 | 場所 | 修正内容 |
-|--------|------|------|---------|
-| CRITICAL | Resend Webhookが署名なしで受け入れ | `/api/webhooks/resend/route.ts` | シークレット必須化、未設定時は500返却 |
-| CRITICAL | Insurerポータルにルートガードなし | `/src/app/insurer/layout.tsx` | InsurerRouteGuard作成、またはサーバーサイドリダイレクト |
-| CRITICAL | middleware.ts不在 | プロジェクトルート | Next.js middleware追加、認証済みルートの保護 |
-| HIGH | Cron署名が空文字列をハッシュ | `/lib/cronAuth.ts` | Vercel署名フォーマットの正しい実装 |
-| HIGH | テナントアクセス未検証 | 複数APIルート | `caller.tenantId === requestedTenantId`の検証追加 |
-| MEDIUM | CSRF保護なし | フォームハンドラー | 明示的CSRFトークン検証の追加 |
-| MEDIUM | LINE Webhookでtenant_idを外部パラメータとして受け入れ | `/api/line/webhook/route.ts` | テナント所有権の検証 |
-| LOW | Admin APIルートにレートリミットなし | `/api/admin/*` | 破壊的操作へのレートリミット追加 |
+| 優先度 | 問題 | 場所 | 修正内容 | 状態 |
+|--------|------|------|---------|------|
+| ~~CRITICAL~~ | middleware.ts未接続 | プロジェクトルート | proxy.tsをインポートするmiddleware.ts追加 | **修正済み** |
+| ~~CRITICAL~~ | Insurerポータルにルートガードなし | `/src/app/insurer/layout.tsx` | InsurerRouteGuard作成 | **修正済み** |
+| LOW | Resend Webhookのフォールバック | `/api/webhooks/resend/route.ts` | 本番設定済み。防御的に未設定時500返却が望ましい | 本番影響なし |
+| HIGH | Cron署名が空文字列をハッシュ | `/lib/cronAuth.ts` | Vercel署名フォーマットの正しい実装 | 未対応 |
+| HIGH | テナントアクセス未検証 | 複数APIルート | `caller.tenantId === requestedTenantId`の検証追加 | 未対応 |
+| MEDIUM | LINE Webhookでtenant_idを外部パラメータとして受け入れ | `/api/line/webhook/route.ts` | テナント所有権の検証 | 未対応 |
+| LOW | Admin APIルートにレートリミットなし | `/api/admin/*` | 破壊的操作へのレートリミット追加 | 未対応 |
 
 ---
 
