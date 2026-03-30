@@ -1,45 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState } from "react";
+import { loginAction } from "./actions";
 
 export default function LoginForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  const onLogin = async () => {
-    setBusy(true);
-    setErr(null);
-    try {
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      window.location.href = "/admin/certificates";
-    } catch {
-      setErr("メールアドレスまたはパスワードが正しくありません。");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const [state, formAction, pending] = useActionState(loginAction, { error: null });
 
   return (
-    <div style={{ maxWidth: 400, width: "100%", textAlign: "center" }}>
+    <form action={formAction} style={{ maxWidth: 400, width: "100%", textAlign: "center" }}>
       <h1 style={{ fontSize: 24, fontWeight: "bold", marginBottom: 24 }}>Ledra ログイン</h1>
 
-      {err && <p style={{ color: "#ef4444", fontSize: 14, marginBottom: 16 }}>{err}</p>}
+      {state.error && <p style={{ color: "#ef4444", fontSize: 14, marginBottom: 16 }}>{state.error}</p>}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <input
           type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !busy && onLogin()}
+          name="email"
           placeholder="Email"
+          required
           style={{
             padding: "10px 14px",
             borderRadius: 8,
@@ -49,10 +27,9 @@ export default function LoginForm() {
         />
         <input
           type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !busy && onLogin()}
+          name="password"
           placeholder="Password"
+          required
           style={{
             padding: "10px 14px",
             borderRadius: 8,
@@ -61,8 +38,8 @@ export default function LoginForm() {
           }}
         />
         <button
-          onClick={onLogin}
-          disabled={busy}
+          type="submit"
+          disabled={pending}
           style={{
             padding: "10px 24px",
             borderRadius: 8,
@@ -74,7 +51,7 @@ export default function LoginForm() {
             cursor: "pointer",
           }}
         >
-          {busy ? "ログイン中..." : "ログイン"}
+          {pending ? "ログイン中..." : "ログイン"}
         </button>
       </div>
 
@@ -89,6 +66,6 @@ export default function LoginForm() {
           </a>
         </p>
       </div>
-    </div>
+    </form>
   );
 }
