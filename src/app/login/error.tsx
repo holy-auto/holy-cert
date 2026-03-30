@@ -43,7 +43,7 @@ export default function LoginError({
         </p>
 
         {error.digest && (
-          <p className="text-xs text-tertiary font-mono">
+          <p className="text-xs text-muted font-mono">
             エラーID: {error.digest}
           </p>
         )}
