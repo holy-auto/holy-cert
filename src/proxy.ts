@@ -20,15 +20,19 @@ const PUBLIC_PREFIXES = [
 ];
 
 const MARKETING_PATHS = [
-  "/", "/pricing", "/for-shops", "/for-insurers",
-  "/faq", "/contact", "/privacy", "/terms", "/tokusho",
+  "/",
+  "/pricing",
+  "/for-shops",
+  "/for-insurers",
+  "/faq",
+  "/contact",
+  "/privacy",
+  "/terms",
+  "/tokusho",
 ];
 
 /** Unreleased feature routes — redirect to /admin until ready for launch */
-const HIDDEN_ADMIN_PREFIXES = [
-  "/admin/price-stats",
-  "/admin/insurers",
-];
+const HIDDEN_ADMIN_PREFIXES = ["/admin/price-stats", "/admin/insurers"];
 
 /**
  * CSRF protection for API mutation routes.
@@ -61,10 +65,7 @@ function csrfCheck(request: NextRequest): NextResponse | null {
   if (!origin || !host) {
     const secFetchSite = request.headers.get("sec-fetch-site");
     if (secFetchSite && secFetchSite !== "same-origin") {
-      return NextResponse.json(
-        { error: "csrf_rejected", message: "Cross-origin request blocked" },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "csrf_rejected", message: "Cross-origin request blocked" }, { status: 403 });
     }
     return null;
   }
@@ -73,16 +74,10 @@ function csrfCheck(request: NextRequest): NextResponse | null {
     const originUrl = new URL(origin);
     if (originUrl.host !== host) {
       console.warn(`[CSRF] Blocked: origin=${origin} host=${host} path=${nextUrl.pathname}`);
-      return NextResponse.json(
-        { error: "csrf_rejected", message: "Cross-origin request blocked" },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "csrf_rejected", message: "Cross-origin request blocked" }, { status: 403 });
     }
   } catch {
-    return NextResponse.json(
-      { error: "csrf_rejected", message: "Invalid origin" },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: "csrf_rejected", message: "Invalid origin" }, { status: 403 });
   }
 
   return null;
@@ -92,7 +87,12 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip static assets
-  if (pathname.startsWith("/_next") || pathname === "/favicon.ico" || pathname === "/robots.txt" || pathname === "/sitemap.xml") {
+  if (
+    pathname.startsWith("/_next") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml"
+  ) {
     return NextResponse.next();
   }
 
@@ -108,7 +108,11 @@ export async function proxy(request: NextRequest) {
   }
 
   // Block unreleased market routes
-  if (pathname.startsWith("/market") && !pathname.startsWith("/market/login") && !pathname.startsWith("/market/register")) {
+  if (
+    pathname.startsWith("/market") &&
+    !pathname.startsWith("/market/login") &&
+    !pathname.startsWith("/market/register")
+  ) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/";
     return NextResponse.redirect(redirectUrl);
@@ -178,7 +182,11 @@ async function refreshSession(request: NextRequest) {
   });
 
   // Only called when token is near expiry or cannot be decoded
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    // Supabase unreachable — continue without refresh
+  }
 
   return response;
 }
@@ -206,7 +214,13 @@ async function refreshSessionAndProtect(request: NextRequest) {
     },
   });
 
-  const { data: { user } } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    // Supabase unreachable — treat as unauthenticated
+  }
 
   if (!user) {
     if (pathname.startsWith("/admin")) {
