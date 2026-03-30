@@ -1,27 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-function safeNextPath(value: string | null) {
-  if (!value) return "/admin/certificates";
-  if (!value.startsWith("/admin")) return "/admin/certificates";
-  return value;
-}
-
 export default function LoginPage() {
-  const searchParams = useSearchParams();
-  const next = safeNextPath(searchParams.get("next"));
-  const hasError = searchParams.get("e");
-  const reason = searchParams.get("reason");
-
   const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(hasError ? "メールアドレスまたはパスワードが正しくありません。" : null);
+  const [err, setErr] = useState<string | null>(null);
 
   const onLogin = async () => {
     setBusy(true);
@@ -29,7 +17,7 @@ export default function LoginPage() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      window.location.href = next;
+      window.location.href = "/admin/certificates";
     } catch {
       setErr("メールアドレスまたはパスワードが正しくありません。");
     } finally {
@@ -49,12 +37,6 @@ export default function LoginPage() {
         </div>
 
         <h1 className="text-xl font-bold text-primary text-center">ログイン</h1>
-
-        {reason === "idle" && (
-          <div className="text-sm text-amber-500 text-center">
-            一定時間操作がなかったため、自動的にログアウトしました。
-          </div>
-        )}
 
         {err && (
           <div className="text-sm text-red-400 text-center">{err}</div>
