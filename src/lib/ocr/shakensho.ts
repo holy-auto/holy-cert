@@ -15,6 +15,7 @@ export interface ShakenshoData {
   displacement_cc?: number;
   first_registration?: string;
   vin?: string;
+  plate_display?: string;
 }
 
 /**
@@ -162,6 +163,12 @@ export function parseShakenshoText(rawText: string): ShakenshoData {
   data.first_registration = extractText(rawText, "初度登録年月");
   if (!data.first_registration) {
     data.first_registration = extractText(rawText, "初度登録");
+  }
+
+  // Plate / registration number (登録番号 or 車両番号)
+  data.plate_display = extractText(rawText, "登録番号");
+  if (!data.plate_display) {
+    data.plate_display = extractText(rawText, "車両番号");
   }
 
   return data;

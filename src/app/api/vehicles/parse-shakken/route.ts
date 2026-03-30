@@ -1,30 +1,40 @@
 import { apiInternalError, apiUnauthorized, apiValidationError } from "@/lib/api/response";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { parseShakensho } from "@/lib/ocr/shakensho";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const OCR_PROMPT = `これは日本の自動車検査証（車検証）の写真です。
-以下のフィールドを読み取り、JSON形式のみで返答してください。マークダウン記法（コードブロックなど）は使わないでください。
+/** Convert Japanese era date string to western year, or return null. */
+function toWesternYear(firstRegistration: string | undefined): number | null {
+  if (!firstRegistration) return null;
 
-{
-  "maker": "自動車製作者名（例: トヨタ）または null",
-  "model": "型式または車名（例: プリウス）または null",
-  "year": 初度登録年（西暦4桁の整数）または null,
-  "vin_code": "車台番号（英数字）または null",
-  "plate_display": "登録番号（例: 水戸 300 あ 12-34）または null"
+  // Already western year: "2022年3月" or "2022/3"
+  const westernMatch = firstRegistration.match(/^(\d{4})/);
+  if (westernMatch) {
+    const y = parseInt(westernMatch[1], 10);
+    if (y > 1900 && y < 2100) return y;
+  }
+
+  // Japanese era
+  const eraPatterns: [RegExp, number][] = [
+    [/令和\s*(\d+)/, 2018],  // Reiwa: 2019 = 令和1
+    [/平成\s*(\d+)/, 1988],  // Heisei: 1989 = 平成1
+    [/昭和\s*(\d+)/, 1925],  // Showa: 1926 = 昭和1
+    [/大正\s*(\d+)/, 1911],  // Taisho: 1912 = 大正1
+  ];
+
+  for (const [re, base] of eraPatterns) {
+    const m = firstRegistration.match(re);
+    if (m) return base + parseInt(m[1], 10);
+  }
+
+  return null;
 }
-
-読み取れない項目は null としてください。推測による補完は行わないでください。JSONのみ返してください。`;
 
 export async function POST(req: Request) {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return apiInternalError(new Error("ANTHROPIC_API_KEY not configured"), "parse-shakken");
-    }
-
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
@@ -41,65 +51,18 @@ export async function POST(req: Request) {
     }
 
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const imageBuffer = Buffer.from(arrayBuffer);
 
-    const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 512,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: file.type,
-                  data: base64,
-                },
-              },
-              {
-                type: "text",
-                text: OCR_PROMPT,
-              },
-            ],
-          },
-        ],
-      }),
-    });
-
-    if (!anthropicRes.ok) {
-      const errText = await anthropicRes.text();
-      return apiInternalError(new Error(`Anthropic API error: ${errText}`), "parse-shakken");
-    }
-
-    const anthropicData = await anthropicRes.json();
-    const rawText: string = anthropicData?.content?.[0]?.text ?? "";
-
-    let extracted: Record<string, unknown>;
-    try {
-      // Strip any accidental markdown fences
-      const cleaned = rawText.replace(/```[a-z]*\n?/g, "").replace(/```/g, "").trim();
-      extracted = JSON.parse(cleaned);
-    } catch {
-      return apiInternalError(new Error(`Failed to parse OCR response: ${rawText}`), "parse-shakken json");
-    }
+    const parsed = await parseShakensho(imageBuffer);
 
     return Response.json({
       ok: true,
       extracted: {
-        maker: extracted.maker ?? null,
-        model: extracted.model ?? null,
-        year: extracted.year ?? null,
-        vin_code: extracted.vin_code ?? null,
-        plate_display: extracted.plate_display ?? null,
+        maker: parsed.maker ?? null,
+        model: parsed.model ?? null,
+        year: toWesternYear(parsed.first_registration),
+        vin_code: parsed.vin ?? null,
+        plate_display: parsed.plate_display ?? null,
       },
     });
   } catch (e) {
