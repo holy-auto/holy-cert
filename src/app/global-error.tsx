@@ -29,17 +29,11 @@ export default function GlobalError({
           <p style={{ fontSize: "0.875rem", color: "#6e6e73", margin: "0 0 8px", maxWidth: 400 }}>
             システムに問題が発生しました。しばらくしてからもう一度お試しください。
           </p>
-          <p style={{ fontSize: "0.75rem", color: "#a1a1a6", fontFamily: "monospace", margin: "0 0 8px", wordBreak: "break-all", maxWidth: 400 }}>
-            {error.message || "Unknown error"}
-          </p>
           {error.digest && (
-            <p style={{ fontSize: "0.75rem", color: "#a1a1a6", fontFamily: "monospace", margin: "0 0 8px" }}>
-              Digest: {error.digest}
+            <p style={{ fontSize: "0.75rem", color: "#a1a1a6", fontFamily: "monospace", margin: "0 0 24px" }}>
+              エラーID: {error.digest}
             </p>
           )}
-          <p style={{ fontSize: "0.65rem", color: "#c1c1c6", fontFamily: "monospace", margin: "0 0 24px", wordBreak: "break-all", maxWidth: 400, textAlign: "left" }}>
-            {error.stack?.split("\n").slice(0, 5).join("\n")}
-          </p>
           <div style={{ display: "flex", gap: 12 }}>
             <button
               onClick={() => reset()}
