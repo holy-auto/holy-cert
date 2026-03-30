@@ -4,13 +4,9 @@
  * - Network-first for API calls, cache-first for static assets
  */
 
-const CACHE_NAME = "ledra-v1";
-const APP_SHELL = ["/admin", "/login"];
+const CACHE_NAME = "ledra-v2";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
-  );
   self.skipWaiting();
 });
 
@@ -34,9 +30,10 @@ self.addEventListener("fetch", (event) => {
   // Skip non-GET and API requests
   if (request.method !== "GET" || url.pathname.startsWith("/api/")) return;
 
-  // Static assets: cache-first
+  // Static assets (fonts, images): cache-first
+  // JS/CSS are excluded — Next.js uses content-hashed URLs and handles its own caching
   if (
-    url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|webp|avif|woff2?|ico)$/)
+    url.pathname.match(/\.(png|jpg|jpeg|svg|webp|avif|woff2?|ico|gif)$/)
   ) {
     event.respondWith(
       caches.match(request).then(
@@ -54,16 +51,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML pages: network-first with cache fallback
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(request))
-  );
+  // All other requests (HTML, JS, CSS, API): network-only
+  // Let Next.js and the browser handle caching via Cache-Control headers
 });
