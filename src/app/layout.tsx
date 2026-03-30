@@ -4,7 +4,6 @@ import { Noto_Sans_JP } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/lib/theme/ThemeContext";
-import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import { cookies } from "next/headers";
 
 const geistMono = Geist_Mono({
@@ -57,13 +56,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0071e3" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className="bg-base text-primary antialiased">
         <ThemeProvider>{children}</ThemeProvider>
-        <ServiceWorkerRegistrar />
         <Analytics />
         <SpeedInsights />
       </body>
