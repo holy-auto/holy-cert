@@ -2,12 +2,13 @@ import { cookies } from "next/headers";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizeRole, hasMinRole, type Role } from "./roles";
 import { hasPermission, type Permission } from "./permissions";
+import { normalizePlanTier, type PlanTier } from "@/lib/billing/planFeatures";
 
 export type CallerInfo = {
   userId: string;
   tenantId: string;
   role: Role;
-  planTier: string;
+  planTier: PlanTier;
 };
 
 const ACTIVE_TENANT_COOKIE = "active_tenant_id";
@@ -45,13 +46,12 @@ export async function resolveCallerWithRole(
       .maybeSingle();
 
     if (mem?.tenant_id) {
-      const tenantId = mem.tenant_id as string;
-      const { data: tenant } = await supabase.from("tenants").select("plan_tier").eq("id", tenantId).single();
+      const planTier = await resolvePlanTier(supabase, mem.tenant_id as string);
       return {
         userId: userRes.user.id,
-        tenantId,
+        tenantId: mem.tenant_id as string,
         role: normalizeRole(mem.role),
-        planTier: String(tenant?.plan_tier ?? "free"),
+        planTier,
       };
     }
   }
@@ -67,27 +67,48 @@ export async function resolveCallerWithRole(
 
   if (!mem?.tenant_id) return null;
 
-  const tenantId = mem.tenant_id as string;
-  const { data: tenant } = await supabase.from("tenants").select("plan_tier").eq("id", tenantId).single();
+  const planTier = await resolvePlanTier(supabase, mem.tenant_id as string);
 
   return {
     userId: userRes.user.id,
-    tenantId,
+    tenantId: mem.tenant_id as string,
     role: normalizeRole(mem.role),
-    planTier: String(tenant?.plan_tier ?? "free"),
+    planTier,
   };
 }
 
+/** テナントの plan_tier を取得して正規化する */
+async function resolvePlanTier(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  tenantId: string,
+): Promise<PlanTier> {
+  try {
+    const { data } = await supabase
+      .from("tenants")
+      .select("plan_tier")
+      .eq("id", tenantId)
+      .single();
+    return normalizePlanTier(data?.plan_tier);
+  } catch {
+    return "free";
+  }
+}
+
+/** role フィールドを持つ任意のオブジェクト（CallerInfo / MobileCallerInfo 両対応） */
+type WithRole = { role: Role };
+
 /**
  * Check if the caller meets the minimum role requirement.
+ * Accepts both CallerInfo and MobileCallerInfo (only `role` is used).
  */
-export function requireMinRole(caller: CallerInfo, minRole: Role): boolean {
+export function requireMinRole(caller: WithRole, minRole: Role): boolean {
   return hasMinRole(caller.role, minRole);
 }
 
 /**
  * Check if the caller has a specific permission.
+ * Accepts both CallerInfo and MobileCallerInfo (only `role` is used).
  */
-export function requirePermission(caller: CallerInfo, perm: Permission): boolean {
+export function requirePermission(caller: WithRole, perm: Permission): boolean {
   return hasPermission(caller.role, perm);
 }
