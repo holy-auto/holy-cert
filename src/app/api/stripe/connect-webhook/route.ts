@@ -75,7 +75,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    switch (event.type) {
+    // Stripe の型定義に含まれないイベント（transfer.paid 等）を扱うため string に拡張
+    const eventType: string = event.type;
+    switch (eventType) {
 
       // ─────────────────────────────────────────────────
       // transfer.created — プラットフォームが送金を開始

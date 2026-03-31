@@ -6,6 +6,7 @@ import Badge from "@/components/ui/Badge";
 import { AGENT_REFERRAL_STATUS_MAP, getStatusEntry } from "@/lib/statusMaps";
 import { formatJpy } from "@/lib/format";
 import { formatDateTime } from "@/lib/format";
+import Link from "next/link";
 
 /* ── Types ── */
 
@@ -122,12 +123,12 @@ export default function AgentDashboardPage() {
           </div>
 
           <div className="flex gap-3 items-center">
-            <a
+            <Link
               href="/agent/referrals/new"
               className="btn-primary"
             >
               新規紹介を作成
-            </a>
+            </Link>
             <button
               onClick={onLogout}
               className="rounded-xl border border-border-default bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover"
@@ -241,12 +242,12 @@ export default function AgentDashboardPage() {
                   <div className="text-xs font-semibold tracking-[0.18em] text-muted">RECENT REFERRALS</div>
                   <div className="mt-1 text-base font-semibold text-primary">最近の紹介</div>
                 </div>
-                <a
+                <Link
                   href="/agent/referrals"
                   className="text-sm font-medium text-accent hover:underline"
                 >
                   すべて表示
-                </a>
+                </Link>
               </div>
 
               <div className="overflow-x-auto rounded-xl border border-border-default">
@@ -334,7 +335,7 @@ export default function AgentDashboardPage() {
 
             {/* ── Quick Links ── */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <a
+              <Link
                 href="/agent/referrals/new"
                 className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm hover:border-accent hover:shadow-md transition-all group"
               >
@@ -345,7 +346,7 @@ export default function AgentDashboardPage() {
                 <p className="mt-1 text-sm text-muted">
                   新しい施工店をLedraに紹介します。
                 </p>
-              </a>
+              </Link>
               <a
                 href="/agent/commissions"
                 className="rounded-2xl border border-border-default bg-[var(--bg-surface)] p-5 shadow-sm hover:border-accent hover:shadow-md transition-all group"

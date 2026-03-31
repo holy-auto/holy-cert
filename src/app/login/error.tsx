@@ -52,6 +52,7 @@ export default function LoginError({
           <button onClick={() => reset()} className="btn-primary">
             再読み込み
           </button>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- エラー境界ではNext.jsルーターが使えない場合があるため素のaタグを使用 */}
           <a href="/" className="btn-secondary">
             トップへ戻る
           </a>
