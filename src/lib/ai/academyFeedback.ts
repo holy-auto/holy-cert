@@ -4,7 +4,7 @@
  * 証明書の内容・写真品質を総合評価し、
  * 学習フィードバックとLedra Standard達成状況を返す。
  */
-import { getAnthropicClient, AI_MODEL, parseJsonResponse } from "@/lib/ai/client";
+import { getAnthropicClient, AI_MODEL, AI_MODEL_FAST, parseJsonResponse } from "@/lib/ai/client";
 
 // ─────────────────────────────────────────────
 // 型定義
