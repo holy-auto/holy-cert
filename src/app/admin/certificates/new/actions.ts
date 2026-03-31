@@ -203,7 +203,7 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   if (certStatus === "active") {
     triggerPostIssueFollowUp({
       tenantId,
-      publicId,
+      publicId: public_id,
       customerId: customer_id ?? undefined,
       customerName: customer_name,
     }).catch((e) => console.warn("[cert] post_issue follow-up failed:", e));
