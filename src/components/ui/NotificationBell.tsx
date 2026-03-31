@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 interface Notification {
   id: string;
@@ -32,29 +31,14 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
+    const timer = setInterval(fetchNotifications, 60_000);
 
-    // Subscribe to realtime inserts on announcements
-    const supabase = createClient();
-    const channel = supabase
-      .channel("notifications")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "announcements" },
-        (payload) => {
-          const row = payload.new as any;
-          setNotifications((prev) => [{
-            id: row.id,
-            title: row.title ?? "新しいお知らせ",
-            body: row.body ?? "",
-            created_at: row.created_at,
-            read: false,
-          }, ...prev].slice(0, 10));
-        }
-      )
-      .subscribe();
+    const handleFocus = () => fetchNotifications();
+    window.addEventListener("focus", handleFocus);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(timer);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [fetchNotifications]);
 
@@ -97,7 +81,11 @@ export default function NotificationBell() {
         aria-label="通知"
       >
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+          />
         </svg>
         {unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
@@ -111,19 +99,14 @@ export default function NotificationBell() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
             <span className="text-sm font-semibold text-primary">通知</span>
             {unreadCount > 0 && (
-              <button
-                onClick={markAllRead}
-                className="text-xs text-accent hover:underline"
-              >
+              <button onClick={markAllRead} className="text-xs text-accent hover:underline">
                 すべて既読
               </button>
             )}
           </div>
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-muted">
-                通知はありません
-              </div>
+              <div className="px-4 py-8 text-center text-sm text-muted">通知はありません</div>
             ) : (
               notifications.map((n) => (
                 <div
@@ -134,13 +117,9 @@ export default function NotificationBell() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="text-sm font-medium text-primary line-clamp-1">{n.title}</div>
-                    {!n.read && (
-                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" />
-                    )}
+                    {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" />}
                   </div>
-                  {n.body && (
-                    <p className="mt-0.5 text-xs text-muted line-clamp-2">{n.body}</p>
-                  )}
+                  {n.body && <p className="mt-0.5 text-xs text-muted line-clamp-2">{n.body}</p>}
                   <p className="mt-1 text-[11px] text-muted">{formatTime(n.created_at)}</p>
                 </div>
               ))

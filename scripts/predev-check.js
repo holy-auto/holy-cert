@@ -6,7 +6,7 @@ const required = [
   "src/app/c/[public_id]/page.tsx",
   "src/app/admin/certificates/page.tsx",
   "src/app/login/page.tsx",
-  "src/middleware.ts",
+  "src/proxy.ts",
 ];
 
 const missing = required.filter((p) => !fs.existsSync(p));

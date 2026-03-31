@@ -6,15 +6,25 @@
  */
 
 export interface ShakenshoData {
+  /** 車名 (例: トヨタ) */
   maker?: string;
+  /** 型式 (例: 6AA-MXPH15) */
   model?: string;
-  length_mm?: number;
-  width_mm?: number;
-  height_mm?: number;
-  weight_kg?: number;
-  displacement_cc?: number;
+  /** 初度登録年月 — 和暦 or 西暦そのまま (例: 令和4年3月) */
   first_registration?: string;
+  /** 車台番号 (例: MXPH15-0012345) */
   vin?: string;
+  /** 長さ mm */
+  length_mm?: number;
+  /** 幅 mm */
+  width_mm?: number;
+  /** 高さ mm */
+  height_mm?: number;
+  /** 車両重量 kg */
+  weight_kg?: number;
+  /** 総排気量 cc */
+  displacement_cc?: number;
+  /** ナンバー表示 (例: 品川 300 あ 12-34) — 個人情報のため任意 */
   plate_display?: string;
 }
 

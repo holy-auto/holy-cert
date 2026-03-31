@@ -4,6 +4,7 @@ import { ReactNode, useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SidebarShell from "@/components/ui/SidebarShell";
+import InsurerRouteGuard from "./InsurerRouteGuard";
 
 const AUTH_ROUTES = ["/insurer/login", "/insurer/forgot-password", "/insurer/reset-password"];
 
@@ -360,9 +361,11 @@ export default function InsurerLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-inset)]">
-      <InsurerSidebar />
-      <main className="pt-16 lg:pt-0 lg:ml-60">{children}</main>
-    </div>
+    <InsurerRouteGuard>
+      <div className="min-h-screen bg-[var(--bg-inset)]">
+        <InsurerSidebar />
+        <main className="pt-16 lg:pt-0 lg:ml-60">{children}</main>
+      </div>
+    </InsurerRouteGuard>
   );
 }

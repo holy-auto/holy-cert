@@ -1,3 +1,3 @@
-export function FAQList({ children }: { children: React.ReactNode }) {
-  return <div className="max-w-3xl mx-auto">{children}</div>;
+export function FAQList({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`max-w-3xl mx-auto ${className}`}>{children}</div>;
 }
