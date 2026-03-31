@@ -12,6 +12,19 @@ import {
   type FollowUpTriggerType,
 } from "@/lib/ai/followUpContent";
 
+/** follow_up_settings テーブルの行型（Supabase 自動生成型に含まれていない場合用） */
+type FollowUpSetting = {
+  tenant_id: string;
+  enabled: boolean;
+  reminder_days_before: number[] | null;
+  follow_up_days_after: number[] | null;
+  send_on_issue: boolean | null;
+  first_reminder_days: number | null;
+  warranty_end_days: number | null;
+  inspection_pre_days: number | null;
+  seasonal_enabled: boolean | null;
+};
+
 export const dynamic = "force-dynamic";
 
 const isAiPlan = (tier: string) => ["standard", "pro"].includes(tier);
@@ -37,25 +50,16 @@ export async function GET(req: NextRequest) {
 
     try {
       // テナント一覧取得（拡張カラム含む）
-      type FollowUpSetting = {
-        tenant_id: string;
-        reminder_days_before: number[] | null;
-        follow_up_days_after: number[] | null;
-        enabled: boolean;
-        send_on_issue: boolean | null;
-        first_reminder_days: number | null;
-        warranty_end_days: number | null;
-        inspection_pre_days: number | null;
-        seasonal_enabled: boolean | null;
-      };
-      const { data: settings } = (await supabase
+      const { data: rawSettings } = await supabase
         .from("follow_up_settings")
         .select(
-          "tenant_id, reminder_days_before, follow_up_days_after, enabled, send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled",
+          "tenant_id, reminder_days_before, follow_up_days_after, enabled, " +
+            "send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled",
         )
-        .eq("enabled", true)) as { data: FollowUpSetting[] | null };
+        .eq("enabled", true);
+      const settings = (rawSettings ?? []) as unknown as FollowUpSetting[];
 
-      if (!settings?.length) {
+      if (!settings.length) {
         return NextResponse.json({ ok: true, reminders_sent: 0, follow_ups_sent: 0, date: todayStr });
       }
 
