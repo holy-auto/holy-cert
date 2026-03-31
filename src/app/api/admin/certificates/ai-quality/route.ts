@@ -74,9 +74,8 @@ export async function POST(req: NextRequest) {
 
     // 結果をDBにキャッシュ
     if (certificate_id) {
-      await admin
-        .from("certificate_quality_scores")
-        .upsert({
+      await admin.from("certificate_quality_scores").upsert(
+        {
           certificate_id,
           tenant_id: caller.tenantId,
           overall_status: audit.overallStatus,
@@ -88,22 +87,23 @@ export async function POST(req: NextRequest) {
           warning_messages: audit.warningMessages,
           ai_checked_at: useVision ? new Date().toISOString() : null,
           updated_at: new Date().toISOString(),
-        })
-        .on("conflict", "certificate_id");
+        },
+        { onConflict: "certificate_id" },
+      );
 
       // 品質スコア80以上・写真4枚以上なら Academy候補フラグ
       if (audit.score >= 80 && (photo_urls?.length ?? 0) >= 4) {
-        await admin
-          .from("academy_cases")
-          .upsert({
+        await admin.from("academy_cases").upsert(
+          {
             certificate_id,
             tenant_id: caller.tenantId,
             category,
             quality_score: audit.score,
             is_candidate: true,
             updated_at: new Date().toISOString(),
-          })
-          .on("conflict", "certificate_id");
+          },
+          { onConflict: "certificate_id" },
+        );
       }
     }
 

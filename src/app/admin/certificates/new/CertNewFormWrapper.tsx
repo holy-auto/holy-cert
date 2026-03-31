@@ -115,9 +115,7 @@ export default function CertNewFormWrapper({
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | undefined>(defaultVehicleId);
   const [draftApplied, setDraftApplied] = useState(false);
 
-  const handleAiDraftApply = useCallback((draft: {
-    title: string; description: string; cautions: string;
-  }) => {
+  const handleAiDraftApply = useCallback((draft: { title: string; description: string; cautions: string }) => {
     if (!formRef.current) return;
     const form = formRef.current;
     // 施工内容フィールドへ自動入力
@@ -158,8 +156,8 @@ export default function CertNewFormWrapper({
           result.error === "vehicle_required"
             ? "車両情報を入力してください（マスタ選択またはメーカー・車種を手入力）。"
             : result.error === "customer_name_required"
-            ? "お客様名を入力してください。"
-            : `エラー: ${result.error}`
+              ? "お客様名を入力してください。"
+              : `エラー: ${result.error}`,
         );
         return;
       }
@@ -223,16 +221,14 @@ export default function CertNewFormWrapper({
           <div className="mt-1 text-base font-semibold text-primary">テンプレートを選択</div>
         </div>
         <form action="/admin/certificates/new" method="get" className="flex gap-3 items-center">
-          <select
-            name="tid"
-            defaultValue={tid}
-            className={`flex-1 ${inputCls}`}
-          >
+          <select name="tid" defaultValue={tid} className={`flex-1 ${inputCls}`}>
             {templates.length === 0 ? (
               <option value="">テンプレートがありません</option>
             ) : (
               templates.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
               ))
             )}
           </select>
@@ -246,17 +242,15 @@ export default function CertNewFormWrapper({
         {!tenantLogoPath && (
           <p className="mt-2 text-xs text-amber-600">
             ロゴ未設定 —{" "}
-            <Link href="/admin/logo" className="underline">ロゴを設定する</Link>
+            <Link href="/admin/logo" className="underline">
+              ロゴを設定する
+            </Link>
           </p>
         )}
       </div>
 
       {/* ── メインフォーム ── */}
-      <form
-        ref={formRef}
-        onSubmit={handleSubmit}
-        className="glass-card p-6 space-y-0"
-      >
+      <form ref={formRef} onSubmit={handleSubmit} className="glass-card p-6 space-y-0">
         <input type="hidden" name="template_id" value={selectedTemplate?.id ?? ""} />
         <input type="hidden" name="template_name" value={selectedTemplate?.name ?? ""} />
         {defaultCustomerId && <input type="hidden" name="customer_id" value={defaultCustomerId} />}
@@ -265,9 +259,12 @@ export default function CertNewFormWrapper({
         {/* ━━━ 1. 車種選択 ━━━ */}
         <section data-vehicle-picker className="pb-6">
           <VehiclePickerSection
-            vehicles={defaultCustomerId
-              ? vehicles.filter((v) => (v as Record<string, unknown>).customer_id === defaultCustomerId || !defaultVehicleId)
-              : vehicles
+            vehicles={
+              defaultCustomerId
+                ? vehicles.filter(
+                    (v) => (v as Record<string, unknown>).customer_id === defaultCustomerId || !defaultVehicleId,
+                  )
+                : vehicles
             }
             defaultVehicleId={defaultVehicleId}
           />
@@ -309,11 +306,7 @@ export default function CertNewFormWrapper({
           </div>
           <label className={labelCls}>
             <span className={labelTextCls}>有効条件（テキスト）</span>
-            <input
-              name="expiry_value"
-              className={inputCls}
-              placeholder="半年ごとにメンテ推奨 など"
-            />
+            <input name="expiry_value" className={inputCls} placeholder="半年ごとにメンテ推奨 など" />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelCls}>
@@ -329,20 +322,10 @@ export default function CertNewFormWrapper({
 
         {/* ━━━ 4. 施工写真 ━━━ */}
         <section className="border-t border-border-subtle py-6 space-y-4">
-          <PhotoUploadSection
-            ref={photoRef}
-            maxPhotos={maxPhotos}
-            planLabel={planLabel}
-          />
+          <PhotoUploadSection ref={photoRef} maxPhotos={maxPhotos} planLabel={planLabel} />
 
           {/* AI品質チェックパネル */}
-          {canAiQuality && serviceType && (
-            <AiQualityPanel
-              category={serviceType}
-              photoUrls={[]}
-              fieldValues={{}}
-            />
-          )}
+          {canAiQuality && serviceType && <AiQualityPanel category={serviceType} photoUrls={[]} fieldValues={{}} />}
         </section>
 
         {/* ━━━ 5. 詳細な施工内容 ━━━ */}
@@ -354,11 +337,7 @@ export default function CertNewFormWrapper({
 
           {/* AI下書き生成パネル（Standard以上） */}
           {canAiDraft && (
-            <AiDraftPanel
-              vehicleId={selectedVehicleId}
-              templateCategory={serviceType}
-              onApply={handleAiDraftApply}
-            />
+            <AiDraftPanel vehicleId={selectedVehicleId} templateCategory={serviceType} onApply={handleAiDraftApply} />
           )}
 
           {/* AI下書き適用通知 */}
@@ -451,9 +430,7 @@ export default function CertNewFormWrapper({
 
         {/* ── エラー ── */}
         {error && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-danger">
-            {error}
-          </div>
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-danger">{error}</div>
         )}
 
         {/* ── アップロード進捗 ── */}
@@ -488,11 +465,7 @@ export default function CertNewFormWrapper({
           >
             キャンセル
           </Link>
-          {isPending && (
-            <span className="text-xs text-muted">
-              写真がある場合はアップロード完了までお待ちください
-            </span>
-          )}
+          {isPending && <span className="text-xs text-muted">写真がある場合はアップロード完了までお待ちください</span>}
         </div>
       </form>
     </>

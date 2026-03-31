@@ -63,7 +63,9 @@ export default function AcademyQAPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <a href="/admin/academy" className="text-sm text-blue-600 hover:underline">← Academy</a>
+        <a href="/admin/academy" className="text-sm text-blue-600 hover:underline">
+          ← Academy
+        </a>
         <h1 className="text-xl font-bold text-gray-900 mt-2 flex items-center gap-2">
           <span>💬</span> 施工QAアシスタント
         </h1>
@@ -81,7 +83,9 @@ export default function AcademyQAPage() {
             className="text-sm border rounded-lg px-3 py-2 text-gray-700 bg-gray-50"
           >
             {CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>{c.label}</option>
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
             ))}
           </select>
         </div>
@@ -108,11 +112,7 @@ export default function AcademyQAPage() {
       </div>
 
       {/* エラー */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
 
       {/* ローディング */}
       {loading && (
@@ -129,9 +129,7 @@ export default function AcademyQAPage() {
             <span className="text-lg">🤖</span>
             <span className="text-sm font-medium text-gray-700">AIの回答</span>
           </div>
-          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap mb-4">
-            {answer.answer}
-          </p>
+          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap mb-4">{answer.answer}</p>
 
           {/* 参照ソース */}
           {answer.sources.length > 0 && (

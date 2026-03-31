@@ -51,7 +51,9 @@ export default function AcademyCasesPage() {
     }
   };
 
-  useEffect(() => { fetchCases(); }, [tab, category]);
+  useEffect(() => {
+    fetchCases();
+  }, [tab, category]);
 
   const handlePublish = async (caseId: string) => {
     setPublishing(caseId);
@@ -68,14 +70,20 @@ export default function AcademyCasesPage() {
   };
 
   const scoreColor = (score: number) =>
-    score >= 90 ? "text-yellow-600 bg-yellow-50" :
-    score >= 75 ? "text-green-600 bg-green-50" :
-    score >= 50 ? "text-blue-600 bg-blue-50" : "text-gray-500 bg-gray-50";
+    score >= 90
+      ? "text-yellow-600 bg-yellow-50"
+      : score >= 75
+        ? "text-green-600 bg-green-50"
+        : score >= 50
+          ? "text-blue-600 bg-blue-50"
+          : "text-gray-500 bg-gray-50";
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <a href="/admin/academy" className="text-sm text-blue-600 hover:underline">← Academy</a>
+        <a href="/admin/academy" className="text-sm text-blue-600 hover:underline">
+          ← Academy
+        </a>
         <h1 className="text-xl font-bold text-gray-900 mt-2 flex items-center gap-2">
           <span>📚</span> 施工事例ライブラリ
         </h1>
@@ -106,7 +114,9 @@ export default function AcademyCasesPage() {
           className="text-sm border rounded-lg px-3 py-1.5 text-gray-700"
         >
           {CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
           ))}
         </select>
       </div>
@@ -141,9 +151,7 @@ export default function AcademyCasesPage() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
-                      {c.category}
-                    </span>
+                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{c.category}</span>
                     {c.tags.slice(0, 3).map((tag) => (
                       <span key={tag} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
                         {tag}
@@ -151,9 +159,7 @@ export default function AcademyCasesPage() {
                     ))}
                     <span className="text-xs text-yellow-500">{DIFFICULTY_STARS(c.difficulty)}</span>
                   </div>
-                  <p className="text-sm text-gray-700 line-clamp-2">
-                    {c.ai_summary ?? "AI要約なし"}
-                  </p>
+                  <p className="text-sm text-gray-700 line-clamp-2">{c.ai_summary ?? "AI要約なし"}</p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className={`text-sm font-bold px-2 py-1 rounded ${scoreColor(c.quality_score)}`}>
@@ -161,7 +167,10 @@ export default function AcademyCasesPage() {
                   </span>
                   {tab === "candidates" && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); handlePublish(c.id); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePublish(c.id);
+                      }}
                       disabled={publishing === c.id}
                       className="text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                     >
@@ -181,7 +190,8 @@ export default function AcademyCasesPage() {
                         <ul className="space-y-1">
                           {c.good_points.map((p, i) => (
                             <li key={i} className="text-xs text-gray-600 flex gap-1">
-                              <span className="text-green-400">•</span>{p}
+                              <span className="text-green-400">•</span>
+                              {p}
                             </li>
                           ))}
                         </ul>
@@ -193,7 +203,8 @@ export default function AcademyCasesPage() {
                         <ul className="space-y-1">
                           {c.caution_points.map((p, i) => (
                             <li key={i} className="text-xs text-gray-600 flex gap-1">
-                              <span className="text-orange-400">•</span>{p}
+                              <span className="text-orange-400">•</span>
+                              {p}
                             </li>
                           ))}
                         </ul>

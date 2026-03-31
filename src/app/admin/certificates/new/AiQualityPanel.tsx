@@ -57,7 +57,13 @@ interface Props {
 }
 
 const STATUS_CONFIG = {
-  pass: { label: "Ledra Standard ✅", bg: "bg-green-50", border: "border-green-300", text: "text-green-700", icon: "✅" },
+  pass: {
+    label: "Ledra Standard ✅",
+    bg: "bg-green-50",
+    border: "border-green-300",
+    text: "text-green-700",
+    icon: "✅",
+  },
   warning: { label: "要確認 ⚠️", bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-700", icon: "⚠️" },
   fail: { label: "基準未達 ❌", bg: "bg-red-50", border: "border-red-300", text: "text-red-700", icon: "❌" },
   pending: { label: "未チェック", bg: "bg-surface", border: "border-border-default", text: "text-muted", icon: "○" },
@@ -97,7 +103,9 @@ export default function AiQualityPanel({ category, photoUrls = [], fieldValues =
   const cfg = STATUS_CONFIG[status];
 
   return (
-    <div className={`rounded-xl border ${result ? cfg.border : "border-border-default"} ${result ? cfg.bg : "bg-surface"}`}>
+    <div
+      className={`rounded-xl border ${result ? cfg.border : "border-border-default"} ${result ? cfg.bg : "bg-surface"}`}
+    >
       {/* ヘッダー */}
       <button
         type="button"
@@ -141,9 +149,7 @@ export default function AiQualityPanel({ category, photoUrls = [], fieldValues =
 
           {/* エラー */}
           {error && (
-            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-600">
-              {error}
-            </div>
+            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div>
           )}
 
           {/* チェック結果 */}
@@ -153,7 +159,10 @@ export default function AiQualityPanel({ category, photoUrls = [], fieldValues =
               <div className={`rounded-lg border ${cfg.border} ${cfg.bg} px-4 py-3`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className={`text-sm font-semibold ${cfg.text}`}>{cfg.label}</span>
-                  <span className={`text-lg font-bold ${cfg.text}`}>{result.score}<span className="text-sm font-normal">/100</span></span>
+                  <span className={`text-lg font-bold ${cfg.text}`}>
+                    {result.score}
+                    <span className="text-sm font-normal">/100</span>
+                  </span>
                 </div>
                 {/* スコアバー */}
                 <div className="h-2 bg-white/60 rounded-full overflow-hidden">
@@ -165,22 +174,36 @@ export default function AiQualityPanel({ category, photoUrls = [], fieldValues =
               </div>
 
               {/* エラーメッセージ */}
-              {result.warningMessages.filter(w => w.level === "error").length > 0 && (
+              {result.warningMessages.filter((w) => w.level === "error").length > 0 && (
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-red-600">❌ 必須修正</p>
-                  {result.warningMessages.filter(w => w.level === "error").map((w, i) => (
-                    <div key={i} className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">{w.message}</div>
-                  ))}
+                  {result.warningMessages
+                    .filter((w) => w.level === "error")
+                    .map((w, i) => (
+                      <div
+                        key={i}
+                        className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700"
+                      >
+                        {w.message}
+                      </div>
+                    ))}
                 </div>
               )}
 
               {/* 警告メッセージ */}
-              {result.warningMessages.filter(w => w.level === "warning").length > 0 && (
+              {result.warningMessages.filter((w) => w.level === "warning").length > 0 && (
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-amber-600">⚠️ 推奨修正</p>
-                  {result.warningMessages.filter(w => w.level === "warning").map((w, i) => (
-                    <div key={i} className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">{w.message}</div>
-                  ))}
+                  {result.warningMessages
+                    .filter((w) => w.level === "warning")
+                    .map((w, i) => (
+                      <div
+                        key={i}
+                        className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700"
+                      >
+                        {w.message}
+                      </div>
+                    ))}
                 </div>
               )}
 
@@ -188,11 +211,14 @@ export default function AiQualityPanel({ category, photoUrls = [], fieldValues =
               {result.missingPhotos.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-secondary mb-2">
-                    📷 不足写真（{result.missingPhotos.filter(p => p.required).length}枚必須）
+                    📷 不足写真（{result.missingPhotos.filter((p) => p.required).length}枚必須）
                   </p>
                   <div className="space-y-1.5">
                     {result.missingPhotos.map((p, i) => (
-                      <div key={i} className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${p.required ? "bg-red-50 border border-red-200 text-red-700" : "bg-amber-50 border border-amber-100 text-amber-700"}`}>
+                      <div
+                        key={i}
+                        className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${p.required ? "bg-red-50 border border-red-200 text-red-700" : "bg-amber-50 border border-amber-100 text-amber-700"}`}
+                      >
                         <span className="mt-0.5">{p.required ? "🔴" : "🟡"}</span>
                         <div>
                           <span className="font-medium">{p.label}</span>
@@ -210,12 +236,16 @@ export default function AiQualityPanel({ category, photoUrls = [], fieldValues =
               {result.missingFields.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-secondary mb-2">
-                    📝 未入力項目（{result.missingFields.filter(f => f.required).length}件必須）
+                    📝 未入力項目（{result.missingFields.filter((f) => f.required).length}件必須）
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {result.missingFields.map((f, i) => (
-                      <span key={i} className={`rounded-full px-2.5 py-0.5 text-xs ${f.required ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
-                        {f.label}{f.required ? " *" : ""}
+                      <span
+                        key={i}
+                        className={`rounded-full px-2.5 py-0.5 text-xs ${f.required ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
+                      >
+                        {f.label}
+                        {f.required ? " *" : ""}
                       </span>
                     ))}
                   </div>

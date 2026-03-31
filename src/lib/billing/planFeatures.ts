@@ -1,4 +1,4 @@
-﻿import type { FeatureId } from "@/lib/billing/featureKeys";
+import type { FeatureId } from "@/lib/billing/featureKeys";
 export type { PlanTier } from "@/types/billing";
 import type { PlanTier } from "@/types/billing";
 
@@ -22,7 +22,7 @@ const MATRIX: Record<PlanTier, Record<FeatureKey, boolean>> = {
     // AI機能
     ai_draft: false,
     ai_explain: false,
-    ai_quality: true,          // 基本チェックは全プラン
+    ai_quality: true, // 基本チェックは全プラン
     ai_quality_vision: false,
     ai_follow_up: false,
     ai_academy_feedback: false,
@@ -111,25 +111,44 @@ export function canUseFeature(planTier: any, feature: FeatureKey): boolean {
 
 export function featureLabel(feature: FeatureKey): string {
   switch (feature) {
-    case "issue_certificate": return "証明書の新規作成";
-    case "export_one_csv": return "CSV出力（単体）";
-    case "export_search_csv": return "CSV出力（検索結果）";
-    case "export_selected_csv": return "CSV出力（選択分）";
-    case "pdf_one": return "PDF出力（単体）";
-    case "pdf_zip": return "PDF ZIP出力（選択分）";
-    case "manage_templates": return "テンプレート管理";
-    case "upload_logo": return "ロゴアップロード";
-    case "manage_stores": return "店舗管理";
-    case "ai_draft":            return "AI証明書下書き";
-    case "ai_explain":          return "AI説明変換";
-    case "ai_quality":          return "AI品質チェック";
-    case "ai_quality_vision":   return "AI写真Vision検証";
-    case "ai_follow_up":        return "AIフォローアップ";
-    case "ai_academy_feedback": return "Academy AIフィードバック";
-    case "ai_academy_qa":       return "Academy QAアシスタント";
-    case "ai_proposal":         return "AIヒアリング提案";
-    case "ai_follow_up_email":  return "AIフォローメール";
-    default: return feature;
+    case "issue_certificate":
+      return "証明書の新規作成";
+    case "export_one_csv":
+      return "CSV出力（単体）";
+    case "export_search_csv":
+      return "CSV出力（検索結果）";
+    case "export_selected_csv":
+      return "CSV出力（選択分）";
+    case "pdf_one":
+      return "PDF出力（単体）";
+    case "pdf_zip":
+      return "PDF ZIP出力（選択分）";
+    case "manage_templates":
+      return "テンプレート管理";
+    case "upload_logo":
+      return "ロゴアップロード";
+    case "manage_stores":
+      return "店舗管理";
+    case "ai_draft":
+      return "AI証明書下書き";
+    case "ai_explain":
+      return "AI説明変換";
+    case "ai_quality":
+      return "AI品質チェック";
+    case "ai_quality_vision":
+      return "AI写真Vision検証";
+    case "ai_follow_up":
+      return "AIフォローアップ";
+    case "ai_academy_feedback":
+      return "Academy AIフィードバック";
+    case "ai_academy_qa":
+      return "Academy QAアシスタント";
+    case "ai_proposal":
+      return "AIヒアリング提案";
+    case "ai_follow_up_email":
+      return "AIフォローメール";
+    default:
+      return feature;
   }
 }
 
@@ -163,19 +182,21 @@ const __assertExactFeatureKeys = <T extends Record<FeatureKey, unknown>>(t: __No
 
 // MATRIX must include ALL FeatureId keys (no missing / no extra)
 // MATRIX rows must include ALL FeatureId keys (no missing / no extra)
-  __assertExactFeatureKeys(MATRIX.free);
-  __assertExactFeatureKeys(MATRIX.starter);
-  __assertExactFeatureKeys(MATRIX.standard);
-  __assertExactFeatureKeys(MATRIX.pro);
+__assertExactFeatureKeys(MATRIX.free);
+__assertExactFeatureKeys(MATRIX.starter);
+__assertExactFeatureKeys(MATRIX.standard);
+__assertExactFeatureKeys(MATRIX.pro);
 /** compile-time diff (auto): show missing/extra keys as readable TS errors */
 type __MissingFeatureKeys = Exclude<FeatureId, keyof typeof MATRIX>;
 type __ExtraFeatureKeys = Exclude<keyof typeof MATRIX, FeatureId>;
 
 // If missing/extra exists, the error type will include the key union.
-type __CheckMissingFeatureKeys =
-  __MissingFeatureKeys extends never ? true : ["Missing FeatureId keys in MATRIX", __MissingFeatureKeys];
-type __CheckExtraFeatureKeys =
-  __ExtraFeatureKeys extends never ? true : ["Extra keys in MATRIX (not in FeatureId)", __ExtraFeatureKeys];
+type __CheckMissingFeatureKeys = __MissingFeatureKeys extends never
+  ? true
+  : ["Missing FeatureId keys in MATRIX", __MissingFeatureKeys];
+type __CheckExtraFeatureKeys = __ExtraFeatureKeys extends never
+  ? true
+  : ["Extra keys in MATRIX (not in FeatureId)", __ExtraFeatureKeys];
 
 const __checkMissingFeatureKeys: __CheckMissingFeatureKeys = true as unknown as __CheckMissingFeatureKeys;
 const __checkExtraFeatureKeys: __CheckExtraFeatureKeys = true as unknown as __CheckExtraFeatureKeys;

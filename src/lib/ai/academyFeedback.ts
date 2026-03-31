@@ -44,7 +44,7 @@ export interface CertificateFeedbackResult {
   improvements: FeedbackImprovement[];
   similarGoodCases: SimilarGoodCase[];
   standardStatus: StandardStatus;
-  encouragement: string;  // 学習意欲を高めるメッセージ
+  encouragement: string; // 学習意欲を高めるメッセージ
 }
 
 export interface CertificateFeedbackInput {
@@ -67,9 +67,7 @@ export interface CertificateFeedbackInput {
 // AIフィードバック生成
 // ─────────────────────────────────────────────
 
-export async function generateCertificateFeedback(
-  input: CertificateFeedbackInput
-): Promise<CertificateFeedbackResult> {
+export async function generateCertificateFeedback(input: CertificateFeedbackInput): Promise<CertificateFeedbackResult> {
   const client = getAnthropicClient();
 
   const systemPrompt = `あなたはLedra Academy の施工証明書品質コーチです。
@@ -220,8 +218,8 @@ export async function generateAcademyCaseSummary(params: {
 // ─────────────────────────────────────────────
 export const GRADE_LABELS: Record<FeedbackGrade, { label: string; color: string }> = {
   S: { label: "最優秀", color: "text-yellow-600" },
-  A: { label: "優良",   color: "text-green-600" },
-  B: { label: "良好",   color: "text-blue-600" },
+  A: { label: "優良", color: "text-green-600" },
+  B: { label: "良好", color: "text-blue-600" },
   C: { label: "基準未達", color: "text-orange-600" },
-  D: { label: "要改善",  color: "text-red-600" },
+  D: { label: "要改善", color: "text-red-600" },
 };

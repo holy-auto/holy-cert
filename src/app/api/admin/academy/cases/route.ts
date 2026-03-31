@@ -26,7 +26,9 @@ export async function GET(req: NextRequest) {
 
     let query = admin
       .from("academy_cases")
-      .select("id, category, difficulty, quality_score, tags, ai_summary, good_points, caution_points, vehicle_info, is_candidate, is_published, view_count, helpful_count, created_at");
+      .select(
+        "id, category, difficulty, quality_score, tags, ai_summary, good_points, caution_points, vehicle_info, is_candidate, is_published, view_count, helpful_count, created_at",
+      );
 
     if (type === "candidates") {
       // 自テナントの候補事例

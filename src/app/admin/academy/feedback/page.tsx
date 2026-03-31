@@ -2,9 +2,22 @@
 
 import { useState, useCallback } from "react";
 
-interface FeedbackStrength { area: string; comment: string }
-interface FeedbackImprovement { area: string; issue: string; suggestion: string; priority: string }
-interface StandardStatus { basic: boolean; standard: boolean; pro: boolean; nextStep: string }
+interface FeedbackStrength {
+  area: string;
+  comment: string;
+}
+interface FeedbackImprovement {
+  area: string;
+  issue: string;
+  suggestion: string;
+  priority: string;
+}
+interface StandardStatus {
+  basic: boolean;
+  standard: boolean;
+  pro: boolean;
+  nextStep: string;
+}
 interface FeedbackResult {
   overallGrade: string;
   score: number;
@@ -16,10 +29,10 @@ interface FeedbackResult {
 
 const GRADE_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
   S: { label: "最優秀", bg: "bg-yellow-50", text: "text-yellow-600", border: "border-yellow-300" },
-  A: { label: "優良",   bg: "bg-green-50",  text: "text-green-600",  border: "border-green-300" },
-  B: { label: "良好",   bg: "bg-blue-50",   text: "text-blue-600",   border: "border-blue-300" },
+  A: { label: "優良", bg: "bg-green-50", text: "text-green-600", border: "border-green-300" },
+  B: { label: "良好", bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-300" },
   C: { label: "基準未達", bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-300" },
-  D: { label: "要改善",  bg: "bg-red-50",   text: "text-red-600",   border: "border-red-300" },
+  D: { label: "要改善", bg: "bg-red-50", text: "text-red-600", border: "border-red-300" },
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -62,13 +75,13 @@ export default function AcademyFeedbackPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <a href="/admin/academy" className="text-sm text-blue-600 hover:underline">← Academy</a>
+        <a href="/admin/academy" className="text-sm text-blue-600 hover:underline">
+          ← Academy
+        </a>
         <h1 className="text-xl font-bold text-gray-900 mt-2 flex items-center gap-2">
           <span>✏️</span> 証明書AI添削
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          証明書IDを入力してAIに品質評価・フィードバックを依頼します。
-        </p>
+        <p className="text-sm text-gray-500 mt-1">証明書IDを入力してAIに品質評価・フィードバックを依頼します。</p>
       </div>
 
       {/* 入力フォーム */}
@@ -90,14 +103,10 @@ export default function AcademyFeedbackPage() {
             {loading ? "解析中..." : "添削する"}
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
-          証明書詳細ページのURLからIDを確認できます
-        </p>
+        <p className="text-xs text-gray-400 mt-2">証明書詳細ページのURLからIDを確認できます</p>
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
-      )}
+      {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
 
       {loading && (
         <div className="bg-white rounded-xl border p-6 flex items-center gap-3">
@@ -128,7 +137,7 @@ export default function AcademyFeedbackPage() {
                 </div>
               </div>
             </div>
-            <p className="text-sm text-gray-600 italic">"  {result.encouragement}"</p>
+            <p className="text-sm text-gray-600 italic">&quot; {result.encouragement}&quot;</p>
           </div>
 
           {/* Ledra Standard */}
@@ -147,7 +156,9 @@ export default function AcademyFeedbackPage() {
                     <div className={`text-lg ${achieved ? "opacity-100" : "opacity-30"}`}>
                       {lvl === "basic" ? "🥉" : lvl === "standard" ? "🥈" : "🥇"}
                     </div>
-                    <div className={`text-xs font-medium mt-1 capitalize ${achieved ? "text-green-700" : "text-gray-400"}`}>
+                    <div
+                      className={`text-xs font-medium mt-1 capitalize ${achieved ? "text-green-700" : "text-gray-400"}`}
+                    >
                       {lvl}
                     </div>
                     {achieved && <div className="text-xs text-green-600">✓ 達成</div>}
@@ -196,7 +207,9 @@ export default function AcademyFeedbackPage() {
                       {item.priority === "high" ? "重要" : item.priority === "medium" ? "推奨" : "任意"}
                     </span>
                     <div>
-                      <div className="text-sm font-medium text-gray-700">{item.area}: {item.issue}</div>
+                      <div className="text-sm font-medium text-gray-700">
+                        {item.area}: {item.issue}
+                      </div>
                       <div className="text-sm text-gray-500 mt-1">→ {item.suggestion}</div>
                     </div>
                   </div>

@@ -45,8 +45,8 @@ export interface StandardRule {
 
 export interface PhotoCheckInput {
   photoUrl: string;
-  expectedType: string;       // "before_full", "after_detail" など
-  category: string;           // "ppf", "coating" など
+  expectedType: string; // "before_full", "after_detail" など
+  category: string; // "ppf", "coating" など
   index: number;
 }
 
@@ -174,7 +174,7 @@ export async function auditCertificatePhotos(params: {
   photoUrls: string[];
   fieldValues: Record<string, string | undefined>;
   standardRule: StandardRule;
-  checkPhotosWithAI?: boolean;   // Vision APIを使うか（デフォルトtrue）
+  checkPhotosWithAI?: boolean; // Vision APIを使うか（デフォルトtrue）
 }): Promise<CertificatePhotoAudit> {
   const { category, photoUrls, fieldValues, standardRule, checkPhotosWithAI = true } = params;
 
@@ -218,7 +218,7 @@ export async function auditCertificatePhotos(params: {
         expectedType: standardRule.required_photos[i]?.id ?? "photo",
         category,
         index: i,
-      })
+      }),
     );
     photoResults = await Promise.all(checks);
 
@@ -268,22 +268,31 @@ export async function auditCertificatePhotos(params: {
 
 function evaluateWarningCondition(
   condition: string,
-  ctx: { photoCount: number; fieldValues: Record<string, string | undefined>; requiredTotal: number }
+  ctx: { photoCount: number; fieldValues: Record<string, string | undefined>; requiredTotal: number },
 ): boolean {
   switch (condition) {
-    case "photo_count_lt_4":      return ctx.photoCount < 4;
-    case "photo_count_lt_3":      return ctx.photoCount < 3;
-    case "photo_count_lt_2":      return ctx.photoCount < 2;
-    case "no_before_photo":       return ctx.photoCount === 0;
-    case "material_name_missing": return !ctx.fieldValues["material_name"] && !ctx.fieldValues["coating_product"];
+    case "photo_count_lt_4":
+      return ctx.photoCount < 4;
+    case "photo_count_lt_3":
+      return ctx.photoCount < 3;
+    case "photo_count_lt_2":
+      return ctx.photoCount < 2;
+    case "no_before_photo":
+      return ctx.photoCount === 0;
+    case "material_name_missing":
+      return !ctx.fieldValues["material_name"] && !ctx.fieldValues["coating_product"];
     case "material_name_ambiguous": {
       const name = ctx.fieldValues["material_name"] || ctx.fieldValues["coating_product"] || "";
       return name.length > 0 && name.length < 5;
     }
-    case "warranty_missing":       return !ctx.fieldValues["warranty_period"];
-    case "color_code_missing":     return !ctx.fieldValues["color_code"];
-    case "coating_product_missing": return !ctx.fieldValues["coating_product"];
-    default: return false;
+    case "warranty_missing":
+      return !ctx.fieldValues["warranty_period"];
+    case "color_code_missing":
+      return !ctx.fieldValues["color_code"];
+    case "coating_product_missing":
+      return !ctx.fieldValues["coating_product"];
+    default:
+      return false;
   }
 }
 

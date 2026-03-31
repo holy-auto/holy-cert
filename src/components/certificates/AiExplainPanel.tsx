@@ -61,7 +61,7 @@ export default function AiExplainPanel({ certificateId }: Props) {
 
   const copyToClipboard = async () => {
     if (!result) return;
-    const text = `【${result.subject}】\n${result.headline}\n\n${result.body}\n\n${result.keyPoints.map(p => `• ${p}`).join("\n")}${result.callToAction ? `\n\n${result.callToAction}` : ""}`;
+    const text = `【${result.subject}】\n${result.headline}\n\n${result.body}\n\n${result.keyPoints.map((p) => `• ${p}`).join("\n")}${result.callToAction ? `\n\n${result.callToAction}` : ""}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -69,7 +69,7 @@ export default function AiExplainPanel({ certificateId }: Props) {
     } catch {}
   };
 
-  const selectedAudience = AUDIENCE_OPTIONS.find(a => a.value === audience);
+  const selectedAudience = AUDIENCE_OPTIONS.find((a) => a.value === audience);
 
   return (
     <div className="rounded-xl border border-purple-300/40 bg-purple-500/5">
@@ -95,7 +95,10 @@ export default function AiExplainPanel({ certificateId }: Props) {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => { setAudience(opt.value); setResult(null); }}
+                onClick={() => {
+                  setAudience(opt.value);
+                  setResult(null);
+                }}
                 className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs transition-colors ${
                   audience === opt.value
                     ? "border-purple-400 bg-purple-100 text-purple-700"
@@ -124,15 +127,15 @@ export default function AiExplainPanel({ certificateId }: Props) {
                 生成中…
               </>
             ) : (
-              <>{selectedAudience?.icon} {selectedAudience?.label}向けに変換</>
+              <>
+                {selectedAudience?.icon} {selectedAudience?.label}向けに変換
+              </>
             )}
           </button>
 
           {/* エラー */}
           {error && (
-            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-600">
-              {error}
-            </div>
+            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div>
           )}
 
           {/* 生成結果 */}
@@ -165,7 +168,8 @@ export default function AiExplainPanel({ certificateId }: Props) {
                   <ul className="space-y-1">
                     {result.keyPoints.map((p, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-xs text-primary">
-                        <span className="text-purple-500 mt-0.5">•</span>{p}
+                        <span className="text-purple-500 mt-0.5">•</span>
+                        {p}
                       </li>
                     ))}
                   </ul>
@@ -184,7 +188,11 @@ export default function AiExplainPanel({ certificateId }: Props) {
                 <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
                   <p className="text-xs font-medium text-amber-700 mb-1">⚠️ 注意フラグ</p>
                   <ul className="space-y-0.5">
-                    {result.warningFlags.map((f, i) => <li key={i} className="text-xs text-amber-600">• {f}</li>)}
+                    {result.warningFlags.map((f, i) => (
+                      <li key={i} className="text-xs text-amber-600">
+                        • {f}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}

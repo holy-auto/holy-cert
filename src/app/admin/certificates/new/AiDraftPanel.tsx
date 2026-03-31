@@ -111,9 +111,7 @@ export default function AiDraftPanel({ vehicleId, hearingId, templateCategory, o
 
           {/* エラー */}
           {error && (
-            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-600">
-              {error}
-            </div>
+            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div>
           )}
 
           {/* 生成結果 */}
@@ -121,16 +119,12 @@ export default function AiDraftPanel({ vehicleId, hearingId, templateCategory, o
             <div className="space-y-3">
               {/* メタ情報 */}
               <div className="flex flex-wrap gap-2 text-xs">
-                <span className={`font-medium ${confidenceColor}`}>
-                  信頼度: {Math.round(draft.confidence * 100)}%
-                </span>
+                <span className={`font-medium ${confidenceColor}`}>信頼度: {Math.round(draft.confidence * 100)}%</span>
                 {sourceMeta && (
                   <>
                     <span className="text-muted">|</span>
                     <span className="text-muted">参照事例: {sourceMeta.similar_certs_used}件</span>
-                    {sourceMeta.hearing_used && (
-                      <span className="text-accent">✓ ヒアリングデータ使用</span>
-                    )}
+                    {sourceMeta.hearing_used && <span className="text-accent">✓ ヒアリングデータ使用</span>}
                   </>
                 )}
               </div>
@@ -140,7 +134,9 @@ export default function AiDraftPanel({ vehicleId, hearingId, templateCategory, o
                 <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2">
                   <p className="text-xs font-medium text-amber-700 mb-1">⚠ 不足情報</p>
                   <ul className="text-xs text-amber-600 space-y-0.5">
-                    {draft.missingInfo.map((m, i) => <li key={i}>• {m}</li>)}
+                    {draft.missingInfo.map((m, i) => (
+                      <li key={i}>• {m}</li>
+                    ))}
                   </ul>
                 </div>
               )}
@@ -154,7 +150,9 @@ export default function AiDraftPanel({ vehicleId, hearingId, templateCategory, o
               {/* 施工内容 */}
               <div>
                 <p className="text-xs font-medium text-muted mb-1">施工内容</p>
-                <p className="text-xs text-primary bg-surface rounded-lg px-3 py-2 whitespace-pre-wrap leading-relaxed">{draft.description}</p>
+                <p className="text-xs text-primary bg-surface rounded-lg px-3 py-2 whitespace-pre-wrap leading-relaxed">
+                  {draft.description}
+                </p>
               </div>
 
               {/* 施工箇所 */}
@@ -163,7 +161,9 @@ export default function AiDraftPanel({ vehicleId, hearingId, templateCategory, o
                   <p className="text-xs font-medium text-muted mb-1">施工箇所</p>
                   <div className="flex flex-wrap gap-1">
                     {draft.workAreas.map((a, i) => (
-                      <span key={i} className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs text-accent">{a}</span>
+                      <span key={i} className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs text-accent">
+                        {a}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -191,7 +191,12 @@ export default function AiDraftPanel({ vehicleId, hearingId, templateCategory, o
                   <p className="text-xs font-medium text-muted mb-1">保証期間候補</p>
                   <div className="flex gap-2">
                     {draft.warrantyCandidates.map((w, i) => (
-                      <span key={i} className="rounded-lg border border-border-default bg-surface px-2.5 py-1 text-xs text-secondary">{w}</span>
+                      <span
+                        key={i}
+                        className="rounded-lg border border-border-default bg-surface px-2.5 py-1 text-xs text-secondary"
+                      >
+                        {w}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -200,7 +205,10 @@ export default function AiDraftPanel({ vehicleId, hearingId, templateCategory, o
               {/* 適用ボタン */}
               <button
                 type="button"
-                onClick={() => { onApply(draft); setOpen(false); }}
+                onClick={() => {
+                  onApply(draft);
+                  setOpen(false);
+                }}
                 className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent/90 transition-colors"
               >
                 フォームに適用する

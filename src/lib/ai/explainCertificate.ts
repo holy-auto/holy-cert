@@ -94,9 +94,7 @@ const AUDIENCE_INSTRUCTIONS: Record<Audience, string> = {
 // 説明変換生成
 // ─────────────────────────────────────────────
 
-export async function generateExplanation(
-  input: ExplainCertificateInput
-): Promise<ExplanationResult> {
+export async function generateExplanation(input: ExplainCertificateInput): Promise<ExplanationResult> {
   const client = getAnthropicClient();
   const instruction = AUDIENCE_INSTRUCTIONS[input.audience];
 

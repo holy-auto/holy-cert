@@ -68,8 +68,7 @@ export async function POST(req: NextRequest) {
       },
       qualityScore: qualityScore?.score ?? undefined,
       missingFields: qualityScore?.missing_fields ?? undefined,
-      warningMessages: (qualityScore?.warning_messages as { message: string }[] ?? [])
-        .map((w) => w.message),
+      warningMessages: ((qualityScore?.warning_messages as { message: string }[]) ?? []).map((w) => w.message),
       similarGoodCases: (similarCases ?? []).map((c) => ({
         caseId: c.id,
         learnPoint: c.ai_summary ?? "",
@@ -84,19 +83,19 @@ export async function POST(req: NextRequest) {
       .eq("user_id", caller.userId)
       .single();
 
-    await admin
-      .from("academy_progress")
-      .upsert({
+    await admin.from("academy_progress").upsert(
+      {
         tenant_id: caller.tenantId,
         user_id: caller.userId,
         certs_reviewed: (existing?.certs_reviewed ?? 0) + 1,
         last_activity_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "tenant_id,user_id" });
+      { onConflict: "tenant_id,user_id" },
+    );
 
     return apiOk({ feedback });
-  } catch (e: any) {
-    return apiInternalError(e);
+  } catch (e: unknown) {
+    return apiInternalError(e, "academy/feedback");
   }
 }

@@ -15,7 +15,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export interface QAQuestion {
   question: string;
-  category?: string;          // 絞り込みカテゴリ（任意）
+  category?: string; // 絞り込みカテゴリ（任意）
   tenantId: string;
 }
 
@@ -118,19 +118,14 @@ export async function generateQAAnswer(input: QAQuestion): Promise<QAAnswer> {
 
   if (chunks.length > 0) {
     contextParts.push(
-      "【参考情報】\n" +
-        chunks
-          .map((c, i) => `[${i + 1}] (${c.source_type}): ${c.content.slice(0, 200)}`)
-          .join("\n\n")
+      "【参考情報】\n" + chunks.map((c, i) => `[${i + 1}] (${c.source_type}): ${c.content.slice(0, 200)}`).join("\n\n"),
     );
   }
 
   if (cases.length > 0) {
     contextParts.push(
       "【関連施工事例】\n" +
-        cases
-          .map((c) => `- [${c.category}] ${c.ai_summary ?? "事例あり"} (タグ: ${c.tags.join(", ")})`)
-          .join("\n")
+        cases.map((c) => `- [${c.category}] ${c.ai_summary ?? "事例あり"} (タグ: ${c.tags.join(", ")})`).join("\n"),
     );
   }
 

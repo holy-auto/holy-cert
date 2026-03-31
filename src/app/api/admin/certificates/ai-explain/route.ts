@@ -43,11 +43,13 @@ export async function POST(req: NextRequest) {
     // 証明書取得
     const { data: cert } = await admin
       .from("certificates")
-      .select(`
+      .select(
+        `
         public_id, service_name, description, material_info,
         warranty_period, created_at, expiry_date, work_areas,
         customer_name, customer_id, vehicle_id, tenant_id
-      `)
+      `,
+      )
       .eq("id", certificate_id)
       .eq("tenant_id", caller.tenantId)
       .single();
@@ -55,11 +57,7 @@ export async function POST(req: NextRequest) {
     if (!cert) return apiNotFound("証明書が見つかりません");
 
     // テナント（施工店）情報
-    const { data: tenant } = await admin
-      .from("tenants")
-      .select("name, phone")
-      .eq("id", cert.tenant_id)
-      .single();
+    const { data: tenant } = await admin.from("tenants").select("name, phone").eq("id", cert.tenant_id).single();
 
     // 車両情報
     let vehicleInfo: Record<string, string | undefined> = {};
@@ -73,9 +71,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 公開URL生成
-    const publicUrl = cert.public_id
-      ? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/c/${cert.public_id}`
-      : undefined;
+    const publicUrl = cert.public_id ? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/c/${cert.public_id}` : undefined;
 
     const explanation = await generateExplanation({
       audience: audience as Audience,

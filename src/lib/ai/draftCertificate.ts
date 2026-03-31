@@ -31,7 +31,7 @@ export interface DraftCertificateInput {
     material_info?: string;
     warranty_period?: string;
   }>;
-  photoDescriptions?: string[];  // Vision解析済みの写真説明
+  photoDescriptions?: string[]; // Vision解析済みの写真説明
   templateCategory?: string;
 }
 
@@ -43,23 +43,21 @@ export interface DraftMaterial {
 }
 
 export interface DraftCertificateResult {
-  title: string;                    // 施工タイトル
-  description: string;              // 施工内容説明
-  materials: DraftMaterial[];       // 使用材料リスト
-  warrantyCandidates: string[];     // 保証期間候補 ["3年", "5年"]
-  workAreas: string[];              // 施工箇所リスト
-  cautions: string;                 // 注意事項
-  confidence: number;               // 0.0〜1.0
-  missingInfo: string[];            // 不足情報リスト
+  title: string; // 施工タイトル
+  description: string; // 施工内容説明
+  materials: DraftMaterial[]; // 使用材料リスト
+  warrantyCandidates: string[]; // 保証期間候補 ["3年", "5年"]
+  workAreas: string[]; // 施工箇所リスト
+  cautions: string; // 注意事項
+  confidence: number; // 0.0〜1.0
+  missingInfo: string[]; // 不足情報リスト
 }
 
 // ─────────────────────────────────────────────
 // 自動下書き生成
 // ─────────────────────────────────────────────
 
-export async function generateCertificateDraft(
-  input: DraftCertificateInput
-): Promise<DraftCertificateResult> {
+export async function generateCertificateDraft(input: DraftCertificateInput): Promise<DraftCertificateResult> {
   const client = getAnthropicClient();
 
   const vehicleDesc = [
@@ -73,14 +71,10 @@ export async function generateCertificateDraft(
 
   const hearingDesc = input.hearing
     ? [
-        input.hearing.service_types?.length
-          ? `希望施工: ${input.hearing.service_types.join(", ")}`
-          : null,
+        input.hearing.service_types?.length ? `希望施工: ${input.hearing.service_types.join(", ")}` : null,
         input.hearing.budget_range ? `予算: ${input.hearing.budget_range}` : null,
         input.hearing.parking_type ? `駐車環境: ${input.hearing.parking_type}` : null,
-        input.hearing.customer_requests
-          ? `顧客要望: ${input.hearing.customer_requests}`
-          : null,
+        input.hearing.customer_requests ? `顧客要望: ${input.hearing.customer_requests}` : null,
       ]
         .filter(Boolean)
         .join("\n")
@@ -89,10 +83,7 @@ export async function generateCertificateDraft(
   const similarDesc =
     input.similarCertificates.length > 0
       ? input.similarCertificates
-          .map(
-            (c, i) =>
-              `事例${i + 1}: 施工名=${c.service_name}, 保証=${c.warranty_period ?? "不明"}`
-          )
+          .map((c, i) => `事例${i + 1}: 施工名=${c.service_name}, 保証=${c.warranty_period ?? "不明"}`)
           .join("\n")
       : "なし";
 

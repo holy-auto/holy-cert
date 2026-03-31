@@ -17,14 +17,14 @@ import { getAnthropicClient, AI_MODEL_FAST, parseJsonResponse } from "@/lib/ai/c
 // ─────────────────────────────────────────────
 
 export type FollowUpTriggerType =
-  | "post_issue"        // 発行直後
-  | "first_reminder"    // 30日後
-  | "mid_followup"      // 90日後（既存）
-  | "recoat_proposal"   // 180日後（既存）
-  | "warranty_end"      // 保証終了前
-  | "inspection_pre"    // 車検前
-  | "seasonal_winter"   // 冬前コーティング提案
-  | "seasonal_rainy";   // 梅雨前ガラス撥水提案
+  | "post_issue" // 発行直後
+  | "first_reminder" // 30日後
+  | "mid_followup" // 90日後（既存）
+  | "recoat_proposal" // 180日後（既存）
+  | "warranty_end" // 保証終了前
+  | "inspection_pre" // 車検前
+  | "seasonal_winter" // 冬前コーティング提案
+  | "seasonal_rainy"; // 梅雨前ガラス撥水提案
 
 export interface FollowUpContext {
   trigger: FollowUpTriggerType;
@@ -43,8 +43,8 @@ export interface FollowUpContext {
 
 export interface FollowUpContent {
   emailSubject: string;
-  emailBody: string;          // HTMLメール本文
-  lineMessage: string;        // LINE用（100〜200文字 + 絵文字）
+  emailBody: string; // HTMLメール本文
+  lineMessage: string; // LINE用（100〜200文字 + 絵文字）
 }
 
 // ─────────────────────────────────────────────
@@ -52,14 +52,14 @@ export interface FollowUpContent {
 // ─────────────────────────────────────────────
 
 const TRIGGER_LABELS: Record<FollowUpTriggerType, string> = {
-  post_issue:       "施工完了のお礼",
-  first_reminder:   "1ヶ月点検のご案内",
-  mid_followup:     "施工後3ヶ月のフォロー",
-  recoat_proposal:  "次回施工のご提案",
-  warranty_end:     "保証期間終了のご案内",
-  inspection_pre:   "車検前のご案内",
-  seasonal_winter:  "冬前コーティングのご提案",
-  seasonal_rainy:   "梅雨前ガラス撥水のご提案",
+  post_issue: "施工完了のお礼",
+  first_reminder: "1ヶ月点検のご案内",
+  mid_followup: "施工後3ヶ月のフォロー",
+  recoat_proposal: "次回施工のご提案",
+  warranty_end: "保証期間終了のご案内",
+  inspection_pre: "車検前のご案内",
+  seasonal_winter: "冬前コーティングのご提案",
+  seasonal_rainy: "梅雨前ガラス撥水のご提案",
 };
 
 function buildFallbackContent(ctx: FollowUpContext): FollowUpContent {
@@ -101,9 +101,7 @@ export async function generateFollowUpContent(ctx: FollowUpContext): Promise<Fol
   "lineMessage": "LINEメッセージ（絵文字を含む、100〜180文字）"
 }`;
 
-  const vehicleDesc = [ctx.vehicle.maker, ctx.vehicle.model, ctx.vehicle.color]
-    .filter(Boolean)
-    .join(" ");
+  const vehicleDesc = [ctx.vehicle.maker, ctx.vehicle.model, ctx.vehicle.color].filter(Boolean).join(" ");
 
   const contextDesc = [
     ctx.daysElapsed != null ? `施工から${ctx.daysElapsed}日経過` : null,
@@ -150,8 +148,8 @@ ${contextDesc ? `補足: ${contextDesc}` : ""}
 // ─────────────────────────────────────────────
 
 export function getSeasonalTrigger(month: number): FollowUpTriggerType | null {
-  if (month === 10 || month === 11) return "seasonal_winter";  // 10〜11月: 冬前
-  if (month === 5 || month === 6)  return "seasonal_rainy";    // 5〜6月: 梅雨前
+  if (month === 10 || month === 11) return "seasonal_winter"; // 10〜11月: 冬前
+  if (month === 5 || month === 6) return "seasonal_rainy"; // 5〜6月: 梅雨前
   return null;
 }
 
@@ -159,9 +157,7 @@ export function getSeasonalTrigger(month: number): FollowUpTriggerType | null {
 // 車検前トリガー計算
 // ─────────────────────────────────────────────
 
-export function getDaysUntilInspection(
-  nextInspectionDate: string | undefined | null
-): number | null {
+export function getDaysUntilInspection(nextInspectionDate: string | undefined | null): number | null {
   if (!nextInspectionDate) return null;
   const today = new Date();
   const target = new Date(nextInspectionDate);
@@ -173,10 +169,7 @@ export function getDaysUntilInspection(
 // 保証終了前トリガー計算
 // ─────────────────────────────────────────────
 
-export function getDaysUntilWarrantyEnd(
-  issuedAt: string,
-  warrantyPeriod: string | undefined | null
-): number | null {
+export function getDaysUntilWarrantyEnd(issuedAt: string, warrantyPeriod: string | undefined | null): number | null {
   if (!warrantyPeriod) return null;
 
   const match = warrantyPeriod.match(/(\d+)\s*年/);

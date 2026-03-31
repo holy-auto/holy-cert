@@ -56,18 +56,21 @@ export async function POST(req: NextRequest) {
     if (hearing_id) {
       const { data } = await admin
         .from("hearings")
-        .select("service_types, budget_range, parking_type, customer_requests, vehicle_maker, vehicle_model, vehicle_year, vehicle_color")
+        .select(
+          "service_types, budget_range, parking_type, customer_requests, vehicle_maker, vehicle_model, vehicle_year, vehicle_color",
+        )
         .eq("id", hearing_id)
         .single();
       if (data) {
         hearing = data;
         // ヒアリングから車両情報も補完
-        if (!vehicle.maker) vehicle = {
-          maker: data.vehicle_maker,
-          model: data.vehicle_model,
-          year: data.vehicle_year,
-          color: data.vehicle_color,
-        };
+        if (!vehicle.maker)
+          vehicle = {
+            maker: data.vehicle_maker,
+            model: data.vehicle_model,
+            year: data.vehicle_year,
+            color: data.vehicle_color,
+          };
       }
     }
 

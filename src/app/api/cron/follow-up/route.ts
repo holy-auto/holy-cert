@@ -37,13 +37,23 @@ export async function GET(req: NextRequest) {
 
     try {
       // テナント一覧取得（拡張カラム含む）
-      const { data: settings } = await supabase
+      type FollowUpSetting = {
+        tenant_id: string;
+        reminder_days_before: number[] | null;
+        follow_up_days_after: number[] | null;
+        enabled: boolean;
+        send_on_issue: boolean | null;
+        first_reminder_days: number | null;
+        warranty_end_days: number | null;
+        inspection_pre_days: number | null;
+        seasonal_enabled: boolean | null;
+      };
+      const { data: settings } = (await supabase
         .from("follow_up_settings")
         .select(
-          "tenant_id, reminder_days_before, follow_up_days_after, enabled, " +
-          "send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled"
+          "tenant_id, reminder_days_before, follow_up_days_after, enabled, send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled",
         )
-        .eq("enabled", true);
+        .eq("enabled", true)) as { data: FollowUpSetting[] | null };
 
       if (!settings?.length) {
         return NextResponse.json({ ok: true, reminders_sent: 0, follow_ups_sent: 0, date: todayStr });
@@ -52,10 +62,11 @@ export async function GET(req: NextRequest) {
       const allTenantIds = [...new Set(settings.map((s) => s.tenant_id))];
 
       // テナント名・プランを一括取得
-      const { data: tenants } = await supabase
+      type TenantInfo = { id: string; name: string | null; phone: string | null; plan_tier: string | null };
+      const { data: tenants } = (await supabase
         .from("tenants")
         .select("id, name, phone, plan_tier")
-        .in("id", allTenantIds);
+        .in("id", allTenantIds)) as { data: TenantInfo[] | null };
       const tenantMap = new Map((tenants ?? []).map((t) => [t.id, t]));
 
       // ─── 共通ヘルパー: 通知送信 ───────────────────────────────────
@@ -163,24 +174,36 @@ export async function GET(req: NextRequest) {
           for (const cert of certs ?? []) {
             if (!cert.customer_id) continue;
             const notifType = `expiry_reminder_${days}d`;
-            const { data: existing } = await supabase.from("notification_logs")
-              .select("id").eq("target_id", cert.id).eq("type", notifType).limit(1);
+            const { data: existing } = await supabase
+              .from("notification_logs")
+              .select("id")
+              .eq("target_id", cert.id)
+              .eq("type", notifType)
+              .limit(1);
             if (existing?.length) continue;
 
-            const { data: customer } = await supabase.from("customers")
-              .select("name, email").eq("id", cert.customer_id).single();
+            const { data: customer } = await supabase
+              .from("customers")
+              .select("name, email")
+              .eq("id", cert.customer_id)
+              .single();
             if (!customer?.email) continue;
 
             const sent = await sendExpiryReminder({
-              shopName, customerEmail: customer.email,
+              shopName,
+              customerEmail: customer.email,
               customerName: customer.name ?? cert.customer_name ?? "お客様",
               certificateLabel: cert.service_name ?? "施工証明書",
-              expiryDate: cert.expiry_date, daysUntil: days,
+              expiryDate: cert.expiry_date,
+              daysUntil: days,
             });
             await supabase.from("notification_logs").insert({
-              tenant_id: setting.tenant_id, type: notifType,
-              target_type: "certificate", target_id: cert.id,
-              recipient_email: customer.email, status: sent ? "sent" : "failed",
+              tenant_id: setting.tenant_id,
+              type: notifType,
+              target_type: "certificate",
+              target_id: cert.id,
+              recipient_email: customer.email,
+              status: sent ? "sent" : "failed",
             });
             if (sent) remindersSent++;
           }
@@ -195,7 +218,9 @@ export async function GET(req: NextRequest) {
 
           const { data: certs } = await supabase
             .from("certificates")
-            .select("id, customer_id, customer_name, service_name, created_at, warranty_period, vehicle_maker, vehicle_model, vehicle_color")
+            .select(
+              "id, customer_id, customer_name, service_name, created_at, warranty_period, vehicle_maker, vehicle_model, vehicle_color",
+            )
             .eq("tenant_id", setting.tenant_id)
             .neq("status", "void")
             .gte("created_at", `${dateStr}T00:00:00`)
@@ -204,23 +229,40 @@ export async function GET(req: NextRequest) {
           for (const cert of certs ?? []) {
             if (!cert.customer_id) continue;
             const notifType = `follow_up_${days}d`;
-            const { data: existing } = await supabase.from("notification_logs")
-              .select("id").eq("target_id", cert.id).eq("type", notifType).limit(1);
+            const { data: existing } = await supabase
+              .from("notification_logs")
+              .select("id")
+              .eq("target_id", cert.id)
+              .eq("type", notifType)
+              .limit(1);
             if (existing?.length) continue;
 
-            const { data: customer } = await supabase.from("customers")
-              .select("name, email, line_user_id").eq("id", cert.customer_id).single();
+            const { data: customer } = await supabase
+              .from("customers")
+              .select("name, email, line_user_id")
+              .eq("id", cert.customer_id)
+              .single();
             if (!customer?.email) continue;
 
             const trigger: FollowUpTriggerType = days <= 90 ? "mid_followup" : "recoat_proposal";
             const ok = await sendNotification({
-              tenantId: setting.tenant_id, certId: cert.id, customerId: cert.customer_id,
+              tenantId: setting.tenant_id,
+              certId: cert.id,
+              customerId: cert.customer_id,
               customerName: customer.name ?? cert.customer_name ?? "お客様",
-              customerEmail: customer.email, lineUserId: customer.line_user_id,
+              customerEmail: customer.email,
+              lineUserId: customer.line_user_id,
               serviceName: cert.service_name ?? "施工証明書",
-              issuedAt: cert.created_at, warrantyPeriod: cert.warranty_period,
-              trigger, notifType, shopName, shopPhone: tenant.phone, planTier,
-              vehicleMaker: cert.vehicle_maker, vehicleModel: cert.vehicle_model, vehicleColor: cert.vehicle_color,
+              issuedAt: cert.created_at,
+              warrantyPeriod: cert.warranty_period,
+              trigger,
+              notifType,
+              shopName,
+              shopPhone: tenant.phone,
+              planTier,
+              vehicleMaker: cert.vehicle_maker,
+              vehicleModel: cert.vehicle_model,
+              vehicleColor: cert.vehicle_color,
             });
             if (ok) followUpsSent++;
           }
@@ -230,7 +272,9 @@ export async function GET(req: NextRequest) {
         if (setting.send_on_issue) {
           const { data: newCerts } = await supabase
             .from("certificates")
-            .select("id, customer_id, customer_name, service_name, created_at, warranty_period, vehicle_maker, vehicle_model, vehicle_color")
+            .select(
+              "id, customer_id, customer_name, service_name, created_at, warranty_period, vehicle_maker, vehicle_model, vehicle_color",
+            )
             .eq("tenant_id", setting.tenant_id)
             .neq("status", "void")
             .gte("created_at", `${todayStr}T00:00:00`)
@@ -238,22 +282,38 @@ export async function GET(req: NextRequest) {
 
           for (const cert of newCerts ?? []) {
             if (!cert.customer_id) continue;
-            const { data: existing } = await supabase.from("notification_logs")
-              .select("id").eq("target_id", cert.id).eq("type", "post_issue").limit(1);
+            const { data: existing } = await supabase
+              .from("notification_logs")
+              .select("id")
+              .eq("target_id", cert.id)
+              .eq("type", "post_issue")
+              .limit(1);
             if (existing?.length) continue;
 
-            const { data: customer } = await supabase.from("customers")
-              .select("name, email").eq("id", cert.customer_id).single();
+            const { data: customer } = await supabase
+              .from("customers")
+              .select("name, email")
+              .eq("id", cert.customer_id)
+              .single();
             if (!customer?.email) continue;
 
             const ok = await sendNotification({
-              tenantId: setting.tenant_id, certId: cert.id, customerId: cert.customer_id,
+              tenantId: setting.tenant_id,
+              certId: cert.id,
+              customerId: cert.customer_id,
               customerName: customer.name ?? cert.customer_name ?? "お客様",
-              customerEmail: customer.email, serviceName: cert.service_name ?? "施工証明書",
-              issuedAt: cert.created_at, warrantyPeriod: cert.warranty_period,
-              trigger: "post_issue", notifType: "post_issue",
-              shopName, shopPhone: tenant.phone, planTier,
-              vehicleMaker: cert.vehicle_maker, vehicleModel: cert.vehicle_model, vehicleColor: cert.vehicle_color,
+              customerEmail: customer.email,
+              serviceName: cert.service_name ?? "施工証明書",
+              issuedAt: cert.created_at,
+              warrantyPeriod: cert.warranty_period,
+              trigger: "post_issue",
+              notifType: "post_issue",
+              shopName,
+              shopPhone: tenant.phone,
+              planTier,
+              vehicleMaker: cert.vehicle_maker,
+              vehicleModel: cert.vehicle_model,
+              vehicleColor: cert.vehicle_color,
             });
             if (ok) followUpsSent++;
           }
@@ -268,7 +328,9 @@ export async function GET(req: NextRequest) {
 
           const { data: certs } = await supabase
             .from("certificates")
-            .select("id, customer_id, customer_name, service_name, created_at, warranty_period, vehicle_maker, vehicle_model, vehicle_color")
+            .select(
+              "id, customer_id, customer_name, service_name, created_at, warranty_period, vehicle_maker, vehicle_model, vehicle_color",
+            )
             .eq("tenant_id", setting.tenant_id)
             .neq("status", "void")
             .gte("created_at", `${dateStr}T00:00:00`)
@@ -277,22 +339,38 @@ export async function GET(req: NextRequest) {
           for (const cert of certs ?? []) {
             if (!cert.customer_id) continue;
             const notifType = `first_reminder_${firstReminderDays}d`;
-            const { data: existing } = await supabase.from("notification_logs")
-              .select("id").eq("target_id", cert.id).eq("type", notifType).limit(1);
+            const { data: existing } = await supabase
+              .from("notification_logs")
+              .select("id")
+              .eq("target_id", cert.id)
+              .eq("type", notifType)
+              .limit(1);
             if (existing?.length) continue;
 
-            const { data: customer } = await supabase.from("customers")
-              .select("name, email").eq("id", cert.customer_id).single();
+            const { data: customer } = await supabase
+              .from("customers")
+              .select("name, email")
+              .eq("id", cert.customer_id)
+              .single();
             if (!customer?.email) continue;
 
             const ok = await sendNotification({
-              tenantId: setting.tenant_id, certId: cert.id, customerId: cert.customer_id,
+              tenantId: setting.tenant_id,
+              certId: cert.id,
+              customerId: cert.customer_id,
               customerName: customer.name ?? cert.customer_name ?? "お客様",
-              customerEmail: customer.email, serviceName: cert.service_name ?? "施工証明書",
-              issuedAt: cert.created_at, warrantyPeriod: cert.warranty_period,
-              trigger: "first_reminder", notifType,
-              shopName, shopPhone: tenant.phone, planTier,
-              vehicleMaker: cert.vehicle_maker, vehicleModel: cert.vehicle_model, vehicleColor: cert.vehicle_color,
+              customerEmail: customer.email,
+              serviceName: cert.service_name ?? "施工証明書",
+              issuedAt: cert.created_at,
+              warrantyPeriod: cert.warranty_period,
+              trigger: "first_reminder",
+              notifType,
+              shopName,
+              shopPhone: tenant.phone,
+              planTier,
+              vehicleMaker: cert.vehicle_maker,
+              vehicleModel: cert.vehicle_model,
+              vehicleColor: cert.vehicle_color,
             });
             if (ok) followUpsSent++;
           }
@@ -303,7 +381,9 @@ export async function GET(req: NextRequest) {
           const warrantyEndDays = setting.warranty_end_days ?? 60;
           const { data: activeCerts } = await supabase
             .from("certificates")
-            .select("id, customer_id, customer_name, service_name, created_at, warranty_period, vehicle_maker, vehicle_model, vehicle_color")
+            .select(
+              "id, customer_id, customer_name, service_name, created_at, warranty_period, vehicle_maker, vehicle_model, vehicle_color",
+            )
             .eq("tenant_id", setting.tenant_id)
             .not("warranty_period", "is", null)
             .neq("status", "void");
@@ -314,22 +394,38 @@ export async function GET(req: NextRequest) {
             if (daysUntilEnd === null || daysUntilEnd !== warrantyEndDays) continue;
 
             const notifType = "warranty_end_reminder";
-            const { data: existing } = await supabase.from("notification_logs")
-              .select("id").eq("target_id", cert.id).eq("type", notifType).limit(1);
+            const { data: existing } = await supabase
+              .from("notification_logs")
+              .select("id")
+              .eq("target_id", cert.id)
+              .eq("type", notifType)
+              .limit(1);
             if (existing?.length) continue;
 
-            const { data: customer } = await supabase.from("customers")
-              .select("name, email").eq("id", cert.customer_id).single();
+            const { data: customer } = await supabase
+              .from("customers")
+              .select("name, email")
+              .eq("id", cert.customer_id)
+              .single();
             if (!customer?.email) continue;
 
             const ok = await sendNotification({
-              tenantId: setting.tenant_id, certId: cert.id, customerId: cert.customer_id,
+              tenantId: setting.tenant_id,
+              certId: cert.id,
+              customerId: cert.customer_id,
               customerName: customer.name ?? cert.customer_name ?? "お客様",
-              customerEmail: customer.email, serviceName: cert.service_name ?? "施工証明書",
-              issuedAt: cert.created_at, warrantyPeriod: cert.warranty_period,
-              trigger: "warranty_end", notifType,
-              shopName, shopPhone: tenant.phone, planTier,
-              vehicleMaker: cert.vehicle_maker, vehicleModel: cert.vehicle_model, vehicleColor: cert.vehicle_color,
+              customerEmail: customer.email,
+              serviceName: cert.service_name ?? "施工証明書",
+              issuedAt: cert.created_at,
+              warrantyPeriod: cert.warranty_period,
+              trigger: "warranty_end",
+              notifType,
+              shopName,
+              shopPhone: tenant.phone,
+              planTier,
+              vehicleMaker: cert.vehicle_maker,
+              vehicleModel: cert.vehicle_model,
+              vehicleColor: cert.vehicle_color,
               daysUntilEvent: warrantyEndDays,
             } as any);
             if (ok) followUpsSent++;
@@ -350,8 +446,11 @@ export async function GET(req: NextRequest) {
                 .limit(100);
 
               const notifType = `seasonal_${currentMonth}_${today.getFullYear()}`;
-              const { data: existingLogs } = await supabase.from("notification_logs")
-                .select("target_id").eq("tenant_id", setting.tenant_id).eq("type", notifType);
+              const { data: existingLogs } = await supabase
+                .from("notification_logs")
+                .select("target_id")
+                .eq("tenant_id", setting.tenant_id)
+                .eq("type", notifType);
               const alreadySentIds = new Set((existingLogs ?? []).map((l) => l.target_id));
 
               for (const customer of allCustomers ?? []) {
@@ -364,14 +463,19 @@ export async function GET(req: NextRequest) {
                   shop: { name: shopName, phone: tenant.phone },
                 });
                 const sent = await sendFollowUpEmail({
-                  shopName, customerEmail: customer.email!,
+                  shopName,
+                  customerEmail: customer.email!,
                   customerName: customer.name ?? "お客様",
-                  certificateLabel: "季節メンテナンスのご案内", daysSince: 0,
+                  certificateLabel: "季節メンテナンスのご案内",
+                  daysSince: 0,
                 });
                 await supabase.from("notification_logs").insert({
-                  tenant_id: setting.tenant_id, type: notifType,
-                  target_type: "customer", target_id: customer.id,
-                  recipient_email: customer.email, status: sent ? "sent" : "failed",
+                  tenant_id: setting.tenant_id,
+                  type: notifType,
+                  target_type: "customer",
+                  target_id: customer.id,
+                  recipient_email: customer.email,
+                  status: sent ? "sent" : "failed",
                 });
                 if (sent) seasonalSent++;
               }
