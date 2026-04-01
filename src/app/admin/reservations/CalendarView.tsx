@@ -19,17 +19,17 @@ interface CalendarViewProps {
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
-  confirmed:   { bg: "bg-blue-100",   text: "text-blue-700",   dot: "bg-blue-500"   },
-  arrived:     { bg: "bg-amber-100",  text: "text-amber-700",  dot: "bg-amber-500"  },
+  confirmed: { bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-500" },
+  arrived: { bg: "bg-amber-100", text: "text-amber-700", dot: "bg-amber-500" },
   in_progress: { bg: "bg-violet-100", text: "text-violet-700", dot: "bg-violet-500" },
-  completed:   { bg: "bg-green-100",  text: "text-green-700",  dot: "bg-green-500"  },
-  cancelled:   { bg: "bg-gray-100",   text: "text-gray-500",   dot: "bg-gray-400"   },
+  completed: { bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500" },
+  cancelled: { bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" },
 };
 
 function getMonthDays(year: number, month: number) {
-  const firstDay    = new Date(year, month, 1).getDay();
+  const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const prevDays    = new Date(year, month, 0).getDate();
+  const prevDays = new Date(year, month, 0).getDate();
 
   const cells: { date: string; day: number; isCurrentMonth: boolean }[] = [];
 
@@ -37,17 +37,29 @@ function getMonthDays(year: number, month: number) {
     const d = prevDays - i;
     const m = month === 0 ? 12 : month;
     const y = month === 0 ? year - 1 : year;
-    cells.push({ date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`, day: d, isCurrentMonth: false });
+    cells.push({
+      date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+      day: d,
+      isCurrentMonth: false,
+    });
   }
   for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ date: `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`, day: d, isCurrentMonth: true });
+    cells.push({
+      date: `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+      day: d,
+      isCurrentMonth: true,
+    });
   }
   const remaining = 7 - (cells.length % 7);
   if (remaining < 7) {
     for (let d = 1; d <= remaining; d++) {
       const m = month === 11 ? 1 : month + 2;
       const y = month === 11 ? year + 1 : year;
-      cells.push({ date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`, day: d, isCurrentMonth: false });
+      cells.push({
+        date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+        day: d,
+        isCurrentMonth: false,
+      });
     }
   }
   return cells;
@@ -55,10 +67,10 @@ function getMonthDays(year: number, month: number) {
 
 export default function CalendarView({ reservations, onDateClick }: CalendarViewProps) {
   const today = new Date();
-  const [viewYear,  setViewYear]  = useState(today.getFullYear());
+  const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
 
-  const cells  = useMemo(() => getMonthDays(viewYear, viewMonth), [viewYear, viewMonth]);
+  const cells = useMemo(() => getMonthDays(viewYear, viewMonth), [viewYear, viewMonth]);
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const byDate = useMemo(() => {
@@ -79,14 +91,21 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
   }, [reservations, viewYear, viewMonth]);
 
   const goPrev = () => {
-    if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11); }
-    else setViewMonth(viewMonth - 1);
+    if (viewMonth === 0) {
+      setViewYear(viewYear - 1);
+      setViewMonth(11);
+    } else setViewMonth(viewMonth - 1);
   };
   const goNext = () => {
-    if (viewMonth === 11) { setViewYear(viewYear + 1); setViewMonth(0); }
-    else setViewMonth(viewMonth + 1);
+    if (viewMonth === 11) {
+      setViewYear(viewYear + 1);
+      setViewMonth(0);
+    } else setViewMonth(viewMonth + 1);
   };
-  const goToday = () => { setViewYear(today.getFullYear()); setViewMonth(today.getMonth()); };
+  const goToday = () => {
+    setViewYear(today.getFullYear());
+    setViewMonth(today.getMonth());
+  };
 
   return (
     <div className="glass-card overflow-hidden">
@@ -112,9 +131,14 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
             {/* Month stats */}
             <div className="text-right">
               <div className="text-[10px] text-emerald-200">今月の予約</div>
-              <div className="text-sm font-bold">{monthStats.total}件 / {monthStats.activeDays}日</div>
+              <div className="text-sm font-bold">
+                {monthStats.total}件 / {monthStats.activeDays}日
+              </div>
             </div>
-            <button onClick={goToday} className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-xs font-semibold transition-colors">
+            <button
+              onClick={goToday}
+              className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-xs font-semibold transition-colors"
+            >
               今日
             </button>
           </div>
@@ -138,17 +162,17 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
       {/* ── Day cells ── */}
       <div className="grid grid-cols-7">
         {cells.map((cell) => {
-          const dayRes    = byDate[cell.date] ?? [];
+          const dayRes = byDate[cell.date] ?? [];
           const activeRes = dayRes.filter((r) => r.status !== "cancelled");
-          const isToday   = cell.date === todayStr;
+          const isToday = cell.date === todayStr;
           const dayOfWeek = new Date(cell.date).getDay();
           const isSat = dayOfWeek === 6;
           const isSun = dayOfWeek === 0;
 
           // 今日の件数バッジ
-          const confirmedCount   = activeRes.filter((r) => r.status === "confirmed").length;
-          const inProgressCount  = activeRes.filter((r) => r.status === "in_progress" || r.status === "arrived").length;
-          const completedCount   = activeRes.filter((r) => r.status === "completed").length;
+          const confirmedCount = activeRes.filter((r) => r.status === "confirmed").length;
+          const inProgressCount = activeRes.filter((r) => r.status === "in_progress" || r.status === "arrived").length;
+          const completedCount = activeRes.filter((r) => r.status === "completed").length;
 
           return (
             <button
@@ -168,10 +192,12 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
                     isToday
                       ? "bg-emerald-600 text-white shadow-sm"
                       : !cell.isCurrentMonth
-                      ? "text-muted/30"
-                      : isSun ? "text-red-400"
-                      : isSat ? "text-blue-500"
-                      : "text-primary"
+                        ? "text-muted/30"
+                        : isSun
+                          ? "text-red-400"
+                          : isSat
+                            ? "text-blue-500"
+                            : "text-primary"
                   }`}
                 >
                   {cell.day}
@@ -188,9 +214,27 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
               {/* Status mini bars */}
               {activeRes.length > 0 && cell.isCurrentMonth && (
                 <div className="flex gap-0.5 mb-1">
-                  {confirmedCount  > 0 && <div className="h-1 rounded-full bg-blue-400"   style={{ flex: confirmedCount }}  title={`確定 ${confirmedCount}件`}  />}
-                  {inProgressCount > 0 && <div className="h-1 rounded-full bg-violet-400" style={{ flex: inProgressCount }} title={`進行中 ${inProgressCount}件`}/>}
-                  {completedCount  > 0 && <div className="h-1 rounded-full bg-green-400"  style={{ flex: completedCount }}  title={`完了 ${completedCount}件`}  />}
+                  {confirmedCount > 0 && (
+                    <div
+                      className="h-1 rounded-full bg-blue-400"
+                      style={{ flex: confirmedCount }}
+                      title={`確定 ${confirmedCount}件`}
+                    />
+                  )}
+                  {inProgressCount > 0 && (
+                    <div
+                      className="h-1 rounded-full bg-violet-400"
+                      style={{ flex: inProgressCount }}
+                      title={`進行中 ${inProgressCount}件`}
+                    />
+                  )}
+                  {completedCount > 0 && (
+                    <div
+                      className="h-1 rounded-full bg-green-400"
+                      style={{ flex: completedCount }}
+                      title={`完了 ${completedCount}件`}
+                    />
+                  )}
                 </div>
               )}
 
@@ -214,9 +258,7 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
                     );
                   })}
                   {activeRes.length > 2 && (
-                    <div className="px-1 text-[10px] text-muted font-medium">
-                      +{activeRes.length - 2}件
-                    </div>
+                    <div className="px-1 text-[10px] text-muted font-medium">+{activeRes.length - 2}件</div>
                   )}
                 </div>
               )}
@@ -228,9 +270,9 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
       {/* ── Legend ── */}
       <div className="flex items-center gap-4 px-4 py-2.5 border-t border-border-subtle bg-surface-hover/30">
         {[
-          { dot: "bg-blue-400",   label: "予約確定" },
+          { dot: "bg-blue-400", label: "予約確定" },
           { dot: "bg-violet-400", label: "来店・作業中" },
-          { dot: "bg-green-400",  label: "完了" },
+          { dot: "bg-green-400", label: "完了" },
         ].map((item) => (
           <span key={item.label} className="flex items-center gap-1.5 text-[11px] text-muted">
             <span className={`w-2 h-2 rounded-full ${item.dot}`} />
