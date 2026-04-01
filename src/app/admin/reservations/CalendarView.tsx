@@ -18,18 +18,18 @@ interface CalendarViewProps {
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
-const STATUS_COLOR: Record<string, { bar: string; text: string; bg: string }> = {
-  confirmed: { bar: "bg-blue-500", text: "text-blue-700", bg: "bg-blue-50" },
-  arrived: { bar: "bg-amber-400", text: "text-amber-700", bg: "bg-amber-50" },
-  in_progress: { bar: "bg-violet-500", text: "text-violet-700", bg: "bg-violet-50" },
-  completed: { bar: "bg-green-500", text: "text-green-700", bg: "bg-green-50" },
-  cancelled: { bar: "bg-gray-300", text: "text-gray-400", bg: "bg-gray-50" },
+const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
+  confirmed:   { bg: "bg-blue-100",   text: "text-blue-700",   dot: "bg-blue-500"   },
+  arrived:     { bg: "bg-amber-100",  text: "text-amber-700",  dot: "bg-amber-500"  },
+  in_progress: { bg: "bg-violet-100", text: "text-violet-700", dot: "bg-violet-500" },
+  completed:   { bg: "bg-green-100",  text: "text-green-700",  dot: "bg-green-500"  },
+  cancelled:   { bg: "bg-gray-100",   text: "text-gray-500",   dot: "bg-gray-400"   },
 };
 
 function getMonthDays(year: number, month: number) {
-  const firstDay = new Date(year, month, 1).getDay();
+  const firstDay    = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const prevDays = new Date(year, month, 0).getDate();
+  const prevDays    = new Date(year, month, 0).getDate();
 
   const cells: { date: string; day: number; isCurrentMonth: boolean }[] = [];
 
@@ -37,29 +37,17 @@ function getMonthDays(year: number, month: number) {
     const d = prevDays - i;
     const m = month === 0 ? 12 : month;
     const y = month === 0 ? year - 1 : year;
-    cells.push({
-      date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
-      day: d,
-      isCurrentMonth: false,
-    });
+    cells.push({ date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`, day: d, isCurrentMonth: false });
   }
   for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({
-      date: `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
-      day: d,
-      isCurrentMonth: true,
-    });
+    cells.push({ date: `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`, day: d, isCurrentMonth: true });
   }
   const remaining = 7 - (cells.length % 7);
   if (remaining < 7) {
     for (let d = 1; d <= remaining; d++) {
       const m = month === 11 ? 1 : month + 2;
       const y = month === 11 ? year + 1 : year;
-      cells.push({
-        date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
-        day: d,
-        isCurrentMonth: false,
-      });
+      cells.push({ date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`, day: d, isCurrentMonth: false });
     }
   }
   return cells;
@@ -67,10 +55,11 @@ function getMonthDays(year: number, month: number) {
 
 export default function CalendarView({ reservations, onDateClick }: CalendarViewProps) {
   const today = new Date();
-  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewYear,  setViewYear]  = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
 
-  const cells = useMemo(() => getMonthDays(viewYear, viewMonth), [viewYear, viewMonth]);
+  const cells  = useMemo(() => getMonthDays(viewYear, viewMonth), [viewYear, viewMonth]);
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const byDate = useMemo(() => {
     const map: Record<string, Reservation[]> = {};
@@ -81,152 +70,143 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
     return map;
   }, [reservations]);
 
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-
-  const goPrev = () => {
-    if (viewMonth === 0) {
-      setViewYear((y) => y - 1);
-      setViewMonth(11);
-    } else setViewMonth((m) => m - 1);
-  };
-  const goNext = () => {
-    if (viewMonth === 11) {
-      setViewYear((y) => y + 1);
-      setViewMonth(0);
-    } else setViewMonth((m) => m + 1);
-  };
-  const goToday = () => {
-    setViewYear(today.getFullYear());
-    setViewMonth(today.getMonth());
-  };
-
-  // Monthly stats
+  // サマリー計算: 当月の統計
   const monthStats = useMemo(() => {
     const prefix = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`;
-    const monthRes = reservations.filter((r) => r.scheduled_date.startsWith(prefix));
-    const active = monthRes.filter((r) => r.status !== "cancelled");
-    const completed = monthRes.filter((r) => r.status === "completed");
-    return { total: active.length, completed: completed.length };
+    const monthRes = reservations.filter((r) => r.scheduled_date.startsWith(prefix) && r.status !== "cancelled");
+    const daysWithRes = new Set(monthRes.map((r) => r.scheduled_date)).size;
+    return { total: monthRes.length, activeDays: daysWithRes };
   }, [reservations, viewYear, viewMonth]);
+
+  const goPrev = () => {
+    if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11); }
+    else setViewMonth(viewMonth - 1);
+  };
+  const goNext = () => {
+    if (viewMonth === 11) { setViewYear(viewYear + 1); setViewMonth(0); }
+    else setViewMonth(viewMonth + 1);
+  };
+  const goToday = () => { setViewYear(today.getFullYear()); setViewMonth(today.getMonth()); };
 
   return (
     <div className="glass-card overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={goPrev}
-            className="btn-secondary w-8 h-8 flex items-center justify-center rounded-xl"
-            aria-label="前月"
-          >
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <div className="text-center">
-            <h3 className="text-base font-bold text-primary">
+      {/* ── Header ── */}
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
+        <div className="flex items-center justify-between px-5 py-3">
+          <div className="flex items-center gap-2">
+            <button onClick={goPrev} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors" aria-label="前月">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <h3 className="text-base font-bold min-w-[120px] text-center">
               {viewYear}年{viewMonth + 1}月
             </h3>
-            <div className="text-xs text-muted mt-0.5">
-              {monthStats.total}件 / 完了{monthStats.completed}件
+            <button onClick={goNext} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors" aria-label="翌月">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Month stats */}
+            <div className="text-right">
+              <div className="text-[10px] text-emerald-200">今月の予約</div>
+              <div className="text-sm font-bold">{monthStats.total}件 / {monthStats.activeDays}日</div>
             </div>
+            <button onClick={goToday} className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-xs font-semibold transition-colors">
+              今日
+            </button>
           </div>
-          <button
-            onClick={goNext}
-            className="btn-secondary w-8 h-8 flex items-center justify-center rounded-xl"
-            aria-label="翌月"
-          >
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
-          </button>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Legend */}
-          <div className="hidden sm:flex items-center gap-3 text-[10px] text-muted">
-            {Object.entries(STATUS_COLOR)
-              .filter(([k]) => k !== "cancelled")
-              .map(([key, cfg]) => (
-                <div key={key} className="flex items-center gap-1">
-                  <span className={`inline-block w-2 h-2 rounded-full ${cfg.bar}`} />
-                  {{ confirmed: "確定", arrived: "来店", in_progress: "作業中", completed: "完了" }[key]}
-                </div>
-              ))}
-          </div>
-          <button onClick={goToday} className="btn-secondary px-3 py-1.5 text-xs rounded-xl">
-            今日
-          </button>
+
+        {/* Weekday headers */}
+        <div className="grid grid-cols-7 border-t border-white/20">
+          {WEEKDAYS.map((wd, i) => (
+            <div
+              key={wd}
+              className={`py-2 text-center text-[11px] font-bold tracking-widest ${
+                i === 0 ? "text-red-200" : i === 6 ? "text-blue-200" : "text-white/70"
+              }`}
+            >
+              {wd}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 border-b border-border-subtle bg-surface-hover">
-        {WEEKDAYS.map((wd, i) => (
-          <div
-            key={wd}
-            className={`py-2.5 text-center text-[11px] font-bold tracking-wider ${
-              i === 0 ? "text-red-400" : i === 6 ? "text-blue-500" : "text-muted"
-            }`}
-          >
-            {wd}
-          </div>
-        ))}
-      </div>
-
-      {/* Day cells */}
+      {/* ── Day cells ── */}
       <div className="grid grid-cols-7">
         {cells.map((cell) => {
-          const dayRes = byDate[cell.date] ?? [];
+          const dayRes    = byDate[cell.date] ?? [];
           const activeRes = dayRes.filter((r) => r.status !== "cancelled");
-          const isToday = cell.date === todayStr;
-          const dayOfWeek = new Date(cell.date + "T12:00:00").getDay();
+          const isToday   = cell.date === todayStr;
+          const dayOfWeek = new Date(cell.date).getDay();
           const isSat = dayOfWeek === 6;
           const isSun = dayOfWeek === 0;
+
+          // 今日の件数バッジ
+          const confirmedCount   = activeRes.filter((r) => r.status === "confirmed").length;
+          const inProgressCount  = activeRes.filter((r) => r.status === "in_progress" || r.status === "arrived").length;
+          const completedCount   = activeRes.filter((r) => r.status === "completed").length;
 
           return (
             <button
               key={cell.date}
               type="button"
               onClick={() => onDateClick(cell.date)}
-              className={`relative min-h-[88px] border-b border-r border-border-subtle p-2 text-left transition-colors hover:bg-surface-hover group ${
-                !cell.isCurrentMonth ? "opacity-40" : ""
-              } ${isSat ? "bg-blue-50/20" : isSun ? "bg-red-50/20" : ""}`}
+              className={`relative min-h-[80px] border-b border-r border-border-subtle p-1.5 text-left transition-colors group ${
+                !cell.isCurrentMonth ? "bg-surface-hover/50" : ""
+              } ${isSat && cell.isCurrentMonth ? "bg-blue-50/30" : ""}
+              ${isSun && cell.isCurrentMonth ? "bg-red-50/30" : ""}
+              hover:bg-emerald-50/50 active:bg-emerald-100/50`}
             >
-              {/* Day number */}
-              <span
-                className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors ${
-                  isToday
-                    ? "bg-accent text-inverse"
-                    : isSun
-                      ? "text-red-400"
-                      : isSat
-                        ? "text-blue-500"
-                        : "text-primary group-hover:bg-surface-hover"
-                }`}
-              >
-                {cell.day}
-              </span>
-
-              {/* Total count badge */}
-              {activeRes.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent text-[9px] font-bold text-inverse px-1">
-                  {activeRes.length}
+              {/* Date number */}
+              <div className="flex items-start justify-between mb-1">
+                <span
+                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                    isToday
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : !cell.isCurrentMonth
+                      ? "text-muted/30"
+                      : isSun ? "text-red-400"
+                      : isSat ? "text-blue-500"
+                      : "text-primary"
+                  }`}
+                >
+                  {cell.day}
                 </span>
+
+                {/* Total count badge */}
+                {activeRes.length > 0 && cell.isCurrentMonth && (
+                  <span className="text-[10px] font-bold text-muted bg-surface-hover rounded-full px-1.5 py-0.5 leading-none">
+                    {activeRes.length}
+                  </span>
+                )}
+              </div>
+
+              {/* Status mini bars */}
+              {activeRes.length > 0 && cell.isCurrentMonth && (
+                <div className="flex gap-0.5 mb-1">
+                  {confirmedCount  > 0 && <div className="h-1 rounded-full bg-blue-400"   style={{ flex: confirmedCount }}  title={`確定 ${confirmedCount}件`}  />}
+                  {inProgressCount > 0 && <div className="h-1 rounded-full bg-violet-400" style={{ flex: inProgressCount }} title={`進行中 ${inProgressCount}件`}/>}
+                  {completedCount  > 0 && <div className="h-1 rounded-full bg-green-400"  style={{ flex: completedCount }}  title={`完了 ${completedCount}件`}  />}
+                </div>
               )}
 
-              {/* Reservation items */}
-              {activeRes.length > 0 && (
-                <div className="mt-1 space-y-0.5">
+              {/* Reservation list (max 2) */}
+              {activeRes.length > 0 && cell.isCurrentMonth && (
+                <div className="space-y-0.5">
                   {activeRes.slice(0, 2).map((r) => {
-                    const cfg = STATUS_COLOR[r.status] ?? STATUS_COLOR.confirmed;
+                    const sc = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.confirmed;
                     return (
                       <div
                         key={r.id}
-                        className={`flex items-center gap-1 rounded-md px-1 py-0.5 text-[9px] leading-tight truncate ${cfg.bg}`}
-                        title={`${r.start_time ? r.start_time.slice(0, 5) + " " : ""}${r.title}${r.customer_name ? ` / ${r.customer_name}` : ""}`}
+                        className={`flex items-center gap-1 rounded-md px-1 py-0.5 text-[10px] leading-tight truncate ${sc.bg}`}
+                        title={`${r.start_time ? r.start_time.slice(0, 5) + " " : ""}${r.title}${r.customer_name ? " / " + r.customer_name : ""}`}
                       >
-                        <span className={`inline-block h-1.5 w-1 shrink-0 rounded-full ${cfg.bar}`} />
-                        <span className={`truncate ${cfg.text} font-medium`}>
+                        <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${sc.dot}`} />
+                        <span className={`truncate font-medium ${sc.text}`}>
                           {r.start_time ? r.start_time.slice(0, 5) + " " : ""}
                           {r.title}
                         </span>
@@ -234,13 +214,29 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
                     );
                   })}
                   {activeRes.length > 2 && (
-                    <div className="px-1 text-[9px] text-muted font-medium">+{activeRes.length - 2}件</div>
+                    <div className="px-1 text-[10px] text-muted font-medium">
+                      +{activeRes.length - 2}件
+                    </div>
                   )}
                 </div>
               )}
             </button>
           );
         })}
+      </div>
+
+      {/* ── Legend ── */}
+      <div className="flex items-center gap-4 px-4 py-2.5 border-t border-border-subtle bg-surface-hover/30">
+        {[
+          { dot: "bg-blue-400",   label: "予約確定" },
+          { dot: "bg-violet-400", label: "来店・作業中" },
+          { dot: "bg-green-400",  label: "完了" },
+        ].map((item) => (
+          <span key={item.label} className="flex items-center gap-1.5 text-[11px] text-muted">
+            <span className={`w-2 h-2 rounded-full ${item.dot}`} />
+            {item.label}
+          </span>
+        ))}
       </div>
     </div>
   );
