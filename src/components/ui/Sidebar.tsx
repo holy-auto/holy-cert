@@ -10,6 +10,7 @@ import StoreSelector from "@/components/ui/StoreSelector";
 import ThemeToggle from "@/lib/theme/ThemeToggle";
 import SidebarShell from "@/components/ui/SidebarShell";
 import NotificationBell from "@/components/ui/NotificationBell";
+import ContextSwitcher from "@/components/ui/ContextSwitcher";
 
 /* ------------------------------------------------------------------ */
 /*  Badge counts hook                                                  */
@@ -874,7 +875,9 @@ export default function Sidebar() {
           <span className="text-xs font-bold text-white">C</span>
         </div>
         <span className="text-[13px] font-semibold tracking-wide text-primary">Ledra</span>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {/* 施工店・代理店 両方の権限を持つ場合のみ表示されるモード切替 */}
+          <ContextSwitcher />
           <NotificationBell />
         </div>
       </div>
