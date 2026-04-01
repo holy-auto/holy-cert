@@ -218,9 +218,10 @@ export default function PosCheckoutScreen() {
       }
 
       // ────────────────────────────────────────────────────────
-      // B. Android: QRコード決済（Stripe Checkout）
+      // B. iPad / Android: QRコード決済（Stripe Checkout）
+      //    iPad は Tap to Pay 非対応のため QR で代替
       // ────────────────────────────────────────────────────────
-      if (isAndroid && paymentMethod === "card") {
+      if ((isAndroid || isIPad) && paymentMethod === "card") {
         const res = await mobileApi<{ url: string; session_id: string }>(
           "/pos/checkout/qr-session",
           {
@@ -256,7 +257,7 @@ export default function PosCheckoutScreen() {
       if (error) throw error;
     },
     onSuccess: () => {
-      if (isAndroid && paymentMethod === "card") return; // QR はポーリング側で遷移
+      if ((isAndroid || isIPad) && paymentMethod === "card") return; // QR はポーリング側で遷移
       resetPayment();
       router.replace(`/pos/receipt/${id}`);
     },
@@ -268,10 +269,10 @@ export default function PosCheckoutScreen() {
   // ── 支払い方法ボタン定義（端末別） ────────────────────────────
   const paymentButtons = (() => {
     if (isIPad) {
-      // iPad: カード選択肢を除外
+      // iPad: Tap to Pay 不可のため「QRコード決済」として card を提供
       return [
         { value: "cash", label: "現金" },
-        { value: "qr", label: "QR" },
+        { value: "card", label: "QR決済" },
         { value: "bank_transfer", label: "振込" },
       ];
     }
@@ -328,7 +329,7 @@ export default function PosCheckoutScreen() {
       if (isProcessing) return "処理中...";
       return "Tap to Pay で決済";
     }
-    if (isAndroid && paymentMethod === "card") return "QRコードを表示";
+    if ((isAndroid || isIPad) && paymentMethod === "card") return "QRコードを表示";
     return "決済確定";
   })();
 
@@ -337,7 +338,7 @@ export default function PosCheckoutScreen() {
       <Stack.Screen options={{ title: "会計" }} />
       <ScrollView style={[styles.container, isIPad && styles.containerTablet]}>
 
-        {/* ── iPad 管理モード バナー ────────────────────────────── */}
+        {/* ── iPad モード バナー ────────────────────────────────── */}
         {isIPad && (
           <Card
             style={[styles.card, { backgroundColor: "#eff6ff" }]}
@@ -352,10 +353,10 @@ export default function PosCheckoutScreen() {
                   variant="titleSmall"
                   style={{ fontWeight: "700", color: "#1d4ed8" }}
                 >
-                  iPad 確認・管理モード
+                  iPad モード
                 </Text>
                 <Text variant="bodySmall" style={{ color: "#3b82f6" }}>
-                  カード決済はiPhoneで実施してください
+                  カード決済はQRコードでお客様スマホから受け付けます
                 </Text>
               </View>
             </Card.Content>
@@ -599,26 +600,25 @@ export default function PosCheckoutScreen() {
                 </>
               )}
 
-              {/* iPad 注意文 */}
+              {/* iPad QR説明文 */}
               {isIPad && paymentMethod === "card" && (
-                <Text style={{ color: "#92400e", fontSize: 13, marginTop: 4 }}>
-                  ⚠️ iPad ではカード決済を受け付けできません。iPhoneを使用してください。
+                <Text style={{ color: "#166534", fontSize: 13, marginTop: 4 }}>
+                  📲 QRコードをお客様のスマホで読み取ってもらい決済します
                 </Text>
               )}
             </Card.Content>
           </Card>
         )}
 
-        {/* ── 決済ボタン ────────────────────────────────────────── */}
-        {/* iPad でカード選択中は非表示 */}
-        {!(isIPad && paymentMethod === "card") && !qrPolling && (
+        {/* ── 決済ボタン ─────────────────────────────────────────── */}
+        {!qrPolling && (
           <View style={styles.submitArea}>
             <Button
               mode="contained"
               icon={
                 isIPhone && paymentMethod === "card"
                   ? "cellphone-nfc"
-                  : isAndroid && paymentMethod === "card"
+                  : (isAndroid || isIPad) && paymentMethod === "card"
                     ? "qrcode"
                     : "check-circle"
               }
