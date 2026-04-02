@@ -4,13 +4,23 @@ import { CTAButton } from "./CTAButton";
 export function Hero() {
   return (
     <section className="relative overflow-hidden bg-[#060a12] min-h-[92vh] flex items-center">
-      {/* Dark premium background with animated elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-blue-600/20 rounded-full blur-[150px] animate-[float_10s_ease-in-out_infinite]" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-blue-400/15 rounded-full blur-[130px] animate-[float_12s_ease-in-out_infinite_reverse]" />
-        <div className="absolute top-[40%] left-[50%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] animate-[pulse-soft_8s_ease-in-out_infinite]" />
-        <div className="absolute top-[-5%] right-[10%] w-[400px] h-[400px] bg-violet-600/15 rounded-full blur-[130px] animate-[float_14s_ease-in-out_infinite_1s]" />
+      {/* Background: GPU-accelerated blobs — reduced from 4 animated to 2 static + 2 animated */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        {/* Static blobs (no animation = no layout thrashing on paint) */}
+        <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-blue-600/20 rounded-full blur-[150px]" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-blue-400/15 rounded-full blur-[130px]" />
 
+        {/* Animated blobs — 2 only, will-change for GPU hint */}
+        <div
+          className="absolute top-[40%] left-[50%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] animate-[pulse-soft_8s_ease-in-out_infinite]"
+          style={{ willChange: "opacity" }}
+        />
+        <div
+          className="absolute top-[-5%] right-[10%] w-[400px] h-[400px] bg-violet-600/15 rounded-full blur-[130px] animate-[dark-float_14s_ease-in-out_infinite_1s]"
+          style={{ willChange: "transform" }}
+        />
+
+        {/* Grid overlay */}
         <div
           className="absolute inset-0 opacity-[0.06]"
           style={{
@@ -22,15 +32,14 @@ export function Hero() {
           }}
         />
 
-        <div className="absolute top-[30%] left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent animate-[shimmer_5s_ease-in-out_infinite]" />
-        <div className="absolute top-[70%] left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400/10 to-transparent animate-[shimmer_7s_ease-in-out_infinite_reverse]" />
+        {/* Shimmer lines */}
+        <div className="absolute top-[30%] left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent animate-[shimmer_5s_ease-in-out_infinite]" style={{ willChange: "opacity" }} />
+        <div className="absolute top-[70%] left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400/10 to-transparent animate-[shimmer_7s_ease-in-out_infinite_reverse]" style={{ willChange: "opacity" }} />
 
-        <div className="absolute top-[12%] right-[18%] w-1.5 h-1.5 bg-blue-400/40 rounded-full animate-[float_5s_ease-in-out_infinite]" />
-        <div className="absolute top-[60%] left-[15%] w-1 h-1 bg-blue-300/30 rounded-full animate-[float_7s_ease-in-out_infinite_1s]" />
-        <div className="absolute top-[25%] left-[10%] w-2 h-2 border border-blue-400/15 rounded-full animate-[float_9s_ease-in-out_infinite_2s]" />
-        <div className="absolute top-[45%] right-[8%] w-1.5 h-1.5 border border-violet-400/15 rounded-sm rotate-45 animate-[float_8s_ease-in-out_infinite_0.5s]" />
-        <div className="absolute top-[80%] right-[25%] w-1 h-1 bg-blue-400/25 rounded-full animate-[float_6s_ease-in-out_infinite_3s]" />
-        <div className="absolute top-[35%] right-[30%] w-1 h-1 bg-violet-400/20 rounded-full animate-[float_11s_ease-in-out_infinite_1.5s]" />
+        {/* Floating dots — reduced from 6 to 3 */}
+        <div className="absolute top-[12%] right-[18%] w-1.5 h-1.5 bg-blue-400/40 rounded-full animate-[dark-float_5s_ease-in-out_infinite]" style={{ willChange: "transform" }} />
+        <div className="absolute top-[60%] left-[15%] w-1 h-1 bg-blue-300/30 rounded-full animate-[dark-float_7s_ease-in-out_infinite_1s]" style={{ willChange: "transform" }} />
+        <div className="absolute top-[45%] right-[8%] w-1.5 h-1.5 border border-violet-400/15 rounded-sm rotate-45 animate-[dark-float_8s_ease-in-out_infinite_0.5s]" style={{ willChange: "transform" }} />
       </div>
 
       <Container className="relative text-center py-28 md:py-40 lg:py-48">

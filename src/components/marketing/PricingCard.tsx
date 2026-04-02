@@ -1,5 +1,3 @@
-"use client";
-
 import { CTAButton } from "./CTAButton";
 import { ScrollReveal } from "./ScrollReveal";
 

@@ -12,11 +12,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Note: marketing layout also loads NotoSansJP with its own variable --font-noto
+// This instance covers app pages (/my, /agent, /insurer, /admin etc.)
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "700"],
   variable: "--font-noto-sans",
   display: "swap",
+  preload: false, // marketing pages handle their own preload
 });
 
 export const metadata = {
