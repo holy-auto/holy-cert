@@ -48,6 +48,12 @@ function newClosedId() {
   return `new_${Math.random().toString(36).slice(2)}`;
 }
 
+// ─── 共通インプット / セレクト スタイル ─────────────────────────
+const inputCls =
+  "text-sm border border-border-default rounded-md px-2 py-1 bg-surface text-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
+const selectCls =
+  "text-sm border border-border-default rounded-md px-2 py-1.5 bg-surface text-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
+
 // ─── メインコンポーネント ─────────────────────────────────────────
 export default function BookingSettingsClient() {
   const [slots, setSlots] = useState<(BookingSlot & { _tempId: string })[]>([]);
@@ -83,7 +89,6 @@ export default function BookingSettingsClient() {
         _tempId: c.id ?? newClosedId(),
       }));
       setClosedDays(cds);
-      // 毎週定休曜日を Set に変換
       const wSet = new Set<number>();
       cds.forEach((c) => {
         if (c.type === "weekly" && c.day_of_week != null) wSet.add(c.day_of_week);
@@ -144,27 +149,17 @@ export default function BookingSettingsClient() {
       const next = new Set(prev);
       if (next.has(dow)) {
         next.delete(dow);
-        // 対応する closedDays エントリを削除フラグ
         setClosedDays((cds) =>
           cds.map((c) => (c.type === "weekly" && c.day_of_week === dow ? { ...c, _deleted: true } : c)),
         );
       } else {
         next.add(dow);
-        // 既に削除済みのエントリがあれば復元
         setClosedDays((cds) => {
           const existing = cds.find((c) => c.type === "weekly" && c.day_of_week === dow);
           if (existing) {
             return cds.map((c) => (c.type === "weekly" && c.day_of_week === dow ? { ...c, _deleted: false } : c));
           }
-          return [
-            ...cds,
-            {
-              _tempId: newClosedId(),
-              _new: true,
-              type: "weekly",
-              day_of_week: dow as DayOfWeek,
-            },
-          ];
+          return [...cds, { _tempId: newClosedId(), _new: true, type: "weekly", day_of_week: dow as DayOfWeek }];
         });
       }
       return next;
@@ -252,7 +247,7 @@ export default function BookingSettingsClient() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -262,13 +257,13 @@ export default function BookingSettingsClient() {
       {/* ヘッダー */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">外部予約受付設定</h1>
-          <p className="text-sm text-gray-500 mt-1">お客様向け予約ページの受付時間・定休日を管理します</p>
+          <h1 className="text-2xl font-bold text-primary">外部予約受付設定</h1>
+          <p className="text-sm text-secondary mt-1">お客様向け予約ページの受付時間・定休日を管理します</p>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-2 px-5 py-2 bg-accent text-white rounded-lg font-medium hover:bg-accent/90 disabled:opacity-50 transition-colors"
         >
           {saving ? (
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -285,15 +280,13 @@ export default function BookingSettingsClient() {
       </div>
 
       {/* タブ */}
-      <div className="flex border-b border-gray-200 mb-6">
+      <div className="flex border-b border-border-default mb-6">
         {(["slots", "closed"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+              activeTab === tab ? "border-accent text-accent" : "border-transparent text-secondary hover:text-primary"
             }`}
           >
             {tab === "slots" ? "受付時間スロット" : "定休日設定"}
@@ -303,7 +296,7 @@ export default function BookingSettingsClient() {
 
       {/* ─── タブ: 受付時間スロット ─── */}
       {activeTab === "slots" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* スロット一覧（曜日グループ） */}
           {([0, 1, 2, 3, 4, 5, 6] as DayOfWeek[]).map((dow) => {
             const daySlots = activeSlots.filter((s) => s.day_of_week === dow);
@@ -311,53 +304,51 @@ export default function BookingSettingsClient() {
             return (
               <div
                 key={dow}
-                className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isClosed ? "opacity-50" : ""}`}
+                className={`bg-surface rounded-xl border border-border-default shadow-sm overflow-hidden ${isClosed ? "opacity-50" : ""}`}
               >
-                <div
-                  className={`flex items-center justify-between px-4 py-3 ${
-                    dow === 0 ? "bg-red-50" : dow === 6 ? "bg-blue-50" : "bg-gray-50"
-                  }`}
-                >
+                {/* 曜日ヘッダー */}
+                <div className={`flex items-center justify-between px-4 py-3 bg-inset`}>
                   <div className="flex items-center gap-2">
                     <span
                       className={`font-bold text-base ${
-                        dow === 0 ? "text-red-600" : dow === 6 ? "text-blue-600" : "text-gray-800"
+                        dow === 0 ? "text-danger" : dow === 6 ? "text-accent" : "text-primary"
                       }`}
                     >
                       {DAY_NAMES[dow]}曜日
                     </span>
                     {isClosed && (
-                      <span className="text-xs bg-gray-400 text-white px-2 py-0.5 rounded-full">定休日</span>
+                      <span className="text-xs bg-muted/40 text-secondary px-2 py-0.5 rounded-full">定休日</span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500">{daySlots.length}スロット</span>
+                  <span className="text-xs text-muted">{daySlots.length}スロット</span>
                 </div>
 
-                <div className="divide-y divide-gray-100">
+                {/* スロット行 */}
+                <div className="divide-y divide-border-subtle">
                   {daySlots.length === 0 ? (
-                    <p className="px-4 py-3 text-sm text-gray-400 italic">スロットなし</p>
+                    <p className="px-4 py-3 text-sm text-muted italic">スロットなし</p>
                   ) : (
                     daySlots.map((slot) => (
-                      <div key={slot._tempId} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
-                        {/* アクティブトグル */}
+                      <div key={slot._tempId} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-hover">
+                        {/* ON/OFFトグル */}
                         <button
                           onClick={() => handleSlotChange(slot._tempId, "is_active", !slot.is_active)}
                           className={`relative w-10 h-5 rounded-full transition-colors ${
-                            slot.is_active ? "bg-blue-500" : "bg-gray-300"
+                            slot.is_active ? "bg-accent" : "bg-border-strong"
                           }`}
                         >
                           <span
-                            className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                            className={`absolute top-0.5 w-4 h-4 bg-inverse rounded-full shadow transition-transform ${
                               slot.is_active ? "translate-x-5" : "translate-x-0.5"
                             }`}
                           />
                         </button>
 
-                        {/* 時間 */}
+                        {/* 開始・終了時刻 */}
                         <select
                           value={slot.start_time.slice(0, 5)}
                           onChange={(e) => handleSlotChange(slot._tempId, "start_time", e.target.value)}
-                          className="text-sm border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          className={selectCls}
                         >
                           {TIME_OPTIONS.map((t) => (
                             <option key={t} value={t}>
@@ -365,11 +356,11 @@ export default function BookingSettingsClient() {
                             </option>
                           ))}
                         </select>
-                        <span className="text-gray-400 text-sm">〜</span>
+                        <span className="text-muted text-sm">〜</span>
                         <select
                           value={slot.end_time.slice(0, 5)}
                           onChange={(e) => handleSlotChange(slot._tempId, "end_time", e.target.value)}
-                          className="text-sm border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          className={selectCls}
                         >
                           {TIME_OPTIONS.map((t) => (
                             <option key={t} value={t}>
@@ -384,20 +375,20 @@ export default function BookingSettingsClient() {
                             onClick={() =>
                               handleSlotChange(slot._tempId, "max_bookings", Math.max(1, slot.max_bookings - 1))
                             }
-                            className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-sm font-bold"
+                            className="w-6 h-6 rounded-full bg-inset hover:bg-surface-active flex items-center justify-center text-sm font-bold text-primary"
                           >
                             −
                           </button>
-                          <span className="w-6 text-center text-sm font-medium">{slot.max_bookings}</span>
+                          <span className="w-6 text-center text-sm font-medium text-primary">{slot.max_bookings}</span>
                           <button
                             onClick={() =>
                               handleSlotChange(slot._tempId, "max_bookings", Math.min(99, slot.max_bookings + 1))
                             }
-                            className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-sm font-bold"
+                            className="w-6 h-6 rounded-full bg-inset hover:bg-surface-active flex items-center justify-center text-sm font-bold text-primary"
                           >
                             ＋
                           </button>
-                          <span className="text-xs text-gray-400 ml-1">名</span>
+                          <span className="text-xs text-muted ml-1">名</span>
                         </div>
 
                         {/* ラベル */}
@@ -406,13 +397,13 @@ export default function BookingSettingsClient() {
                           value={slot.label ?? ""}
                           onChange={(e) => handleSlotChange(slot._tempId, "label", e.target.value)}
                           placeholder="ラベル（任意）"
-                          className="flex-1 text-sm border border-gray-200 rounded-md px-2 py-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          className={`flex-1 min-w-0 ${inputCls}`}
                         />
 
                         {/* 削除 */}
                         <button
                           onClick={() => handleDeleteSlot(slot._tempId)}
-                          className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
+                          className="text-muted hover:text-danger transition-colors flex-shrink-0"
                           title="削除"
                         >
                           <svg
@@ -434,15 +425,15 @@ export default function BookingSettingsClient() {
           })}
 
           {/* スロット追加フォーム */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-blue-800 mb-3">スロットを追加</h3>
+          <div className="bg-accent-dim border border-accent/20 rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-accent-text mb-3">スロットを追加</h3>
             <div className="flex flex-wrap items-end gap-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">曜日</label>
+                <label className="block text-xs text-secondary mb-1">曜日</label>
                 <select
                   value={newSlot.day_of_week ?? 1}
                   onChange={(e) => setNewSlot((p) => ({ ...p, day_of_week: Number(e.target.value) as DayOfWeek }))}
-                  className="text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                  className={selectCls}
                 >
                   {DAY_NAMES.map((d, i) => (
                     <option key={i} value={i}>
@@ -452,11 +443,11 @@ export default function BookingSettingsClient() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">開始</label>
+                <label className="block text-xs text-secondary mb-1">開始</label>
                 <select
                   value={newSlot.start_time ?? "09:00"}
                   onChange={(e) => setNewSlot((p) => ({ ...p, start_time: e.target.value }))}
-                  className="text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                  className={selectCls}
                 >
                   {TIME_OPTIONS.map((t) => (
                     <option key={t} value={t}>
@@ -466,11 +457,11 @@ export default function BookingSettingsClient() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">終了</label>
+                <label className="block text-xs text-secondary mb-1">終了</label>
                 <select
                   value={newSlot.end_time ?? "10:00"}
                   onChange={(e) => setNewSlot((p) => ({ ...p, end_time: e.target.value }))}
-                  className="text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                  className={selectCls}
                 >
                   {TIME_OPTIONS.map((t) => (
                     <option key={t} value={t}>
@@ -480,36 +471,36 @@ export default function BookingSettingsClient() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">同時受付数</label>
+                <label className="block text-xs text-secondary mb-1">同時受付数</label>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setNewSlot((p) => ({ ...p, max_bookings: Math.max(1, (p.max_bookings ?? 1) - 1) }))}
-                    className="w-7 h-7 rounded bg-white border border-gray-300 hover:bg-gray-100 flex items-center justify-center text-sm font-bold"
+                    className="w-7 h-7 rounded bg-surface border border-border-default hover:bg-surface-hover flex items-center justify-center text-sm font-bold text-primary"
                   >
                     −
                   </button>
-                  <span className="w-7 text-center text-sm font-medium">{newSlot.max_bookings ?? 1}</span>
+                  <span className="w-7 text-center text-sm font-medium text-primary">{newSlot.max_bookings ?? 1}</span>
                   <button
                     onClick={() => setNewSlot((p) => ({ ...p, max_bookings: Math.min(99, (p.max_bookings ?? 1) + 1) }))}
-                    className="w-7 h-7 rounded bg-white border border-gray-300 hover:bg-gray-100 flex items-center justify-center text-sm font-bold"
+                    className="w-7 h-7 rounded bg-surface border border-border-default hover:bg-surface-hover flex items-center justify-center text-sm font-bold text-primary"
                   >
                     ＋
                   </button>
                 </div>
               </div>
               <div className="flex-1 min-w-[120px]">
-                <label className="block text-xs text-gray-600 mb-1">ラベル（任意）</label>
+                <label className="block text-xs text-secondary mb-1">ラベル（任意）</label>
                 <input
                   type="text"
                   value={newSlot.label ?? ""}
                   onChange={(e) => setNewSlot((p) => ({ ...p, label: e.target.value }))}
                   placeholder="例: 午前の部"
-                  className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                  className={`w-full ${inputCls}`}
                 />
               </div>
               <button
                 onClick={handleAddSlot}
-                className="flex items-center gap-1 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-1 px-4 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -525,9 +516,9 @@ export default function BookingSettingsClient() {
       {activeTab === "closed" && (
         <div className="space-y-6">
           {/* 毎週定休日 */}
-          <div className="bg-white rounded-xl border shadow-sm p-5">
-            <h3 className="text-base font-semibold text-gray-800 mb-1">毎週の定休日</h3>
-            <p className="text-xs text-gray-500 mb-4">クリックでオン/オフを切り替えます</p>
+          <div className="bg-surface rounded-xl border border-border-default shadow-sm p-5">
+            <h3 className="text-base font-semibold text-primary mb-1">毎週の定休日</h3>
+            <p className="text-xs text-secondary mb-4">クリックでオン/オフを切り替えます</p>
             <div className="flex gap-2 flex-wrap">
               {DAY_NAMES.map((name, dow) => (
                 <button
@@ -536,11 +527,11 @@ export default function BookingSettingsClient() {
                   className={`w-12 h-12 rounded-full font-bold text-sm transition-all ${
                     weeklyClosedDows.has(dow)
                       ? dow === 0
-                        ? "bg-red-500 text-white shadow-md scale-105"
+                        ? "bg-danger text-white shadow-md scale-105"
                         : dow === 6
-                          ? "bg-blue-500 text-white shadow-md scale-105"
-                          : "bg-gray-700 text-white shadow-md scale-105"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          ? "bg-accent text-white shadow-md scale-105"
+                          : "bg-primary text-inverse shadow-md scale-105"
+                      : "bg-inset text-secondary hover:bg-surface-active"
                   }`}
                 >
                   {name}
@@ -548,7 +539,7 @@ export default function BookingSettingsClient() {
               ))}
             </div>
             {weeklyClosedDows.size > 0 && (
-              <p className="mt-3 text-sm text-gray-600">
+              <p className="mt-3 text-sm text-secondary">
                 毎週
                 {[...weeklyClosedDows]
                   .sort()
@@ -560,36 +551,36 @@ export default function BookingSettingsClient() {
           </div>
 
           {/* 特定日定休 */}
-          <div className="bg-white rounded-xl border shadow-sm p-5">
-            <h3 className="text-base font-semibold text-gray-800 mb-1">特定日の定休</h3>
-            <p className="text-xs text-gray-500 mb-4">年末年始・祝日・臨時休業などを個別に設定します</p>
+          <div className="bg-surface rounded-xl border border-border-default shadow-sm p-5">
+            <h3 className="text-base font-semibold text-primary mb-1">特定日の定休</h3>
+            <p className="text-xs text-secondary mb-4">年末年始・祝日・臨時休業などを個別に設定します</p>
 
             {/* 追加フォーム */}
-            <div className="flex flex-wrap gap-3 mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex flex-wrap gap-3 mb-4 bg-accent-dim border border-accent/20 rounded-lg p-4">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">日付</label>
+                <label className="block text-xs text-secondary mb-1">日付</label>
                 <input
                   type="date"
                   value={newSpecificDate}
                   onChange={(e) => setNewSpecificDate(e.target.value)}
                   min={new Date().toISOString().slice(0, 10)}
-                  className="text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                  className={inputCls}
                 />
               </div>
               <div className="flex-1 min-w-[160px]">
-                <label className="block text-xs text-gray-600 mb-1">備考（任意）</label>
+                <label className="block text-xs text-secondary mb-1">備考（任意）</label>
                 <input
                   type="text"
                   value={newSpecificNote}
                   onChange={(e) => setNewSpecificNote(e.target.value)}
                   placeholder="例: 年末年始"
-                  className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                  className={`w-full ${inputCls}`}
                 />
               </div>
               <div className="flex items-end">
                 <button
                   onClick={handleAddSpecificClosed}
-                  className="flex items-center gap-1 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  className="flex items-center gap-1 px-4 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/90 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -601,20 +592,20 @@ export default function BookingSettingsClient() {
 
             {/* 登録済み特定日一覧 */}
             {activeSpecificCloseds.length === 0 ? (
-              <p className="text-sm text-gray-400 italic py-4 text-center">特定日の定休はありません</p>
+              <p className="text-sm text-muted italic py-4 text-center">特定日の定休はありません</p>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-border-subtle">
                 {activeSpecificCloseds
                   .sort((a, b) => (a.closed_date ?? "").localeCompare(b.closed_date ?? ""))
                   .map((cd) => (
                     <div
                       key={cd._tempId}
-                      className="flex items-center justify-between py-3 hover:bg-gray-50 px-2 rounded"
+                      className="flex items-center justify-between py-3 hover:bg-surface-hover px-2 rounded"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-inset flex items-center justify-center">
                           <svg
-                            className="w-4 h-4 text-gray-500"
+                            className="w-4 h-4 text-secondary"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -628,13 +619,13 @@ export default function BookingSettingsClient() {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-800">{cd.closed_date?.replace(/-/g, "/")}</p>
-                          {cd.note && <p className="text-xs text-gray-500">{cd.note}</p>}
+                          <p className="text-sm font-medium text-primary">{cd.closed_date?.replace(/-/g, "/")}</p>
+                          {cd.note && <p className="text-xs text-secondary">{cd.note}</p>}
                         </div>
                       </div>
                       <button
                         onClick={() => handleDeleteSpecificClosed(cd._tempId)}
-                        className="text-gray-300 hover:text-red-400 transition-colors"
+                        className="text-muted hover:text-danger transition-colors"
                         title="削除"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -652,8 +643,8 @@ export default function BookingSettingsClient() {
       {/* トースト */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 z-50 transition-all ${
-            toast.type === "success" ? "bg-blue-600 text-white" : "bg-red-500 text-white"
+          className={`fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2 z-50 transition-all ${
+            toast.type === "success" ? "bg-accent text-white" : "bg-danger text-white"
           }`}
         >
           {toast.type === "success" ? (
