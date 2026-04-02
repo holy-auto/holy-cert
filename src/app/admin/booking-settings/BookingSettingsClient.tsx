@@ -307,7 +307,11 @@ export default function BookingSettingsClient() {
                 className={`bg-surface rounded-xl border border-border-default shadow-sm overflow-hidden ${isClosed ? "opacity-50" : ""}`}
               >
                 {/* 曜日ヘッダー */}
-                <div className={`flex items-center justify-between px-4 py-3 bg-inset`}>
+                <div
+                  className={`flex items-center justify-between px-4 py-3 ${
+                    dow === 0 ? "bg-danger-dim" : dow === 6 ? "bg-accent-dim" : "bg-inset"
+                  }`}
+                >
                   <div className="flex items-center gap-2">
                     <span
                       className={`font-bold text-base ${
