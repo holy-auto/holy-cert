@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createMobileClient, resolveMobileCaller } from "@/lib/supabase/mobile";
 import { requireMinRole } from "@/lib/auth/checkRole";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
  *
  * Android端末向け：Stripe Checkout Session を作成し、
  * お客様のスマホで読み込めるQR URL を返す。
+ *
+ * 入金先: テナントの Stripe Connect アカウント（tenants.stripe_connect_account_id）
+ * フィー: なし（POS決済はStripeの決済手数料のみ施工店負担）
  *
  * レスポンス:
  *   { url: string, session_id: string }
@@ -41,27 +45,25 @@ export async function POST(req: NextRequest) {
   const storeId = String(body?.store_id ?? "");
 
   if (!reservationId || !tenantId) {
-    return NextResponse.json(
-      { error: "reservation_id and tenant_id are required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "reservation_id and tenant_id are required" }, { status: 400 });
   }
 
-  // テナントの Stripe アカウント取得
-  const { data: tenantRow } = await client
+  // テナントの Stripe Connect アカウント取得
+  // ※ tenants テーブルのカラムは stripe_connect_account_id / stripe_connect_onboarded
+  const admin = createAdminClient();
+  const { data: tenantRow } = await admin
     .from("tenants")
-    .select("stripe_account_id")
+    .select("stripe_connect_account_id, stripe_connect_onboarded")
     .eq("id", tenantId)
     .single();
 
-  const stripeAccountId = tenantRow?.stripe_account_id as string | undefined;
+  const connectAccountId = tenantRow?.stripe_connect_onboarded
+    ? (tenantRow.stripe_connect_account_id as string | null)
+    : null;
 
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeSecretKey) {
-    return NextResponse.json(
-      { error: "stripe not configured" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "stripe not configured" }, { status: 500 });
   }
 
   const stripe = new Stripe(stripeSecretKey, {
@@ -69,10 +71,8 @@ export async function POST(req: NextRequest) {
   });
 
   // Checkout Session 作成（お客様が自分のスマホで決済）
-  const successUrl =
-    process.env.NEXT_PUBLIC_APP_URL
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/pos/qr-complete?reservation_id=${reservationId}`
-      : `https://ledra.co.jp/pos/qr-complete?reservation_id=${reservationId}`;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://ledra.co.jp";
+  const successUrl = `${baseUrl}/pos/qr-complete?reservation_id=${reservationId}`;
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
@@ -106,15 +106,16 @@ export async function POST(req: NextRequest) {
     expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
   };
 
-  // Connect アカウントがある場合はそこに向ける
-  const session = stripeAccountId
-    ? await stripe.checkout.sessions.create(sessionParams, {
-        stripeAccount: stripeAccountId,
-      })
-    : await stripe.checkout.sessions.create(sessionParams);
+  // Connect アカウントがオンボーディング済みの場合はそのアカウントで決済
+  // → 入金先: 施工店の Stripe Connect アカウント（施工店の銀行口座）
+  // → フィー: なし（POS決済はプラットフォームフィー不要）
+  const stripeOptions = connectAccountId ? { stripeAccount: connectAccountId } : undefined;
+
+  const session = await stripe.checkout.sessions.create(sessionParams, stripeOptions);
 
   return NextResponse.json({
     url: session.url,
     session_id: session.id,
+    connect_account: connectAccountId ?? null,
   });
 }
