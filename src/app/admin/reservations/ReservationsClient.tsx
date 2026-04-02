@@ -64,7 +64,13 @@ const STATUS_CONFIG: Record<
   confirmed: { label: "予約確定", bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500", variant: "info" },
   arrived: { label: "来店", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500", variant: "warning" },
   in_progress: { label: "作業中", bg: "bg-violet-50", text: "text-violet-700", dot: "bg-violet-500", variant: "info" },
-  completed: { label: "完了", bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500", variant: "success" },
+  completed: {
+    label: "完了",
+    bg: "bg-success-dim",
+    text: "text-success-text",
+    dot: "bg-success-dim0",
+    variant: "success",
+  },
   cancelled: { label: "キャンセル", bg: "bg-gray-50", text: "text-gray-500", dot: "bg-gray-400", variant: "danger" },
 };
 
@@ -80,7 +86,7 @@ const cfg = (s: string) =>
 // ─── Styles ──────────────────────────────────────────────
 
 const inputCls =
-  "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-shadow";
+  "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-shadow";
 const labelCls = "block space-y-1.5";
 const labelTextCls = "text-xs font-semibold text-neutral-600 tracking-wide uppercase";
 
@@ -373,7 +379,7 @@ export default function ReservationsClient() {
       <div className="space-y-6">
         <PageHeader tag="RESERVATIONS" title="予約管理" />
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -389,7 +395,7 @@ export default function ReservationsClient() {
         actions={
           <button
             onClick={openCreateForm}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -408,7 +414,7 @@ export default function ReservationsClient() {
             window.history.replaceState({}, "", window.location.pathname);
             if (!gcalConnected) setGcalConnected(true);
             return (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+              <div className="rounded-xl border border-blue-200 bg-accent-dim p-3 text-sm text-accent-text">
                 ✅ Googleカレンダーとの連携が完了しました！
               </div>
             );
@@ -431,7 +437,7 @@ export default function ReservationsClient() {
         {[
           { label: "本日の予約", value: stats?.today_count ?? 0, icon: "📅", color: "from-blue-500 to-blue-600" },
           { label: "進行中", value: stats?.active_count ?? 0, icon: "⚙️", color: "from-violet-500 to-violet-600" },
-          { label: "総予約数", value: stats?.total ?? 0, icon: "📋", color: "from-emerald-500 to-emerald-600" },
+          { label: "総予約数", value: stats?.total ?? 0, icon: "📋", color: "from-blue-500 to-blue-600" },
         ].map((s) => (
           <div key={s.label} className="glass-card p-4 relative overflow-hidden">
             <div className={`absolute inset-0 bg-gradient-to-br ${s.color} opacity-5`} />
@@ -452,7 +458,7 @@ export default function ReservationsClient() {
               key={m}
               onClick={() => setViewMode(m)}
               className={`px-3.5 py-2 text-xs font-semibold transition-colors ${
-                viewMode === m ? "bg-emerald-600 text-white" : "bg-surface text-secondary hover:bg-surface-hover"
+                viewMode === m ? "bg-accent text-white" : "bg-surface text-secondary hover:bg-surface-hover"
               }`}
             >
               {m === "list" ? "リスト" : "カレンダー"}
@@ -498,7 +504,7 @@ export default function ReservationsClient() {
           onClick={() => setShowGcalPanel(!showGcalPanel)}
           className={`ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors shadow-sm ${
             gcalConnected
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              ? "border-blue-200 bg-accent-dim text-accent-text"
               : "border-border-subtle bg-surface text-secondary hover:bg-surface-hover"
           }`}
         >
@@ -659,7 +665,7 @@ export default function ReservationsClient() {
                     <div className={`flex items-center gap-2 mb-2 px-1`}>
                       <span
                         className={`inline-flex items-center gap-1.5 text-xs font-bold tracking-wide rounded-full px-3 py-1 ${
-                          isToday ? "bg-emerald-600 text-white" : "bg-surface text-muted border border-border-subtle"
+                          isToday ? "bg-accent text-white" : "bg-surface text-muted border border-border-subtle"
                         }`}
                       >
                         {isToday && "今日 • "}
@@ -881,9 +887,9 @@ export default function ReservationsClient() {
                       onClick={() => (s === 2 && formTitle && formDate ? setFormStep(2) : setFormStep(1))}
                       className={`flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-medium transition-colors ${
                         formStep === s
-                          ? "bg-emerald-600 text-white"
+                          ? "bg-accent text-white"
                           : s < formStep
-                            ? "bg-emerald-100 text-emerald-700"
+                            ? "bg-accent-dim text-accent-text"
                             : "bg-surface-hover text-muted"
                       }`}
                     >
@@ -1007,7 +1013,7 @@ export default function ReservationsClient() {
                         type="button"
                         onClick={() => setFormStep(2)}
                         disabled={!formTitle || !formDate}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-40"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent transition-colors disabled:opacity-40"
                       >
                         次へ
                         <svg
@@ -1038,7 +1044,7 @@ export default function ReservationsClient() {
                                 onClick={() => toggleMenuItem(mi)}
                                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                                   selected
-                                    ? "border-emerald-400 bg-emerald-50 text-emerald-700 shadow-sm"
+                                    ? "border-accent bg-accent-dim text-accent-text shadow-sm"
                                     : "border-border-default bg-surface text-secondary hover:border-border-strong"
                                 }`}
                               >
@@ -1049,9 +1055,9 @@ export default function ReservationsClient() {
                           })}
                         </div>
                         {formAmount > 0 && (
-                          <div className="mt-3 flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2.5">
-                            <span className="text-xs text-emerald-700 font-medium">見積金額</span>
-                            <span className="text-base font-bold text-emerald-700">{formatJpy(formAmount)}</span>
+                          <div className="mt-3 flex items-center justify-between bg-accent-dim border border-blue-100 rounded-xl px-4 py-2.5">
+                            <span className="text-xs text-accent-text font-medium">見積金額</span>
+                            <span className="text-base font-bold text-accent-text">{formatJpy(formAmount)}</span>
                           </div>
                         )}
                       </div>
@@ -1071,7 +1077,7 @@ export default function ReservationsClient() {
 
                     {saveMsg && (
                       <div
-                        className={`text-sm p-3 rounded-xl ${saveMsg.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}
+                        className={`text-sm p-3 rounded-xl ${saveMsg.ok ? "bg-success-dim text-success-text" : "bg-red-50 text-red-600"}`}
                       >
                         {saveMsg.text}
                       </div>

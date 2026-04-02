@@ -307,11 +307,11 @@ export default function BookingPage() {
   // ── Done screen ──
   if (step === "done" && doneReservation) {
     return (
-      <div className="min-h-screen bg-[#f5f7f5] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-base flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-[#e8f5e9] flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-full bg-accent-dim flex items-center justify-center mx-auto mb-4">
             <svg
-              className="w-8 h-8 text-[#2e7d32]"
+              className="w-8 h-8 text-accent"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -322,7 +322,7 @@ export default function BookingPage() {
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">予約が完了しました</h2>
           <p className="text-sm text-gray-500 mb-6">ご予約ありがとうございます。</p>
-          <div className="bg-[#f5f7f5] rounded-xl p-4 text-left space-y-2 mb-6">
+          <div className="bg-base rounded-xl p-4 text-left space-y-2 mb-6">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">日時</span>
               <span className="font-semibold text-gray-800">{formatDateJa(doneReservation.date)}</span>
@@ -349,7 +349,7 @@ export default function BookingPage() {
               setFormNote("");
               setDoneReservation(null);
             }}
-            className="w-full py-3 rounded-xl bg-[#388e3c] text-white font-semibold text-sm hover:bg-[#2e7d32] transition-colors"
+            className="w-full py-3 rounded-xl bg-accent text-white font-semibold text-sm hover:bg-blue-700 transition-colors"
           >
             トップへ戻る
           </button>
@@ -361,7 +361,7 @@ export default function BookingPage() {
   // ── Confirm screen ──
   if (step === "confirm" && selectedDate && selectedSlot) {
     return (
-      <div className="min-h-screen bg-[#f5f7f5]">
+      <div className="min-h-screen bg-base">
         <Header tenantName={tenantName || tenantSlug} />
         <div className="max-w-lg mx-auto p-4">
           <StepIndicator current={3} />
@@ -393,7 +393,7 @@ export default function BookingPage() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="flex-1 py-3 rounded-xl bg-[#388e3c] text-white text-sm font-semibold hover:bg-[#2e7d32] transition-colors disabled:opacity-60"
+                className="flex-1 py-3 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
               >
                 {submitting ? "送信中..." : "予約を確定する"}
               </button>
@@ -408,15 +408,15 @@ export default function BookingPage() {
   if (step === "form" && selectedDate && selectedSlot) {
     const isValid = formName.trim().length > 0;
     return (
-      <div className="min-h-screen bg-[#f5f7f5]">
+      <div className="min-h-screen bg-base">
         <Header tenantName={tenantName || tenantSlug} />
         <div className="max-w-lg mx-auto p-4">
           <StepIndicator current={2} />
           <div className="bg-white rounded-2xl shadow-sm p-6 mt-4">
             {/* 選択済み日時サマリー */}
-            <div className="flex items-center gap-2 p-3 bg-[#e8f5e9] rounded-xl mb-5">
+            <div className="flex items-center gap-2 p-3 bg-accent-dim rounded-xl mb-5">
               <svg
-                className="w-4 h-4 text-[#388e3c] shrink-0"
+                className="w-4 h-4 text-accent shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -428,7 +428,7 @@ export default function BookingPage() {
                   d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25"
                 />
               </svg>
-              <span className="text-sm font-semibold text-[#2e7d32]">
+              <span className="text-sm font-semibold text-accent">
                 {formatDateJa(selectedDate)}　{selectedSlot.start_time.slice(0, 5)} 〜{" "}
                 {selectedSlot.end_time.slice(0, 5)}
               </span>
@@ -443,7 +443,7 @@ export default function BookingPage() {
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="山田 太郎"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#388e3c] focus:border-transparent"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </FormField>
               <FormField label="電話番号">
@@ -452,7 +452,7 @@ export default function BookingPage() {
                   value={formPhone}
                   onChange={(e) => setFormPhone(e.target.value)}
                   placeholder="090-0000-0000"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#388e3c] focus:border-transparent"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </FormField>
               <FormField label="メールアドレス">
@@ -461,7 +461,7 @@ export default function BookingPage() {
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
                   placeholder="example@email.com"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#388e3c] focus:border-transparent"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
               </FormField>
               <FormField label="備考・ご要望">
@@ -470,7 +470,7 @@ export default function BookingPage() {
                   onChange={(e) => setFormNote(e.target.value)}
                   placeholder="ご要望があればご記入ください"
                   rows={3}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#388e3c] focus:border-transparent resize-none"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
                 />
               </FormField>
             </div>
@@ -485,7 +485,7 @@ export default function BookingPage() {
               <button
                 onClick={() => setStep("confirm")}
                 disabled={!isValid}
-                className="flex-1 py-3 rounded-xl bg-[#388e3c] text-white text-sm font-semibold hover:bg-[#2e7d32] transition-colors disabled:opacity-40"
+                className="flex-1 py-3 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-40"
               >
                 確認へ進む
               </button>
@@ -501,7 +501,7 @@ export default function BookingPage() {
     const dayData = slotsCache[selectedDate];
     const isLoading = loadingDates.has(selectedDate);
     return (
-      <div className="min-h-screen bg-[#f5f7f5]">
+      <div className="min-h-screen bg-base">
         <Header tenantName={tenantName || tenantSlug} />
         <div className="max-w-lg mx-auto p-4">
           <StepIndicator current={1} />
@@ -530,10 +530,7 @@ export default function BookingPage() {
               <div className="py-12 text-center">
                 <div className="text-4xl mb-3">📅</div>
                 <p className="text-sm text-gray-500">この日は予約枠が設定されていません。</p>
-                <button
-                  onClick={() => setStep("calendar")}
-                  className="mt-4 text-sm text-[#388e3c] font-medium underline"
-                >
+                <button onClick={() => setStep("calendar")} className="mt-4 text-sm text-accent font-medium underline">
                   別の日を選ぶ
                 </button>
               </div>
@@ -550,11 +547,11 @@ export default function BookingPage() {
                         disabled={!avail}
                         className={`relative flex flex-col items-center justify-center rounded-xl py-4 px-3 border-2 transition-all ${
                           avail
-                            ? "border-[#388e3c] bg-white hover:bg-[#e8f5e9] active:scale-95 cursor-pointer"
+                            ? "border-accent bg-white hover:bg-accent-dim active:scale-[0.97] cursor-pointer"
                             : "border-gray-100 bg-gray-50 cursor-not-allowed opacity-60"
                         }`}
                       >
-                        <span className={`text-xl font-bold mb-0.5 ${avail ? "text-[#2e7d32]" : "text-gray-300"}`}>
+                        <span className={`text-xl font-bold mb-0.5 ${avail ? "text-accent" : "text-gray-300"}`}>
                           {avail ? "○" : "×"}
                         </span>
                         <span className={`text-sm font-semibold ${avail ? "text-gray-800" : "text-gray-400"}`}>
@@ -564,7 +561,7 @@ export default function BookingPage() {
                           〜 {slot.end_time.slice(0, 5)}
                         </span>
                         {avail && (
-                          <span className="absolute top-1.5 right-1.5 text-[10px] bg-[#e8f5e9] text-[#388e3c] rounded-full px-1.5 py-0.5 font-medium">
+                          <span className="absolute top-1.5 right-1.5 text-[10px] bg-accent-dim text-accent rounded-full px-1.5 py-0.5 font-medium">
                             残{slot.available}
                           </span>
                         )}
@@ -589,22 +586,22 @@ export default function BookingPage() {
   })();
 
   return (
-    <div className="min-h-screen bg-[#f5f7f5]">
+    <div className="min-h-screen bg-base">
       <Header tenantName={tenantName || tenantSlug} />
 
       {/* ── view mode toggle + nav ── */}
-      <div className="bg-[#388e3c] text-white">
+      <div className="bg-accent text-white">
         {/* View toggle */}
-        <div className="flex border-b border-[#2e7d32]">
+        <div className="flex border-b border-white/20">
           <button
             onClick={() => setViewMode("month")}
-            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${viewMode === "month" ? "bg-[#2e7d32]" : "hover:bg-[#2e7d32]/40"}`}
+            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${viewMode === "month" ? "bg-black/20" : "hover:bg-black/10"}`}
           >
             月
           </button>
           <button
             onClick={() => setViewMode("week")}
-            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${viewMode === "week" ? "bg-[#2e7d32]" : "hover:bg-[#2e7d32]/40"}`}
+            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${viewMode === "week" ? "bg-black/20" : "hover:bg-black/10"}`}
           >
             週
           </button>
@@ -616,7 +613,7 @@ export default function BookingPage() {
             <button
               onClick={handleMonthPrev}
               disabled={viewYear === today.getFullYear() && viewMonth === today.getMonth()}
-              className="p-2 rounded-full hover:bg-[#2e7d32] disabled:opacity-30 transition-colors"
+              className="p-2 rounded-full hover:bg-white/20 disabled:opacity-30 transition-colors"
               aria-label="前月"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -629,7 +626,7 @@ export default function BookingPage() {
             <button
               onClick={handleMonthNext}
               disabled={`${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-01` > maxFutureDate}
-              className="p-2 rounded-full hover:bg-[#2e7d32] disabled:opacity-30 transition-colors"
+              className="p-2 rounded-full hover:bg-white/20 disabled:opacity-30 transition-colors"
               aria-label="翌月"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -642,7 +639,7 @@ export default function BookingPage() {
             <button
               onClick={handleWeekPrev}
               disabled={weekDates[0] <= todayStr}
-              className="p-2 rounded-full hover:bg-[#2e7d32] disabled:opacity-30 transition-colors"
+              className="p-2 rounded-full hover:bg-white/20 disabled:opacity-30 transition-colors"
               aria-label="前週"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -655,7 +652,7 @@ export default function BookingPage() {
             <button
               onClick={handleWeekNext}
               disabled={weekDates[6] > maxFutureDate}
-              className="p-2 rounded-full hover:bg-[#2e7d32] disabled:opacity-30 transition-colors"
+              className="p-2 rounded-full hover:bg-white/20 disabled:opacity-30 transition-colors"
               aria-label="翌週"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -702,14 +699,14 @@ export default function BookingPage() {
                     ${!cell.current ? "bg-gray-50/50" : ""}
                     ${isSat && cell.current ? "bg-blue-50/20" : ""}
                     ${isSun && cell.current ? "bg-red-50/20" : ""}
-                    ${!isPast && cell.current ? "hover:bg-[#e8f5e9] cursor-pointer active:scale-95" : "cursor-default"}
+                    ${!isPast && cell.current ? "hover:bg-accent-dim cursor-pointer active:scale-[0.97]" : "cursor-default"}
                   `}
                 >
                   {/* Date number */}
                   <span
                     className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold mb-1 ${
                       isToday
-                        ? "bg-[#388e3c] text-white"
+                        ? "bg-accent text-white"
                         : !cell.current
                           ? "text-gray-300"
                           : isPast
@@ -731,7 +728,7 @@ export default function BookingPage() {
                         status === "loading"
                           ? "text-gray-200 animate-pulse"
                           : status === "available"
-                            ? "text-[#388e3c]"
+                            ? "text-accent"
                             : status === "full"
                               ? "text-gray-300"
                               : "text-gray-200"
@@ -772,7 +769,7 @@ export default function BookingPage() {
                       >
                         {WEEKDAYS_SHORT[dow]}
                       </div>
-                      <div className={`text-sm font-bold mt-0.5 ${isToday ? "text-[#388e3c]" : "text-gray-800"}`}>
+                      <div className={`text-sm font-bold mt-0.5 ${isToday ? "text-accent" : "text-gray-800"}`}>
                         {d.getMonth() + 1}/{d.getDate()}
                       </div>
                     </th>
@@ -813,7 +810,7 @@ export default function BookingPage() {
                             onClick={() => handleDateClick(date)}
                             className="flex flex-col items-center gap-0.5 group/cell"
                           >
-                            <span className="text-[#388e3c] text-xl font-bold group-hover/cell:scale-110 transition-transform">
+                            <span className="text-accent text-xl font-bold group-hover/cell:scale-110 transition-transform">
                               ○
                             </span>
                           </button>
@@ -827,7 +824,7 @@ export default function BookingPage() {
                           key={date}
                           className={`border-b border-r border-gray-100 py-3 text-center align-middle transition-colors ${
                             dow === 0 ? "bg-red-50/30" : dow === 6 ? "bg-blue-50/30" : ""
-                          } ${!isPast && slot?.available ? "hover:bg-[#e8f5e9]" : ""}`}
+                          } ${!isPast && slot?.available ? "hover:bg-accent-dim" : ""}`}
                         >
                           {cellContent}
                         </td>
@@ -844,7 +841,7 @@ export default function BookingPage() {
       {/* ── Legend ── */}
       <div className="flex items-center justify-center gap-5 py-4 text-xs text-gray-500">
         <span className="flex items-center gap-1.5">
-          <span className="text-[#388e3c] font-bold text-base">○</span> 予約可
+          <span className="text-accent font-bold text-base">○</span> 予約可
         </span>
         <span className="flex items-center gap-1.5">
           <span className="text-gray-300 font-bold text-base">×</span> 満席
@@ -864,7 +861,7 @@ export default function BookingPage() {
           </div>
           <a
             href={`/customer/${tenantSlug}`}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-[#388e3c] text-white rounded-full text-sm font-semibold shadow hover:bg-[#2e7d32] transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-accent text-white rounded-full text-sm font-semibold shadow hover:bg-blue-700 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path
@@ -888,9 +885,9 @@ export default function BookingPage() {
 
 function Header({ tenantName }: { tenantName: string }) {
   return (
-    <header className="bg-[#388e3c] text-white px-4 py-4">
+    <header className="bg-accent text-white px-4 py-4">
       <h1 className="text-base font-bold">{tenantName || "予約"}</h1>
-      <p className="text-xs text-[#a5d6a7] mt-0.5">ご希望の日時をお選びください</p>
+      <p className="text-xs text-blue-200 mt-0.5">ご希望の日時をお選びください</p>
     </header>
   );
 }
@@ -909,9 +906,9 @@ function StepIndicator({ current }: { current: number }) {
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
                   done
-                    ? "bg-[#388e3c] border-[#388e3c] text-white"
+                    ? "bg-accent border-accent text-white"
                     : active
-                      ? "bg-white border-[#388e3c] text-[#388e3c]"
+                      ? "bg-white border-accent text-accent"
                       : "bg-white border-gray-200 text-gray-300"
                 }`}
               >
@@ -923,12 +920,12 @@ function StepIndicator({ current }: { current: number }) {
                   stepNum
                 )}
               </div>
-              <span className={`mt-1 text-[10px] font-medium ${active ? "text-[#388e3c]" : "text-gray-400"}`}>
+              <span className={`mt-1 text-[10px] font-medium ${active ? "text-accent" : "text-gray-400"}`}>
                 {label}
               </span>
             </div>
             {i < steps.length - 1 && (
-              <div className={`h-0.5 flex-1 mx-1 mb-4 transition-all ${done ? "bg-[#388e3c]" : "bg-gray-100"}`} />
+              <div className={`h-0.5 flex-1 mx-1 mb-4 transition-all ${done ? "bg-accent" : "bg-gray-100"}`} />
             )}
           </div>
         );

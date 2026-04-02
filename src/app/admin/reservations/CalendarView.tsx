@@ -22,7 +22,7 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> =
   confirmed: { bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-500" },
   arrived: { bg: "bg-amber-100", text: "text-amber-700", dot: "bg-amber-500" },
   in_progress: { bg: "bg-violet-100", text: "text-violet-700", dot: "bg-violet-500" },
-  completed: { bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500" },
+  completed: { bg: "bg-success-dim", text: "text-success-text", dot: "bg-success" },
   cancelled: { bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" },
 };
 
@@ -110,7 +110,7 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
   return (
     <div className="glass-card overflow-hidden">
       {/* ── Header ── */}
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white">
         <div className="flex items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2">
             <button onClick={goPrev} className="p-1.5 rounded-lg hover:bg-white/20 transition-colors" aria-label="前月">
@@ -130,7 +130,7 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
           <div className="flex items-center gap-3">
             {/* Month stats */}
             <div className="text-right">
-              <div className="text-[10px] text-emerald-200">今月の予約</div>
+              <div className="text-[10px] text-blue-200">今月の予約</div>
               <div className="text-sm font-bold">
                 {monthStats.total}件 / {monthStats.activeDays}日
               </div>
@@ -183,14 +183,14 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
                 !cell.isCurrentMonth ? "bg-surface-hover/50" : ""
               } ${isSat && cell.isCurrentMonth ? "bg-blue-50/30" : ""}
               ${isSun && cell.isCurrentMonth ? "bg-red-50/30" : ""}
-              hover:bg-emerald-50/50 active:bg-emerald-100/50`}
+              hover:bg-accent-dim/50 active:bg-accent-dim`}
             >
               {/* Date number */}
               <div className="flex items-start justify-between mb-1">
                 <span
                   className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
                     isToday
-                      ? "bg-emerald-600 text-white shadow-sm"
+                      ? "bg-accent text-white shadow-sm"
                       : !cell.isCurrentMonth
                         ? "text-muted/30"
                         : isSun
@@ -230,7 +230,7 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
                   )}
                   {completedCount > 0 && (
                     <div
-                      className="h-1 rounded-full bg-green-400"
+                      className="h-1 rounded-full bg-success"
                       style={{ flex: completedCount }}
                       title={`完了 ${completedCount}件`}
                     />
@@ -272,7 +272,7 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
         {[
           { dot: "bg-blue-400", label: "予約確定" },
           { dot: "bg-violet-400", label: "来店・作業中" },
-          { dot: "bg-green-400", label: "完了" },
+          { dot: "bg-success", label: "完了" },
         ].map((item) => (
           <span key={item.label} className="flex items-center gap-1.5 text-[11px] text-muted">
             <span className={`w-2 h-2 rounded-full ${item.dot}`} />
