@@ -8,9 +8,10 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  params: { token: string };
+  params: Promise<{ token: string }>;
 }
 
-export default function SignaturePage({ params }: PageProps) {
-  return <SignatureClient token={params.token} />;
+export default async function SignaturePage({ params }: PageProps) {
+  const { token } = await params;
+  return <SignatureClient token={token} />;
 }

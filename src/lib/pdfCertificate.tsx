@@ -512,7 +512,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string, sign
         </Page>
       )}
 
-      {/* ── ページ2: 注意事項（整備の場合） ── */
+      {/* ── ページ2: 注意事項（整備の場合） ── */}
       {isMaintenance && (
         <Page size="A4" style={styles.page}>
           <View>
@@ -583,7 +583,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string, sign
         </Page>
       )}
 
-      {/* ── ページ2: 保証・注意事項（鈑金塗装の場合） ── */
+      {/* ── ページ2: 保証・注意事項（鈑金塗装の場合） ── */}
       {isBodyRepair && (
         <Page size="A4" style={styles.page}>
           <View>

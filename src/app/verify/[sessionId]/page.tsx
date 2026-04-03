@@ -8,9 +8,10 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  params: { sessionId: string };
+  params: Promise<{ sessionId: string }>;
 }
 
-export default function VerifyPage({ params }: PageProps) {
-  return <VerifyClient sessionId={params.sessionId} />;
+export default async function VerifyPage({ params }: PageProps) {
+  const { sessionId } = await params;
+  return <VerifyClient sessionId={sessionId} />;
 }
