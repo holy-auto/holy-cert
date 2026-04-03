@@ -5,7 +5,7 @@
  * 期限切れ処理を担当するモジュール。
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { computeDocumentHash } from './hash';
 import type {
@@ -38,7 +38,7 @@ export async function createSignatureSession(
 ): Promise<SignatureSession> {
   const supabase = getSupabaseAdmin();
 
-  const token = uuidv4();
+  const token = randomUUID();
   const expiresAt = new Date(
     Date.now() + EXPIRES_HOURS * 60 * 60 * 1000,
   ).toISOString();
