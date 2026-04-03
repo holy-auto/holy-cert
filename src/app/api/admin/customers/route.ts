@@ -122,10 +122,14 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_create" });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "free",
+      action: "customer_create",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const name = (body?.name ?? "").trim();
     if (!name) return NextResponse.json({ error: "name_required", message: "顧客名は必須です。" }, { status: 400 });
 
@@ -161,10 +165,14 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_update" });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "free",
+      action: "customer_update",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
@@ -229,10 +237,14 @@ export async function DELETE(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_delete" });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "free",
+      action: "customer_delete",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
@@ -251,17 +263,16 @@ export async function DELETE(req: NextRequest) {
       .eq("customer_id", id);
 
     if ((certCount ?? 0) > 0 || (invCount ?? 0) > 0) {
-      return NextResponse.json({
-        error: "has_linked_records",
-        message: "この顧客には証明書または請求書が紐付いているため削除できません。",
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "has_linked_records",
+          message: "この顧客には証明書または請求書が紐付いているため削除できません。",
+        },
+        { status: 400 },
+      );
     }
 
-    const { error } = await supabase
-      .from("customers")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("customers").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       console.error("[customers] delete_failed:", error.message);

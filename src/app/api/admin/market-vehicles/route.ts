@@ -34,7 +34,11 @@ export async function GET(req: NextRequest) {
       // Fetch images
       let imgs: any[] = [];
       if (vehicles && vehicles.length > 0) {
-        const { data } = await supabase.from("market_vehicle_images").select("*").eq("vehicle_id", singleId).order("sort_order", { ascending: true });
+        const { data } = await supabase
+          .from("market_vehicle_images")
+          .select("*")
+          .eq("vehicle_id", singleId)
+          .order("sort_order", { ascending: true });
         imgs = data ?? [];
       }
       const enriched = (vehicles ?? []).map((v) => ({ ...v, images: imgs }));
@@ -119,10 +123,14 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const deny = await enforceBilling(req as any, { minPlan: "standard", action: "market_create" });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "standard",
+      action: "market_create",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     const makerVal = (body?.maker ?? "").trim();
     const modelVal = (body?.model ?? "").trim();
@@ -188,10 +196,14 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const deny = await enforceBilling(req as any, { minPlan: "standard", action: "market_update" });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "standard",
+      action: "market_update",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
@@ -266,10 +278,14 @@ export async function DELETE(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const deny = await enforceBilling(req as any, { minPlan: "standard", action: "market_delete" });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "standard",
+      action: "market_delete",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
@@ -284,10 +300,13 @@ export async function DELETE(req: NextRequest) {
     if (!vehicle) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     if (vehicle.status !== "draft") {
-      return NextResponse.json({
-        error: "not_draft",
-        message: "下書きステータスの車両のみ削除できます。",
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "not_draft",
+          message: "下書きステータスの車両のみ削除できます。",
+        },
+        { status: 400 },
+      );
     }
 
     // Delete associated images from storage
@@ -304,19 +323,11 @@ export async function DELETE(req: NextRequest) {
       }
 
       // Delete image records
-      await supabase
-        .from("market_vehicle_images")
-        .delete()
-        .eq("vehicle_id", id)
-        .eq("tenant_id", caller.tenantId);
+      await supabase.from("market_vehicle_images").delete().eq("vehicle_id", id).eq("tenant_id", caller.tenantId);
     }
 
     // Delete the vehicle
-    const { error } = await supabase
-      .from("market_vehicles")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("market_vehicles").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       console.error("[market-vehicles] delete_failed:", error.message);

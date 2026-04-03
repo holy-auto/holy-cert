@@ -15,13 +15,7 @@ function baseUrl(req: NextRequest) {
 
 function pickId(body: any): string | null {
   return (
-    body?.certificate_id ??
-    body?.certificateId ??
-    body?.id ??
-    body?.cid ??
-    body?.public_id ??
-    body?.publicId ??
-    null
+    body?.certificate_id ?? body?.certificateId ?? body?.id ?? body?.cid ?? body?.public_id ?? body?.publicId ?? null
   );
 }
 
@@ -70,7 +64,7 @@ async function proxyToCertificatePdf(req: NextRequest, id: string) {
   const text = last ? await last.text().catch(() => "") : "";
   return NextResponse.json(
     { error: "Failed to proxy to /api/certificate/pdf", status, detail: text.slice(0, 500) },
-    { status }
+    { status },
   );
 }
 
@@ -83,7 +77,7 @@ export async function POST(req: NextRequest) {
   }
 
   // free以上 + is_active 必須（certificate_id が来れば guard 側で tenant 逆引き可能）
-  const deny = await enforceBilling(req, { minPlan: "free", action: "pdf_one" });
+  const deny = await enforceBilling(req, { minPlan: "free", action: "pdf_one", tenantId: caller.tenantId });
   if (deny) return deny as any;
 
   const body = await req.json().catch(() => null);

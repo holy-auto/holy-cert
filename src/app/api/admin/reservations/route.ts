@@ -21,7 +21,9 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("reservations")
-      .select("id, customer_id, vehicle_id, title, menu_items_json, note, scheduled_date, start_time, end_time, assigned_user_id, status, estimated_amount, created_at")
+      .select(
+        "id, customer_id, vehicle_id, title, menu_items_json, note, scheduled_date, start_time, end_time, assigned_user_id, status, estimated_amount, created_at, workflow_template_id, current_step_key, current_step_order, progress_pct",
+      )
       .eq("tenant_id", caller.tenantId)
       .order("scheduled_date", { ascending: true })
       .order("start_time", { ascending: true });
@@ -49,10 +51,7 @@ export async function GET(req: NextRequest) {
     const customerIds = [...new Set((reservations ?? []).map((r) => r.customer_id).filter(Boolean))];
     const customerMap: Record<string, string> = {};
     if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name")
-        .in("id", customerIds);
+      const { data: customers } = await supabase.from("customers").select("id, name").in("id", customerIds);
       (customers ?? []).forEach((c) => {
         customerMap[c.id] = c.name;
       });
@@ -104,12 +103,16 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const deny = await enforceBilling(req as any, { minPlan: "starter", action: "reservation_create" });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "starter",
+      action: "reservation_create",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
 
-    const title = (String(body?.title ?? "")).trim();
+    const title = String(body?.title ?? "").trim();
     if (!title) return NextResponse.json({ error: "missing_title" }, { status: 400 });
 
     const scheduledDate = String(body?.scheduled_date ?? "").trim();
@@ -118,15 +121,15 @@ export async function POST(req: NextRequest) {
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
-      customer_id: (String(body?.customer_id ?? "")).trim() || null,
-      vehicle_id: (String(body?.vehicle_id ?? "")).trim() || null,
+      customer_id: String(body?.customer_id ?? "").trim() || null,
+      vehicle_id: String(body?.vehicle_id ?? "").trim() || null,
       title,
       menu_items_json: body?.menu_items_json ?? [],
-      note: (String(body?.note ?? "")).trim() || null,
+      note: String(body?.note ?? "").trim() || null,
       scheduled_date: scheduledDate,
-      start_time: (String(body?.start_time ?? "")).trim() || null,
-      end_time: (String(body?.end_time ?? "")).trim() || null,
-      assigned_user_id: (String(body?.assigned_user_id ?? "")).trim() || null,
+      start_time: String(body?.start_time ?? "").trim() || null,
+      end_time: String(body?.end_time ?? "").trim() || null,
+      assigned_user_id: String(body?.assigned_user_id ?? "").trim() || null,
       status: "confirmed",
       estimated_amount: parseInt(String(body?.estimated_amount ?? 0), 10) || 0,
     };
@@ -163,32 +166,37 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const deny = await enforceBilling(req as any, { minPlan: "starter", action: "reservation_update" });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "starter",
+      action: "reservation_update",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
+    const id = String(body?.id ?? "").trim();
     if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-    if (body.title !== undefined) updates.title = (String(body.title)).trim();
-    if (body.customer_id !== undefined) updates.customer_id = (String(body.customer_id)).trim() || null;
-    if (body.vehicle_id !== undefined) updates.vehicle_id = (String(body.vehicle_id)).trim() || null;
+    if (body.title !== undefined) updates.title = String(body.title).trim();
+    if (body.customer_id !== undefined) updates.customer_id = String(body.customer_id).trim() || null;
+    if (body.vehicle_id !== undefined) updates.vehicle_id = String(body.vehicle_id).trim() || null;
     if (body.menu_items_json !== undefined) updates.menu_items_json = body.menu_items_json;
-    if (body.note !== undefined) updates.note = (String(body.note ?? "")).trim() || null;
+    if (body.note !== undefined) updates.note = String(body.note ?? "").trim() || null;
     if (body.scheduled_date !== undefined) updates.scheduled_date = body.scheduled_date;
-    if (body.start_time !== undefined) updates.start_time = (String(body.start_time)).trim() || null;
-    if (body.end_time !== undefined) updates.end_time = (String(body.end_time)).trim() || null;
-    if (body.assigned_user_id !== undefined) updates.assigned_user_id = (String(body.assigned_user_id)).trim() || null;
-    if (body.estimated_amount !== undefined) updates.estimated_amount = parseInt(String(body.estimated_amount), 10) || 0;
+    if (body.start_time !== undefined) updates.start_time = String(body.start_time).trim() || null;
+    if (body.end_time !== undefined) updates.end_time = String(body.end_time).trim() || null;
+    if (body.assigned_user_id !== undefined) updates.assigned_user_id = String(body.assigned_user_id).trim() || null;
+    if (body.estimated_amount !== undefined)
+      updates.estimated_amount = parseInt(String(body.estimated_amount), 10) || 0;
 
     // ステータス変更
     if (body.status !== undefined) {
       updates.status = body.status;
       if (body.status === "cancelled") {
         updates.cancelled_at = new Date().toISOString();
-        updates.cancel_reason = (String(body.cancel_reason ?? "")).trim() || null;
+        updates.cancel_reason = String(body.cancel_reason ?? "").trim() || null;
       }
     }
 
@@ -208,8 +216,9 @@ export async function PUT(req: NextRequest) {
     // ── Google Calendar 同期（非ブロッキング） ──
     if (data.status === "cancelled" && data.gcal_event_id) {
       // キャンセル時は GCal イベントを削除
-      syncDeleteEvent(caller.tenantId, data.id, data.gcal_event_id)
-        .catch((e) => console.error("[reservations] gcal sync delete failed:", e));
+      syncDeleteEvent(caller.tenantId, data.id, data.gcal_event_id).catch((e) =>
+        console.error("[reservations] gcal sync delete failed:", e),
+      );
     } else if (data.gcal_event_id) {
       // 既存イベントの更新
       syncUpdateEvent(caller.tenantId, {
@@ -247,11 +256,15 @@ export async function DELETE(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const deny = await enforceBilling(req as any, { minPlan: "starter", action: "reservation_delete" });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "starter",
+      action: "reservation_delete",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
+    const id = String(body?.id ?? "").trim();
     if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
     const hardDelete = body?.hard_delete === true;
@@ -284,7 +297,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // ソフトデリート（キャンセル扱い）
-    const cancelReason = (String(body?.cancel_reason ?? "")).trim() || null;
+    const cancelReason = String(body?.cancel_reason ?? "").trim() || null;
 
     // キャンセル前に gcal_event_id を取得
     const { data: existing } = await supabase
@@ -314,8 +327,9 @@ export async function DELETE(req: NextRequest) {
 
     // ── Google Calendar 同期: イベント削除（非ブロッキング） ──
     if (existing?.gcal_event_id) {
-      syncDeleteEvent(caller.tenantId, id, existing.gcal_event_id)
-        .catch((e) => console.error("[reservations] gcal sync delete failed:", e));
+      syncDeleteEvent(caller.tenantId, id, existing.gcal_event_id).catch((e) =>
+        console.error("[reservations] gcal sync delete failed:", e),
+      );
     }
 
     return NextResponse.json({ ok: true, reservation: data });
