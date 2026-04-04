@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         },
         { onConflict: "user_id,token" },
       )
-      .select()
+      .select("id, user_id, tenant_id, token, platform, updated_at")
       .single();
 
     if (error) return apiInternalError(error, "push.register");

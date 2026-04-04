@@ -13,7 +13,7 @@
 
 import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { apiOk, apiError } from '@/lib/api/response';
+import { apiOk, apiError, apiInternalError } from '@/lib/api/response';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,10 +123,6 @@ export async function GET(
       certificate: cert,
     });
   } catch (e) {
-    console.error("[signature/session/token]", e);
-    return new Response(
-      JSON.stringify({ error: "internal_error", message: "内部エラーが発生しました" }),
-      { status: 500, headers: { "content-type": "application/json" } },
-    );
+    return apiInternalError(e, "signature/session/token");
   }
 }
