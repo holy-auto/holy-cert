@@ -90,6 +90,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, memberships_count: memberships.length });
   } catch (e: unknown) {
-    return apiInternalError(e, "portal/request-code");
+    // DEBUG: expose error message to diagnose production issue
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[portal/request-code] caught:", msg);
+    return NextResponse.json({ error: "internal_error", message: msg, debug: true }, { status: 500 });
   }
 }
