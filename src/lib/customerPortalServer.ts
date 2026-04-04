@@ -222,14 +222,22 @@ export async function listReservationsForCustomer(tenantId: string, phoneHash: s
   const today = new Date().toISOString().slice(0, 10);
   const { data: reservations } = await db
     .from("reservations")
-    .select("id, date, time_slot, menu, status, note")
+    .select("id, scheduled_date, start_time, title, menu_items_json, status, note")
     .eq("tenant_id", tenantId)
     .eq("customer_id", customerId)
-    .gte("date", today)
+    .gte("scheduled_date", today)
     .neq("status", "cancelled")
-    .order("date", { ascending: true })
+    .order("scheduled_date", { ascending: true })
     .limit(10);
-  return reservations ?? [];
+  // フロントエンドの型 (date, time_slot, menu) に合わせてフィールドをマッピング
+  return (reservations ?? []).map((r) => ({
+    id: r.id,
+    date: r.scheduled_date,
+    time_slot: r.start_time ?? null,
+    menu: r.title ?? null,
+    status: r.status,
+    note: r.note ?? null,
+  }));
 }
 
 /** 顧客プロフィール情報を取得 */

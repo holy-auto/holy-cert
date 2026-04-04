@@ -48,7 +48,12 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
     const email = normalizeEmail(String(body.email ?? ""));
-    const last4 = normalizeLast4(String(body.phone_last4 ?? body.last4 ?? ""));
+    let last4: string;
+    try {
+      last4 = normalizeLast4(String(body.phone_last4 ?? body.last4 ?? ""));
+    } catch {
+      return apiValidationError("電話番号の下4桁を正しく入力してください。");
+    }
     const preferredTenantSlug = String(body.preferred_tenant_slug ?? body.tenant ?? "").trim() || null;
     const from = String(body.from ?? "").trim();
     const publicId = String(body.public_id ?? body.pid ?? "").trim();

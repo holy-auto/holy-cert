@@ -147,21 +147,21 @@ async function listFutureReservationsByCustomer(tenantId: string, customerId: st
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await admin()
     .from("reservations")
-    .select("id, date, time_slot, status")
+    .select("id, scheduled_date, start_time, status")
     .eq("tenant_id", tenantId)
     .eq("customer_id", customerId)
-    .gte("date", today)
+    .gte("scheduled_date", today)
     .neq("status", "cancelled")
-    .order("date", { ascending: true })
+    .order("scheduled_date", { ascending: true })
     .limit(10);
   if (error) throw new Error(`listFutureReservationsByCustomer failed: ${error.message}`);
   return data ?? [];
 }
 
-function reservationDateTimeIso(row: { date?: string | null; time_slot?: string | null }) {
-  if (!row?.date) return null;
-  const time = (row.time_slot ?? "09:00").toString().slice(0, 5);
-  return `${row.date}T${time}:00+09:00`;
+function reservationDateTimeIso(row: { scheduled_date?: string | null; start_time?: string | null }) {
+  if (!row?.scheduled_date) return null;
+  const time = (row.start_time ?? "09:00").toString().slice(0, 5);
+  return `${row.scheduled_date}T${time}:00+09:00`;
 }
 
 export async function listPortalMemberships(email: string, last4: string, preferredTenantSlug?: string | null) {
@@ -203,7 +203,7 @@ export async function listPortalMemberships(email: string, last4: string, prefer
         ? await listFutureReservationsByCustomer(String(tenantId), String(customer.id))
         : [];
 
-      const nextReservationAt = reservations.length > 0 ? reservationDateTimeIso(reservations[0] as { date?: string | null; time_slot?: string | null }) : null;
+      const nextReservationAt = reservations.length > 0 ? reservationDateTimeIso(reservations[0] as { scheduled_date?: string | null; start_time?: string | null }) : null;
       const lastActivityAt = certs[0]?.created_at ?? customer?.updated_at ?? null;
 
       return {
