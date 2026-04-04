@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("notifications")
-      .select("*")
+      .select("id, user_id, tenant_id, title, body, type, read_at, created_at")
       .or(`user_id.is.null,user_id.eq.${caller.userId}`)
       .order("created_at", { ascending: false })
       .limit(limit);

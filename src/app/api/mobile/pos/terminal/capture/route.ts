@@ -56,13 +56,7 @@ export async function POST(req: NextRequest) {
     const pi = await stripe.paymentIntents.retrieve(paymentIntentId, stripeOptions);
 
     if (pi.status !== "succeeded") {
-      return NextResponse.json(
-        {
-          error: "payment_not_succeeded",
-          detail: `PaymentIntent status is "${pi.status}"`,
-        },
-        { status: 400 },
-      );
+      return apiValidationError(`PaymentIntent status is "${pi.status}", expected "succeeded"`);
     }
 
     // pos_checkout RPC で支払記録 + 領収書作成
@@ -83,8 +77,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
-      console.error("[mobile/pos/terminal/capture] rpc_error:", error.message);
-      return NextResponse.json({ error: "checkout_failed", detail: error.message }, { status: 500 });
+      return apiInternalError(error, "mobile/pos/terminal/capture");
     }
 
     return NextResponse.json({
@@ -95,7 +88,6 @@ export async function POST(req: NextRequest) {
       result: data,
     });
   } catch (e: unknown) {
-    console.error("[mobile/pos/terminal/capture] error:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "mobile/pos/terminal/capture");
   }
 }

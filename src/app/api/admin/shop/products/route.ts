@@ -14,7 +14,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("shop_products")
-      .select("*")
+      .select("id, name, description, price, tax_rate, unit, min_quantity, sort_order, is_active, meta, created_at, updated_at")
       .eq("is_active", true)
       .order("sort_order", { ascending: true });
 
@@ -22,10 +22,6 @@ export async function GET() {
 
     return apiOk({ products: data ?? [] });
   } catch (e) {
-    console.error("[admin/shop/products]", e);
-    return NextResponse.json(
-      { error: "internal_error", message: "内部エラーが発生しました" },
-      { status: 500 }
-    );
+    return apiInternalError(e, "admin/shop/products");
   }
 }
