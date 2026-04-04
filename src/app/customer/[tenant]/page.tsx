@@ -123,7 +123,14 @@ export default function CustomerListPage() {
   const [shops, setShops] = useState<ShopMembership[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<"certs" | "history" | "reservations">("certs");
+  const [tab, setTab] = useState<"certs" | "history" | "reservations" | "inquiry">("certs");
+
+  // Inquiry state
+  const [inquiries, setInquiries] = useState<{ id: string; subject: string; message: string; status: string; created_at: string; admin_reply: string | null }[]>([]);
+  const [inquirySubject, setInquirySubject] = useState("");
+  const [inquiryMessage, setInquiryMessage] = useState("");
+  const [inquirySending, setInquirySending] = useState(false);
+  const [inquiryMsg, setInquiryMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   async function load() {
     if (!tenant) return;
@@ -202,6 +209,40 @@ export default function CustomerListPage() {
     setShops(j.shops ?? []);
   }
 
+  async function loadInquiries() {
+    const res = await fetch(`/api/customer/inquiry?tenant=${encodeURIComponent(tenant)}`, {
+      cache: "no-store",
+      credentials: "include",
+    });
+    if (!res.ok) return;
+    const j = await res.json().catch(() => ({}) as any);
+    setInquiries(j.inquiries ?? []);
+  }
+
+  async function submitInquiry() {
+    if (!inquiryMessage.trim()) return;
+    setInquirySending(true);
+    setInquiryMsg(null);
+    try {
+      const res = await fetch("/api/customer/inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ tenant_slug: tenant, subject: inquirySubject.trim() || "お問い合わせ", message: inquiryMessage.trim() }),
+      });
+      const j = await res.json().catch(() => ({}) as any);
+      if (!res.ok) throw new Error(j?.error ?? "送信に失敗しました");
+      setInquiryMsg({ ok: true, text: "お問い合わせを送信しました。" });
+      setInquirySubject("");
+      setInquiryMessage("");
+      loadInquiries().catch(() => undefined);
+    } catch (e: any) {
+      setInquiryMsg({ ok: false, text: e?.message ?? "エラーが発生しました" });
+    } finally {
+      setInquirySending(false);
+    }
+  }
+
   async function logout() {
     try {
       await fetch("/api/portal/logout", { method: "POST", credentials: "include" });
@@ -214,6 +255,7 @@ export default function CustomerListPage() {
     if (!tenant) return;
     load();
     loadShops().catch(() => undefined);
+    loadInquiries().catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant]);
 
@@ -236,6 +278,12 @@ export default function CustomerListPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => router.push(`/customer/${encodeURIComponent(tenant)}/booking`)}
+              className="rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white hover:bg-accent/90"
+            >
+              予約する
+            </button>
             <button
               onClick={load}
               disabled={!tenant || loading}
@@ -292,6 +340,7 @@ export default function CustomerListPage() {
           { key: "certs" as const, label: "証明書", count: rows.length },
           { key: "history" as const, label: "施工履歴", count: history.length },
           { key: "reservations" as const, label: "予約", count: reservations.length },
+          { key: "inquiry" as const, label: "お問い合わせ", count: inquiries.length },
         ].map((t) => (
           <button
             key={t.key}
@@ -463,6 +512,70 @@ export default function CustomerListPage() {
           </div>
         ) : null}
       </div>
+
+      {/* ── お問い合わせタブ ── */}
+      {tab === "inquiry" ? (
+        <div className="mt-3 space-y-4">
+          {/* 送信フォーム */}
+          <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold text-primary">新規お問い合わせ</h2>
+            <label className="block text-xs font-medium text-secondary mb-1">件名</label>
+            <input
+              value={inquirySubject}
+              onChange={(e) => setInquirySubject(e.target.value)}
+              placeholder="例）施工内容について"
+              className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm text-primary outline-none focus:ring-2 focus:ring-accent/30 mb-3"
+            />
+            <label className="block text-xs font-medium text-secondary mb-1">メッセージ <span className="text-danger-text">*</span></label>
+            <textarea
+              value={inquiryMessage}
+              onChange={(e) => setInquiryMessage(e.target.value)}
+              placeholder="ご質問やご要望をご記入ください"
+              rows={4}
+              className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm text-primary outline-none focus:ring-2 focus:ring-accent/30 resize-none mb-3"
+            />
+            {inquiryMsg ? (
+              <div className={`mb-3 rounded-xl px-3 py-2 text-sm ${inquiryMsg.ok ? "bg-success-dim text-success-text" : "bg-danger-dim text-danger-text"}`}>
+                {inquiryMsg.text}
+              </div>
+            ) : null}
+            <button
+              onClick={submitInquiry}
+              disabled={inquirySending || !inquiryMessage.trim()}
+              className="rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent/90 disabled:opacity-50"
+            >
+              {inquirySending ? "送信中…" : "送信する"}
+            </button>
+          </div>
+
+          {/* 過去の問い合わせ一覧 */}
+          {inquiries.length > 0 ? (
+            <div className="space-y-2.5">
+              <h3 className="text-xs font-semibold text-muted uppercase tracking-wide">過去のお問い合わせ</h3>
+              {inquiries.map((inq) => (
+                <div key={inq.id} className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm">
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <div className="text-sm font-semibold text-primary">{inq.subject}</div>
+                    <span className={`text-xs rounded-full px-2 py-0.5 ${inq.status === "replied" ? "bg-success-dim text-success-text" : inq.status === "read" ? "bg-accent-dim text-accent-text" : "bg-warning-dim text-warning-text"}`}>
+                      {inq.status === "replied" ? "返信あり" : inq.status === "read" ? "確認済" : "受付中"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-secondary whitespace-pre-wrap">{inq.message}</p>
+                  {inq.admin_reply ? (
+                    <div className="mt-3 rounded-xl bg-accent-dim px-3 py-2">
+                      <div className="text-xs font-semibold text-accent mb-1">店舗からの返信</div>
+                      <p className="text-xs text-primary whitespace-pre-wrap">{inq.admin_reply}</p>
+                    </div>
+                  ) : null}
+                  <div className="mt-2 text-xs text-muted">{new Date(inq.created_at).toLocaleDateString("ja-JP")}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-muted">過去のお問い合わせはありません。</div>
+          )}
+        </div>
+      ) : null}
     </main>
   );
 }
