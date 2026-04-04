@@ -20,19 +20,15 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-    if (!requireMinRole(caller, "staff")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
+    if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
 
     // amount バリデーション
     const amount = parseInt(String(body?.amount ?? 0), 10);
     if (!amount || amount < 1 || amount > 999_999_999) {
-      return NextResponse.json({ error: "invalid_amount" }, { status: 400 });
+      return apiValidationError("invalid_amount");
     }
 
     const description = body?.description ? String(body.description) : "POS会計";
@@ -93,8 +89,7 @@ export async function POST(req: NextRequest) {
       url: session.url,
     });
   } catch (e: unknown) {
-    console.error("[pos/checkout-session] error:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "pos/checkout-session");
   }
 }
 
@@ -103,16 +98,12 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-    if (!requireMinRole(caller, "staff")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
+    if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const id = req.nextUrl.searchParams.get("id");
     if (!id || !id.startsWith("cs_")) {
-      return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+      return apiValidationError("invalid_id");
     }
 
     // テナントのStripe Connectアカウントを取得
