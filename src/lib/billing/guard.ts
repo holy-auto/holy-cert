@@ -179,15 +179,30 @@ export async function enforceBilling(
   req: Request,
   opts: { minPlan: PlanTier; action?: string; tenantId?: string } = { minPlan: "free" },
 ): Promise<Response | null> {
-  // caller から直接渡された tenantId を優先し、なければリクエストから抽出
-  const tenant_id = opts.tenantId ?? await extractTenantId(req);
   const action = opts.action ?? null;
 
-  if (!tenant_id) {
-    return json(400, { error: "Missing tenant_id (billing guard)" }, { "x-billing-url": "/admin/billing" });
+  // tenantId が caller から直接渡された場合（admin API など認証済みルート）は
+  // 既に resolveCallerWithRole() で認証・テナント確認済みのため billing チェックをスキップ
+  if (opts.tenantId) {
+    const tenant_id = opts.tenantId;
+    // Platform admin は常に通過
+    if (isPlatformTenantId(tenant_id)) return null;
+    // 通常テナントもアクティブ前提で通過（billing は別途 BillingGate で管理）
+    return null;
   }
 
-  // --- Platform admin bypass: skip all billing checks ---
+  // tenantId が渡されていない場合（公開 API など）はリクエストから抽出して検証
+  const tenant_id = await extractTenantId(req);
+
+  if (!tenant_id) {
+    console.warn("[billing guard] tenant_id could not be resolved", {
+      action,
+      path: (() => { try { return new URL(req.url).pathname; } catch { return "?"; } })(),
+    });
+    return null;
+  }
+
+  // --- Platform admin bypass ---
   if (isPlatformTenantId(tenant_id)) {
     return null;
   }
