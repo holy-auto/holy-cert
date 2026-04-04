@@ -37,6 +37,8 @@ export async function GET(
         id,
         status,
         certificate_id,
+        document_id,
+        document_type,
         document_hash,
         document_hash_alg,
         signed_at,
@@ -44,10 +46,7 @@ export async function GET(
         signature,
         signing_payload,
         public_key_fingerprint,
-        key_version,
-        certificates (
-          public_id
-        )
+        key_version
       `)
       .eq('id', sessionId)
       .single();
@@ -106,26 +105,47 @@ export async function GET(
       },
     });
 
-    const cert = session.certificates as unknown as { public_id: string } | null;
+    // 関連文書情報を取得
+    let certInfo = null;
+    let docInfo  = null;
+
+    if (session.document_type === 'document' && session.document_id) {
+      const { data: doc } = await supabase
+        .from('documents')
+        .select('id, doc_type, doc_number')
+        .eq('id', session.document_id)
+        .single();
+      if (doc) docInfo = { id: doc.id, doc_type: doc.doc_type, doc_number: doc.doc_number };
+    } else if (session.certificate_id) {
+      const { data: cert } = await supabase
+        .from('certificates')
+        .select('public_id')
+        .eq('id', session.certificate_id)
+        .single();
+      if (cert) certInfo = { public_id: cert.public_id };
+    }
+
+    const docTypeLabel = session.document_type === 'document' ? '帳票' : '証明書';
 
     return apiOk({
       is_valid:    isValid,
       status:      session.status,
       message:     isValid
-        ? 'この証明書の電子署名は有効です'
-        : '署名が無効です。証明書が改ざんされている可能性があります',
+        ? `この${docTypeLabel}の電子署名は有効です`
+        : `署名が無効です。${docTypeLabel}が改ざんされている可能性があります`,
       session: {
         id:                     session.id,
         signed_at:              session.signed_at,
-        // 個人情報は部分マスク（例: te***@example.com）
         signer_email_masked:    maskEmail(session.signer_confirmed_email),
         document_hash:          session.document_hash,
         document_hash_alg:      session.document_hash_alg,
         public_key_fingerprint: session.public_key_fingerprint,
         key_version:            session.key_version,
       },
-      certificate: cert ? { public_id: cert.public_id } : null,
-      verified_at: new Date().toISOString(),
+      document_type: session.document_type ?? 'certificate',
+      certificate:   certInfo,
+      document:      docInfo,
+      verified_at:   new Date().toISOString(),
     });
   } catch (e) {
     return apiInternalError(e, "signature/verify/sessionId");

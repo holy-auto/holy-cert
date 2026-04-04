@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const docTypes = ["estimate", "delivery", "purchase_order", "order_confirmation", "inspection", "receipt", "invoice", "consolidated_invoice"] as const;
+const docTypes = ["estimate", "delivery", "purchase_order", "order_confirmation", "inspection", "receipt", "invoice", "consolidated_invoice", "pledge", "consent"] as const;
 const docStatuses = ["draft", "sent", "accepted", "paid", "rejected", "cancelled"] as const;
 
 export const documentCreateSchema = z.object({

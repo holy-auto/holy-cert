@@ -139,6 +139,17 @@ export default function SignatureClient({ token }: { token: string }) {
 
   // 署名フォーム
   const cert = sessionData?.certificate;
+  const doc  = sessionData?.document;
+  const isDocument = sessionData?.document_type === 'document';
+
+  // 帳票種別のラベル
+  const docTypeLabels: Record<string, string> = {
+    pledge: '誓約書', consent: '同意書', estimate: '見積書',
+    delivery: '納品書', invoice: '請求書', receipt: '領収書',
+    purchase_order: '発注書', order_confirmation: '発注請書',
+    inspection: '検収書', consolidated_invoice: '合算請求書',
+  };
+  const docLabel = doc?.doc_type ? (docTypeLabels[doc.doc_type] ?? doc.doc_type) : '帳票';
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-start py-8 px-4">
@@ -149,36 +160,59 @@ export default function SignatureClient({ token }: { token: string }) {
         </div>
         <h1 className="text-white text-2xl font-bold">電子署名</h1>
         <p className="text-gray-400 text-sm mt-1">
-          施工証明書の内容を確認し、署名してください
+          {isDocument
+            ? `${docLabel}の内容を確認し、署名してください`
+            : '施工証明書の内容を確認し、署名してください'}
         </p>
       </div>
 
-      {/* 証明書情報カード */}
+      {/* 文書情報カード */}
       <div className="w-full max-w-md bg-gray-900 rounded-2xl border border-gray-800 p-5 mb-4">
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-          <span className="text-gray-300 text-sm font-medium">施工証明書の詳細</span>
+          <span className="text-gray-300 text-sm font-medium">
+            {isDocument ? `${docLabel}の詳細` : '施工証明書の詳細'}
+          </span>
         </div>
-        <dl className="space-y-3">
-          {cert?.stores?.name && (
-            <InfoRow label="施工店"   value={cert.stores.name} />
-          )}
-          {cert?.vehicles?.car_name && (
-            <InfoRow label="車種"     value={cert.vehicles.car_name} />
-          )}
-          {cert?.vehicles?.car_number && (
-            <InfoRow label="車両番号" value={cert.vehicles.car_number} />
-          )}
-          {cert?.cert_type && (
-            <InfoRow label="施工種別" value={cert.cert_type} />
-          )}
-          {cert?.created_at && (
-            <InfoRow
-              label="発行日"
-              value={new Date(cert.created_at).toLocaleDateString('ja-JP')}
-            />
-          )}
-        </dl>
+
+        {isDocument && doc ? (
+          <dl className="space-y-3">
+            <InfoRow label="種別" value={docLabel} />
+            {doc.doc_number && (
+              <InfoRow label="帳票番号" value={doc.doc_number} />
+            )}
+            {doc.recipient_name && (
+              <InfoRow label="宛先" value={doc.recipient_name} />
+            )}
+            {doc.issued_at && (
+              <InfoRow
+                label="発行日"
+                value={new Date(doc.issued_at).toLocaleDateString('ja-JP')}
+              />
+            )}
+          </dl>
+        ) : (
+          <dl className="space-y-3">
+            {cert?.stores?.name && (
+              <InfoRow label="施工店"   value={cert.stores.name} />
+            )}
+            {cert?.vehicles?.car_name && (
+              <InfoRow label="車種"     value={cert.vehicles.car_name} />
+            )}
+            {cert?.vehicles?.car_number && (
+              <InfoRow label="車両番号" value={cert.vehicles.car_number} />
+            )}
+            {cert?.cert_type && (
+              <InfoRow label="施工種別" value={cert.cert_type} />
+            )}
+            {cert?.created_at && (
+              <InfoRow
+                label="発行日"
+                value={new Date(cert.created_at).toLocaleDateString('ja-JP')}
+              />
+            )}
+          </dl>
+        )}
 
         {/* PDF プレビューリンク */}
         {sessionData?.pdf_url && (
@@ -189,7 +223,7 @@ export default function SignatureClient({ token }: { token: string }) {
             className="mt-4 flex items-center gap-2 text-blue-400 text-sm hover:underline"
           >
             <span>📄</span>
-            <span>証明書PDFを確認する（別タブで開く）</span>
+            <span>{isDocument ? `${docLabel}PDFを確認する` : '証明書PDFを確認する'}（別タブで開く）</span>
           </a>
         )}
       </div>
@@ -229,7 +263,7 @@ export default function SignatureClient({ token }: { token: string }) {
                        focus:ring-blue-500 focus:ring-2 cursor-pointer shrink-0"
           />
           <span className="text-gray-300 text-sm leading-relaxed">
-            施工証明書の内容を確認しました。
+            {isDocument ? `${docLabel}` : '施工証明書'}の内容を確認しました。
             <br />
             本内容に同意の上、電子署名を行います。
           </span>

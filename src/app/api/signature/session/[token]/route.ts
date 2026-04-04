@@ -2,13 +2,7 @@
  * GET /api/signature/session/[token]
  *
  * 署名ページ表示用のセッション情報取得 API（公開エンドポイント）。
- * 顧客のスマートフォンから署名ページ読み込み時に呼び出される。
- *
- * 処理フロー:
- * 1. トークンでセッションを検索
- * 2. 有効期限チェック（期限切れなら DB 更新）
- * 3. page_opened 監査ログを記録
- * 4. 証明書・車両・店舗情報を返す
+ * 証明書・帳票の両方に対応。
  */
 
 import { NextRequest } from 'next/server';
@@ -28,7 +22,7 @@ export async function GET(
 
     const supabase = getSupabaseAdmin();
 
-    // セッションと関連情報を取得
+    // セッション取得
     const { data: session, error } = await supabase
       .from('signature_sessions')
       .select(`
@@ -38,14 +32,8 @@ export async function GET(
         signer_name,
         document_hash,
         certificate_id,
-        certificates (
-          id,
-          public_id,
-          created_at,
-          cert_type,
-          vehicles ( car_number, car_name ),
-          stores   ( name )
-        )
+        document_id,
+        document_type
       `)
       .eq('token', token)
       .single();
@@ -63,7 +51,6 @@ export async function GET(
       session.status === 'pending' &&
       new Date(session.expires_at) < new Date()
     ) {
-      // DB を期限切れに更新
       await supabase
         .from('signature_sessions')
         .update({ status: 'expired' })
@@ -79,7 +66,7 @@ export async function GET(
 
       return apiOk({
         status:  'expired',
-        message: '署名リンクの有効期限が切れています。施工店に再送を依頼してください。',
+        message: '署名リンクの有効期限が切れています。再送を依頼してください。',
       });
     }
 
@@ -103,24 +90,62 @@ export async function GET(
       metadata:   { opened_at: new Date().toISOString() },
     });
 
-    const cert = session.certificates as unknown as {
-      id: string;
-      public_id: string;
-      created_at: string;
-      cert_type: string | null;
-      vehicles: { car_number: string | null; car_name: string | null } | null;
-      stores:   { name: string } | null;
-    } | null;
+    // 文書種別に応じて関連情報を取得
+    let certData = null;
+    let docData  = null;
+    let pdfUrl: string | null = null;
+
+    if (session.document_type === 'document' && session.document_id) {
+      // 帳票
+      const { data: doc } = await supabase
+        .from('documents')
+        .select('id, doc_type, doc_number, recipient_name, issued_at, note')
+        .eq('id', session.document_id)
+        .single();
+
+      if (doc) {
+        docData = doc;
+        pdfUrl = `/admin/documents/pdf?id=${encodeURIComponent(doc.id)}`;
+      }
+    } else if (session.certificate_id) {
+      // 証明書
+      const { data: cert } = await supabase
+        .from('certificates')
+        .select(`
+          id,
+          public_id,
+          created_at,
+          cert_type,
+          vehicles ( car_number, car_name ),
+          stores   ( name )
+        `)
+        .eq('id', session.certificate_id)
+        .single();
+
+      if (cert) {
+        certData = cert as unknown as {
+          id: string;
+          public_id: string;
+          created_at: string;
+          cert_type: string | null;
+          vehicles: { car_number: string | null; car_name: string | null } | null;
+          stores:   { name: string } | null;
+        };
+        pdfUrl = certData.public_id
+          ? `/api/certificate/pdf?pid=${encodeURIComponent(certData.public_id)}`
+          : null;
+      }
+    }
 
     return apiOk({
-      status:     'pending',
-      session_id: session.id,
-      signer_name: session.signer_name,
-      expires_at:  session.expires_at,
-      pdf_url:     cert?.public_id
-        ? `/api/certificate/pdf?pid=${encodeURIComponent(cert.public_id)}`
-        : null,
-      certificate: cert,
+      status:        'pending',
+      session_id:    session.id,
+      signer_name:   session.signer_name,
+      expires_at:    session.expires_at,
+      document_type: session.document_type ?? 'certificate',
+      pdf_url:       pdfUrl,
+      certificate:   certData,
+      document:      docData,
     });
   } catch (e) {
     return apiInternalError(e, "signature/session/token");

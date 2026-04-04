@@ -3,14 +3,14 @@
  *
  * 署名依頼の作成 API。
  * 施工店（管理画面）から呼び出し、顧客への署名URLを発行する。
+ * 証明書（certificates）および帳票（documents）の両方に対応。
  *
  * 処理フロー:
  * 1. 認証・課金チェック
- * 2. 証明書の存在確認（テナント境界チェック）
+ * 2. 対象文書の存在確認（テナント境界チェック）
  * 3. 既存 pending セッションの重複チェック
  * 4. PDF バイト列生成（SHA-256 計算用）
  * 5. 署名セッション作成（ワンタイムURL発行）
- * 6. LINE/メール通知送信
  */
 
 import { NextRequest } from 'next/server';
@@ -18,8 +18,8 @@ import { createClient } from '@/lib/supabase/server';
 import { resolveCallerWithRole } from '@/lib/auth/checkRole';
 import { apiOk, apiError, apiUnauthorized } from '@/lib/api/response';
 import { createSignatureSession, getExistingPendingSession } from '@/lib/signature/session';
-import { generateCertificatePdfBytes } from '@/lib/signature/pdfUtils';
-import type { SignatureRequestBody } from '@/lib/signature/types';
+import { generateDocumentPdfBytes } from '@/lib/signature/pdfUtils';
+import type { SignatureRequestBody, SignatureDocumentType } from '@/lib/signature/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,34 +32,63 @@ export async function POST(req: NextRequest) {
   if (!caller) return apiUnauthorized();
 
   const body: SignatureRequestBody = await req.json();
-  const { certificate_id, signer_name, signer_email, signer_phone, notification_method } = body;
+  const {
+    certificate_id,
+    document_id,
+    document_type,
+    signer_name,
+    signer_email,
+    signer_phone,
+    notification_method,
+  } = body;
 
-  if (!certificate_id) {
+  // 対象文書の特定
+  const resolvedDocType: SignatureDocumentType = document_type ?? (certificate_id ? 'certificate' : 'document');
+  const resolvedTargetId = document_id ?? certificate_id;
+
+  if (!resolvedTargetId) {
     return apiError({
       code:    'validation_error',
-      message: 'certificate_id は必須です',
+      message: 'certificate_id または document_id は必須です',
       status:  400,
     });
   }
 
-  // 2. 証明書の存在確認・テナント境界チェック
-  const { data: cert, error: certError } = await supabase
-    .from('certificates')
-    .select('id, tenant_id, public_id')
-    .eq('id', certificate_id)
-    .eq('tenant_id', caller.tenantId)
-    .single();
+  // 2. 対象文書の存在確認・テナント境界チェック
+  if (resolvedDocType === 'document') {
+    const { data: doc, error: docError } = await supabase
+      .from('documents')
+      .select('id, tenant_id')
+      .eq('id', resolvedTargetId)
+      .eq('tenant_id', caller.tenantId)
+      .single();
 
-  if (certError || !cert) {
-    return apiError({
-      code:    'not_found',
-      message: '証明書が見つからないか、アクセス権がありません',
-      status:  404,
-    });
+    if (docError || !doc) {
+      return apiError({
+        code:    'not_found',
+        message: '帳票が見つからないか、アクセス権がありません',
+        status:  404,
+      });
+    }
+  } else {
+    const { data: cert, error: certError } = await supabase
+      .from('certificates')
+      .select('id, tenant_id, public_id')
+      .eq('id', resolvedTargetId)
+      .eq('tenant_id', caller.tenantId)
+      .single();
+
+    if (certError || !cert) {
+      return apiError({
+        code:    'not_found',
+        message: '証明書が見つからないか、アクセス権がありません',
+        status:  404,
+      });
+    }
   }
 
-  // 3. 既存の有効な pending セッションがあれば再利用（重複リクエスト防止）
-  const existing = await getExistingPendingSession(certificate_id);
+  // 3. 既存の有効な pending セッションがあれば再利用
+  const existing = await getExistingPendingSession(resolvedTargetId, resolvedDocType);
   if (existing) {
     const signUrl = `${SIGN_BASE_URL}/${existing.token}`;
     return apiOk({
@@ -74,7 +103,7 @@ export async function POST(req: NextRequest) {
   // 4. PDF バイト列の生成（SHA-256 計算用）
   let pdfBytes: Uint8Array;
   try {
-    pdfBytes = await generateCertificatePdfBytes(certificate_id);
+    pdfBytes = await generateDocumentPdfBytes(resolvedTargetId, resolvedDocType);
   } catch (err) {
     console.error('[signature/request] PDF generation failed:', err);
     return apiError({
@@ -88,12 +117,14 @@ export async function POST(req: NextRequest) {
   let session;
   try {
     session = await createSignatureSession({
-      certificate_id,
+      certificate_id:      resolvedDocType === 'certificate' ? resolvedTargetId : undefined,
+      document_id:         resolvedTargetId,
+      document_type:       resolvedDocType,
       tenant_id:           caller.tenantId,
       created_by:          caller.userId,
-      signer_name:         signer_name,
-      signer_email:        signer_email,
-      signer_phone:        signer_phone,
+      signer_name,
+      signer_email,
+      signer_phone,
       notification_method: notification_method ?? 'line',
       pdf_bytes:           pdfBytes,
     });
@@ -107,10 +138,6 @@ export async function POST(req: NextRequest) {
   }
 
   const signUrl = `${SIGN_BASE_URL}/${session.token}`;
-
-  // 6. 通知送信（LINE 優先 / メールフォールバック）
-  // TODO: Phase 4 以降で LINE/メール通知モジュールと統合
-  // 現時点では sign_url を返すのみ（手動共有可能）
 
   return apiOk({
     session_id: session.id,

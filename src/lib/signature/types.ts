@@ -24,13 +24,22 @@ export type SignatureAuditEvent =
 export type NotificationMethod = 'line' | 'email' | 'sms';
 
 // ============================================================
+// 文書種別
+// ============================================================
+
+/** 署名対象の文書種別 */
+export type SignatureDocumentType = 'certificate' | 'document';
+
+// ============================================================
 // DB レコード型
 // ============================================================
 
 /** signature_sessions テーブルの行 */
 export interface SignatureSession {
   id: string;
-  certificate_id: string;
+  certificate_id: string | null;
+  document_id: string | null;
+  document_type: SignatureDocumentType | null;
   tenant_id: string;
   token: string;
   expires_at: string;
@@ -92,7 +101,12 @@ export interface SignaturePublicKey {
 
 /** 署名セッション作成の入力 */
 export interface CreateSignatureSessionInput {
-  certificate_id: string;
+  /** 証明書ID（certificate_id）— 後方互換用 */
+  certificate_id?: string;
+  /** 汎用文書ID（documents.id または certificates.id） */
+  document_id?: string;
+  /** 文書種別（'certificate' | 'document'） */
+  document_type?: SignatureDocumentType;
   tenant_id: string;
   created_by: string;
   signer_name?: string;
@@ -142,7 +156,12 @@ export interface VerificationResult {
 
 /** 署名依頼作成APIのリクエスト */
 export interface SignatureRequestBody {
-  certificate_id: string;
+  /** 証明書ID（後方互換） */
+  certificate_id?: string;
+  /** 汎用文書ID */
+  document_id?: string;
+  /** 文書種別 */
+  document_type?: SignatureDocumentType;
   signer_name?: string;
   signer_email?: string;
   signer_phone?: string;
@@ -161,7 +180,10 @@ export interface SignaturePageData {
   session_id: string;
   signer_name: string | null;
   expires_at: string;
-  pdf_url: string;
+  pdf_url: string | null;
+  /** 文書種別 */
+  document_type: SignatureDocumentType | null;
+  /** 証明書情報（document_type = 'certificate' の場合） */
   certificate: {
     id: string;
     public_id: string;
@@ -169,6 +191,15 @@ export interface SignaturePageData {
     cert_type: string | null;
     vehicles: { car_number: string | null; car_name: string | null } | null;
     stores: { name: string } | null;
+  } | null;
+  /** 帳票情報（document_type = 'document' の場合） */
+  document: {
+    id: string;
+    doc_type: string;
+    doc_number: string;
+    recipient_name: string | null;
+    issued_at: string | null;
+    note: string | null;
   } | null;
 }
 

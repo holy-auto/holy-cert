@@ -12,10 +12,16 @@ const DocumentsClient = dynamic(() => import("./DocumentsClient"), {
 
 export const revalidate = 0;
 
-export default async function DocumentsPage() {
+export default async function DocumentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
   const supabase = await createSupabaseServerClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes?.user) redirect("/login?next=/admin/documents");
 
-  return <DocumentsClient />;
+  const { type } = await searchParams;
+
+  return <DocumentsClient initialTypeFilter={type ?? undefined} />;
 }

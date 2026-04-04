@@ -89,7 +89,14 @@ export async function GET(req: NextRequest) {
       .select("*", { count: "exact", head: true })
       .eq("tenant_id", caller.tenantId);
 
-    if (docType) { query = query.eq("doc_type", docType); countQuery = countQuery.eq("doc_type", docType); }
+    if (docType) {
+      const types = docType.split(",").map((t) => t.trim()).filter(Boolean);
+      if (types.length === 1) {
+        query = query.eq("doc_type", types[0]); countQuery = countQuery.eq("doc_type", types[0]);
+      } else if (types.length > 1) {
+        query = query.in("doc_type", types); countQuery = countQuery.in("doc_type", types);
+      }
+    }
     if (status && status !== "all") { query = query.eq("status", status); countQuery = countQuery.eq("status", status); }
     if (customerId) { query = query.eq("customer_id", customerId); countQuery = countQuery.eq("customer_id", customerId); }
 

@@ -8,6 +8,8 @@ export const DOC_TYPES = {
   receipt: { label: "領収書", prefix: "RCP", color: "success" as const },
   invoice: { label: "請求書", prefix: "INV", color: "danger" as const },
   consolidated_invoice: { label: "合算請求書", prefix: "CINV", color: "danger" as const },
+  pledge: { label: "誓約書", prefix: "PLG", color: "info" as const },
+  consent: { label: "同意書", prefix: "CNS", color: "info" as const },
 } as const;
 
 export type DocType = keyof typeof DOC_TYPES;

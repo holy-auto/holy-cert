@@ -44,10 +44,17 @@ export async function createSignatureSession(
   ).toISOString();
   const documentHash = computeDocumentHash(input.pdf_bytes);
 
+  // 汎用文書対応: document_id / document_type を優先し、後方互換で certificate_id もセット
+  const certificateId = input.certificate_id ?? (input.document_type === 'certificate' ? input.document_id : null) ?? null;
+  const documentId    = input.document_id ?? input.certificate_id ?? null;
+  const documentType  = input.document_type ?? (input.certificate_id ? 'certificate' : null);
+
   const { data, error } = await supabase
     .from('signature_sessions')
     .insert({
-      certificate_id:      input.certificate_id,
+      certificate_id:      certificateId,
+      document_id:         documentId,
+      document_type:       documentType,
       tenant_id:           input.tenant_id,
       created_by:          input.created_by,
       token,
@@ -138,27 +145,35 @@ export async function getSessionById(
 }
 
 /**
- * 証明書 ID に紐づく最新の有効セッションを返す。
+ * 文書 ID に紐づく最新の有効セッションを返す。
  * 重複リクエスト防止のために使用する。
  *
- * @param certificateId - 証明書 UUID
+ * @param targetId - 文書 UUID（certificates.id または documents.id）
+ * @param targetType - 'certificate' | 'document'（省略時は certificate_id で検索）
  * @returns 有効な pending セッション、または null
  */
 export async function getExistingPendingSession(
-  certificateId: string,
+  targetId: string,
+  targetType?: 'certificate' | 'document',
 ): Promise<SignatureSession | null> {
   const supabase = getSupabaseAdmin();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('signature_sessions')
     .select('*')
-    .eq('certificate_id', certificateId)
     .eq('status', 'pending')
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
+    .limit(1);
 
+  if (targetType === 'document') {
+    query = query.eq('document_id', targetId).eq('document_type', 'document');
+  } else {
+    // 後方互換: certificate_id で検索
+    query = query.eq('certificate_id', targetId);
+  }
+
+  const { data, error } = await query.single();
   if (error || !data) return null;
   return data as SignatureSession;
 }

@@ -79,12 +79,15 @@ export async function POST(
 
   // 3. 署名ペイロードの構築
   //    この文字列が ECDSA で署名され、改ざん検知の根拠となる
+  const documentId   = session.document_id ?? session.certificate_id ?? session.id;
+  const documentType = session.document_type ?? 'certificate';
   const signingPayload = buildSigningPayload(
     session.document_hash,
     signedAt,
     normalizedEmail,
-    session.certificate_id,
+    documentId,
     session.id,
+    documentType,
   );
 
   // 4. ECDSA P-256 署名の実行（電子署名法第2条第2号：非改ざん性）

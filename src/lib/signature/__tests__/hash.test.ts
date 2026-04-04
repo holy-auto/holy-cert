@@ -38,40 +38,64 @@ describe('buildSigningPayload', () => {
     documentHash:  'abc123def456',
     signedAt:      '2026-04-03T12:34:56.789Z',
     signerEmail:   'test@example.com',
-    certificateId: '11111111-1111-1111-1111-111111111111',
+    documentId:    '11111111-1111-1111-1111-111111111111',
     sessionId:     '22222222-2222-2222-2222-222222222222',
   };
 
-  it('正しいフォーマットのペイロードを生成する', () => {
+  it('正しいフォーマットのペイロードを生成する（certificate）', () => {
     const payload = buildSigningPayload(
       baseArgs.documentHash,
       baseArgs.signedAt,
       baseArgs.signerEmail,
-      baseArgs.certificateId,
+      baseArgs.documentId,
       baseArgs.sessionId,
+      'certificate',
     );
     expect(payload).toBe(
-      'ledra-signature-v1:abc123def456:2026-04-03T12:34:56.789Z:test@example.com:11111111-1111-1111-1111-111111111111:22222222-2222-2222-2222-222222222222',
+      'ledra-signature-v2:abc123def456:2026-04-03T12:34:56.789Z:test@example.com:certificate:11111111-1111-1111-1111-111111111111:22222222-2222-2222-2222-222222222222',
     );
   });
 
-  it('バージョンプレフィックス "ledra-signature-v1" で始まる', () => {
+  it('document 種別のペイロードを生成する', () => {
     const payload = buildSigningPayload(
       baseArgs.documentHash,
       baseArgs.signedAt,
       baseArgs.signerEmail,
-      baseArgs.certificateId,
+      baseArgs.documentId,
+      baseArgs.sessionId,
+      'document',
+    );
+    expect(payload).toContain(':document:');
+  });
+
+  it('バージョンプレフィックス "ledra-signature-v2" で始まる', () => {
+    const payload = buildSigningPayload(
+      baseArgs.documentHash,
+      baseArgs.signedAt,
+      baseArgs.signerEmail,
+      baseArgs.documentId,
       baseArgs.sessionId,
     );
-    expect(payload).toMatch(/^ledra-signature-v1:/);
+    expect(payload).toMatch(/^ledra-signature-v2:/);
+  });
+
+  it('document_type 省略時は certificate がデフォルト', () => {
+    const payload = buildSigningPayload(
+      baseArgs.documentHash,
+      baseArgs.signedAt,
+      baseArgs.signerEmail,
+      baseArgs.documentId,
+      baseArgs.sessionId,
+    );
+    expect(payload).toContain(':certificate:');
   });
 
   it('メールアドレスを小文字・トリム正規化する', () => {
     const payload = buildSigningPayload(
       baseArgs.documentHash,
       baseArgs.signedAt,
-      '  TEST@EXAMPLE.COM  ',  // 大文字・スペースあり
-      baseArgs.certificateId,
+      '  TEST@EXAMPLE.COM  ',
+      baseArgs.documentId,
       baseArgs.sessionId,
     );
     expect(payload).toContain(':test@example.com:');
@@ -79,10 +103,10 @@ describe('buildSigningPayload', () => {
 
   it('ドキュメントハッシュを小文字正規化する', () => {
     const payload = buildSigningPayload(
-      'ABC123DEF456',  // 大文字
+      'ABC123DEF456',
       baseArgs.signedAt,
       baseArgs.signerEmail,
-      baseArgs.certificateId,
+      baseArgs.documentId,
       baseArgs.sessionId,
     );
     expect(payload).toContain(':abc123def456:');
@@ -91,11 +115,11 @@ describe('buildSigningPayload', () => {
   it('フィールドが異なれば異なるペイロードになる', () => {
     const payload1 = buildSigningPayload(
       'hash1', baseArgs.signedAt, baseArgs.signerEmail,
-      baseArgs.certificateId, baseArgs.sessionId,
+      baseArgs.documentId, baseArgs.sessionId,
     );
     const payload2 = buildSigningPayload(
       'hash2', baseArgs.signedAt, baseArgs.signerEmail,
-      baseArgs.certificateId, baseArgs.sessionId,
+      baseArgs.documentId, baseArgs.sessionId,
     );
     expect(payload1).not.toBe(payload2);
   });

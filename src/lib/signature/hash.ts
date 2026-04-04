@@ -44,36 +44,32 @@ export function computePublicKeyFingerprint(publicKeyPem: string): string {
  * 各フィールドをコロン区切りで結合し、署名の対象範囲を明確に定義する。
  * このペイロードが ECDSA で署名され、改ざん検知の根拠となる。
  *
- * フォーマット:
- *   "ledra-signature-v1:{document_hash}:{signed_at}:{signer_email}:{certificate_id}:{session_id}"
- *
- * - "ledra-signature-v1" : バージョンプレフィックス（スキーマ変更時に v2 等へ更新）
- * - document_hash        : SHA-256(PDF) — 文書の同一性を保証
- * - signed_at            : ISO 8601 UTC — 署名時刻
- * - signer_email         : 署名者識別子（小文字・トリム正規化済み）
- * - certificate_id       : 証明書 UUID
- * - session_id           : 署名セッション UUID
+ * フォーマット（v2: 汎用文書対応）:
+ *   "ledra-signature-v2:{document_hash}:{signed_at}:{signer_email}:{document_type}:{document_id}:{session_id}"
  *
  * @param documentHash  - SHA-256(PDF) HEX
- * @param signedAt      - 署名日時 ISO 8601 UTC（例: "2026-04-03T12:34:56.789Z"）
- * @param signerEmail   - 署名者メールアドレス（正規化前でも可、内部で正規化）
- * @param certificateId - 証明書 UUID
+ * @param signedAt      - 署名日時 ISO 8601 UTC
+ * @param signerEmail   - 署名者メールアドレス
+ * @param documentId    - 文書 UUID（certificates.id or documents.id）
  * @param sessionId     - 署名セッション UUID
+ * @param documentType  - 'certificate' | 'document'（省略時 'certificate'）
  * @returns 正規化されたペイロード文字列
  */
 export function buildSigningPayload(
   documentHash: string,
   signedAt: string,
   signerEmail: string,
-  certificateId: string,
+  documentId: string,
   sessionId: string,
+  documentType: string = 'certificate',
 ): string {
   return [
-    'ledra-signature-v1',
+    'ledra-signature-v2',
     documentHash.toLowerCase(),
     signedAt,
     signerEmail.toLowerCase().trim(),
-    certificateId.toLowerCase(),
+    documentType.toLowerCase(),
+    documentId.toLowerCase(),
     sessionId.toLowerCase(),
   ].join(':');
 }

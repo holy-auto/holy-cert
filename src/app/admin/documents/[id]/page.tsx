@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import PageHeader from "@/components/ui/PageHeader";
 import DocumentDetailClient from "./DocumentDetailClient";
+import DocumentSignaturePanel from "./DocumentSignaturePanel";
 import { DOC_TYPES, type DocType } from "@/types/document";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,17 @@ export default async function DocumentDetailPage({
         customerPhone={customerPhone}
         tenant={tenant}
       />
+
+      {/* 電子署名パネル（誓約書・同意書など署名が必要な帳票向け） */}
+      {doc.status !== 'cancelled' && (
+        <section className="glass-card p-5 space-y-3">
+          <div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted">ELECTRONIC SIGNATURE</div>
+            <div className="mt-1 text-lg font-semibold text-primary">電子署名</div>
+          </div>
+          <DocumentSignaturePanel documentId={doc.id} />
+        </section>
+      )}
     </div>
   );
 }
