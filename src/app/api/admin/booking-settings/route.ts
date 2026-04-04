@@ -32,11 +32,11 @@ export async function GET(_req: NextRequest) {
 
     if (slotsRes.error) {
       console.error("[booking-settings] slots error:", slotsRes.error.message);
-      return apiInternalError(error, "booking-settings");
+      return apiInternalError(slotsRes.error, "booking-settings");
     }
     if (closedRes.error) {
       console.error("[booking-settings] closed_days error:", closedRes.error.message);
-      return apiInternalError(error, "booking-settings");
+      return apiInternalError(closedRes.error, "booking-settings");
     }
 
     return NextResponse.json({
