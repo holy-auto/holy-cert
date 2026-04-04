@@ -43,7 +43,7 @@ export async function POST(
       .update({ status: "active" })
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select()
+      .select("id, public_id, vehicle_id, tenant_id, status, created_at, updated_at")
       .single();
 
     if (error) return apiInternalError(error, "certificates.activate");
