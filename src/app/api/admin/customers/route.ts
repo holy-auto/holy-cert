@@ -93,6 +93,7 @@ export async function GET(req: NextRequest) {
     const thisMonthNew = enriched.filter((c) => c.created_at >= thisMonthStart).length;
     const totalCerts = Object.values(certCounts).reduce((a, b) => a + b, 0);
 
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
     return NextResponse.json({
       customers: enriched,
       stats: {
@@ -108,7 +109,7 @@ export async function GET(req: NextRequest) {
           total_pages: Math.ceil((totalCount ?? enriched.length) / perPage),
         },
       }),
-    });
+    }, { headers });
   } catch (e: any) {
     console.error("customers list failed", e);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
@@ -236,19 +237,20 @@ export async function DELETE(req: NextRequest) {
     const id = (body?.id ?? "").trim();
     if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
 
-    // リンク済み証明書/請求書があるか確認
-    const { count: certCount } = await supabase
-      .from("certificates")
-      .select("id", { count: "exact", head: true })
-      .eq("tenant_id", caller.tenantId)
-      .eq("customer_id", id);
-
-    const { count: invCount } = await supabase
-      .from("documents")
-      .select("id", { count: "exact", head: true })
-      .eq("tenant_id", caller.tenantId)
-      .in("doc_type", ["invoice", "consolidated_invoice"])
-      .eq("customer_id", id);
+    // リンク済み証明書/請求書があるか確認（並列実行）
+    const [{ count: certCount }, { count: invCount }] = await Promise.all([
+      supabase
+        .from("certificates")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", caller.tenantId)
+        .eq("customer_id", id),
+      supabase
+        .from("documents")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", caller.tenantId)
+        .in("doc_type", ["invoice", "consolidated_invoice"])
+        .eq("customer_id", id),
+    ]);
 
     if ((certCount ?? 0) > 0 || (invCount ?? 0) > 0) {
       return NextResponse.json({
