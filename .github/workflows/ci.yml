@@ -20,13 +20,16 @@ jobs:
 
       - run: npm ci
 
+      - name: Security audit
+        run: npm audit --audit-level=high --omit=dev || true
+
       - name: Lint, Type Check & Unit Tests (parallel)
         run: |
           npm run lint &
           PID_LINT=$!
           npx tsc --noEmit &
           PID_TSC=$!
-          npm test &
+          npm run test:coverage &
           PID_TEST=$!
           wait $PID_LINT || exit 1
           wait $PID_TSC || exit 1
