@@ -148,10 +148,10 @@ export async function GET() {
       try {
         const stripe = getStripe();
         const res = await stripe.subscriptions.retrieve(insurer.stripe_subscription_id);
-        // Stripe SDK may wrap in Response<Subscription>
-        const sub = (res as unknown as Record<string, unknown>).data
-          ? ((res as unknown as Record<string, unknown>).data as Stripe.Subscription)
-          : (res as unknown as Stripe.Subscription);
+        // Stripe v20 moved current_period_end to items; access via Record for backwards compat
+        const resRecord = res as unknown as Record<string, unknown>;
+        const sub = ((resRecord.data as Record<string, unknown> | undefined) ?? resRecord) as Stripe.Subscription &
+          Record<string, unknown>;
         subscription = {
           status: sub.status,
           current_period_end: sub.current_period_end ?? null,
