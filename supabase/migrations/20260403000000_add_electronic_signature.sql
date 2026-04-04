@@ -73,6 +73,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_signature_sessions_updated_at ON signature_sessions;
 CREATE TRIGGER trg_signature_sessions_updated_at
   BEFORE UPDATE ON signature_sessions
   FOR EACH ROW EXECUTE FUNCTION update_signature_sessions_updated_at();
