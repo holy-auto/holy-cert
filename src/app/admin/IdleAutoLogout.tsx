@@ -125,7 +125,7 @@ export default function IdleAutoLogout({ logoutUrl = "/login" }: IdleAutoLogoutP
           </div>
         </div>
         <p className="text-xs text-muted">
-          このまま操作がなけれだ60秒後に自動的にログアウトされます。
+          このまま操作がなければ60秒後に自動的にログアウトされます。
         </p>
         <div className="flex gap-3 justify-end">
           <button
