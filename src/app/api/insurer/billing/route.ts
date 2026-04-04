@@ -147,7 +147,7 @@ export async function GET() {
     if (insurer.stripe_subscription_id) {
       try {
         const stripe = getStripe();
-        const sub = await stripe.subscriptions.retrieve(insurer.stripe_subscription_id) as Stripe.Subscription & Record<string, unknown>;
+        const sub = await stripe.subscriptions.retrieve(insurer.stripe_subscription_id);
         subscription = {
           status: sub.status,
           current_period_end: sub.current_period_end ?? null,
