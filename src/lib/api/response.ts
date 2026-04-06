@@ -63,7 +63,11 @@ export function apiOk<T extends Record<string, unknown>>(data: T, status = 200) 
 
 /** 内部エラーを安全にハンドリング（本番ではメッセージを隠す） */
 export function apiInternalError(error: unknown, context?: string) {
-  const msg = error instanceof Error ? error.message : String(error);
+  const msg = error instanceof Error
+    ? error.message
+    : (typeof error === "object" && error !== null && "message" in error)
+      ? String((error as { message: unknown }).message)
+      : String(error);
   if (context) {
     console.error(`[API Error] ${context}:`, msg);
   } else {
