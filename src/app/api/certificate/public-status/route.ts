@@ -33,6 +33,7 @@ type TenantRow = {
   name: string | null;
   slug: string | null;
   custom_domain: string | null;
+  is_active: boolean | null;
 };
 
 type VehicleRow = {
@@ -141,7 +142,7 @@ export async function GET(req: NextRequest) {
     // ── 関連データを並列取得（直列→並列で大幅高速化） ──────────
     const [tenantRes, vehicleRes, nfcRes, histRes, imgRes, vcRes] = await Promise.all([
       // Tenant / Shop
-      supabase.from("tenants").select("name, slug, custom_domain")
+      supabase.from("tenants").select("name, slug, custom_domain, is_active")
         .eq("id", cert.tenant_id).limit(1).maybeSingle(),
 
       // Vehicle
@@ -219,6 +220,10 @@ export async function GET(req: NextRequest) {
       cert.warranty_period_end != null &&
       new Date(cert.warranty_period_end).getTime() > Date.now();
 
+    // billing_active: is_active が明示的に false の場合のみ非アクティブ
+    // null/undefined（未設定）は有効とみなす
+    const billingActive = tenant?.is_active !== false;
+
     return NextResponse.json(
       {
         ok: true,
@@ -244,6 +249,10 @@ export async function GET(req: NextRequest) {
         verification_url: verificationUrl,
         days_until_expiry: daysUntilExpiry,
         warranty_active: warrantyActive,
+        billing_active: billingActive,
+        pdf_allowed: billingActive,
+        grace_until: null,
+        grace_days: 0,
         shop: tenant
           ? {
               name: tenant.name ?? tenant.slug ?? null,
