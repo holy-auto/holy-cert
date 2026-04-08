@@ -57,7 +57,7 @@ export default async function Page({ params }: PageProps) {
   const { data: row, error } = await supabase
     .from("certificates")
     .select(
-      "id,tenant_id,vehicle_id,public_id,status,customer_name,vehicle_info_json,content_free_text,content_preset_json,expiry_type,expiry_value,expiry_date,warranty_period_end,maintenance_date,warranty_exclusions,remarks,service_type,logo_asset_path,current_version,created_at,updated_at",
+      "id,tenant_id,vehicle_id,public_id,status,customer_name,vehicle_info_json,content_free_text,content_preset_json,expiry_type,expiry_value,expiry_date,warranty_period_end,maintenance_date,warranty_exclusions,remarks,service_type,coating_products_json,ppf_coverage_json,maintenance_json,body_repair_json,logo_asset_path,current_version,created_at,updated_at",
     )
     .eq("tenant_id", tenantId)
     .eq("public_id", publicId)
@@ -150,6 +150,10 @@ export default async function Page({ params }: PageProps) {
     warranty_exclusions: row.warranty_exclusions as string | null,
     remarks: row.remarks as string | null,
     service_type: row.service_type as string | null,
+    coating_products_json: (Array.isArray(row.coating_products_json) ? row.coating_products_json : []) as any[],
+    ppf_coverage_json: (Array.isArray(row.ppf_coverage_json) ? row.ppf_coverage_json : []) as any[],
+    maintenance_json: asObj(row.maintenance_json),
+    body_repair_json: asObj(row.body_repair_json),
   };
 
   return (

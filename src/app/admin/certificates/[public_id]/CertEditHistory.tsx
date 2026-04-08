@@ -24,13 +24,28 @@ type Props = {
 
 function formatValue(val: unknown): string {
   if (val == null || val === "") return "(空)";
+  if (Array.isArray(val)) {
+    if (val.length === 0) return "(空)";
+    // For arrays of objects (coating_products, ppf_coverage, etc.)
+    return val.map((item, i) => {
+      if (typeof item === "object" && item !== null) {
+        const obj = item as Record<string, unknown>;
+        const parts = Object.entries(obj)
+          .filter(([, v]) => v != null && v !== "" && v !== false)
+          .filter(([k]) => !k.endsWith("_id"))
+          .map(([, v]) => Array.isArray(v) ? v.join(", ") : String(v));
+        return `${i + 1}. ${parts.join(" / ") || "-"}`;
+      }
+      return String(item);
+    }).join("\n");
+  }
   if (typeof val === "object") {
-    // For JSON objects like vehicle_info_json, show key fields
     const obj = val as Record<string, unknown>;
     const parts = Object.entries(obj)
-      .filter(([, v]) => v != null && v !== "")
-      .map(([k, v]) => `${k}: ${v}`);
-    return parts.length > 0 ? parts.join(", ") : "(空)";
+      .filter(([, v]) => v != null && v !== "" && v !== false)
+      .filter(([k]) => !k.endsWith("_id"))
+      .map(([k, v]) => Array.isArray(v) ? `${k}: ${v.join(", ")}` : `${k}: ${v}`);
+    return parts.length > 0 ? parts.join("\n") : "(空)";
   }
   return String(val);
 }
