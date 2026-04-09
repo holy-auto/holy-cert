@@ -1,13 +1,17 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Health endpoint", () => {
-  test("GET /api/health returns ok with db and env status", async ({ request }) => {
+  test("GET /api/health returns status with checks", async ({ request }) => {
     const res = await request.get("/api/health");
+    // healthy (200) または設定不足による degraded (503) を許容
+    expect([200, 503]).toContain(res.status());
     const json = await res.json();
-    expect(json.ok).toBeDefined();
-    expect(json.ts).toBeDefined();
-    expect(json.db).toBeDefined();
-    expect(json.env).toBeDefined();
+    expect(json.status).toBeDefined();
+    expect(["healthy", "degraded"]).toContain(json.status);
+    expect(json.timestamp).toBeDefined();
+    expect(json.checks).toBeDefined();
+    expect(json.checks.database).toBeDefined();
+    expect(json.checks.env_vars).toBeDefined();
   });
 });
 
