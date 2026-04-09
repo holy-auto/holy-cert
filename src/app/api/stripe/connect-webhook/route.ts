@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
 
   if (claimError) {
     if (claimError.code === "23505") {
-      console.log("connect-webhook: duplicate event skipped", { id: event.id, type: event.type });
+      console.info("connect-webhook: duplicate event skipped", { id: event.id, type: event.type });
       return NextResponse.json({ received: true, duplicate: true });
     }
     console.warn("connect-webhook: idempotency claim error (proceeding)", { id: event.id, error: claimError.message });
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
           { onConflict: "stripe_transfer_id" },
         );
 
-        console.log("connect-webhook: transfer created", {
+        console.info("connect-webhook: transfer created", {
           transferId: transfer.id,
           accountId,
           tenantId,
@@ -181,13 +181,13 @@ export async function POST(req: NextRequest) {
             .from("agent_commissions")
             .update({ status: "paid", paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
             .eq("id", meta.source_id);
-          console.log("connect-webhook: agent commission paid", {
+          console.info("connect-webhook: agent commission paid", {
             commissionId: meta.source_id,
             transferId: transfer.id,
           });
         }
 
-        console.log("connect-webhook: transfer paid", { transferId: transfer.id });
+        console.info("connect-webhook: transfer paid", { transferId: transfer.id });
         break;
       }
 
@@ -209,13 +209,13 @@ export async function POST(req: NextRequest) {
             .from("agent_commissions")
             .update({ status: "failed", updated_at: new Date().toISOString() })
             .eq("id", meta.source_id);
-          console.log("connect-webhook: agent commission reversed", {
+          console.info("connect-webhook: agent commission reversed", {
             commissionId: meta.source_id,
             transferId: transfer.id,
           });
         }
 
-        console.log("connect-webhook: transfer reversed", { transferId: transfer.id });
+        console.info("connect-webhook: transfer reversed", { transferId: transfer.id });
         break;
       }
 
@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
             .eq("stripe_payment_intent_id", chargeId);
         }
 
-        console.log("connect-webhook: application_fee created", {
+        console.info("connect-webhook: application_fee created", {
           feeId: fee.id,
           accountId,
           amount: fee.amount,
@@ -250,7 +250,7 @@ export async function POST(req: NextRequest) {
       case "payout.paid": {
         const payout = event.data.object as Stripe.Payout;
         const accountId = connectedAccountId ?? "";
-        console.log("connect-webhook: payout paid", {
+        console.info("connect-webhook: payout paid", {
           payoutId: payout.id,
           accountId,
           amount: payout.amount,
@@ -337,7 +337,7 @@ export async function POST(req: NextRequest) {
 
         if (tenant && tenant.stripe_connect_onboarded !== onboarded) {
           await supabase.from("tenants").update({ stripe_connect_onboarded: onboarded }).eq("id", tenant.id);
-          console.log("connect-webhook: tenant connect synced", { accountId: account.id, onboarded });
+          console.info("connect-webhook: tenant connect synced", { accountId: account.id, onboarded });
         }
 
         // agent
@@ -350,7 +350,7 @@ export async function POST(req: NextRequest) {
 
         if (agent && agent.stripe_connect_onboarded !== onboarded) {
           await supabase.from("agents").update({ stripe_connect_onboarded: onboarded }).eq("id", agent.id);
-          console.log("connect-webhook: agent connect synced", { accountId: account.id, onboarded });
+          console.info("connect-webhook: agent connect synced", { accountId: account.id, onboarded });
         }
 
         break;

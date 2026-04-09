@@ -41,8 +41,8 @@ export async function POST(request: Request) {
   const { name, email, company, category, message } = parsed.data;
 
   if (!process.env.RESEND_API_KEY) {
-    // 開発環境: APIキー未設定の場合はログだけ出してOK返す
-    console.log("[contact] dev mode — would send:", { name, email, category });
+    // 開発環境専用: RESEND_API_KEY 未設定時はスキップ（本番では到達しない）
+    console.info("[contact] dev mode — would send:", { name, email, category });
     return NextResponse.json({ ok: true });
   }
 
