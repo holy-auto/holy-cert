@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import CustomerActions from "./CustomerActions";
+import HeroCard from "@/components/customer/HeroCard";
+import { highestGrade, type AuthenticityGrade } from "@/lib/anchoring/authenticityGrade";
 import { logCertificateAction } from "@/lib/audit/certificateLog";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { getPanelLabel, getCoverageLabel, getFilmTypeLabel } from "@/lib/ppf/constants";
@@ -79,6 +81,8 @@ type PublicStatusResponse = {
     sort_order?: number | null;
     created_at?: string | null;
     url?: string | null;
+    authenticity_grade?: string | null;
+    sha256?: string | null;
   }>;
   shop?: {
     name?: string | null;
@@ -199,6 +203,9 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
   const customerName = asText(data.certificate.customer_name);
   const freeText = asText(data.certificate.content_free_text);
   const images = !isVoidCertificate ? (data.images ?? []).filter((img) => !!img?.url) : [];
+  const heroGrade: AuthenticityGrade = highestGrade(
+    images.map((img) => img.authenticity_grade as AuthenticityGrade | null | undefined),
+  );
 
   const isPdfBlocked =
     notice === "pdf_blocked" ||
@@ -208,6 +215,9 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
 
   return (
     <main className="mx-auto max-w-[980px] p-4">
+      {certStatus === "active" && !isVoidCertificate ? (
+        <HeroCard maker={maker || null} model={model || null} recordCount={images.length} grade={heroGrade} />
+      ) : null}
       <div className="glass-card mb-4 p-5">
         <div className="text-[28px] font-extrabold tracking-wide text-primary">Ledra</div>
         <div className="mt-1 text-sm text-muted">施工証明書</div>
