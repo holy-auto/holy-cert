@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { getAdminClient } from "@/lib/api/auth";
-
-export const dynamic = "force-dynamic";
+import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
 /**
  * GET /api/admin/sidebar-badges
@@ -20,9 +19,7 @@ export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
+    if (!caller) return apiUnauthorized();
 
     const admin = getAdminClient();
 
@@ -111,14 +108,7 @@ export async function GET() {
       }
     })();
 
-    const [
-      reservationsRes,
-      squareRes,
-      expiringCerts,
-      draftCerts,
-      overdueInvoices,
-      pendingOrders,
-    ] = await Promise.all([
+    const [reservationsRes, squareRes, expiringCerts, draftCerts, overdueInvoices, pendingOrders] = await Promise.all([
       reservationsPromise,
       squareUnlinkedPromise,
       expiringCertsPromise,
@@ -127,21 +117,23 @@ export async function GET() {
       pendingOrdersPromise,
     ]);
 
-    return NextResponse.json({
-      ok: true,
-      reservations_today: reservationsRes.count ?? 0,
-      square_unlinked: squareRes.count ?? 0,
-      expiring_certs_7d: expiringCerts,
-      draft_certs: draftCerts,
-      overdue_invoices: overdueInvoices,
-      pending_orders: pendingOrders,
-    }, {
-      headers: {
-        "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+    return NextResponse.json(
+      {
+        ok: true,
+        reservations_today: reservationsRes.count ?? 0,
+        square_unlinked: squareRes.count ?? 0,
+        expiring_certs_7d: expiringCerts,
+        draft_certs: draftCerts,
+        overdue_invoices: overdueInvoices,
+        pending_orders: pendingOrders,
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+        },
+      },
+    );
   } catch (e) {
-    console.error("[sidebar-badges] error:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "sidebar-badges");
   }
 }

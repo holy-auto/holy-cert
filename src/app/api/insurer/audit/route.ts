@@ -23,14 +23,8 @@ export async function GET(req: NextRequest) {
   const userId = url.searchParams.get("user_id") ?? "";
   const dateFrom = url.searchParams.get("date_from") ?? "";
   const dateTo = url.searchParams.get("date_to") ?? "";
-  const limit = Math.min(
-    parseInt(url.searchParams.get("limit") ?? "50", 10) || 50,
-    200,
-  );
-  const offset = Math.max(
-    parseInt(url.searchParams.get("offset") ?? "0", 10) || 0,
-    0,
-  );
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50", 10) || 50, 200);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") ?? "0", 10) || 0, 0);
 
   try {
     const admin = createAdminClient();
@@ -66,7 +60,7 @@ export async function GET(req: NextRequest) {
       // Fallback: if join fails, query without join
       const fallbackQuery = admin
         .from("insurer_access_logs")
-        .select("*")
+        .select("id, action, meta, ip, user_agent, created_at, certificate_id, insurer_user_id")
         .eq("insurer_id", caller.insurerId)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);

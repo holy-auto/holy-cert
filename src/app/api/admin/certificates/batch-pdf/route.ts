@@ -5,22 +5,17 @@ import { enforceBilling } from "@/lib/billing/guard";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog";
 import { renderCertificatePdf } from "@/lib/pdfCertificate";
-import {
-  apiUnauthorized,
-  apiValidationError,
-  apiForbidden,
-  apiInternalError,
-} from "@/lib/api/response";
+import { apiUnauthorized, apiValidationError, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
 const MAX_BATCH = 20;
 
 function buildBaseUrl(req: Request) {
   const proto = req.headers.get("x-forwarded-proto") ?? "http";
-  const host =
-    req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000";
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000";
   return `${proto}://${host}`;
 }
 
@@ -42,7 +37,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Billing check (starter+)
-    const billingDeny = await enforceBilling(req, { minPlan: "starter", action: "batch_pdf" });
+    const billingDeny = await enforceBilling(req, {
+      minPlan: "starter",
+      action: "batch_pdf",
+      tenantId: caller.tenantId,
+    });
     if (billingDeny) return billingDeny as any;
 
     // Parse body
@@ -80,17 +79,13 @@ export async function POST(req: NextRequest) {
     const baseUrl = buildBaseUrl(req);
     const { ip, userAgent } = getRequestMeta(req);
 
-    type ResultItem =
-      | { public_id: string; pdf_url: string }
-      | { public_id: string; error: string };
+    type ResultItem = { public_id: string; pdf_url: string } | { public_id: string; error: string };
 
-    const results: ResultItem[] = [];
-
-    for (const pid of ids) {
+    // Process a single PDF
+    const processSinglePdf = async (pid: string): Promise<ResultItem> => {
       const cert = certMap.get(pid);
       if (!cert) {
-        results.push({ public_id: pid, error: "証明書が見つかりません。" });
-        continue;
+        return { public_id: pid, error: "証明書が見つかりません。" };
       }
 
       try {
@@ -100,16 +95,13 @@ export async function POST(req: NextRequest) {
 
         // Upload to Supabase Storage
         const storagePath = `batch-pdf/${caller.tenantId}/${pid}-${Date.now()}.pdf`;
-        const { error: uploadErr } = await admin.storage
-          .from("certificates")
-          .upload(storagePath, pdfBytes, {
-            contentType: "application/pdf",
-            upsert: true,
-          });
+        const { error: uploadErr } = await admin.storage.from("certificates").upload(storagePath, pdfBytes, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
 
         if (uploadErr) {
-          results.push({ public_id: pid, error: "PDF アップロードに失敗しました。" });
-          continue;
+          return { public_id: pid, error: "PDF アップロードに失敗しました。" };
         }
 
         // Create signed URL (valid for 1 hour)
@@ -118,11 +110,8 @@ export async function POST(req: NextRequest) {
           .createSignedUrl(storagePath, 3600);
 
         if (signErr || !signedData?.signedUrl) {
-          results.push({ public_id: pid, error: "署名付きURL の生成に失敗しました。" });
-          continue;
+          return { public_id: pid, error: "署名付きURL の生成に失敗しました。" };
         }
-
-        results.push({ public_id: pid, pdf_url: signedData.signedUrl });
 
         // Audit (fire-and-forget)
         logCertificateAction({
@@ -135,9 +124,27 @@ export async function POST(req: NextRequest) {
           ip,
           userAgent,
         });
+
+        return { public_id: pid, pdf_url: signedData.signedUrl };
       } catch (e) {
         const msg = e instanceof Error ? e.message : "不明なエラー";
-        results.push({ public_id: pid, error: `PDF 生成に失敗: ${msg}` });
+        return { public_id: pid, error: `PDF 生成に失敗: ${msg}` };
+      }
+    };
+
+    // Process in chunks of 5 concurrent PDFs
+    const CONCURRENCY = 5;
+    const results: ResultItem[] = [];
+    for (let i = 0; i < ids.length; i += CONCURRENCY) {
+      const chunk = ids.slice(i, i + CONCURRENCY);
+      const settled = await Promise.allSettled(chunk.map(processSinglePdf));
+      for (const result of settled) {
+        if (result.status === "fulfilled") {
+          results.push(result.value);
+        } else {
+          // Should not happen since processSinglePdf catches internally, but handle gracefully
+          results.push({ public_id: "unknown", error: "予期しないエラー" });
+        }
       }
     }
 

@@ -3,6 +3,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { parsePagination } from "@/lib/api/pagination";
+import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +12,10 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     if (!requirePermission(caller, "payments:view")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const url = new URL(req.url);
@@ -28,7 +29,9 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("payments")
-      .select("*")
+      .select(
+        "id, tenant_id, store_id, document_id, reservation_id, customer_id, register_session_id, payment_method, amount, received_amount, change_amount, status, refund_amount, refund_reason, note, paid_at, created_by, created_at, updated_at",
+      )
       .eq("tenant_id", caller.tenantId)
       .order("paid_at", { ascending: false });
 
@@ -68,18 +71,14 @@ export async function GET(req: NextRequest) {
 
     const [{ data: payments, error }, { count: totalCount }] = await Promise.all([query, countQuery]);
     if (error) {
-      console.error("[payments] db_error:", error.message);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
+      return apiInternalError(error, "payments list");
     }
 
     // 顧客名を取得
     const customerIds = [...new Set((payments ?? []).map((p) => p.customer_id).filter(Boolean))];
     const customerMap: Record<string, string> = {};
     if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name")
-        .in("id", customerIds);
+      const { data: customers } = await supabase.from("customers").select("id, name").in("id", customerIds);
       (customers ?? []).forEach((c) => {
         customerMap[c.id] = c.name;
       });
@@ -92,28 +91,29 @@ export async function GET(req: NextRequest) {
 
     // 統計
     const total = enriched.length;
-    const totalAmount = enriched
-      .filter((p) => p.status === "completed")
-      .reduce((sum, p) => sum + (p.amount ?? 0), 0);
+    const totalAmount = enriched.filter((p) => p.status === "completed").reduce((sum, p) => sum + (p.amount ?? 0), 0);
 
-    return NextResponse.json({
-      payments: enriched,
-      stats: {
-        total: totalCount ?? total,
-        total_amount: totalAmount,
-      },
-      ...(page > 0 && {
-        pagination: {
-          page,
-          per_page: perPage,
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
+    return NextResponse.json(
+      {
+        payments: enriched,
+        stats: {
           total: totalCount ?? total,
-          total_pages: Math.ceil((totalCount ?? total) / perPage),
+          total_amount: totalAmount,
         },
-      }),
-    });
+        ...(page > 0 && {
+          pagination: {
+            page,
+            per_page: perPage,
+            total: totalCount ?? total,
+            total_pages: Math.ceil((totalCount ?? total) / perPage),
+          },
+        }),
+      },
+      { headers },
+    );
   } catch (e: unknown) {
-    console.error("payments list failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "payments list");
   }
 }
 
@@ -125,66 +125,66 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     if (!requirePermission(caller, "payments:create")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
 
-    const paymentMethod = (String(body?.payment_method ?? "")).trim();
-    if (!paymentMethod) return NextResponse.json({ error: "missing_payment_method" }, { status: 400 });
+    const paymentMethod = String(body?.payment_method ?? "").trim();
+    if (!paymentMethod) return apiValidationError("missing_payment_method");
 
     const validMethods = ["cash", "card", "qr", "bank_transfer", "other"];
     if (!validMethods.includes(paymentMethod)) {
-      return NextResponse.json({ error: "invalid_payment_method" }, { status: 400 });
+      return apiValidationError("invalid_payment_method");
     }
 
     const amount = parseInt(String(body?.amount ?? ""), 10);
     if (isNaN(amount) || amount < 1 || amount > 999_999_999) {
-      return NextResponse.json({ error: "invalid_amount" }, { status: 400 });
+      return apiValidationError("invalid_amount");
     }
 
-    const receivedAmount = body?.received_amount != null
-      ? parseInt(String(body.received_amount), 10)
-      : null;
+    const receivedAmount = body?.received_amount != null ? parseInt(String(body.received_amount), 10) : null;
     if (receivedAmount != null && (isNaN(receivedAmount) || receivedAmount < 0)) {
-      return NextResponse.json({ error: "invalid_received_amount" }, { status: 400 });
+      return apiValidationError("invalid_received_amount");
     }
-    const changeAmount = receivedAmount != null && receivedAmount > amount
-      ? receivedAmount - amount
-      : 0;
+    const changeAmount = receivedAmount != null && receivedAmount > amount ? receivedAmount - amount : 0;
 
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
-      store_id: (String(body?.store_id ?? "")).trim() || null,
-      document_id: (String(body?.document_id ?? "")).trim() || null,
-      reservation_id: (String(body?.reservation_id ?? "")).trim() || null,
-      customer_id: (String(body?.customer_id ?? "")).trim() || null,
-      register_session_id: (String(body?.register_session_id ?? "")).trim() || null,
+      store_id: String(body?.store_id ?? "").trim() || null,
+      document_id: String(body?.document_id ?? "").trim() || null,
+      reservation_id: String(body?.reservation_id ?? "").trim() || null,
+      customer_id: String(body?.customer_id ?? "").trim() || null,
+      register_session_id: String(body?.register_session_id ?? "").trim() || null,
       payment_method: paymentMethod,
       amount,
       received_amount: receivedAmount,
       change_amount: changeAmount,
       status: "completed",
       refund_amount: 0,
-      note: (String(body?.note ?? "")).trim() || null,
+      note: String(body?.note ?? "").trim() || null,
       paid_at: body?.paid_at || new Date().toISOString(),
       created_by: caller.userId,
     };
 
-    const { data, error } = await supabase.from("payments").insert(row).select().single();
+    const { data, error } = await supabase
+      .from("payments")
+      .insert(row)
+      .select(
+        "id, tenant_id, store_id, document_id, reservation_id, customer_id, register_session_id, payment_method, amount, received_amount, change_amount, status, refund_amount, note, paid_at, created_by, created_at, updated_at",
+      )
+      .single();
     if (error) {
-      console.error("[payments] insert_failed:", error.message);
-      return NextResponse.json({ error: "insert_failed" }, { status: 500 });
+      return apiInternalError(error, "payments insert");
     }
 
     return NextResponse.json({ ok: true, payment: data });
   } catch (e: unknown) {
-    console.error("payment create failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "payments create");
   }
 }
 
@@ -193,27 +193,28 @@ export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     if (!requirePermission(caller, "payments:manage")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const id = String(body?.id ?? "").trim();
+    if (!id) return apiValidationError("missing_id");
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-    if (body.store_id !== undefined) updates.store_id = (String(body.store_id ?? "")).trim() || null;
-    if (body.document_id !== undefined) updates.document_id = (String(body.document_id ?? "")).trim() || null;
-    if (body.reservation_id !== undefined) updates.reservation_id = (String(body.reservation_id ?? "")).trim() || null;
-    if (body.customer_id !== undefined) updates.customer_id = (String(body.customer_id ?? "")).trim() || null;
+    if (body.store_id !== undefined) updates.store_id = String(body.store_id ?? "").trim() || null;
+    if (body.document_id !== undefined) updates.document_id = String(body.document_id ?? "").trim() || null;
+    if (body.reservation_id !== undefined) updates.reservation_id = String(body.reservation_id ?? "").trim() || null;
+    if (body.customer_id !== undefined) updates.customer_id = String(body.customer_id ?? "").trim() || null;
     if (body.payment_method !== undefined) updates.payment_method = body.payment_method;
     if (body.amount !== undefined) updates.amount = parseInt(String(body.amount), 10);
-    if (body.received_amount !== undefined) updates.received_amount = body.received_amount != null ? parseInt(String(body.received_amount), 10) : null;
+    if (body.received_amount !== undefined)
+      updates.received_amount = body.received_amount != null ? parseInt(String(body.received_amount), 10) : null;
     if (body.change_amount !== undefined) updates.change_amount = parseInt(String(body.change_amount ?? 0), 10);
-    if (body.note !== undefined) updates.note = (String(body.note ?? "")).trim() || null;
+    if (body.note !== undefined) updates.note = String(body.note ?? "").trim() || null;
     if (body.paid_at !== undefined) updates.paid_at = body.paid_at;
 
     // ステータス変更（返金処理）
@@ -224,11 +225,11 @@ export async function PUT(req: NextRequest) {
           updates.refund_amount = parseInt(String(body.refund_amount), 10) || 0;
         }
         if (body.refund_reason !== undefined) {
-          updates.refund_reason = (String(body.refund_reason ?? "")).trim() || null;
+          updates.refund_reason = String(body.refund_reason ?? "").trim() || null;
         }
       }
       if (body.status === "voided") {
-        updates.refund_reason = (String(body.refund_reason ?? "")).trim() || null;
+        updates.refund_reason = String(body.refund_reason ?? "").trim() || null;
       }
     }
 
@@ -237,18 +238,18 @@ export async function PUT(req: NextRequest) {
       .update(updates)
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select()
+      .select(
+        "id, tenant_id, store_id, document_id, reservation_id, customer_id, register_session_id, payment_method, amount, received_amount, change_amount, status, refund_amount, refund_reason, note, paid_at, created_by, created_at, updated_at",
+      )
       .single();
 
     if (error) {
-      console.error("[payments] update_failed:", error.message);
-      return NextResponse.json({ error: "update_failed" }, { status: 500 });
+      return apiInternalError(error, "payments update");
     }
 
     return NextResponse.json({ ok: true, payment: data });
   } catch (e: unknown) {
-    console.error("payment update failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "payments update");
   }
 }
 
@@ -257,30 +258,24 @@ export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     if (!requirePermission(caller, "payments:manage")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
-    if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    const id = String(body?.id ?? "").trim();
+    if (!id) return apiValidationError("missing_id");
 
-    const { error } = await supabase
-      .from("payments")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("payments").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
-      console.error("[payments] delete_failed:", error.message);
-      return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+      return apiInternalError(error, "payments delete");
     }
 
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
-    console.error("payment delete failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "payments delete");
   }
 }

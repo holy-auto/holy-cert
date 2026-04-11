@@ -15,14 +15,15 @@ export const fetcher = async (url: string) => {
 
 /**
  * Default SWR config for admin pages.
- * - Revalidate on focus (stale data refreshed when user returns)
- * - Deduplicate requests within 2 seconds
+ * - No revalidation on focus (prevents refetch storms when switching tabs)
+ * - Deduplicate requests within 10 seconds
  * - Keep previous data during revalidation
  */
 export const adminSwrConfig = {
   fetcher,
-  revalidateOnFocus: true,
-  dedupingInterval: 2000,
+  revalidateOnFocus: false,
+  focusThrottleInterval: 60_000,
+  dedupingInterval: 10_000,
   keepPreviousData: true,
   errorRetryCount: 2,
 };

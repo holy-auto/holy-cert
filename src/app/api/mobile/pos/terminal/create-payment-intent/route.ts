@@ -4,6 +4,7 @@ import { createMobileClient, resolveMobileCaller } from "@/lib/supabase/mobile";
 import { requireMinRole } from "@/lib/auth/checkRole";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -16,31 +17,29 @@ export async function POST(req: NextRequest) {
 
     const { client, accessToken } = createMobileClient(req);
     if (!client) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const caller = await resolveMobileCaller(client, accessToken);
     if (!caller) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
     if (!requireMinRole(caller, "staff")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
 
-    // amount バリデーション
+    // amount バリデーシ���ン
     const amount = parseInt(String(body?.amount ?? 0), 10);
     if (!amount || amount < 1 || amount > 999_999_999) {
-      return NextResponse.json({ error: "invalid_amount" }, { status: 400 });
+      return apiValidationError("invalid_amount");
     }
 
     const currency = String(body?.currency ?? "jpy");
     const description = body?.description ? String(body.description) : undefined;
     const extraMetadata =
-      body?.metadata && typeof body.metadata === "object"
-        ? (body.metadata as Record<string, string>)
-        : {};
+      body?.metadata && typeof body.metadata === "object" ? (body.metadata as Record<string, string>) : {};
 
     // テナントのStripe Connectアカウントを取得
     const admin = createAdminClient();
@@ -54,12 +53,10 @@ export async function POST(req: NextRequest) {
     const isOnboarded = tenant?.stripe_connect_onboarded as boolean | null;
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2025-02-24.acacia" as any,
+      apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion,
     });
 
-    const stripeOptions = connectAccountId && isOnboarded
-      ? { stripeAccount: connectAccountId }
-      : undefined;
+    const stripeOptions = connectAccountId && isOnboarded ? { stripeAccount: connectAccountId } : undefined;
 
     const paymentIntent = await stripe.paymentIntents.create(
       {
@@ -84,30 +81,29 @@ export async function POST(req: NextRequest) {
       connect_account: connectAccountId && isOnboarded ? connectAccountId : null,
     });
   } catch (e: unknown) {
-    console.error("[mobile/pos/terminal/create-payment-intent] error:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "mobile/pos/terminal/create-payment-intent");
   }
 }
 
-// ─── GET: PaymentIntent ステータス確認（ポーリング用） ───
+// ─── GET: PaymentIntent ステ���タス確認（ポーリング用） ───
 export async function GET(req: NextRequest) {
   try {
     const { client, accessToken } = createMobileClient(req);
     if (!client) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const caller = await resolveMobileCaller(client, accessToken);
     if (!caller) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
     if (!requireMinRole(caller, "staff")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const id = req.nextUrl.searchParams.get("id");
     if (!id || !id.startsWith("pi_")) {
-      return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+      return apiValidationError("invalid_id");
     }
 
     // テナントのStripe Connectアカウントを取得
@@ -122,18 +118,16 @@ export async function GET(req: NextRequest) {
     const isOnboarded = tenant?.stripe_connect_onboarded as boolean | null;
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2025-02-24.acacia" as any,
+      apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion,
     });
 
-    const stripeOptions = connectAccountId && isOnboarded
-      ? { stripeAccount: connectAccountId }
-      : undefined;
+    const stripeOptions = connectAccountId && isOnboarded ? { stripeAccount: connectAccountId } : undefined;
 
     const pi = await stripe.paymentIntents.retrieve(id, stripeOptions);
 
     // tenant_id チェック（自テナントのPIのみ参照可能）
     if (pi.metadata?.tenant_id !== caller.tenantId) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      return apiNotFound("not_found");
     }
 
     return NextResponse.json({
@@ -142,7 +136,6 @@ export async function GET(req: NextRequest) {
       amount: pi.amount,
     });
   } catch (e: unknown) {
-    console.error("[mobile/pos/terminal/create-payment-intent GET] error:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "mobile/pos/terminal/create-payment-intent GET");
   }
 }

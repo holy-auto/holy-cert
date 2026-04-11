@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import {
-  apiUnauthorized,
-  apiValidationError,
-  apiNotFound,
-  apiForbidden,
-  apiInternalError,
-} from "@/lib/api/response";
+import { apiUnauthorized, apiValidationError, apiNotFound, apiForbidden, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -14,28 +8,17 @@ export const runtime = "nodejs";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-const ALLOWED_TYPES = [
-  "image/",
-  "application/pdf",
-  "text/",
-  "application/msword",
-  "application/vnd.openxmlformats",
-];
+const ALLOWED_TYPES = ["image/", "application/pdf", "text/", "application/msword", "application/vnd.openxmlformats"];
 
 function isAllowedType(mimeType: string): boolean {
-  return ALLOWED_TYPES.some((t) =>
-    t.endsWith("/") ? mimeType.startsWith(t) : mimeType.startsWith(t),
-  );
+  return ALLOWED_TYPES.some((t) => (t.endsWith("/") ? mimeType.startsWith(t) : mimeType.startsWith(t)));
 }
 
 /**
  * POST /api/insurer/cases/[id]/attachments
  * Upload a file attachment to a case.
  */
-export async function POST(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const limited = await checkRateLimit(req, "general");
   if (limited) return limited;
 
@@ -73,9 +56,7 @@ export async function POST(
 
     const contentType = file.type || "application/octet-stream";
     if (!isAllowedType(contentType)) {
-      return apiValidationError(
-        `許可されていないファイル形式です: ${contentType}`,
-      );
+      return apiValidationError(`許可されていないファイル形式です: ${contentType}`);
     }
 
     // Generate storage path
@@ -107,7 +88,7 @@ export async function POST(
         storage_path: uploadData.path,
         uploaded_by: caller.userId,
       })
-      .select("*")
+      .select("id, case_id, file_name, file_size, file_type, storage_path, uploaded_by, created_at")
       .single();
 
     if (attachErr) return apiValidationError(attachErr.message);

@@ -6,7 +6,36 @@ import { apiOk, apiUnauthorized, apiValidationError, apiInternalError, apiForbid
 import { getTemplateOptionStatus } from "@/lib/template-options/templateOptionFeatures";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
-const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];
+// NOTE: SVG removed — SVG files can contain embedded scripts (XSS risk)
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+/** Validate file magic bytes against allowed image types */
+function validateMagicBytes(buffer: Buffer): string | null {
+  if (buffer.length < 12) return null;
+
+  // JPEG: FF D8 FF
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return "image/jpeg";
+  }
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+    return "image/png";
+  }
+  // WebP: 52 49 46 46 ... 57 45 42 50
+  if (
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  return null;
+}
 
 /** POST: テンプレート用ロゴアップロード */
 export async function POST(req: NextRequest) {
@@ -29,25 +58,31 @@ export async function POST(req: NextRequest) {
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return apiValidationError("PNG, JPEG, SVG, WebP 形式のみアップロードできます。");
+      return apiValidationError("PNG, JPEG, WebP 形式のみアップロードできます。");
     }
 
     if (file.size > MAX_FILE_SIZE) {
       return apiValidationError("ファイルサイズは2MB以下にしてください。");
     }
 
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Validate magic bytes to prevent spoofed content types
+    const detectedMime = validateMagicBytes(buffer);
+    if (!detectedMime || !ALLOWED_TYPES.includes(detectedMime)) {
+      return apiValidationError("ファイル形式が不正です。PNG, JPEG, WebP 形式のみアップロードできます。");
+    }
+
     const admin = createAdminClient();
-    const ext = file.name.split(".").pop() ?? "png";
+    const ext = detectedMime.split("/")[1]?.replace("jpeg", "jpg") ?? "png";
     const storagePath = `template-logos/${caller.tenantId}/${Date.now()}.${ext}`;
 
     // Supabase Storage にアップロード
-    const arrayBuffer = await file.arrayBuffer();
-    const { error: uploadErr } = await admin.storage
-      .from("assets")
-      .upload(storagePath, arrayBuffer, {
-        contentType: file.type,
-        upsert: true,
-      });
+    const { error: uploadErr } = await admin.storage.from("assets").upload(storagePath, buffer, {
+      contentType: detectedMime,
+      upsert: true,
+    });
 
     if (uploadErr) throw uploadErr;
 
@@ -81,7 +116,7 @@ export async function POST(req: NextRequest) {
         const updatedConfig = {
           ...(config.config_json as Record<string, unknown>),
           branding: {
-            ...((config.config_json as Record<string, unknown>).branding as Record<string, unknown> ?? {}),
+            ...(((config.config_json as Record<string, unknown>).branding as Record<string, unknown>) ?? {}),
             logo_asset_id: asset.id,
           },
         };

@@ -13,10 +13,7 @@ import {
 export const dynamic = "force-dynamic";
 
 // ─── POST: Record NFC attach (written → attached) ───
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const caller = await resolveMobileCaller(request);
     if (!caller) return apiUnauthorized();
@@ -33,9 +30,7 @@ export async function POST(
 
     if (!tag) return apiNotFound();
     if (tag.status !== "written") {
-      return apiValidationError(
-        `Cannot attach: current status is "${tag.status}", expected "written"`,
-      );
+      return apiValidationError(`Cannot attach: current status is "${tag.status}", expected "written"`);
     }
 
     const { data, error } = await caller.supabase
@@ -43,7 +38,7 @@ export async function POST(
       .update({ status: "attached", attached_at: new Date().toISOString() })
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select()
+      .select("id, tenant_id, tag_code, certificate_id, status, attached_at, created_at, updated_at")
       .single();
 
     if (error) return apiInternalError(error, "nfc.attach");

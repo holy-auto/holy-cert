@@ -10,12 +10,12 @@ export const dynamic = "force-dynamic";
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("Missing STRIPE_SECRET_KEY");
-  return new Stripe(key, { apiVersion: "2025-02-24.acacia" as any });
+  return new Stripe(key, { apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion });
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch((): Record<string, unknown> => ({}));
     const parsed = billingStateSchema.safeParse(body);
     if (!parsed.success) {
       return apiValidationError(parsed.error.issues[0]?.message ?? "入力が不正です。");
@@ -57,28 +57,31 @@ export async function POST(req: NextRequest) {
     }
 
     // Stripeの期限情報（subscription がある時だけ）
-    let subscription: any = null;
-    const subscriptionId = (t.data as any).stripe_subscription_id as string | null;
+    let subscription: Record<string, unknown> | null = null;
+    const subscriptionId = (t.data as Record<string, unknown>).stripe_subscription_id as string | null;
 
     if (subscriptionId) {
       try {
         const stripe = getStripe();
 
         // Stripe SDKの戻りが Response<Subscription> の場合があるため data を吸収
-        const res: any = await stripe.subscriptions.retrieve(subscriptionId);
-        const sub: any = res?.data ?? res;
+        const res = await stripe.subscriptions.retrieve(subscriptionId);
+        const resRecord = res as unknown as Record<string, unknown>;
+        const sub = ((resRecord.data as Record<string, unknown> | undefined) ?? resRecord) as Stripe.Subscription &
+          Record<string, unknown>;
 
-        if (sub?.deleted) {
+        const subRec = sub as unknown as Record<string, unknown>;
+        if (subRec?.deleted) {
           subscription = { error: "Subscription is deleted" };
         } else {
           subscription = {
             id: sub.id,
             status: sub.status,
-            current_period_start: sub.current_period_start ?? null,
-            current_period_end: sub.current_period_end ?? null,
-            cancel_at_period_end: sub.cancel_at_period_end ?? null,
-            cancel_at: sub.cancel_at ?? null,
-            trial_end: sub.trial_end ?? null,
+            current_period_start: (subRec.current_period_start as number | undefined) ?? null,
+            current_period_end: (subRec.current_period_end as number | undefined) ?? null,
+            cancel_at_period_end: (subRec.cancel_at_period_end as boolean | undefined) ?? null,
+            cancel_at: (subRec.cancel_at as number | undefined) ?? null,
+            trial_end: (subRec.trial_end as number | undefined) ?? null,
           };
         }
       } catch (e) {

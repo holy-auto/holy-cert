@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     try {
       const { data: slaRow } = await admin
         .from("insurer_sla_config")
-        .select("*")
+        .select("id, insurer_id, urgent_hours, high_hours, normal_hours, low_hours, updated_at")
         .eq("insurer_id", caller.insurerId)
         .maybeSingle();
 
@@ -190,9 +190,7 @@ export async function PATCH(req: NextRequest) {
         normal_hours: normal ?? DEFAULT_SLA.normal,
         low_hours: low ?? DEFAULT_SLA.low,
       };
-      const { error } = await admin
-        .from("insurer_sla_config")
-        .insert(insertData);
+      const { error } = await admin.from("insurer_sla_config").insert(insertData);
 
       if (error) {
         console.error("[sla] PATCH insert error:", error.message);

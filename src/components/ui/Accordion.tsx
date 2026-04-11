@@ -27,6 +27,7 @@ export default function Accordion({ items, className = "" }: AccordionProps) {
           <div key={i}>
             <button
               onClick={() => toggle(i)}
+              aria-expanded={isOpen}
               className="flex w-full items-center justify-between gap-4 py-4 text-left transition-colors hover:text-primary"
             >
               <span className="text-sm font-medium text-primary">{item.question}</span>
@@ -49,9 +50,7 @@ export default function Accordion({ items, className = "" }: AccordionProps) {
               style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
             >
               <div className="overflow-hidden">
-                <p className="pb-4 text-sm text-secondary leading-relaxed">
-                  {item.answer}
-                </p>
+                <p className="pb-4 text-sm text-secondary leading-relaxed">{item.answer}</p>
               </div>
             </div>
           </div>

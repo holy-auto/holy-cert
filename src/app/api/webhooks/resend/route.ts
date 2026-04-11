@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Webhook } from "svix";
+import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,16 +30,21 @@ type ResendEvent = {
 export async function POST(req: NextRequest) {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
 
+  if (!secret) {
+    console.error("[resend-webhook] RESEND_WEBHOOK_SECRET is not configured");
+    return apiInternalError(new Error("Webhook secret not configured"), "resend-webhook");
+  }
+
   const rawBody = await req.text();
 
   // Verify webhook signature using Svix HMAC-SHA256
-  if (secret) {
+  {
     const signature = req.headers.get("svix-signature");
     const timestamp = req.headers.get("svix-timestamp");
     const id = req.headers.get("svix-id");
 
     if (!signature || !timestamp || !id) {
-      return NextResponse.json({ error: "Missing webhook headers" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     try {
@@ -50,7 +56,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (err) {
       console.error("[resend-webhook] Signature verification failed:", err);
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      return apiUnauthorized();
     }
   }
 
@@ -58,11 +64,11 @@ export async function POST(req: NextRequest) {
   try {
     event = JSON.parse(rawBody);
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiValidationError("Invalid JSON");
   }
 
   if (!event.type || !event.data) {
-    return NextResponse.json({ error: "Invalid event format" }, { status: 400 });
+    return apiValidationError("Invalid event format");
   }
 
   const { type, data } = event;

@@ -70,7 +70,9 @@ export async function getPublicCertificateData(pid: string): Promise<Record<stri
 
     supabase
       .from("certificate_images")
-      .select("id, file_name, content_type, file_size, sort_order, created_at, storage_path")
+      .select(
+        "id, file_name, content_type, file_size, sort_order, created_at, storage_path, authenticity_grade, sha256",
+      )
       .eq("certificate_id", cert.id)
       .order("sort_order", { ascending: true })
       .limit(20),

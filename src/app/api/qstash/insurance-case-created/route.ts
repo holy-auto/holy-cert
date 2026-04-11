@@ -1,5 +1,6 @@
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { apiValidationError, apiInternalError } from "@/lib/api/response";
 
 /**
  * QStash handler: insurance-case-created
@@ -14,7 +15,7 @@ async function handler(request: Request) {
   const body = await request.json().catch(() => null);
 
   if (!body) {
-    return Response.json({ ok: false, error: "no payload" }, { status: 400 });
+    return apiValidationError("no payload");
   }
 
   console.info("[QSTASH][insurance-case-created] processing:", JSON.stringify(body));
@@ -31,32 +32,31 @@ async function handler(request: Request) {
   } = body as Record<string, string | undefined>;
 
   if (!certificate_id || !tenant_id) {
-    return Response.json({ ok: false, error: "missing certificate_id or tenant_id" }, { status: 400 });
+    return apiValidationError("missing certificate_id or tenant_id");
   }
 
   const admin = createAdminClient();
 
   try {
     // 1. Get tenant info for context
-    const { data: tenant } = await admin
-      .from("tenants")
-      .select("name, contact_email")
-      .eq("id", tenant_id)
-      .single();
+    const { data: tenant } = await admin.from("tenants").select("name, contact_email").eq("id", tenant_id).single();
 
     const shopName = tenant?.name ?? "施工店";
 
     // 2. Log notification event
-    await admin.from("notification_logs").insert({
-      tenant_id,
-      type: "certificate_created",
-      target_type: "certificate",
-      target_id: certificate_id,
-      recipient_email: tenant?.contact_email ?? null,
-      status: "sent",
-    }).then(({ error }) => {
-      if (error) console.warn("[QSTASH] notification_logs insert failed:", error.message);
-    });
+    await admin
+      .from("notification_logs")
+      .insert({
+        tenant_id,
+        type: "certificate_created",
+        target_type: "certificate",
+        target_id: certificate_id,
+        recipient_email: tenant?.contact_email ?? null,
+        status: "sent",
+      })
+      .then(({ error }) => {
+        if (error) console.warn("[QSTASH] notification_logs insert failed:", error.message);
+      });
 
     // 3. Check if any insurers exist and should be notified
     //    (Future: insurer notification preferences, API subscriptions)
@@ -94,7 +94,7 @@ async function handler(request: Request) {
     });
   } catch (e) {
     console.error("[QSTASH][insurance-case-created] error:", e);
-    return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+    return apiInternalError(e, "qstash/insurance-case-created");
   }
 }
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { parsePagination } from "@/lib/api/pagination";
+import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
+import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +12,7 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     const { searchParams } = new URL(req.url);
     const vehicleId = searchParams.get("vehicle_id");
@@ -37,21 +39,21 @@ export async function GET(req: NextRequest) {
     if (q) {
       // Search by public_id, customer_name, or vehicle-related fields
       // plate_display and vehicle_maker/vehicle_model are denormalized on the certificates table
+      const safeQ = escapePostgrestValue(escapeIlike(q));
       query = query.or(
-        `public_id.ilike.%${q}%,customer_name.ilike.%${q}%,plate_display.ilike.%${q}%,vehicle_maker.ilike.%${q}%,vehicle_model.ilike.%${q}%`,
+        `public_id.ilike.%${safeQ}%,customer_name.ilike.%${safeQ}%,plate_display.ilike.%${safeQ}%,vehicle_maker.ilike.%${safeQ}%,vehicle_model.ilike.%${safeQ}%`,
       );
     }
 
     const { data: certificates, error } = await query;
 
     if (error) {
-      console.error("[admin/certificates] db_error:", error.message);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
+      return apiInternalError(error, "admin/certificates GET");
     }
 
-    return NextResponse.json({ certificates: certificates ?? [] });
-  } catch (e: any) {
-    console.error("admin certificates list failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
+    return NextResponse.json({ certificates: certificates ?? [] }, { headers });
+  } catch (e: unknown) {
+    return apiInternalError(e, "admin/certificates GET");
   }
 }

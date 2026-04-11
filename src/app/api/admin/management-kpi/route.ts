@@ -19,7 +19,8 @@ export async function GET() {
       return NextResponse.json({ error: "internal_error" }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
+    return NextResponse.json(data, { headers });
   } catch (e: unknown) {
     console.error("[management-kpi] GET failed:", e);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });

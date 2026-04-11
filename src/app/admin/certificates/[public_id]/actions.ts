@@ -2,17 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type CertActionResult = { ok: true } | { ok: false; error: string };
 
-async function getTenantId(supabase: any): Promise<string | null> {
+async function getTenantId(supabase: SupabaseClient): Promise<string | null> {
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) return null;
-  const { data } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .limit(1)
-    .single();
+  const { data } = await supabase.from("tenant_memberships").select("tenant_id").limit(1).single();
   return (data?.tenant_id as string | null) ?? null;
 }
 

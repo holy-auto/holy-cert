@@ -11,14 +11,17 @@ jobs:
     name: Lint, Type Check & Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
 
       - run: npm ci
+
+      - name: Security audit
+        run: npm audit --audit-level=high --omit=dev || true
 
       - name: Lint, Type Check & Unit Tests (parallel)
         run: |
@@ -26,7 +29,7 @@ jobs:
           PID_LINT=$!
           npx tsc --noEmit &
           PID_TSC=$!
-          npm test &
+          npm run test:coverage &
           PID_TEST=$!
           wait $PID_LINT || exit 1
           wait $PID_TSC || exit 1
@@ -37,9 +40,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint-typecheck-test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -47,7 +50,7 @@ jobs:
       - run: npm ci
 
       - name: Cache Playwright Browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -62,7 +65,7 @@ jobs:
         run: npx playwright install-deps chromium
 
       - name: Cache Next.js Build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .next
           key: nextjs-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('src/**') }}
@@ -85,7 +88,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Upload Playwright Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report

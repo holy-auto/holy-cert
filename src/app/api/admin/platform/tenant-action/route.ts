@@ -3,15 +3,11 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
-type TenantAction =
-  | "activate"
-  | "deactivate"
-  | "change_plan"
-  | "reset_billing"
-  | "send_notification";
+type TenantAction = "activate" | "deactivate" | "change_plan" | "reset_billing" | "send_notification";
 
 /**
  * POST /api/admin/platform/tenant-action
@@ -22,10 +18,10 @@ export async function POST(req: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
     if (!isPlatformAdmin(caller)) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const body = await req.json();
@@ -36,7 +32,7 @@ export async function POST(req: NextRequest) {
     };
 
     if (!tenantId || !action) {
-      return NextResponse.json({ error: "validation_error", message: "tenantId と action は必須です" }, { status: 400 });
+      return apiValidationError("tenantId と action は必須です");
     }
 
     const admin = getSupabaseAdmin();
@@ -49,26 +45,20 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (tenantError || !tenant) {
-      return NextResponse.json({ error: "not_found", message: "テナントが見つかりません" }, { status: 404 });
+      return apiNotFound("テナントが見つかりません");
     }
 
     let result: Record<string, unknown> = {};
 
     switch (action) {
       case "activate": {
-        const { error } = await admin
-          .from("tenants")
-          .update({ is_active: true })
-          .eq("id", tenantId);
+        const { error } = await admin.from("tenants").update({ is_active: true }).eq("id", tenantId);
         if (error) throw error;
         result = { message: `${tenant.name} を有効化しました`, is_active: true };
         break;
       }
       case "deactivate": {
-        const { error } = await admin
-          .from("tenants")
-          .update({ is_active: false })
-          .eq("id", tenantId);
+        const { error } = await admin.from("tenants").update({ is_active: false }).eq("id", tenantId);
         if (error) throw error;
         result = { message: `${tenant.name} を無効化しました`, is_active: false };
         break;
@@ -76,25 +66,19 @@ export async function POST(req: NextRequest) {
       case "change_plan": {
         const newPlan = params?.plan_tier as string;
         if (!newPlan) {
-          return NextResponse.json({ error: "validation_error", message: "plan_tier が必要です" }, { status: 400 });
+          return apiValidationError("plan_tier が必要です");
         }
         const validPlans = ["free", "starter", "pro", "enterprise"];
         if (!validPlans.includes(newPlan)) {
-          return NextResponse.json({ error: "validation_error", message: "無効なプランです" }, { status: 400 });
+          return apiValidationError("無効なプランです");
         }
-        const { error } = await admin
-          .from("tenants")
-          .update({ plan_tier: newPlan })
-          .eq("id", tenantId);
+        const { error } = await admin.from("tenants").update({ plan_tier: newPlan }).eq("id", tenantId);
         if (error) throw error;
         result = { message: `${tenant.name} のプランを ${newPlan} に変更しました`, plan_tier: newPlan };
         break;
       }
       case "reset_billing": {
-        const { error } = await admin
-          .from("tenants")
-          .update({ is_active: true })
-          .eq("id", tenantId);
+        const { error } = await admin.from("tenants").update({ is_active: true }).eq("id", tenantId);
         if (error) throw error;
         result = { message: `${tenant.name} の課金状態をリセットしました` };
         break;
@@ -102,13 +86,10 @@ export async function POST(req: NextRequest) {
       case "send_notification": {
         const message = params?.message as string;
         if (!message) {
-          return NextResponse.json({ error: "validation_error", message: "message が必要です" }, { status: 400 });
+          return apiValidationError("message が���要です");
         }
         // Get all members of the tenant
-        const { data: members } = await admin
-          .from("tenant_memberships")
-          .select("user_id")
-          .eq("tenant_id", tenantId);
+        const { data: members } = await admin.from("tenant_memberships").select("user_id").eq("tenant_id", tenantId);
         const userIds = (members ?? []).map((m: any) => m.user_id);
         // Create notifications for each member
         if (userIds.length > 0) {
@@ -125,7 +106,7 @@ export async function POST(req: NextRequest) {
         break;
       }
       default:
-        return NextResponse.json({ error: "validation_error", message: "不明なアクションです" }, { status: 400 });
+        return apiValidationError("不明なアクションです");
     }
 
     // Log the action to admin_audit_logs
@@ -149,7 +130,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, action, ...result });
   } catch (e: unknown) {
-    console.error("[platform/tenant-action] POST failed:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "platform/tenant-action POST");
   }
 }

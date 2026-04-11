@@ -1,39 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
 // ─── POST: 返金処理 ───
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     // 返金はadmin以上のみ
     if (!requireMinRole(caller, "admin")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const { id: paymentId } = await params;
     if (!paymentId) {
-      return NextResponse.json({ error: "missing_payment_id" }, { status: 400 });
+      return apiValidationError("missing_payment_id");
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
 
     const refundAmount = parseInt(String(body?.refund_amount ?? 0), 10);
     if (!refundAmount || refundAmount <= 0) {
-      return NextResponse.json({ error: "invalid_refund_amount" }, { status: 400 });
+      return apiValidationError("invalid_refund_amount");
     }
 
-    const reason = (String(body?.reason ?? "")).trim() || null;
+    const reason = String(body?.reason ?? "").trim() || null;
 
     // 対象paymentを取得（tenant_id確認）
     const { data: payment, error: fetchErr } = await supabase
@@ -44,22 +42,21 @@ export async function POST(
       .single();
 
     if (fetchErr || !payment) {
-      return NextResponse.json({ error: "payment_not_found" }, { status: 404 });
+      return apiNotFound("payment_not_found");
     }
 
     // 既に返金済みの場合
     if (payment.status === "refunded") {
-      return NextResponse.json({ error: "already_refunded" }, { status: 400 });
+      return apiValidationError("already_refunded");
     }
 
     // 返金額が元の金額以下であることを確認
     if (refundAmount > (payment.amount ?? 0)) {
-      return NextResponse.json({ error: "refund_exceeds_amount" }, { status: 400 });
+      return apiValidationError("refund_exceeds_amount");
     }
 
     // ステータス判定
-    const newStatus =
-      refundAmount === (payment.amount ?? 0) ? "refunded" : "partial_refund";
+    const newStatus = refundAmount === (payment.amount ?? 0) ? "refunded" : "partial_refund";
 
     // payment更新
     const { data: updated, error: updateErr } = await supabase
@@ -72,12 +69,13 @@ export async function POST(
       })
       .eq("id", paymentId)
       .eq("tenant_id", caller.tenantId)
-      .select()
+      .select(
+        "id, tenant_id, store_id, document_id, reservation_id, customer_id, payment_method, amount, status, refund_amount, refund_reason, paid_at, created_at, updated_at",
+      )
       .single();
 
     if (updateErr) {
-      console.error("[refund] update_failed:", updateErr.message);
-      return NextResponse.json({ error: "refund_failed" }, { status: 500 });
+      return apiInternalError(updateErr, "refund update");
     }
 
     // 予約がある場合、payment_statusを更新
@@ -99,7 +97,6 @@ export async function POST(
 
     return NextResponse.json({ ok: true, payment: updated });
   } catch (e: unknown) {
-    console.error("refund failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "refund POST");
   }
 }

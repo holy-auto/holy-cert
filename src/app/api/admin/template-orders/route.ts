@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     if (orderId && wantLogs) {
       const { data: logs } = await admin
         .from("template_order_logs")
-        .select("*")
+        .select("id, order_id, action, from_status, to_status, actor, message, meta_json, created_at")
         .eq("order_id", orderId)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -70,11 +70,7 @@ export async function PUT(req: NextRequest) {
     const admin = getAdminClient();
 
     // 現在のステータスを取得
-    const { data: current } = await admin
-      .from("template_orders")
-      .select("status")
-      .eq("id", order_id)
-      .single();
+    const { data: current } = await admin.from("template_orders").select("status").eq("id", order_id).single();
 
     if (!current) return apiForbidden("オーダーが見つかりません。");
 
@@ -86,24 +82,19 @@ export async function PUT(req: NextRequest) {
     if (assigned_to !== undefined) update.assigned_to = assigned_to;
     if (status === "active") update.completed_at = new Date().toISOString();
 
-    const { error } = await admin
-      .from("template_orders")
-      .update(update)
-      .eq("id", order_id);
+    const { error } = await admin.from("template_orders").update(update).eq("id", order_id);
 
     if (error) throw error;
 
     // ログ記録
-    await admin
-      .from("template_order_logs")
-      .insert({
-        order_id,
-        action: "status_change",
-        from_status: current.status,
-        to_status: status,
-        actor: `admin:${caller.userId}`,
-        message: notes ?? null,
-      });
+    await admin.from("template_order_logs").insert({
+      order_id,
+      action: "status_change",
+      from_status: current.status,
+      to_status: status,
+      actor: `admin:${caller.userId}`,
+      message: notes ?? null,
+    });
 
     return apiOk({ order_id, status });
   } catch (e) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -9,13 +10,13 @@ export async function GET() {
     const supabase = await createClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     // Verify the user is an agent user
     const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
     if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+      return apiForbidden("agent_not_found");
     }
 
     // Fetch published announcements (RLS ensures only published_at <= now())
@@ -28,8 +29,7 @@ export async function GET() {
       .order("published_at", { ascending: false });
 
     if (error) {
-      console.error("[agent/announcements] db error:", error.message);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
+      return apiInternalError(error, "agent/announcements");
     }
 
     // Fetch read status for current user
@@ -38,9 +38,7 @@ export async function GET() {
       .select("announcement_id")
       .eq("user_id", auth.user.id);
 
-    const readIds = new Set(
-      (reads ?? []).map((r: { announcement_id: string }) => r.announcement_id)
-    );
+    const readIds = new Set((reads ?? []).map((r: { announcement_id: string }) => r.announcement_id));
 
     const result = (announcements ?? []).map((a) => ({
       ...a,
@@ -54,7 +52,6 @@ export async function GET() {
       unread_count: unreadCount,
     });
   } catch (e: unknown) {
-    console.error("[agent/announcements] GET error:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "agent/announcements GET");
   }
 }

@@ -16,7 +16,7 @@ async function supaInsertCertificate(row: any) {
   const { data, error } = await admin
     .from("certificates")
     .insert(row)
-    .select()
+    .select("id, public_id, vehicle_id, tenant_id, status, created_at, updated_at")
     .single();
 
   if (error) throw new Error(`Supabase insert failed: ${error.message}`);
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     return apiUnauthorized();
   }
 
-  const deny = await enforceBilling(req, { minPlan: "free", action: "create" });
+  const deny = await enforceBilling(req, { minPlan: "free", action: "create", tenantId: caller.tenantId });
   if (deny) return deny as any;
 
   // ── 月間証明書発行上限チェック ──
@@ -54,10 +54,11 @@ export async function POST(req: Request) {
         .eq("tenant_id", caller.tenantId)
         .gte("created_at", startOfMonth);
       if ((monthlyCount ?? 0) >= certLimit) {
-        return apiPlanLimit(
-          `月間発行上限（${certLimit}件）に達しました。プランをアップグレードしてください。`,
-          { limit: certLimit, current: monthlyCount, plan: planTier },
-        );
+        return apiPlanLimit(`月間発行上限（${certLimit}件）に達しました。プランをアップグレードしてください。`, {
+          limit: certLimit,
+          current: monthlyCount,
+          plan: planTier,
+        });
       }
     }
   } catch (e) {
@@ -79,8 +80,7 @@ export async function POST(req: Request) {
     }
 
     const customer_phone_last4 = b.customer_phone_last4 ?? null;
-    const customer_phone_last4_hash =
-      customer_phone_last4 ? phoneLast4Hash(b.tenant_id, customer_phone_last4) : null;
+    const customer_phone_last4_hash = customer_phone_last4 ? phoneLast4Hash(b.tenant_id, customer_phone_last4) : null;
 
     const insertRow = {
       tenant_id: caller.tenantId,

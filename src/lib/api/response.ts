@@ -5,7 +5,17 @@ import { NextResponse } from "next/server";
  *
  * - 本番環境では内部エラーの詳細をクライアントに漏らさない
  * - 一貫したレスポンス形式を保証
+ * - apiInternalError は自動的に Sentry にエラーを送信
  */
+
+/** Lazily capture errors to Sentry without blocking the response */
+function captureSentryError(error: unknown) {
+  import("@sentry/nextjs")
+    .then((Sentry) => {
+      Sentry.captureException(error);
+    })
+    .catch(() => {});
+}
 
 type ErrorCode =
   | "validation_error"
@@ -14,6 +24,7 @@ type ErrorCode =
   | "not_found"
   | "conflict"
   | "rate_limited"
+  | "rate_limit_unavailable"
   | "billing_required"
   | "plan_limit"
   | "db_error"
@@ -64,6 +75,8 @@ export function apiInternalError(error: unknown, context?: string) {
   } else {
     console.error("[API Error]", msg);
   }
+
+  captureSentryError(error);
 
   return apiError({
     code: "internal_error",

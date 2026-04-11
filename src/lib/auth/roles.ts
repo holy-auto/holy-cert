@@ -24,7 +24,7 @@ export function normalizeRole(v: unknown): Role {
   if (s === "owner") return "owner";
   if (s === "staff") return "staff";
   if (s === "viewer") return "viewer";
-  return "admin"; // default fallback
+  return "viewer"; // default fallback
 }
 
 /** Check if a role meets the minimum required role level */

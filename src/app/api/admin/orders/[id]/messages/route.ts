@@ -2,20 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 /**
  * GET /api/admin/orders/[id]/messages
  * チャット履歴取得
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
     const tenantId = caller.tenantId;
 
     const admin = getSupabaseAdmin();
@@ -31,7 +29,7 @@ export async function GET(
       .single();
 
     if (!order) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      return apiNotFound("not_found");
     }
 
     let query = admin
@@ -48,8 +46,7 @@ export async function GET(
     const { data: messages, error } = await query;
 
     if (error) {
-      console.error("[messages] fetch failed:", error.message);
-      return NextResponse.json({ error: "fetch_failed" }, { status: 500 });
+      return apiInternalError(error, "messages fetch");
     }
 
     return NextResponse.json({
@@ -57,8 +54,7 @@ export async function GET(
       has_more: (messages ?? []).length === limit,
     });
   } catch (e: unknown) {
-    console.error("[messages] GET failed:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "messages GET");
   }
 }
 
@@ -67,22 +63,19 @@ export async function GET(
  * チャットメッセージ送信
  * Body: { body: string, attachment_path?: string, attachment_type?: string }
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
     const tenantId = caller.tenantId;
 
     const reqBody = await req.json();
     const { body, attachment_path, attachment_type } = reqBody;
 
     if (!body || typeof body !== "string" || body.trim().length === 0) {
-      return NextResponse.json({ error: "メッセージを入力してください" }, { status: 400 });
+      return apiValidationError("メッセージを入力してください");
     }
 
     const admin = getSupabaseAdmin();
@@ -96,12 +89,12 @@ export async function POST(
       .single();
 
     if (!order) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      return apiNotFound("not_found");
     }
 
     // 受注者未定（to_tenant_id NULL）の案件ではチャット不可
     if (!order.to_tenant_id) {
-      return NextResponse.json({ error: "受注者が確定するまでメッセージは送れません" }, { status: 400 });
+      return apiValidationError("受注者が確定するまでメッセージは送れません");
     }
 
     const { data, error } = await admin
@@ -117,17 +110,17 @@ export async function POST(
         attachment_type: attachment_type || null,
         is_system: false,
       })
-      .select()
+      .select(
+        "id, job_order_id, sender_user_id, sender_tenant_id, body, attachment_path, attachment_type, is_system, created_at",
+      )
       .single();
 
     if (error) {
-      console.error("[messages] insert failed:", error.message);
-      return NextResponse.json({ error: "insert_failed" }, { status: 500 });
+      return apiInternalError(error, "messages insert");
     }
 
     return NextResponse.json({ message: data }, { status: 201 });
   } catch (e: unknown) {
-    console.error("[messages] POST failed:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "messages POST");
   }
 }

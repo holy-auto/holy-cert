@@ -6,6 +6,9 @@ import { normalizePlanTier } from "@/lib/billing/planFeatures";
 import { memberLimit, canAddMember } from "@/lib/billing/memberLimits";
 import { logAuditEvent } from "@/lib/audit/certificateLog";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { hasPermission } from "@/lib/auth/permissions";
+import { ASSIGNABLE_ROLES, type Role } from "@/lib/auth/roles";
+import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +17,7 @@ async function resolveCallerWithPlan(supabase: Awaited<ReturnType<typeof createS
   const caller = await resolveCallerWithRole(supabase);
   if (!caller) return null;
 
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id, plan_tier")
-    .eq("id", caller.tenantId)
-    .single();
+  const { data: tenant } = await supabase.from("tenants").select("id, plan_tier").eq("id", caller.tenantId).single();
 
   return {
     ...caller,
@@ -34,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithPlan(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     const admin = getSupabaseAdmin();
 
@@ -45,12 +44,13 @@ export async function GET(req: NextRequest) {
       .eq("tenant_id", caller.tenantId);
 
     if (error) {
-      console.error("[members] db_error:", error.message);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
+      return apiInternalError(error, "members GET");
     }
 
     // ユーザー情報を admin API で一括取得 (N+1 回避)
-    const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    const {
+      data: { users },
+    } = await admin.auth.admin.listUsers({ perPage: 1000 });
     const userMap = new Map(users.map((u) => [u.id, u]));
 
     const enriched = (members ?? []).map((m) => {
@@ -75,9 +75,8 @@ export async function GET(req: NextRequest) {
       member_limit: limit,
       can_add: canAddMember(caller.planTier, enriched.length),
     });
-  } catch (e: any) {
-    console.error("members list failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  } catch (e: unknown) {
+    return apiInternalError(e, "members GET");
   }
 }
 
@@ -89,15 +88,25 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithPlan(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    // Permission check: only roles with members:manage can add members
+    if (!hasPermission(caller.role as Role, "members:manage")) {
+      return apiForbidden("メンバー追加の権限がありません。");
+    }
+
+    const body = await req.json().catch(() => ({}) as any);
     const email = (body?.email ?? "").trim().toLowerCase();
     const displayName = (body?.display_name ?? "").trim() || null;
     const role = (body?.role ?? "").trim() || null; // null → DB default
 
+    // Validate role is assignable (prevent escalation to "owner")
+    if (role && !ASSIGNABLE_ROLES.includes(role as Role)) {
+      return apiValidationError(`無効なロールです。指定可能: ${ASSIGNABLE_ROLES.join(", ")}`);
+    }
+
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "invalid_email" }, { status: 400 });
+      return apiValidationError("無効なメールアドレスです。");
     }
 
     const admin = getSupabaseAdmin();
@@ -109,19 +118,15 @@ export async function POST(req: NextRequest) {
       .eq("tenant_id", caller.tenantId);
 
     if (countErr) {
-      console.error("[members] db_error:", countErr.message);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
+      return apiInternalError(countErr, "members POST count");
     }
 
     const currentCount = count ?? 0;
     if (!canAddMember(caller.planTier, currentCount)) {
       const limit = memberLimit(caller.planTier);
-      return NextResponse.json({
-        error: "member_limit_reached",
-        message: `現在のプラン（${caller.planTier}）ではメンバーは${limit}人までです。プランをアップグレードしてください。`,
-        current: currentCount,
-        limit,
-      }, { status: 403 });
+      return apiForbidden(
+        `現在のプラン（${caller.planTier}）ではメンバーは${limit}人までです。プランをアップグレードしてください。`,
+      );
     }
 
     const userMeta = displayName ? { display_name: displayName } : undefined;
@@ -142,12 +147,15 @@ export async function POST(req: NextRequest) {
         const { data: page_data } = await admin.auth.admin.listUsers({ page, perPage: 100 });
         if (!page_data?.users?.length) break;
         const match = page_data.users.find((u) => u.email === email);
-        if (match) { found = match; break; }
+        if (match) {
+          found = match;
+          break;
+        }
         if (page_data.users.length < 100) break;
         page++;
       }
       if (!found) {
-        return NextResponse.json({ error: "user_lookup_failed", message: "既存ユーザーが見つかりませんでした。" }, { status: 500 });
+        return apiInternalError(new Error("既存ユーザーが見つかりませんでした。"), "members POST lookup");
       }
       userId = found.id;
       // 既存ユーザーに display_name をセット（未設定の場合のみ）
@@ -157,7 +165,7 @@ export async function POST(req: NextRequest) {
         });
       }
     } else {
-      return NextResponse.json({ error: "invite_failed", message: inviteErr?.message ?? "招待に失敗しました。" }, { status: 500 });
+      return apiInternalError(inviteErr ?? new Error("招待に失敗しました。"), "members POST invite");
     }
 
     // 既にこのテナントに所属していないか確認
@@ -169,7 +177,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (existingMem) {
-      return NextResponse.json({ error: "already_member", message: "このユーザーは既にメンバーです。" }, { status: 409 });
+      return NextResponse.json({ error: "conflict", message: "このユーザーは既にメンバーです。" }, { status: 409 });
     }
 
     // tenant_memberships に追加
@@ -180,16 +188,10 @@ export async function POST(req: NextRequest) {
     };
     if (role) row.role = role; // null の場合は DB デフォルトに任せる
 
-    const { error: insertErr } = await admin
-      .from("tenant_memberships")
-      .insert(row);
+    const { error: insertErr } = await admin.from("tenant_memberships").insert(row);
 
     if (insertErr) {
-      console.error("member insert failed:", insertErr);
-      return NextResponse.json({
-        error: "insert_failed",
-        message: "メンバー追加に失敗しました。",
-      }, { status: 500 });
+      return apiInternalError(insertErr, "members POST insert");
     }
 
     logAuditEvent({
@@ -199,9 +201,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, user_id: userId, email });
-  } catch (e: any) {
-    console.error("member add failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  } catch (e: unknown) {
+    return apiInternalError(e, "members POST");
   }
 }
 
@@ -210,29 +211,29 @@ export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithPlan(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     // owner または admin のみロール変更可
     if (caller.role !== "owner" && caller.role !== "admin") {
-      return NextResponse.json({ error: "forbidden", message: "ロール変更の権限がありません。" }, { status: 403 });
+      return apiForbidden("ロール変更の権限がありません。");
     }
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const targetUserId = (body?.user_id ?? "").trim();
     const newRole = (body?.role ?? "").trim();
 
     if (!targetUserId || !newRole) {
-      return NextResponse.json({ error: "missing_params", message: "user_id と role は必須です。" }, { status: 400 });
+      return apiValidationError("user_id と role は必須です。");
     }
 
     const validRoles = ["admin", "staff", "viewer"];
     if (!validRoles.includes(newRole)) {
-      return NextResponse.json({ error: "invalid_role", message: "無効なロールです。" }, { status: 400 });
+      return apiValidationError("無効なロールです。");
     }
 
     // 自分自身のロール変更は不可
     if (targetUserId === caller.userId) {
-      return NextResponse.json({ error: "cannot_change_self", message: "自分のロールは変更できません。" }, { status: 400 });
+      return apiValidationError("自分のロールは変更できません。");
     }
 
     const admin = getSupabaseAdmin();
@@ -246,10 +247,10 @@ export async function PUT(req: NextRequest) {
       .maybeSingle();
 
     if (!targetMem) {
-      return NextResponse.json({ error: "not_found", message: "メンバーが見つかりません。" }, { status: 404 });
+      return apiNotFound("メンバーが見つかりません。");
     }
     if (targetMem.role === "owner") {
-      return NextResponse.json({ error: "cannot_change_owner", message: "オーナーのロールは変更できません。" }, { status: 400 });
+      return apiValidationError("オーナーのロールは変更できません。");
     }
 
     const { error } = await admin
@@ -259,8 +260,7 @@ export async function PUT(req: NextRequest) {
       .eq("user_id", targetUserId);
 
     if (error) {
-      console.error("[members] update_failed:", error.message);
-      return NextResponse.json({ error: "update_failed" }, { status: 500 });
+      return apiInternalError(error, "members PUT");
     }
 
     logAuditEvent({
@@ -270,9 +270,8 @@ export async function PUT(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, role: newRole });
-  } catch (e: any) {
-    console.error("member role change failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  } catch (e: unknown) {
+    return apiInternalError(e, "members PUT");
   }
 }
 
@@ -281,23 +280,23 @@ export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithPlan(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     // owner または admin のみ削除可
     if (caller.role !== "owner" && caller.role !== "admin") {
-      return NextResponse.json({ error: "forbidden", message: "メンバー削除の権限がありません。" }, { status: 403 });
+      return apiForbidden("メンバー削除の権限がありません。");
     }
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const targetUserId = (body?.user_id ?? "").trim();
 
     if (!targetUserId) {
-      return NextResponse.json({ error: "missing_user_id" }, { status: 400 });
+      return apiValidationError("user_id は必須です。");
     }
 
     // 自分自身は削除不可
     if (targetUserId === caller.userId) {
-      return NextResponse.json({ error: "cannot_remove_self", message: "自分自身は削除できません。" }, { status: 400 });
+      return apiValidationError("自分自身は削除できません。");
     }
 
     const admin = getSupabaseAdmin();
@@ -309,8 +308,7 @@ export async function DELETE(req: NextRequest) {
       .eq("user_id", targetUserId);
 
     if (error) {
-      console.error("[members] delete_failed:", error.message);
-      return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+      return apiInternalError(error, "members DELETE");
     }
 
     logAuditEvent({
@@ -320,8 +318,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    console.error("member delete failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  } catch (e: unknown) {
+    return apiInternalError(e, "members DELETE");
   }
 }

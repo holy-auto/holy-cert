@@ -54,12 +54,7 @@ function admin() {
 }
 
 export async function getTenantIdBySlug(slug: string): Promise<string | null> {
-  const { data } = await admin()
-    .from("tenants")
-    .select("id")
-    .eq("slug", slug)
-    .limit(1)
-    .maybeSingle();
+  const { data } = await admin().from("tenants").select("id").eq("slug", slug).limit(1).maybeSingle();
   return data?.id ?? null;
 }
 
@@ -73,7 +68,13 @@ export async function tenantHasPhoneHash(tenantId: string, phoneHash: string): P
   return Array.isArray(data) && data.length > 0;
 }
 
-export async function createLoginCode(tenantId: string, email: string, phoneHash: string, code: string, expiresAtIso: string) {
+export async function createLoginCode(
+  tenantId: string,
+  email: string,
+  phoneHash: string,
+  code: string,
+  expiresAtIso: string,
+) {
   const code_hash = otpCodeHash(tenantId, email, phoneHash, code);
   const { error } = await admin()
     .from("customer_login_codes")
@@ -101,10 +102,7 @@ export async function getLatestValidCodeRow(tenantId: string, email: string, pho
 }
 
 export async function markCodeAttempt(id: string, attempts: number) {
-  const { error } = await admin()
-    .from("customer_login_codes")
-    .update({ attempts })
-    .eq("id", id);
+  const { error } = await admin().from("customer_login_codes").update({ attempts }).eq("id", id);
   if (error) throw new Error(`markCodeAttempt failed: ${error.message}`);
 }
 
@@ -163,13 +161,15 @@ export async function listCertificatesForCustomer(tenantId: string, phoneHash: s
   const selectCols = "public_id, customer_name, vehicle_info_json, created_at, status";
   const db = admin();
 
-  // 1) 新方式：hash一致
+  // void以外の全ステータスを取得（active・その他を含む）
+  // ※ status='active' のみに絞ると、ダッシュボードの件数と実際の一覧に差異が生じるため、
+  //   void（無効）のみ除外して残りは全件返す
   const { data: r1 } = await db
     .from("certificates")
     .select(selectCols)
     .eq("tenant_id", tenantId)
     .eq("customer_phone_last4_hash", phoneHash)
-    .eq("status", "active")
+    .neq("status", "void")
     .order("created_at", { ascending: false });
   return r1 ?? [];
 }
@@ -179,7 +179,7 @@ export async function listHistoryForCustomer(tenantId: string, phoneHash: string
   const certs = await listCertificatesForCustomer(tenantId, phoneHash);
   if (!certs || certs.length === 0) return [];
 
-  const certPublicIds = certs.map((c: any) => c.public_id);
+  const certPublicIds = certs.map((c: { public_id: string }) => c.public_id);
   const db = admin();
 
   // certificate_id ベースで検索するために certificates の id が必要
@@ -190,7 +190,7 @@ export async function listHistoryForCustomer(tenantId: string, phoneHash: string
     .in("public_id", certPublicIds);
   if (!certRows || certRows.length === 0) return [];
 
-  const certIds = certRows.map((c: any) => c.id);
+  const certIds = certRows.map((c: { id: string }) => c.id);
   const { data: histories } = await db
     .from("vehicle_histories")
     .select("id, type, title, description, performed_at, certificate_id")
@@ -206,7 +206,9 @@ export async function listReservationsForCustomer(tenantId: string, phoneHash: s
   const certs = await listCertificatesForCustomer(tenantId, phoneHash);
   if (!certs || certs.length === 0) return [];
 
-  const customerNames = [...new Set(certs.map((c: any) => c.customer_name).filter(Boolean))];
+  const customerNames = [
+    ...new Set(certs.map((c: { customer_name: string | null }) => c.customer_name).filter(Boolean)),
+  ];
   if (customerNames.length === 0) return [];
 
   const db = admin();
@@ -222,14 +224,22 @@ export async function listReservationsForCustomer(tenantId: string, phoneHash: s
   const today = new Date().toISOString().slice(0, 10);
   const { data: reservations } = await db
     .from("reservations")
-    .select("id, date, time_slot, menu, status, note")
+    .select("id, scheduled_date, start_time, title, menu_items_json, status, note")
     .eq("tenant_id", tenantId)
     .eq("customer_id", customerId)
-    .gte("date", today)
+    .gte("scheduled_date", today)
     .neq("status", "cancelled")
-    .order("date", { ascending: true })
+    .order("scheduled_date", { ascending: true })
     .limit(10);
-  return reservations ?? [];
+  // フロントエンドの型 (date, time_slot, menu) に合わせてフィールドをマッピング
+  return (reservations ?? []).map((r) => ({
+    id: r.id,
+    date: r.scheduled_date,
+    time_slot: r.start_time ?? null,
+    menu: r.title ?? null,
+    status: r.status,
+    note: r.note ?? null,
+  }));
 }
 
 /** 顧客プロフィール情報を取得 */
@@ -237,7 +247,9 @@ export async function getCustomerProfile(tenantId: string, phoneHash: string) {
   const certs = await listCertificatesForCustomer(tenantId, phoneHash);
   if (!certs || certs.length === 0) return null;
 
-  const customerNames = [...new Set(certs.map((c: any) => c.customer_name).filter(Boolean))];
+  const customerNames = [
+    ...new Set(certs.map((c: { customer_name: string | null }) => c.customer_name).filter(Boolean)),
+  ];
   if (customerNames.length === 0) return null;
 
   const { data: customers } = await admin()

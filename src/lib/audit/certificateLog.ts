@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type CertificateAuditType =
   | "certificate_issued"
+  | "certificate_edited"
   | "certificate_voided"
   | "certificate_viewed"
   | "certificate_pdf_generated"
@@ -25,6 +26,7 @@ export type AuditEventType =
 
 const TITLE_MAP: Record<string, string> = {
   certificate_issued: "証明書を発行",
+  certificate_edited: "証明書を編集",
   certificate_voided: "証明書を無効化",
   certificate_viewed: "証明書を閲覧",
   certificate_pdf_generated: "PDFを生成",
@@ -61,8 +63,9 @@ export async function logCertificateAction(params: {
 }): Promise<void> {
   try {
     const admin = createAdminClient();
-    const desc = params.description
-      ?? [
+    const desc =
+      params.description ??
+      [
         `Public ID: ${params.publicId}`,
         params.userId ? `User: ${params.userId}` : null,
         params.ip ? `IP: ${params.ip}` : null,

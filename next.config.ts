@@ -9,10 +9,10 @@ try {
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  compress: true,
+  poweredByHeader: false,
 
-  // Exclude worktree directories from Turbopack/Webpack scanning to prevent
-  // infinite symlink loops caused by "holy-cert": "file:" in package.json
-  serverExternalPackages: ["holy-cert", "@react-pdf/renderer"],
+  serverExternalPackages: ["@react-pdf/renderer"],
 
   // Pin Turbopack root to this directory to prevent path resolution issues in worktrees
   turbopack: {
@@ -30,6 +30,9 @@ const nextConfig: NextConfig = {
       "@upstash/redis",
       "@upstash/ratelimit",
       "zod",
+      // マーケティングページで動的 import されるコンポーネント
+      "@vercel/analytics",
+      "@vercel/speed-insights",
     ],
   },
 

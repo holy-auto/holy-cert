@@ -1,12 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import {
-  apiOk,
-  apiUnauthorized,
-  apiValidationError,
-  apiInternalError,
-} from "@/lib/api/response";
+import { apiOk, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +48,7 @@ export async function POST(req: NextRequest) {
   const productIds = body.items.map((i) => i.product_id);
   const { data: products, error: pErr } = await supabase
     .from("shop_products")
-    .select("*")
+    .select("id, name, price, tax_rate, unit, min_quantity, meta")
     .in("id", productIds)
     .eq("is_active", true);
 
@@ -79,9 +74,7 @@ export async function POST(req: NextRequest) {
     const product = productMap.get(item.product_id);
     if (!product) continue;
     if (item.quantity < (product.min_quantity ?? 1)) {
-      return apiValidationError(
-        `${product.name}の最小注文数量は${product.min_quantity}${product.unit}です。`
-      );
+      return apiValidationError(`${product.name}の最小注文数量は${product.min_quantity}${product.unit}です。`);
     }
     const amount = product.price * item.quantity;
     const itemTax = Math.floor(amount * product.tax_rate);
@@ -128,9 +121,7 @@ export async function POST(req: NextRequest) {
     order_id: order.id,
   }));
 
-  const { error: iErr } = await supabase
-    .from("shop_order_items")
-    .insert(itemsToInsert);
+  const { error: iErr } = await supabase.from("shop_order_items").insert(itemsToInsert);
 
   if (iErr) return apiInternalError(iErr, "shop_order_items insert");
 

@@ -19,6 +19,9 @@ export default function BillingFetchGuard() {
 
     // ---- fetch hook (optimized: early-exit for non-API and success responses) ----
     const origFetch = window.fetch.bind(window);
+    const OrigXhrOpen = XMLHttpRequest.prototype.open;
+    const OrigXhrSend = XMLHttpRequest.prototype.send;
+
     window.fetch = async (input: any, init?: any) => {
       const res = await origFetch(input, init);
 
@@ -53,15 +56,12 @@ export default function BillingFetchGuard() {
     };
 
     // ---- XHR hook (axios 等) ----
-    const OrigOpen = XMLHttpRequest.prototype.open;
-    const OrigSend = XMLHttpRequest.prototype.send;
-
     XMLHttpRequest.prototype.open = function (...args: any[]) {
       try {
         // open(method, url, ...)
         (this as any).__billing_guard_url = String(args?.[1] ?? "");
       } catch {}
-      return (OrigOpen as any).apply(this, args);
+      return (OrigXhrOpen as any).apply(this, args);
     };
 
     XMLHttpRequest.prototype.send = function (...args: any[]) {
@@ -81,10 +81,15 @@ export default function BillingFetchGuard() {
         } catch {}
       });
 
-      return (OrigSend as any).apply(this, args);
+      return (OrigXhrSend as any).apply(this, args);
     };
 
-    return () => {};
+    return () => {
+      window.fetch = origFetch;
+      XMLHttpRequest.prototype.open = OrigXhrOpen;
+      XMLHttpRequest.prototype.send = OrigXhrSend;
+      (window as any).__billingFetchGuardInstalled = false;
+    };
   }, []);
 
   return null;

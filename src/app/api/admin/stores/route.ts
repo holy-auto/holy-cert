@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 import { normalizePlanTier, STORE_LIMITS } from "@/lib/billing/planFeatures";
+import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -9,14 +10,16 @@ export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
     if (!requirePermission(caller, "stores:view")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const { data: stores, error } = await supabase
       .from("stores")
-      .select("id, name, address, phone, email, manager_name, business_hours, is_active, is_default, sort_order, created_at")
+      .select(
+        "id, name, address, phone, email, manager_name, business_hours, is_active, is_default, sort_order, created_at",
+      )
       .eq("tenant_id", caller.tenantId)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
@@ -47,8 +50,7 @@ export async function GET() {
     res.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
     return res;
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return apiInternalError(e, "stores GET");
   }
 }
 
@@ -56,17 +58,13 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
     if (!requirePermission(caller, "stores:manage")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     // Check plan store limit
-    const { data: tenant } = await supabase
-      .from("tenants")
-      .select("plan_tier")
-      .eq("id", caller.tenantId)
-      .single();
+    const { data: tenant } = await supabase.from("tenants").select("plan_tier").eq("id", caller.tenantId).single();
 
     const planTier = normalizePlanTier(tenant?.plan_tier);
     const limit = STORE_LIMITS[planTier];
@@ -77,17 +75,14 @@ export async function POST(req: NextRequest) {
       .eq("tenant_id", caller.tenantId);
 
     if ((count ?? 0) >= limit) {
-      return NextResponse.json(
-        { error: `現在のプラン（${planTier}）では店舗は${limit}件までです。` },
-        { status: 403 },
-      );
+      return apiForbidden(`現在のプラン（${planTier}）では店舗は${limit}件までです。`);
     }
 
     const body = await req.json();
     const { name, address, phone, email, manager_name, business_hours } = body;
 
     if (!name?.trim()) {
-      return NextResponse.json({ error: "店舗名は必須です" }, { status: 400 });
+      return apiValidationError("店舗名は必須です");
     }
 
     // If first store, make it default
@@ -104,17 +99,18 @@ export async function POST(req: NextRequest) {
         manager_name: manager_name?.trim() || null,
         business_hours: business_hours || null,
         is_default: isFirst,
-        sort_order: (count ?? 0),
+        sort_order: count ?? 0,
       })
-      .select()
+      .select(
+        "id, tenant_id, name, address, phone, email, manager_name, business_hours, is_active, is_default, sort_order, created_at, updated_at",
+      )
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiInternalError(error, "stores insert");
 
     return NextResponse.json({ store }, { status: 201 });
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return apiInternalError(e, "stores create");
   }
 }
 
@@ -122,15 +118,15 @@ export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
     if (!requirePermission(caller, "stores:manage")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const body = await req.json();
     const { id, name, address, phone, email, manager_name, business_hours, is_active } = body;
 
-    if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
+    if (!id) return apiValidationError("id is required");
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name !== undefined) updates.name = name.trim();
@@ -146,15 +142,16 @@ export async function PUT(req: NextRequest) {
       .update(updates)
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select()
+      .select(
+        "id, tenant_id, name, address, phone, email, manager_name, business_hours, is_active, is_default, sort_order, created_at, updated_at",
+      )
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiInternalError(error, "stores update");
 
     return NextResponse.json({ store });
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return apiInternalError(e, "stores update");
   }
 }
 
@@ -162,14 +159,14 @@ export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
     if (!requirePermission(caller, "stores:manage")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return apiForbidden();
     }
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-    if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
+    if (!id) return apiValidationError("id is required");
 
     // Cannot delete default store
     const { data: store } = await supabase
@@ -180,20 +177,15 @@ export async function DELETE(req: NextRequest) {
       .single();
 
     if (store?.is_default) {
-      return NextResponse.json({ error: "デフォルト店舗は削除できません" }, { status: 400 });
+      return apiValidationError("デフォルト店舗は削除できません");
     }
 
-    const { error } = await supabase
-      .from("stores")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("stores").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiInternalError(error, "stores delete");
 
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return apiInternalError(e, "stores delete");
   }
 }

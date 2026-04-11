@@ -10,11 +10,7 @@ export async function GET(req: Request) {
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { data: mem } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .limit(1)
-    .single();
+  const { data: mem } = await supabase.from("tenant_memberships").select("tenant_id").limit(1).single();
   const tenantId = mem?.tenant_id as string | undefined;
   if (!tenantId) return NextResponse.json({ error: "tenant_not_found" }, { status: 400 });
 
@@ -36,7 +32,9 @@ export async function GET(req: Request) {
   // Fetch tenant info
   const { data: tenant } = await admin
     .from("tenants")
-    .select("name, address, contact_email, contact_phone, registration_number, logo_asset_path, company_seal_path, bank_info")
+    .select(
+      "name, address, contact_email, contact_phone, registration_number, logo_asset_path, company_seal_path, bank_info",
+    )
     .eq("id", tenantId)
     .single();
   if (!tenant) return NextResponse.json({ error: "tenant_not_found" }, { status: 404 });
@@ -44,11 +42,7 @@ export async function GET(req: Request) {
   // Fetch customer name
   let customerName: string | null = null;
   if (doc.customer_id) {
-    const { data: cust } = await admin
-      .from("customers")
-      .select("name")
-      .eq("id", doc.customer_id)
-      .single();
+    const { data: cust } = await admin.from("customers").select("name").eq("id", doc.customer_id).single();
     customerName = cust?.name ?? null;
   }
 
@@ -62,8 +56,8 @@ export async function GET(req: Request) {
         "content-disposition": `attachment; filename="${doc.doc_number || "document"}.pdf"`,
       },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("document pdf generation failed", e);
-    return NextResponse.json({ error: e?.message ?? String(e) }, { status: 500 });
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
+import { apiUnauthorized, apiForbidden, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-02-24.acacia" as any,
+    apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion,
   });
 }
 
@@ -25,12 +26,12 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
     if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+      return apiForbidden("agent_not_found");
     }
 
     const agent = Array.isArray(agentData) ? agentData[0] : agentData;
@@ -39,25 +40,22 @@ export async function POST(request: NextRequest) {
 
     // Only admin can set up Stripe Connect
     if (role !== "admin") {
-      return NextResponse.json(
-        { error: "forbidden", message: "Stripe Connect を設定する権限がありません。" },
-        { status: 403 }
-      );
+      return apiForbidden("Stripe Connect を設定する権限がありません。");
     }
 
     // Fetch agent record to check for existing Stripe account
     const { data: agentProfile, error: profileErr } = await supabase
       .from("agents")
-      .select("id, stripe_connect_account_id, name, contact_email")
+      .select("id, stripe_account_id, name, contact_email")
       .eq("id", agentId)
       .single();
 
     if (profileErr || !agentProfile) {
-      return NextResponse.json({ error: "agent_profile_not_found" }, { status: 404 });
+      return apiNotFound("agent_profile_not_found");
     }
 
     const stripe = getStripe();
-    let accountId = agentProfile.stripe_connect_account_id as string | null;
+    let accountId = agentProfile.stripe_account_id as string | null;
 
     // Create Stripe Connect account if not already linked
     if (!accountId) {
@@ -75,7 +73,7 @@ export async function POST(request: NextRequest) {
       const { error: saveErr } = await supabase
         .from("agents")
         .update({
-          stripe_connect_account_id: accountId,
+          stripe_account_id: accountId,
           updated_at: new Date().toISOString(),
         })
         .eq("id", agentId);
@@ -87,9 +85,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate onboarding link
-    const body = await request.json().catch(() => ({} as Record<string, unknown>));
-    const returnUrl = safeUrl(body?.return_url as string | undefined);
-    const refreshUrl = safeUrl(body?.refresh_url as string | undefined);
+    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
+    const base = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/+$/, "") ?? "";
+    const returnUrl = safeUrl(body?.return_url as string | undefined, `${base}/agent/settings?stripe=success`);
+    const refreshUrl = safeUrl(body?.refresh_url as string | undefined, `${base}/agent/settings?stripe=refresh`);
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
@@ -104,9 +103,7 @@ export async function POST(request: NextRequest) {
       url: accountLink.url,
     });
   } catch (e: unknown) {
-    console.error("[agent/stripe-connect] POST error:", e);
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: "internal_error", message: msg }, { status: 500 });
+    return apiInternalError(e, "agent/stripe-connect POST");
   }
 }
 
@@ -116,12 +113,12 @@ export async function GET() {
     const supabase = await createClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth?.user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const { data: agentData, error: agentErr } = await supabase.rpc("get_my_agent_status");
     if (agentErr || !agentData || (Array.isArray(agentData) && agentData.length === 0)) {
-      return NextResponse.json({ error: "agent_not_found" }, { status: 403 });
+      return apiForbidden("agent_not_found");
     }
 
     const agent = Array.isArray(agentData) ? agentData[0] : agentData;
@@ -129,15 +126,15 @@ export async function GET() {
 
     const { data: agentProfile, error: profileErr } = await supabase
       .from("agents")
-      .select("stripe_connect_account_id, stripe_connect_onboarded")
+      .select("stripe_account_id, stripe_onboarding_done")
       .eq("id", agentId)
       .single();
 
     if (profileErr || !agentProfile) {
-      return NextResponse.json({ error: "agent_profile_not_found" }, { status: 404 });
+      return apiNotFound("agent_profile_not_found");
     }
 
-    const accountId = agentProfile.stripe_connect_account_id as string | null;
+    const accountId = agentProfile.stripe_account_id as string | null;
     if (!accountId) {
       return NextResponse.json({
         connected: false,
@@ -153,11 +150,11 @@ export async function GET() {
     const onboarded = account.charges_enabled && account.payouts_enabled;
 
     // Update local state if changed
-    if (onboarded !== agentProfile.stripe_connect_onboarded) {
+    if (onboarded !== agentProfile.stripe_onboarding_done) {
       await supabase
         .from("agents")
         .update({
-          stripe_connect_onboarded: onboarded,
+          stripe_onboarding_done: onboarded,
           updated_at: new Date().toISOString(),
         })
         .eq("id", agentId);
@@ -171,7 +168,6 @@ export async function GET() {
       payouts_enabled: account.payouts_enabled,
     });
   } catch (e: unknown) {
-    console.error("[agent/stripe-connect] GET error:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "agent/stripe-connect GET");
   }
 }

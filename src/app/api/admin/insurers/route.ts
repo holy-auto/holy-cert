@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getClientIp } from "@/lib/rateLimit";
+import { apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -32,18 +33,21 @@ async function logAdminAction(params: {
   userAgent?: string;
 }) {
   const admin = createAdminClient();
-  await admin.from("admin_audit_logs").insert({
-    actor_id: params.actorId,
-    action: params.action,
-    target_type: params.targetType,
-    target_id: params.targetId,
-    before_data: params.beforeData ?? null,
-    after_data: params.afterData ?? null,
-    ip: params.ip ?? null,
-    user_agent: params.userAgent ?? null,
-  }).then(({ error }) => {
-    if (error) console.error("[admin-audit] insert failed:", error.message);
-  });
+  await admin
+    .from("admin_audit_logs")
+    .insert({
+      actor_id: params.actorId,
+      action: params.action,
+      target_type: params.targetType,
+      target_id: params.targetId,
+      before_data: params.beforeData ?? null,
+      after_data: params.afterData ?? null,
+      ip: params.ip ?? null,
+      user_agent: params.userAgent ?? null,
+    })
+    .then(({ error }) => {
+      if (error) console.error("[admin-audit] insert failed:", error.message);
+    });
 }
 
 /**
@@ -165,7 +169,7 @@ export async function GET(req: Request) {
   const supabase = await createClient();
   const caller = await requirePlatformAdmin(supabase);
   if (!caller) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return apiForbidden();
   }
 
   const url = new URL(req.url);
@@ -174,7 +178,9 @@ export async function GET(req: Request) {
   const admin = createAdminClient();
   let query = admin
     .from("insurers")
-    .select("id, name, slug, is_active, status, plan_tier, requested_plan, contact_person, contact_email, contact_phone, signup_source, business_type, corporate_number, address, representative_name, terms_accepted_at, rejection_reason, created_at, updated_at, reviewed_at, activated_at")
+    .select(
+      "id, name, slug, is_active, status, plan_tier, requested_plan, contact_person, contact_email, contact_phone, signup_source, business_type, corporate_number, address, representative_name, terms_accepted_at, rejection_reason, created_at, updated_at, reviewed_at, activated_at",
+    )
     .order("created_at", { ascending: false });
 
   if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {
@@ -184,8 +190,7 @@ export async function GET(req: Request) {
   const { data, error } = await query;
 
   if (error) {
-    console.error("[insurers] db_error:", error.message);
-    return NextResponse.json({ error: "db_error" }, { status: 500 });
+    return apiInternalError(error, "insurers GET");
   }
 
   return NextResponse.json({ insurers: data ?? [] });
@@ -199,30 +204,35 @@ export async function PATCH(req: Request) {
   const supabase = await createClient();
   const caller = await requirePlatformAdmin(supabase);
   if (!caller) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return apiForbidden();
   }
 
   let body: any;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+    return apiValidationError("Invalid JSON");
   }
 
   const { insurer_id, status, plan_tier, rejection_reason } = body;
 
   if (!insurer_id) {
-    return NextResponse.json({ error: "insurer_id is required" }, { status: 400 });
+    return apiValidationError("insurer_id is required");
   }
 
   // Validate status
   if (status && !(VALID_STATUSES as readonly string[]).includes(status)) {
-    return NextResponse.json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}` }, { status: 400 });
+    return apiValidationError(`Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}`);
   }
 
   // Validate plan_tier
-  if (plan_tier !== undefined && plan_tier !== null && plan_tier !== "" && !(VALID_PLAN_TIERS as readonly string[]).includes(plan_tier)) {
-    return NextResponse.json({ error: `Invalid plan_tier. Must be one of: ${VALID_PLAN_TIERS.join(", ")}` }, { status: 400 });
+  if (
+    plan_tier !== undefined &&
+    plan_tier !== null &&
+    plan_tier !== "" &&
+    !(VALID_PLAN_TIERS as readonly string[]).includes(plan_tier)
+  ) {
+    return apiValidationError(`Invalid plan_tier. Must be one of: ${VALID_PLAN_TIERS.join(", ")}`);
   }
 
   const admin = createAdminClient();
@@ -235,7 +245,7 @@ export async function PATCH(req: Request) {
     .single();
 
   if (!beforeInsurer) {
-    return NextResponse.json({ error: "insurer_not_found" }, { status: 404 });
+    return apiNotFound("保険会社が見つかりません。");
   }
 
   const updates: Record<string, any> = { updated_at: new Date().toISOString() };
@@ -266,8 +276,7 @@ export async function PATCH(req: Request) {
     .single();
 
   if (error) {
-    console.error("[insurers] update_failed:", error.message);
-    return NextResponse.json({ error: "update_failed" }, { status: 500 });
+    return apiInternalError(error, "insurers PATCH");
   }
 
   // Audit log
@@ -286,11 +295,14 @@ export async function PATCH(req: Request) {
 
   // Send notification email
   if (status && beforeInsurer.contact_email) {
-    const emailAction = status === "active"
-      ? "approved" as const
-      : status === "suspended"
-        ? (beforeInsurer.status === "active_pending_review" ? "rejected" as const : "suspended" as const)
-        : null;
+    const emailAction =
+      status === "active"
+        ? ("approved" as const)
+        : status === "suspended"
+          ? beforeInsurer.status === "active_pending_review"
+            ? ("rejected" as const)
+            : ("suspended" as const)
+          : null;
 
     if (emailAction) {
       sendInsurerNotification({

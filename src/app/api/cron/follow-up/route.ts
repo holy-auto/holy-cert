@@ -1,22 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendExpiryReminder, sendFollowUpEmail } from "@/lib/follow-up/email";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { normalizePlanTier } from "@/lib/billing/planFeatures";
+import {
+  type FollowUpSetting,
+  type TenantInfo,
+  processExpiryReminders,
+  processRegularFollowUps,
+  processPostIssueFollowUps,
+  processFirstReminderFollowUps,
+  processWarrantyEndFollowUps,
+  processSeasonalProposals,
+} from "@/lib/cron/followUp";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
 /**
- * Follow-up Cron Job
- * 1. Send expiry reminders for certificates approaching expiry_date
- * 2. Send post-service follow-up emails
+ * Follow-up Cron Job（拡張版）
+ * 1. 有効期限リマインダー
+ * 2. 施工後フォローアップ: 90日・180日 ＋ 発行直後・30日・保証終了前
+ * 3. 季節提案（10〜11月: 冬前, 5〜6月: 梅雨前）
  */
 export async function GET(req: NextRequest) {
   const { authorized, error: authError } = verifyCronRequest(req);
-  if (!authorized) {
-    return apiUnauthorized(authError);
-  }
+  if (!authorized) return apiUnauthorized(authError);
 
   try {
     const supabase = getSupabaseAdmin();
@@ -24,165 +34,42 @@ export async function GET(req: NextRequest) {
     const todayStr = today.toISOString().slice(0, 10);
     let remindersSent = 0;
     let followUpsSent = 0;
+    let seasonalSent = 0;
 
-    // ─── 1. Expiry reminders ───
     try {
-      // Get all tenants with follow-up enabled
-      const { data: settings } = await supabase
+      const { data: rawSettings } = await supabase
         .from("follow_up_settings")
-        .select("tenant_id, reminder_days_before, follow_up_days_after, enabled")
+        .select(
+          "tenant_id, reminder_days_before, follow_up_days_after, enabled, send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled",
+        )
         .eq("enabled", true);
+      const settings = (rawSettings ?? []) as unknown as FollowUpSetting[];
 
-      if (settings && settings.length > 0) {
-        // Batch fetch all tenant names
-        const allTenantIds = [...new Set(settings.map((s) => s.tenant_id))];
-        const { data: tenants } = await supabase.from("tenants").select("id, name").in("id", allTenantIds);
-        const tenantMap = new Map((tenants ?? []).map((t) => [t.id, t.name]));
+      if (!settings.length) {
+        return NextResponse.json({ ok: true, reminders_sent: 0, follow_ups_sent: 0, date: todayStr });
+      }
 
-        for (const setting of settings) {
-          const shopName = tenantMap.get(setting.tenant_id) ?? "施工店";
-          const reminderDays: number[] = setting.reminder_days_before ?? [30, 7, 1];
+      const allTenantIds = [...new Set(settings.map((s) => s.tenant_id))];
 
-          // Build all target dates for this tenant's reminder days
-          const targetDates = reminderDays.map((days) => {
-            const targetDate = new Date(today);
-            targetDate.setDate(targetDate.getDate() + days);
-            return { days, dateStr: targetDate.toISOString().slice(0, 10) };
-          });
+      const { data: tenants } = (await supabase
+        .from("tenants")
+        .select("id, name, phone, plan_tier")
+        .in("id", allTenantIds)) as { data: TenantInfo[] | null };
+      const tenantMap = new Map((tenants ?? []).map((t) => [t.id, t]));
 
-          // Batch fetch certificates for all target dates at once
-          const allCerts: Array<{ days: number; cert: any }> = [];
-          for (const { days, dateStr } of targetDates) {
-            const { data: certs } = await supabase
-              .from("certificates")
-              .select("id, customer_id, customer_name, service_name, expiry_date")
-              .eq("tenant_id", setting.tenant_id)
-              .eq("expiry_date", dateStr)
-              .neq("status", "void");
+      for (const setting of settings) {
+        const tenant = tenantMap.get(setting.tenant_id);
+        if (!tenant) continue;
 
-            for (const cert of certs ?? []) {
-              if (cert.customer_id) allCerts.push({ days, cert });
-            }
-          }
+        const shopName = tenant.name ?? "施工店";
+        const planTier = normalizePlanTier(tenant.plan_tier);
 
-          if (allCerts.length === 0) continue;
-
-          // Batch fetch notification logs for all certs
-          const certIds = allCerts.map((c) => c.cert.id);
-          const notifTypes = [...new Set(allCerts.map((c) => `expiry_reminder_${c.days}d`))];
-          const { data: existingLogs } = await supabase
-            .from("notification_logs")
-            .select("target_id, type")
-            .eq("target_type", "certificate")
-            .in("target_id", certIds)
-            .in("type", notifTypes);
-
-          const notifiedSet = new Set((existingLogs ?? []).map((l) => `${l.target_id}:${l.type}`));
-
-          // Batch fetch customer details
-          const customerIds = [...new Set(allCerts.map((c) => c.cert.customer_id))];
-          const { data: customers } = await supabase.from("customers").select("id, name, email").in("id", customerIds);
-          const customerMap = new Map((customers ?? []).map((c) => [c.id, c]));
-
-          for (const { days, cert } of allCerts) {
-            const notifKey = `${cert.id}:expiry_reminder_${days}d`;
-            if (notifiedSet.has(notifKey)) continue;
-
-            const customer = customerMap.get(cert.customer_id);
-            if (!customer?.email) continue;
-
-            const sent = await sendExpiryReminder({
-              shopName,
-              customerEmail: customer.email,
-              customerName: customer.name ?? cert.customer_name ?? "お客様",
-              certificateLabel: cert.service_name ?? "施工証明書",
-              expiryDate: cert.expiry_date,
-              daysUntil: days,
-            });
-
-            await supabase.from("notification_logs").insert({
-              tenant_id: setting.tenant_id,
-              type: `expiry_reminder_${days}d`,
-              target_type: "certificate",
-              target_id: cert.id,
-              recipient_email: customer.email,
-              status: sent ? "sent" : "failed",
-            });
-
-            if (sent) remindersSent++;
-          }
-
-          // ─── 2. Post-service follow-up ───
-          const followUpDays: number[] = setting.follow_up_days_after ?? [90, 180];
-
-          const followUpCerts: Array<{ days: number; cert: any }> = [];
-          for (const days of followUpDays) {
-            const targetDate = new Date(today);
-            targetDate.setDate(targetDate.getDate() - days);
-            const targetDateStr = targetDate.toISOString().slice(0, 10);
-
-            const { data: certs } = await supabase
-              .from("certificates")
-              .select("id, customer_id, customer_name, service_name, created_at")
-              .eq("tenant_id", setting.tenant_id)
-              .neq("status", "void")
-              .gte("created_at", `${targetDateStr}T00:00:00`)
-              .lte("created_at", `${targetDateStr}T23:59:59`);
-
-            for (const cert of certs ?? []) {
-              if (cert.customer_id) followUpCerts.push({ days, cert });
-            }
-          }
-
-          if (followUpCerts.length === 0) continue;
-
-          // Batch fetch notification logs for follow-up certs
-          const fuCertIds = followUpCerts.map((c) => c.cert.id);
-          const fuNotifTypes = [...new Set(followUpCerts.map((c) => `follow_up_${c.days}d`))];
-          const { data: fuExistingLogs } = await supabase
-            .from("notification_logs")
-            .select("target_id, type")
-            .eq("target_type", "certificate")
-            .in("target_id", fuCertIds)
-            .in("type", fuNotifTypes);
-
-          const fuNotifiedSet = new Set((fuExistingLogs ?? []).map((l) => `${l.target_id}:${l.type}`));
-
-          // Batch fetch customer details for follow-up
-          const fuCustomerIds = [...new Set(followUpCerts.map((c) => c.cert.customer_id))];
-          const { data: fuCustomers } = await supabase
-            .from("customers")
-            .select("id, name, email")
-            .in("id", fuCustomerIds);
-          const fuCustomerMap = new Map((fuCustomers ?? []).map((c) => [c.id, c]));
-
-          for (const { days, cert } of followUpCerts) {
-            const notifKey = `${cert.id}:follow_up_${days}d`;
-            if (fuNotifiedSet.has(notifKey)) continue;
-
-            const customer = fuCustomerMap.get(cert.customer_id);
-            if (!customer?.email) continue;
-
-            const sent = await sendFollowUpEmail({
-              shopName,
-              customerEmail: customer.email,
-              customerName: customer.name ?? cert.customer_name ?? "お客様",
-              certificateLabel: cert.service_name ?? "施工証明書",
-              daysSince: days,
-            });
-
-            await supabase.from("notification_logs").insert({
-              tenant_id: setting.tenant_id,
-              type: `follow_up_${days}d`,
-              target_type: "certificate",
-              target_id: cert.id,
-              recipient_email: customer.email,
-              status: sent ? "sent" : "failed",
-            });
-
-            if (sent) followUpsSent++;
-          }
-        }
+        remindersSent += await processExpiryReminders(supabase, setting, shopName, today);
+        followUpsSent += await processRegularFollowUps(supabase, setting, tenant, shopName, planTier, today);
+        followUpsSent += await processPostIssueFollowUps(supabase, setting, tenant, shopName, planTier, todayStr);
+        followUpsSent += await processFirstReminderFollowUps(supabase, setting, tenant, shopName, planTier, today);
+        followUpsSent += await processWarrantyEndFollowUps(supabase, setting, tenant, shopName, planTier);
+        seasonalSent += await processSeasonalProposals(supabase, setting, shopName, today);
       }
     } catch (e) {
       console.error("[cron/follow-up] failed:", e);
@@ -192,6 +79,7 @@ export async function GET(req: NextRequest) {
       ok: true,
       reminders_sent: remindersSent,
       follow_ups_sent: followUpsSent,
+      seasonal_sent: seasonalSent,
       date: todayStr,
     });
   } catch (e) {

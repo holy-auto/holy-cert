@@ -15,10 +15,18 @@ const CRITICAL_ENV_VARS: EnvVarCheck[] = [
   { name: "NEXT_PUBLIC_SUPABASE_ANON_KEY", required: true },
   { name: "SUPABASE_SERVICE_ROLE_KEY", required: true },
   { name: "CRON_SECRET", required: true },
+  { name: "QSTASH_TOKEN", required: true },
+  { name: "UPSTASH_REDIS_REST_URL", required: true },
+  { name: "UPSTASH_REDIS_REST_TOKEN", required: true },
+  { name: "STRIPE_WEBHOOK_SECRET", required: true },
+  { name: "CUSTOMER_AUTH_PEPPER", required: true },
   { name: "PLATFORM_TENANT_ID", required: false, warnOnly: true },
   { name: "STRIPE_SECRET_KEY", required: false, warnOnly: true },
-  { name: "STRIPE_WEBHOOK_SECRET", required: false, warnOnly: true },
+  { name: "ANTHROPIC_API_KEY", required: false, warnOnly: true },
+  { name: "GOOGLE_CLIENT_ID", required: false, warnOnly: true },
+  { name: "GOOGLE_CLIENT_SECRET", required: false, warnOnly: true },
   { name: "RESEND_API_KEY", required: false, warnOnly: true },
+  { name: "APP_URL", required: false, warnOnly: true },
 ];
 
 export function validateRequiredEnvVars(): void {
@@ -37,9 +45,7 @@ export function validateRequiredEnvVars(): void {
   }
 
   if (warnings.length > 0) {
-    console.warn(
-      `[env-validation] Optional env vars not set (some features disabled): ${warnings.join(", ")}`,
-    );
+    console.warn(`[env-validation] Optional env vars not set (some features disabled): ${warnings.join(", ")}`);
   }
 
   if (missing.length > 0) {

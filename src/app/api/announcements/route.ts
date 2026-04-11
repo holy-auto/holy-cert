@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { apiInternalError } from "@/lib/api/response";
 
 // GET: Fetch published announcements (with read status)
 export async function GET() {
@@ -22,10 +23,7 @@ export async function GET() {
     // Fetch read status for current user
     let readIds: Set<string> = new Set();
     if (userId) {
-      const { data: reads } = await supabase
-        .from("announcement_reads")
-        .select("announcement_id")
-        .eq("user_id", userId);
+      const { data: reads } = await supabase.from("announcement_reads").select("announcement_id").eq("user_id", userId);
       if (reads) {
         readIds = new Set(reads.map((r: { announcement_id: string }) => r.announcement_id));
       }
@@ -40,7 +38,6 @@ export async function GET() {
 
     return NextResponse.json({ announcements: result, unread_count: unreadCount });
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return apiInternalError(e, "announcements");
   }
 }

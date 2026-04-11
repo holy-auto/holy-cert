@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getAdminClient } from "@/lib/api/auth";
+import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,10 +32,7 @@ function verifySquareSignature(
   const hmac = crypto.createHmac("sha256", signatureKey);
   hmac.update(notificationUrl + rawBody);
   const expected = hmac.digest("base64");
-  return crypto.timingSafeEqual(
-    Buffer.from(expected, "utf8"),
-    Buffer.from(signatureHeader, "utf8"),
-  );
+  return crypto.timingSafeEqual(Buffer.from(expected, "utf8"), Buffer.from(signatureHeader, "utf8"));
 }
 
 // ─── Event types ───
@@ -58,7 +56,7 @@ export async function POST(req: NextRequest) {
   if (!signatureKey) {
     console.error("[square-webhook] SQUARE_WEBHOOK_SIGNATURE_KEY not configured");
     // Never process webhooks without signature verification
-    return NextResponse.json({ error: "Webhook signature key not configured" }, { status: 500 });
+    return apiInternalError(new Error("Webhook signature key not configured"), "square-webhook");
   }
 
   // Read raw body for signature verification
@@ -68,23 +66,21 @@ export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-square-hmacsha256-signature");
   if (!signature) {
     console.warn("[square-webhook] Missing signature header");
-    return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+    return apiUnauthorized();
   }
 
   // The notification URL must match what was registered in Square Dashboard
-  const notificationUrl =
-    process.env.SQUARE_WEBHOOK_NOTIFICATION_URL ??
-    `${req.nextUrl.origin}/api/webhooks/square`;
+  const notificationUrl = process.env.SQUARE_WEBHOOK_NOTIFICATION_URL ?? `${req.nextUrl.origin}/api/webhooks/square`;
 
   try {
     const valid = verifySquareSignature(rawBody, signature, signatureKey, notificationUrl);
     if (!valid) {
       console.warn("[square-webhook] Invalid signature");
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      return apiUnauthorized();
     }
   } catch (err) {
     console.error("[square-webhook] Signature verification error:", err);
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    return apiUnauthorized();
   }
 
   // Parse event
@@ -92,14 +88,14 @@ export async function POST(req: NextRequest) {
   try {
     event = JSON.parse(rawBody);
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiValidationError("Invalid JSON");
   }
 
   const { type, merchant_id: merchantId, data } = event;
 
   if (!type || !merchantId) {
     console.warn("[square-webhook] Missing type or merchant_id");
-    return NextResponse.json({ error: "Invalid event" }, { status: 400 });
+    return apiValidationError("Invalid event: missing type or merchant_id");
   }
 
   // Process events asynchronously — return 200 quickly to avoid Square retries
@@ -113,11 +109,7 @@ export async function POST(req: NextRequest) {
 
 // ─── Event processing ───
 
-async function processEvent(
-  type: string,
-  merchantId: string,
-  data: SquareWebhookEvent["data"],
-) {
+async function processEvent(type: string, merchantId: string, data: SquareWebhookEvent["data"]) {
   switch (type) {
     case "order.updated":
       await handleOrderUpdated(merchantId, data);
@@ -152,10 +144,7 @@ async function resolveTenant(merchantId: string) {
 /**
  * Handle order.updated — upsert the order into square_orders.
  */
-async function handleOrderUpdated(
-  merchantId: string,
-  data: SquareWebhookEvent["data"],
-) {
+async function handleOrderUpdated(merchantId: string, data: SquareWebhookEvent["data"]) {
   const conn = await resolveTenant(merchantId);
   if (!conn) {
     console.warn(`[square-webhook] No active connection for merchant: ${merchantId}`);
@@ -192,10 +181,7 @@ async function handleOrderUpdated(
 /**
  * Handle payment.completed — look up related order and upsert.
  */
-async function handlePaymentCompleted(
-  merchantId: string,
-  data: SquareWebhookEvent["data"],
-) {
+async function handlePaymentCompleted(merchantId: string, data: SquareWebhookEvent["data"]) {
   const conn = await resolveTenant(merchantId);
   if (!conn) {
     console.warn(`[square-webhook] No active connection for merchant: ${merchantId}`);
@@ -226,20 +212,14 @@ async function handlePaymentCompleted(
 /**
  * Fetch a single order from Square Orders API.
  */
-async function fetchSquareOrder(
-  accessToken: string,
-  orderId: string,
-): Promise<Record<string, unknown> | null> {
+async function fetchSquareOrder(accessToken: string, orderId: string): Promise<Record<string, unknown> | null> {
   try {
-    const res = await fetch(
-      `https://connect.squareup.com/v2/orders/${encodeURIComponent(orderId)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+    const res = await fetch(`https://connect.squareup.com/v2/orders/${encodeURIComponent(orderId)}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-    );
+    });
 
     if (!res.ok) {
       console.error(`[square-webhook] Fetch order ${orderId} failed: ${res.status}`);
@@ -257,11 +237,7 @@ async function fetchSquareOrder(
 /**
  * Upsert an order into square_orders (matching pattern from sync endpoint).
  */
-async function upsertOrder(
-  admin: ReturnType<typeof getAdminClient>,
-  tenantId: string,
-  order: Record<string, unknown>,
-) {
+async function upsertOrder(admin: ReturnType<typeof getAdminClient>, tenantId: string, order: Record<string, unknown>) {
   const orderId = order.id as string;
   const totalMoney = (order.total_money as any)?.amount ?? 0;
   const taxMoney = (order.total_tax_money as any)?.amount ?? 0;

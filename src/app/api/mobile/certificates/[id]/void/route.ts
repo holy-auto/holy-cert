@@ -13,10 +13,7 @@ import {
 export const dynamic = "force-dynamic";
 
 // ─── POST: Void certificate (active → void) ───
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const caller = await resolveMobileCaller(request);
     if (!caller) return apiUnauthorized();
@@ -38,9 +35,7 @@ export async function POST(
 
     if (!cert) return apiNotFound();
     if (cert.status !== "active") {
-      return apiValidationError(
-        `Cannot void: current status is "${cert.status}", expected "active"`,
-      );
+      return apiValidationError(`Cannot void: current status is "${cert.status}", expected "active"`);
     }
 
     const { data, error } = await caller.supabase
@@ -48,7 +43,7 @@ export async function POST(
       .update({ status: "void", void_reason: body.reason })
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select()
+      .select("id, public_id, vehicle_id, tenant_id, status, void_reason, created_at, updated_at")
       .single();
 
     if (error) return apiInternalError(error, "certificates.void");
@@ -60,9 +55,7 @@ export async function POST(
       record_id: id,
       action: "certificate_voided",
       performed_by: caller.userId,
-      ip_address:
-        request.headers.get("x-forwarded-for") ??
-        request.headers.get("x-real-ip"),
+      ip_address: request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip"),
     });
 
     return apiOk({ certificate: data });

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 /**
@@ -18,28 +19,40 @@ function formatCount(n: number): string {
   return `${(Math.floor(n / 10000) * 10000).toLocaleString()}+`;
 }
 
+const fallback: MarketingStats = { shopCount: "—", certificateCount: "—" };
+
+const fetchMarketingStats = unstable_cache(
+  async (): Promise<MarketingStats> => {
+    try {
+      let supabase;
+      try {
+        supabase = getSupabaseAdmin();
+      } catch {
+        return fallback;
+      }
+
+      const [tenants, certs] = await Promise.all([
+        supabase.from("tenants").select("id", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("insurance_cases").select("id", { count: "exact", head: true }),
+      ]);
+
+      return {
+        shopCount: tenants.count != null ? formatCount(tenants.count) : fallback.shopCount,
+        certificateCount: certs.count != null ? formatCount(certs.count) : fallback.certificateCount,
+      };
+    } catch {
+      return fallback;
+    }
+  },
+  ["marketing-stats"],
+  { revalidate: 3600 },
+);
+
 /**
  * DB から実データを取得してマーケティング統計を返す。
  * DB 接続に失敗した場合はフォールバック値を返す。
- * 結果は ISR / revalidate で自動キャッシュされる想定。
+ * unstable_cache により1時間キャッシュされる（ISR の revalidate と同期）。
  */
 export async function getMarketingStats(): Promise<MarketingStats> {
-  const fallback: MarketingStats = { shopCount: "—", certificateCount: "—" };
-
-  try {
-    let supabase;
-    try { supabase = getSupabaseAdmin(); } catch { return fallback; }
-
-    const [tenants, certs] = await Promise.all([
-      supabase.from("tenants").select("id", { count: "exact", head: true }).eq("is_active", true),
-      supabase.from("insurance_cases").select("id", { count: "exact", head: true }),
-    ]);
-
-    return {
-      shopCount: tenants.count != null ? formatCount(tenants.count) : fallback.shopCount,
-      certificateCount: certs.count != null ? formatCount(certs.count) : fallback.certificateCount,
-    };
-  } catch {
-    return fallback;
-  }
+  return fetchMarketingStats();
 }

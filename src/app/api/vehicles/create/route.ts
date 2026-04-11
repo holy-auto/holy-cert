@@ -56,16 +56,7 @@ export async function POST(req: Request) {
       size_class: sizeClass,
     };
 
-    // Store dimensions if provided
-    if (b.full_length_mm) insertRow.full_length_mm = b.full_length_mm;
-    if (b.full_width_mm) insertRow.full_width_mm = b.full_width_mm;
-    if (b.full_height_mm) insertRow.full_height_mm = b.full_height_mm;
-
-    const { data: vehicle, error } = await supabase
-      .from("vehicles")
-      .insert(insertRow)
-      .select("id")
-      .single();
+    const { data: vehicle, error } = await supabase.from("vehicles").insert(insertRow).select("id").single();
 
     if (error) {
       return apiInternalError(error, "vehicles/create insert");

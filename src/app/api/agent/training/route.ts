@@ -17,14 +17,16 @@ export async function GET() {
     // Fetch courses
     const { data: courses } = await supabase
       .from("agent_training_courses")
-      .select("*")
+      .select(
+        "id, title, description, category, duration_minutes, is_required, is_published, sort_order, content_url, created_at, updated_at",
+      )
       .eq("is_published", true)
       .order("sort_order", { ascending: true });
 
     // Fetch user progress
     const { data: progress } = await supabase
       .from("agent_training_progress")
-      .select("*")
+      .select("id, course_id, user_id, agent_id, status, progress, started_at, completed_at, created_at, updated_at")
       .eq("user_id", auth.user.id);
 
     const progressMap = new Map((progress ?? []).map((p) => [p.course_id, p]));
@@ -42,7 +44,12 @@ export async function GET() {
 
     return NextResponse.json({
       courses: enriched,
-      stats: { total: totalCourses, completed: completedCourses, required: requiredCourses, required_completed: requiredCompleted },
+      stats: {
+        total: totalCourses,
+        completed: completedCourses,
+        required: requiredCourses,
+        required_completed: requiredCompleted,
+      },
     });
   } catch (e) {
     return apiInternalError(e, "agent training GET");
@@ -78,9 +85,9 @@ export async function PUT(request: NextRequest) {
           started_at: progressVal > 0 ? now : null,
           completed_at: status === "completed" ? now : null,
         },
-        { onConflict: "course_id,user_id" }
+        { onConflict: "course_id,user_id" },
       )
-      .select()
+      .select("id, course_id, user_id, agent_id, status, progress, started_at, completed_at, created_at, updated_at")
       .single();
 
     if (error) return apiInternalError(error, "agent training PUT");

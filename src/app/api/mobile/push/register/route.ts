@@ -1,11 +1,6 @@
 import { NextRequest } from "next/server";
 import { resolveMobileCaller } from "@/lib/auth/mobileAuth";
-import {
-  apiOk,
-  apiUnauthorized,
-  apiValidationError,
-  apiInternalError,
-} from "@/lib/api/response";
+import { apiOk, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +30,7 @@ export async function POST(request: NextRequest) {
         },
         { onConflict: "user_id,token" },
       )
-      .select()
+      .select("id, user_id, tenant_id, token, platform, updated_at")
       .single();
 
     if (error) return apiInternalError(error, "push.register");

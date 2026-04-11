@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("Missing STRIPE_SECRET_KEY");
-  return new Stripe(key, { apiVersion: "2025-02-24.acacia" as any });
+  return new Stripe(key, { apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion });
 }
 
 export async function POST(req: NextRequest) {
@@ -122,13 +122,13 @@ export async function POST(req: NextRequest) {
       },
       subscription_data: {
         metadata: { tenant_id, plan_tier },
-        ...(addInvoiceItems.length > 0 ? { add_invoice_items: addInvoiceItems as any } : {}),
+        ...(addInvoiceItems.length > 0 ? { add_invoice_items: addInvoiceItems as unknown[] } : {}),
       },
       line_items: [{ price: priceId, quantity: 1 }],
       ...(discounts.length > 0 ? { discounts } : {}),
       success_url: `${appUrl}/admin/billing?status=success`,
       cancel_url: `${appUrl}/admin/billing?status=cancel`,
-    } as any);
+    } as Stripe.Checkout.SessionCreateParams);
 
     return apiOk({ url: session.url });
   } catch (e) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -9,18 +10,11 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    if (!requireMinRole(caller, "staff")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
+    if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const url = new URL(req.url);
-    const date =
-      url.searchParams.get("date") ??
-      new Date().toISOString().slice(0, 10);
+    const date = url.searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
 
     // 日付範囲
     const dayStart = `${date}T00:00:00.000Z`;
@@ -43,8 +37,7 @@ export async function GET(req: NextRequest) {
       .limit(200);
 
     if (error) {
-      console.error("[daily-report] db_error:", error.message);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
+      return apiInternalError(error, "daily-report");
     }
 
     const rows = payments ?? [];
@@ -64,15 +57,10 @@ export async function GET(req: NextRequest) {
     }
 
     // 顧客名を一括取得
-    const customerIds = [
-      ...new Set(rows.map((p) => p.customer_id).filter(Boolean)),
-    ];
+    const customerIds = [...new Set(rows.map((p) => p.customer_id).filter(Boolean))];
     const customerMap: Record<string, string> = {};
     if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name")
-        .in("id", customerIds);
+      const { data: customers } = await supabase.from("customers").select("id, name").in("id", customerIds);
       (customers ?? []).forEach((c) => {
         customerMap[c.id] = c.name;
       });
@@ -83,9 +71,7 @@ export async function GET(req: NextRequest) {
       amount: p.amount,
       payment_method: p.payment_method,
       paid_at: p.paid_at,
-      customer_name: p.customer_id
-        ? (customerMap[p.customer_id] ?? null)
-        : null,
+      customer_name: p.customer_id ? (customerMap[p.customer_id] ?? null) : null,
     }));
 
     return NextResponse.json({
@@ -98,7 +84,6 @@ export async function GET(req: NextRequest) {
       transactions,
     });
   } catch (e: unknown) {
-    console.error("daily-report failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "daily-report");
   }
 }

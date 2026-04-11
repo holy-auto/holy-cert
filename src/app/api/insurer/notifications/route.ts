@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data, error } = await admin
       .from("insurer_notifications")
-      .select("*")
+      .select("id, insurer_id, user_id, type, title, body, link, is_read, created_at")
       .eq("insurer_id", caller.insurerId)
       .or(`user_id.eq.${caller.userId},user_id.is.null`)
       .order("created_at", { ascending: false })
@@ -43,10 +43,7 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       // Table may not exist yet — return empty array gracefully
-      if (
-        error.message.includes("does not exist") ||
-        error.code === "42P01"
-      ) {
+      if (error.message.includes("does not exist") || error.code === "42P01") {
         return NextResponse.json({ notifications: [], unread_count: 0 });
       }
       return apiValidationError(error.message);
@@ -101,10 +98,7 @@ export async function PATCH(req: NextRequest) {
         .eq("is_read", false);
 
       if (error) {
-        if (
-          error.message.includes("does not exist") ||
-          error.code === "42P01"
-        ) {
+        if (error.message.includes("does not exist") || error.code === "42P01") {
           return NextResponse.json({ ok: true, updated: 0 });
         }
         return apiValidationError(error.message);
@@ -119,10 +113,7 @@ export async function PATCH(req: NextRequest) {
         .in("id", ids!);
 
       if (error) {
-        if (
-          error.message.includes("does not exist") ||
-          error.code === "42P01"
-        ) {
+        if (error.message.includes("does not exist") || error.code === "42P01") {
           return NextResponse.json({ ok: true, updated: 0 });
         }
         return apiValidationError(error.message);

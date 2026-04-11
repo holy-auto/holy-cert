@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import {
-  apiUnauthorized,
-  apiValidationError,
-  apiNotFound,
-  apiForbidden,
-  apiInternalError,
-} from "@/lib/api/response";
+import { apiUnauthorized, apiValidationError, apiNotFound, apiForbidden, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendCaseStatusNotification } from "@/lib/insurer/notifications";
@@ -17,10 +11,7 @@ export const runtime = "nodejs";
  * GET /api/insurer/cases/[id]
  * Get case detail with messages and attachments.
  */
-export async function GET(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> },
-) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const limited = await checkRateLimit(req, "general");
   if (limited) return limited;
 
@@ -34,7 +25,9 @@ export async function GET(
     // Fetch case
     const { data: caseData, error: caseErr } = await admin
       .from("insurer_cases")
-      .select("*")
+      .select(
+        "id, insurer_id, title, description, status, priority, category, case_number, certificate_id, vehicle_id, tenant_id, assigned_to, created_by, resolved_at, closed_at, created_at, updated_at",
+      )
       .eq("id", id)
       .maybeSingle();
 
@@ -45,14 +38,14 @@ export async function GET(
     // Fetch messages
     const { data: messages } = await admin
       .from("insurer_case_messages")
-      .select("*")
+      .select("id, case_id, sender_id, sender_type, content, created_at")
       .eq("case_id", id)
       .order("created_at", { ascending: true });
 
     // Fetch attachments
     const { data: attachments } = await admin
       .from("insurer_case_attachments")
-      .select("*")
+      .select("id, case_id, file_name, file_size, file_type, storage_path, uploaded_by, created_at")
       .eq("case_id", id)
       .order("created_at", { ascending: true });
 
@@ -70,10 +63,7 @@ export async function GET(
  * PATCH /api/insurer/cases/[id]
  * Update case fields.
  */
-export async function PATCH(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const limited = await checkRateLimit(req, "general");
   if (limited) return limited;
 
@@ -104,14 +94,7 @@ export async function PATCH(
     if (existing.insurer_id !== caller.insurerId) return apiForbidden();
 
     // Build update payload with allowed fields only
-    const allowedFields = [
-      "title",
-      "description",
-      "status",
-      "priority",
-      "category",
-      "assigned_to",
-    ] as const;
+    const allowedFields = ["title", "description", "status", "priority", "category", "assigned_to"] as const;
 
     const updateData: Record<string, unknown> = {};
     for (const field of allowedFields) {
@@ -125,16 +108,10 @@ export async function PATCH(
     }
 
     // Handle status transition timestamps
-    if (
-      updateData.status === "resolved" &&
-      existing.status !== "resolved"
-    ) {
+    if (updateData.status === "resolved" && existing.status !== "resolved") {
       updateData.resolved_at = new Date().toISOString();
     }
-    if (
-      updateData.status === "closed" &&
-      existing.status !== "closed"
-    ) {
+    if (updateData.status === "closed" && existing.status !== "closed") {
       updateData.closed_at = new Date().toISOString();
     }
 
@@ -144,7 +121,9 @@ export async function PATCH(
       .from("insurer_cases")
       .update(updateData)
       .eq("id", id)
-      .select("*")
+      .select(
+        "id, insurer_id, title, description, status, priority, category, case_number, certificate_id, vehicle_id, tenant_id, assigned_to, created_by, resolved_at, closed_at, created_at, updated_at",
+      )
       .single();
 
     if (updateErr) return apiValidationError(updateErr.message);

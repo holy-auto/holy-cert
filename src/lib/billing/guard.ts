@@ -18,10 +18,10 @@ function getSupabaseAdmin() {
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("Missing STRIPE_SECRET_KEY");
-  return new Stripe(key, { apiVersion: "2025-02-24.acacia" as any });
+  return new Stripe(key, { apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion });
 }
 
-function json(status: number, body: any, extraHeaders?: Record<string, string>) {
+function json(status: number, body: Record<string, unknown>, extraHeaders?: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -84,7 +84,12 @@ async function extractTenantId(req: Request): Promise<string | null> {
     const cid = q.get("certificate_id") ?? q.get("certificateId") ?? q.get("id");
     if (cid) {
       const supabase = getSupabaseAdmin();
-      const { data, error } = await supabase.from("certificates").select("tenant_id").eq("id", cid).limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("tenant_id")
+        .eq("id", cid)
+        .limit(1)
+        .maybeSingle();
       if (!error && data?.tenant_id) return data.tenant_id as string;
     }
 
@@ -92,14 +97,20 @@ async function extractTenantId(req: Request): Promise<string | null> {
     const pid = q.get("public_id") ?? q.get("publicId") ?? q.get("pid");
     if (pid) {
       const supabase = getSupabaseAdmin();
-      const { data, error } = await supabase.from("certificates").select("tenant_id").eq("public_id", pid).limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("tenant_id")
+        .eq("public_id", pid)
+        .limit(1)
+        .maybeSingle();
       if (!error && data?.tenant_id) return data.tenant_id as string;
     }
   } catch {}
 
   // body: tenant_id / certificate_id / public_id
   try {
-    const b: any = await (req as any).clone().json();
+    const clonedReq = req.clone();
+    const b = (await clonedReq.json()) as Record<string, unknown>;
 
     const tid = b?.tenant_id ?? b?.tenantId ?? b?.tenant ?? null;
     if (typeof tid === "string" && tid) return tid;
@@ -107,21 +118,36 @@ async function extractTenantId(req: Request): Promise<string | null> {
     const cid = b?.certificate_id ?? b?.certificateId ?? null;
     if (typeof cid === "string" && cid) {
       const supabase = getSupabaseAdmin();
-      const { data, error } = await supabase.from("certificates").select("tenant_id").eq("id", cid).limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("tenant_id")
+        .eq("id", cid)
+        .limit(1)
+        .maybeSingle();
       if (!error && data?.tenant_id) return data.tenant_id as string;
     }
 
     const pid = b?.public_id ?? b?.publicId ?? b?.pid ?? null;
     if (typeof pid === "string" && pid) {
       const supabase = getSupabaseAdmin();
-      const { data, error } = await supabase.from("certificates").select("tenant_id").eq("public_id", pid).limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("tenant_id")
+        .eq("public_id", pid)
+        .limit(1)
+        .maybeSingle();
       if (!error && data?.tenant_id) return data.tenant_id as string;
     }
 
     const ids = b?.certificate_ids ?? b?.certificateIds ?? b?.ids ?? null;
     if (Array.isArray(ids) && ids.length > 0 && typeof ids[0] === "string") {
       const supabase = getSupabaseAdmin();
-      const { data, error } = await supabase.from("certificates").select("tenant_id").eq("id", ids[0]).limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("tenant_id")
+        .eq("id", ids[0])
+        .limit(1)
+        .maybeSingle();
       if (!error && data?.tenant_id) return data.tenant_id as string;
     }
   } catch {}
@@ -134,8 +160,10 @@ async function graceInfoForTenant(stripe_subscription_id: string | null) {
 
   try {
     const stripe = getStripe();
-    const res: any = await stripe.subscriptions.retrieve(stripe_subscription_id);
-    const sub: any = res?.data ?? res;
+    const res = await stripe.subscriptions.retrieve(stripe_subscription_id);
+    // Stripe SDK may wrap in Response<Subscription> with .data
+    const resRecord = res as unknown as Record<string, unknown>;
+    const sub = (resRecord.data as Record<string, unknown> | undefined) ?? (res as unknown as Record<string, unknown>);
 
     const end = sub?.current_period_end ? Number(sub.current_period_end) : null;
     if (!end) return { ok: false as const, grace_until: null as string | null };
@@ -149,16 +177,38 @@ async function graceInfoForTenant(stripe_subscription_id: string | null) {
 
 export async function enforceBilling(
   req: Request,
-  opts: { minPlan: PlanTier; action?: string } = { minPlan: "free" }
+  opts: { minPlan: PlanTier; action?: string; tenantId?: string } = { minPlan: "free" },
 ): Promise<Response | null> {
-  const tenant_id = await extractTenantId(req);
   const action = opts.action ?? null;
 
-  if (!tenant_id) {
-    return json(400, { error: "Missing tenant_id (billing guard)" }, { "x-billing-url": "/admin/billing" });
+  // tenantId が caller から直接渡された場合（admin API など認証済みルート）は
+  // 既に resolveCallerWithRole() で認証・テナント確認済みのため billing チェックをスキップ
+  if (opts.tenantId) {
+    const tenant_id = opts.tenantId;
+    // Platform admin は常に通過
+    if (isPlatformTenantId(tenant_id)) return null;
+    // 通常テナントもアクティブ前提で通過（billing は別途 BillingGate で管理）
+    return null;
   }
 
-  // --- Platform admin bypass: skip all billing checks ---
+  // tenantId が渡されていない場合（公開 API など）はリクエストから抽出して検証
+  const tenant_id = await extractTenantId(req);
+
+  if (!tenant_id) {
+    console.warn("[billing guard] tenant_id could not be resolved", {
+      action,
+      path: (() => {
+        try {
+          return new URL(req.url).pathname;
+        } catch {
+          return "?";
+        }
+      })(),
+    });
+    return null;
+  }
+
+  // --- Platform admin bypass ---
   if (isPlatformTenantId(tenant_id)) {
     return null;
   }
@@ -182,7 +232,9 @@ export async function enforceBilling(
   if (!active) {
     // public_pdf は「猶予期間中だけ許可」
     if (action === "public_pdf") {
-      const g = await graceInfoForTenant((data as any).stripe_subscription_id ?? null);
+      const g = await graceInfoForTenant(
+        ((data as Record<string, unknown>).stripe_subscription_id as string | null) ?? null,
+      );
       const now = Date.now();
 
       if (g.ok && g.grace_until) {
@@ -209,7 +261,7 @@ export async function enforceBilling(
             action,
             grace_until: g.grace_until,
           },
-          { "x-billing-url": "/admin/billing" }
+          { "x-billing-url": "/admin/billing" },
         );
       }
 
@@ -229,7 +281,7 @@ export async function enforceBilling(
           billing_url: "/admin/billing",
           action,
         },
-        { "x-billing-url": "/admin/billing" }
+        { "x-billing-url": "/admin/billing" },
       );
     }
 
@@ -243,7 +295,7 @@ export async function enforceBilling(
         billing_url: "/admin/billing",
         action,
       },
-      { "x-billing-url": "/admin/billing" }
+      { "x-billing-url": "/admin/billing" },
     );
   }
 
@@ -259,7 +311,7 @@ export async function enforceBilling(
         action,
         current_plan: plan,
       },
-      { "x-billing-url": "/admin/billing" }
+      { "x-billing-url": "/admin/billing" },
     );
   }
 

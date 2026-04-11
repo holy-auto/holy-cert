@@ -1,12 +1,14 @@
+import { randomInt } from "crypto";
 import { NextResponse } from "next/server";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { escapeHtml } from "@/lib/sanitize";
 import { resolveBaseUrl } from "@/lib/url";
 import { GLOBAL_OTP_TTL_MIN, createGlobalLoginCode, listPortalMemberships } from "@/lib/customerPortalGlobal";
 import { normalizeEmail, normalizeLast4 } from "@/lib/customerPortalServer";
+import { apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 function genCode6() {
-  const n = Math.floor(Math.random() * 1000000);
+  const n = randomInt(1000000);
   return String(n).padStart(6, "0");
 }
 
@@ -46,16 +48,21 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
     const email = normalizeEmail(String(body.email ?? ""));
-    const last4 = normalizeLast4(String(body.phone_last4 ?? body.last4 ?? ""));
+    let last4: string;
+    try {
+      last4 = normalizeLast4(String(body.phone_last4 ?? body.last4 ?? ""));
+    } catch {
+      return apiValidationError("電話番号の下4桁を正しく入力してください。");
+    }
     const preferredTenantSlug = String(body.preferred_tenant_slug ?? body.tenant ?? "").trim() || null;
     const from = String(body.from ?? "").trim();
     const publicId = String(body.public_id ?? body.pid ?? "").trim();
 
-    if (!email.includes("@")) return NextResponse.json({ error: "invalid_email" }, { status: 400 });
+    if (!email.includes("@")) return apiValidationError("invalid_email");
 
     const memberships = await listPortalMemberships(email, last4, preferredTenantSlug);
     if (memberships.length === 0) {
-      return NextResponse.json({ error: "not_found", message: "ご利用情報が見つかりませんでした。" }, { status: 404 });
+      return apiNotFound("ご利用情報が見つかりませんでした。");
     }
 
     const code = genCode6();
@@ -82,8 +89,7 @@ export async function POST(req: Request) {
     await sendEmailResend(email, subject, html);
 
     return NextResponse.json({ ok: true, memberships_count: memberships.length });
-  } catch (e: any) {
-    console.error("portal request-code error", e);
-    return NextResponse.json({ error: e?.message ?? "request-code failed" }, { status: 500 });
+  } catch (e: unknown) {
+    return apiInternalError(e, "portal/request-code");
   }
 }

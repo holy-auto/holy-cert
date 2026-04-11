@@ -73,11 +73,7 @@ const presets: Record<RateLimitPreset, () => Ratelimit | null> = {
  * リクエストのIPアドレスを取得
  */
 function getClientIp(req: NextRequest): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown"
-  );
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
 }
 
 /**
@@ -98,7 +94,20 @@ export async function checkRateLimit(
   identifier?: string,
 ) {
   const limiter = presets[preset]();
-  if (!limiter) return null; // Redis 未設定 → スキップ
+  if (!limiter) {
+    // Redis 未設定
+    if (process.env.NODE_ENV === "production") {
+      // Fail closed in production — do not silently allow unmetered requests
+      return apiError({
+        code: "rate_limit_unavailable",
+        message: "Rate limiting service is unavailable. Request denied.",
+        status: 503,
+      });
+    }
+    // Non-production: allow through but warn
+    console.warn("[rateLimit] Redis is not configured — rate limiting is disabled (non-production)");
+    return null;
+  }
 
   const id = identifier || getClientIp(req);
   const result = await limiter.limit(id);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
+import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     const { data, error } = await supabase
       .from("tenants")
@@ -18,16 +19,14 @@ export async function GET() {
       .single();
 
     if (error) {
-      console.error("[admin/settings/defaults] GET db_error:", error.message);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
+      return apiInternalError(error, "admin/settings/defaults GET");
     }
 
     return NextResponse.json({
       default_warranty_exclusions: data?.default_warranty_exclusions ?? "",
     });
-  } catch (e: any) {
-    console.error("admin settings defaults GET failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  } catch (e: unknown) {
+    return apiInternalError(e, "admin/settings/defaults GET");
   }
 }
 
@@ -36,12 +35,10 @@ export async function PUT(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     const body = await req.json();
-    const value = typeof body.default_warranty_exclusions === "string"
-      ? body.default_warranty_exclusions
-      : "";
+    const value = typeof body.default_warranty_exclusions === "string" ? body.default_warranty_exclusions : "";
 
     const { error } = await supabase
       .from("tenants")
@@ -49,13 +46,11 @@ export async function PUT(req: NextRequest) {
       .eq("id", caller.tenantId);
 
     if (error) {
-      console.error("[admin/settings/defaults] PUT db_error:", error.message);
-      return NextResponse.json({ error: "db_error" }, { status: 500 });
+      return apiInternalError(error, "admin/settings/defaults PUT");
     }
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    console.error("admin settings defaults PUT failed", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+  } catch (e: unknown) {
+    return apiInternalError(e, "admin/settings/defaults PUT");
   }
 }

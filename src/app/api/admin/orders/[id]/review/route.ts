@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 /**
  * POST /api/admin/orders/[id]/review
@@ -9,22 +10,19 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
  * Body: { rating: 1-5, comment?: string }
  * 双方が送信後に自動公開（DB trigger で published_at をセット）
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
     const tenantId = caller.tenantId;
 
     const body = await req.json();
     const { rating, comment } = body;
 
     if (!rating || typeof rating !== "number" || rating < 1 || rating > 5) {
-      return NextResponse.json({ error: "rating は 1〜5 の整数で指定してください" }, { status: 400 });
+      return apiValidationError("rating は 1〜5 の整数で指定してください");
     }
 
     const admin = getSupabaseAdmin();
@@ -38,15 +36,15 @@ export async function POST(
       .single();
 
     if (!order) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      return apiNotFound("not_found");
     }
 
     if (order.status !== "completed") {
-      return NextResponse.json({ error: "完了済みの取引のみ評価可能です" }, { status: 400 });
+      return apiValidationError("完了済みの取引のみ評価可能です");
     }
 
     if (!order.to_tenant_id) {
-      return NextResponse.json({ error: "受注者が未確定のため評価できません" }, { status: 400 });
+      return apiValidationError("受注者が未確定のため評価できません");
     }
 
     // reviewer / reviewed を特定
@@ -63,7 +61,7 @@ export async function POST(
       .maybeSingle();
 
     if (existing) {
-      return NextResponse.json({ error: "この取引への評価は既に送信済みです" }, { status: 409 });
+      return NextResponse.json({ error: "conflict", message: "この取引への評価は既に送信済みです" }, { status: 409 });
     }
 
     const { data, error } = await admin
@@ -75,16 +73,17 @@ export async function POST(
         rating: Math.round(rating),
         comment: comment?.trim() || null,
       })
-      .select()
+      .select(
+        "id, job_order_id, reviewer_tenant_id, reviewed_tenant_id, rating, comment, published_at, created_at, updated_at",
+      )
       .single();
 
     if (error) {
-      console.error("[review] insert failed:", error.message);
-      return NextResponse.json({ error: "insert_failed" }, { status: 500 });
+      return apiInternalError(error, "review insert");
     }
 
     // パートナースコア更新（fire-and-forget）
-    admin.rpc("refresh_partner_score", { p_tenant_id: reviewedTenantId }).then(() => {});
+    admin.rpc("refresh_partner_score", { p_tenant_id: reviewedTenantId }).then(() => {}, console.error);
 
     // 監査ログ
     admin
@@ -96,11 +95,10 @@ export async function POST(
         action: "review_submitted",
         new_value: { rating: Math.round(rating), reviewed_tenant_id: reviewedTenantId },
       })
-      .then(() => {});
+      .then(() => {}, console.error);
 
     return NextResponse.json({ review: data }, { status: 201 });
   } catch (e: unknown) {
-    console.error("[review] POST failed:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "review POST");
   }
 }

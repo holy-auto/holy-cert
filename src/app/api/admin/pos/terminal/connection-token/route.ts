@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +12,8 @@ export async function POST(_req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-    if (!requireMinRole(caller, "staff")) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
+    if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     // テナントのStripe Connectアカウントを取得
     const admin = createAdminClient();
@@ -30,18 +27,15 @@ export async function POST(_req: NextRequest) {
     const isOnboarded = tenant?.stripe_connect_onboarded as boolean | null;
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2025-02-24.acacia" as any,
+      apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion,
     });
 
-    const stripeOptions = connectAccountId && isOnboarded
-      ? { stripeAccount: connectAccountId }
-      : undefined;
+    const stripeOptions = connectAccountId && isOnboarded ? { stripeAccount: connectAccountId } : undefined;
 
     const token = await stripe.terminal.connectionTokens.create({}, stripeOptions);
 
     return NextResponse.json({ secret: token.secret });
   } catch (e: unknown) {
-    console.error("[pos/terminal/connection-token] error:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "pos/terminal/connection-token");
   }
 }

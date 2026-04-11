@@ -49,11 +49,7 @@ export async function GET() {
     }));
 
     // Fetch max_users from insurers table
-    const { data: insurer } = await admin
-      .from("insurers")
-      .select("max_users")
-      .eq("id", caller.insurerId)
-      .maybeSingle();
+    const { data: insurer } = await admin.from("insurers").select("max_users").eq("id", caller.insurerId).maybeSingle();
 
     return NextResponse.json({
       users,
@@ -76,14 +72,14 @@ export async function POST(req: Request) {
     if (!caller) return apiUnauthorized();
     if (caller.role !== "admin") return apiForbidden("管理者のみユーザーを招待できます。");
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
       return apiValidationError("invalid JSON");
     }
 
-    const { email, role, display_name } = body;
+    const { email, role, display_name } = body as { email?: string; role?: string; display_name?: string };
     if (!email || typeof email !== "string") {
       return apiValidationError("メールアドレスは必須です。");
     }
@@ -94,11 +90,7 @@ export async function POST(req: Request) {
     const admin = createAdminClient();
 
     // Check max_users limit
-    const { data: insurer } = await admin
-      .from("insurers")
-      .select("max_users")
-      .eq("id", caller.insurerId)
-      .maybeSingle();
+    const { data: insurer } = await admin.from("insurers").select("max_users").eq("id", caller.insurerId).maybeSingle();
 
     const maxUsers = insurer?.max_users ?? 5;
 
@@ -118,9 +110,7 @@ export async function POST(req: Request) {
     // Check if user already exists in this insurer
     // First, find auth user by email
     const { data: authData } = await admin.auth.admin.listUsers();
-    const existingAuthUser = authData?.users?.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase(),
-    );
+    const existingAuthUser = authData?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
 
     let authUserId: string;
 
@@ -160,7 +150,10 @@ export async function POST(req: Request) {
       });
 
       if (createErr || !newUser?.user) {
-        return apiInternalError(createErr ?? new Error("ユーザー作成に失敗しました"), "insurer users invite create-auth");
+        return apiInternalError(
+          createErr ?? new Error("ユーザー作成に失敗しました"),
+          "insurer users invite create-auth",
+        );
       }
       authUserId = newUser.user.id;
     }
@@ -199,14 +192,18 @@ export async function PATCH(req: Request) {
     if (!caller) return apiUnauthorized();
     if (caller.role !== "admin") return apiForbidden("管理者のみユーザー管理が可能です。");
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
       return apiValidationError("invalid JSON");
     }
 
-    const { insurer_user_id, role, is_active } = body;
+    const { insurer_user_id, role, is_active } = body as {
+      insurer_user_id?: string;
+      role?: string;
+      is_active?: boolean;
+    };
     if (!insurer_user_id) {
       return apiValidationError("insurer_user_id is required");
     }
@@ -235,7 +232,7 @@ export async function PATCH(req: Request) {
       return apiValidationError("自分自身を無効化することはできません");
     }
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
     if (role !== undefined && ["admin", "viewer", "auditor"].includes(role)) {
       updates.role = role;
     }
@@ -276,14 +273,14 @@ export async function DELETE(req: Request) {
     if (!caller) return apiUnauthorized();
     if (caller.role !== "admin") return apiForbidden("管理者のみユーザー管理が可能です。");
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
       return apiValidationError("invalid JSON");
     }
 
-    const { insurer_user_id } = body;
+    const { insurer_user_id } = body as { insurer_user_id?: string };
     if (!insurer_user_id) {
       return apiValidationError("insurer_user_id is required");
     }

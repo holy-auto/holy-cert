@@ -3,12 +3,12 @@ import Stripe from "stripe";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { apiInternalError } from "@/lib/api/response";
+import { apiUnauthorized, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
 function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-02-24.acacia" as any });
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion });
 }
 
 /** オープンリダイレクト対策: 許可済みオリジンのURLのみ通す */
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     const admin = createAdminClient();
     const { data: tenant } = await admin
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       .eq("id", caller.tenantId)
       .single();
 
-    if (!tenant) return NextResponse.json({ error: "tenant_not_found" }, { status: 404 });
+    if (!tenant) return apiNotFound("tenant_not_found");
 
     const stripe = getStripe();
     let accountId = tenant.stripe_connect_account_id as string | null;
@@ -50,14 +50,11 @@ export async function POST(req: NextRequest) {
       });
       accountId = account.id;
 
-      await admin
-        .from("tenants")
-        .update({ stripe_connect_account_id: accountId })
-        .eq("id", caller.tenantId);
+      await admin.from("tenants").update({ stripe_connect_account_id: accountId }).eq("id", caller.tenantId);
     }
 
     // Generate onboarding link
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch((): Record<string, unknown> => ({}));
     const returnUrl = safeUrl(body?.return_url);
     const refreshUrl = safeUrl(body?.refresh_url);
 
@@ -83,7 +80,7 @@ export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!caller) return apiUnauthorized();
 
     const admin = createAdminClient();
     const { data: tenant } = await admin
@@ -92,7 +89,7 @@ export async function GET() {
       .eq("id", caller.tenantId)
       .single();
 
-    if (!tenant) return NextResponse.json({ error: "tenant_not_found" }, { status: 404 });
+    if (!tenant) return apiNotFound("tenant_not_found");
 
     const accountId = tenant.stripe_connect_account_id as string | null;
     if (!accountId) {
@@ -111,10 +108,7 @@ export async function GET() {
 
     // Update local state if changed
     if (onboarded !== tenant.stripe_connect_onboarded) {
-      await admin
-        .from("tenants")
-        .update({ stripe_connect_onboarded: onboarded })
-        .eq("id", caller.tenantId);
+      await admin.from("tenants").update({ stripe_connect_onboarded: onboarded }).eq("id", caller.tenantId);
     }
 
     return NextResponse.json({

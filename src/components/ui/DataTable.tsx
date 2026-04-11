@@ -82,9 +82,7 @@ export default function DataTable<T>({
     <div className="glass-card overflow-hidden">
       {selectable && selectedKeys && selectedKeys.size > 0 && bulkActions && (
         <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border-default bg-accent-dim px-4 py-2.5">
-          <span className="text-sm font-medium text-accent">
-            {selectedKeys.size}件選択中
-          </span>
+          <span className="text-sm font-medium text-accent">{selectedKeys.size}件選択中</span>
           <div className="flex items-center gap-2 ml-auto">
             {bulkActions.map((action, i) => (
               <button
@@ -168,6 +166,7 @@ export default function DataTable<T>({
                           checked={isSelected}
                           onChange={() => toggleOne(key)}
                           className="accent-[var(--accent-blue)]"
+                          aria-label="行を選択"
                         />
                       </td>
                     )}
@@ -210,17 +209,18 @@ export default function DataTable<T>({
                           checked={isSelected}
                           onChange={() => toggleOne(key)}
                           className="accent-[var(--accent-blue)]"
+                          aria-label="行を選択"
                         />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      {titleCol && (
-                        <div className="text-sm font-medium text-primary mb-2">{titleCol.render(row)}</div>
-                      )}
+                      {titleCol && <div className="text-sm font-medium text-primary mb-2">{titleCol.render(row)}</div>}
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                         {visibleCols.map((col) => (
                           <div key={col.key}>
-                            <div className="text-[10px] font-medium text-muted uppercase tracking-wider">{col.header}</div>
+                            <div className="text-[10px] font-medium text-muted uppercase tracking-wider">
+                              {col.header}
+                            </div>
                             <div className="text-sm text-primary mt-0.5">{col.render(row)}</div>
                           </div>
                         ))}

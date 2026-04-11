@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/api/auth";
 import { verifyWebhookSignature, downloadSignedPdf } from "@/lib/agent/cloudsign";
+import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     const valid = await verifyWebhookSignature(rawBody, signature);
     if (!valid) {
       console.error("[cloudsign-webhook] Invalid signature");
-      return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const event = JSON.parse(rawBody);
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     const documentId = event.data?.document_id as string;
 
     if (!documentId) {
-      return NextResponse.json({ error: "missing_document_id" }, { status: 400 });
+      return apiValidationError("missing_document_id");
     }
 
     const admin = getAdminClient();
@@ -58,12 +59,10 @@ export async function POST(request: NextRequest) {
           const safeName = record.title.replace(/[^a-zA-Z0-9._-]/g, "_");
           const storagePath = `${record.agent_id}/signed/${record.id}_${safeName}.pdf`;
 
-          await admin.storage
-            .from("agent-shared-files")
-            .upload(storagePath, pdfBuffer, {
-              contentType: "application/pdf",
-              upsert: true,
-            });
+          await admin.storage.from("agent-shared-files").upload(storagePath, pdfBuffer, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
 
           await admin
             .from("agent_signing_requests")
@@ -90,10 +89,7 @@ export async function POST(request: NextRequest) {
       case "document.viewed": {
         // Only update if still in "sent" status
         if (record.status === "sent") {
-          await admin
-            .from("agent_signing_requests")
-            .update({ status: "viewed" })
-            .eq("id", record.id);
+          await admin.from("agent_signing_requests").update({ status: "viewed" }).eq("id", record.id);
         }
         break;
       }
@@ -111,10 +107,7 @@ export async function POST(request: NextRequest) {
       }
 
       case "document.expired": {
-        await admin
-          .from("agent_signing_requests")
-          .update({ status: "expired" })
-          .eq("id", record.id);
+        await admin.from("agent_signing_requests").update({ status: "expired" }).eq("id", record.id);
         break;
       }
 
@@ -124,7 +117,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error("[cloudsign-webhook] Error:", e);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return apiInternalError(e, "webhooks/cloudsign");
   }
 }

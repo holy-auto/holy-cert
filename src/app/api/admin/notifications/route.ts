@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("notifications")
-      .select("*")
+      .select("id, user_id, tenant_id, title, body, type, read_at, created_at")
       .or(`user_id.is.null,user_id.eq.${caller.userId}`)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -39,10 +39,14 @@ export async function GET(req: NextRequest) {
       .or(`user_id.is.null,user_id.eq.${caller.userId}`)
       .is("read_at", null);
 
-    return NextResponse.json({
-      notifications: data ?? [],
-      unread_count: count ?? 0,
-    });
+    const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
+    return NextResponse.json(
+      {
+        notifications: data ?? [],
+        unread_count: count ?? 0,
+      },
+      { headers },
+    );
   } catch (e) {
     return apiInternalError(e, "list notifications");
   }
