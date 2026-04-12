@@ -13,6 +13,8 @@ export interface C2paResult {
   manifestCid: string | null;
   /** Whether the manifest was validated after signing. */
   verified: boolean;
+  /** Image buffer with C2PA manifest embedded, or null if not signed. */
+  signedBuffer: Buffer | null;
 }
 
 /* ── Deepfake detection ────────────────────────────────────────── */

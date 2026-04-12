@@ -149,9 +149,15 @@ export async function POST(req: NextRequest) {
         console.warn("[upload] perceptual hash failed", err);
       }
 
+      // ── Phase 3a+3b: verification providers (sign before upload) ──
+      const providers = await invokeAllUploadProviders(uploadBuffer, mime, sha256);
+
+      // If C2PA signed, use the signed buffer (manifest embedded) for storage
+      const finalBuffer = providers.c2pa.signedBuffer ?? uploadBuffer;
+
       const { error: uploadError } = await admin.storage
         .from(CERTIFICATE_IMAGE_BUCKET)
-        .upload(storagePath, uploadBuffer, {
+        .upload(storagePath, finalBuffer, {
           contentType: mime,
           upsert: false,
         });
@@ -160,9 +166,6 @@ export async function POST(req: NextRequest) {
         console.error("storage upload error", uploadError);
         continue;
       }
-
-      // ── Phase 3a: verification providers (all disabled by default) ──
-      const providers = await invokeAllUploadProviders(uploadBuffer, mime, sha256);
 
       const c2paMode = (process.env.C2PA_MODE ?? "disabled") as "disabled" | "dev-signed" | "production";
       const grade = computeAuthenticityGrade({
@@ -185,7 +188,7 @@ export async function POST(req: NextRequest) {
         storage_path: storagePath,
         file_name: file.name || `photo_${i + 1}.${ext}`,
         content_type: mime,
-        file_size: uploadBuffer.length,
+        file_size: finalBuffer.length,
         sort_order: existing + uploaded,
         sha256,
         perceptual_hash: perceptualHash,

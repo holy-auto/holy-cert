@@ -27,23 +27,27 @@ describe("invokeAllUploadProviders", () => {
     const { invokeAllUploadProviders } = await loadProviders();
     const result = await invokeAllUploadProviders(dummyBuffer, "image/jpeg", "abc123");
 
-    expect(result.c2pa).toEqual({ manifestCid: null, verified: false });
+    expect(result.c2pa).toEqual({ manifestCid: null, verified: false, signedBuffer: null });
     expect(result.deepfake).toEqual({ score: null, verdict: null });
     expect(result.deviceAttestation).toEqual({ provider: "none", verified: false });
     expect(result.polygon).toEqual({ txHash: null, anchored: false });
   });
 
-  it("logs warning for unimplemented C2PA mode", async () => {
+  it("falls back gracefully when c2pa signing fails on non-JPEG buffer", async () => {
     process.env.C2PA_MODE = "dev-signed";
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
     const { invokeAllUploadProviders } = await loadProviders();
+    // dummyBuffer is not a valid JPEG, so c2pa-node will fail
     const result = await invokeAllUploadProviders(dummyBuffer, "image/jpeg", "abc123");
 
-    expect(result.c2pa).toEqual({ manifestCid: null, verified: false });
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[c2pa] mode=dev-signed not yet implemented"));
+    // Should fall back to disabled result, not throw
+    expect(result.c2pa.verified).toBe(false);
+    expect(result.c2pa.signedBuffer).toBeNull();
 
-    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+    infoSpy.mockRestore();
   });
 
   it("logs warning for unimplemented deepfake provider", async () => {
@@ -57,6 +61,34 @@ describe("invokeAllUploadProviders", () => {
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[deepfake] provider=hive not yet implemented"));
 
     warnSpy.mockRestore();
+  });
+});
+
+describe("signC2pa directly", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.C2PA_MODE;
+  });
+
+  it("returns disabled result when C2PA_MODE is unset", async () => {
+    const { signC2pa } = await (async () => {
+      vi.resetModules();
+      return import("../c2pa");
+    })();
+
+    const result = await signC2pa(Buffer.from("test"), "image/jpeg");
+    expect(result).toEqual({ manifestCid: null, verified: false, signedBuffer: null });
+  });
+
+  it("returns disabled result when C2PA_MODE is disabled", async () => {
+    process.env.C2PA_MODE = "disabled";
+    const { signC2pa } = await (async () => {
+      vi.resetModules();
+      return import("../c2pa");
+    })();
+
+    const result = await signC2pa(Buffer.from("test"), "image/jpeg");
+    expect(result).toEqual({ manifestCid: null, verified: false, signedBuffer: null });
   });
 });
 

@@ -27,7 +27,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
+    "@contentauth/c2pa-node": "^0.5.4",
     "@googleapis/calendar": "^14.2.0",
+    "@peculiar/webcrypto": "^1.5.0",
+    "@peculiar/x509": "^2.0.0",
     "@react-pdf/renderer": "^4.4.0",
     "@sentry/nextjs": "^10.47.0",
     "@supabase/ssr": "^0.10.0",

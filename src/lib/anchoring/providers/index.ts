@@ -32,7 +32,7 @@ export async function invokeAllUploadProviders(
   ]);
 
   return {
-    c2pa: c2pa.status === "fulfilled" ? c2pa.value : { manifestCid: null, verified: false },
+    c2pa: c2pa.status === "fulfilled" ? c2pa.value : { manifestCid: null, verified: false, signedBuffer: null },
     deepfake: deepfake.status === "fulfilled" ? deepfake.value : { score: null, verdict: null },
     deviceAttestation:
       deviceAttestation.status === "fulfilled"
