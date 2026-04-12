@@ -22,8 +22,8 @@ export async function pinToIPFS(buffer: Buffer, fileName: string): Promise<strin
   const jwt = process.env.PINATA_JWT;
   if (!jwt) return null;
 
+  const blob = new Blob([new Uint8Array(buffer)]);
   const form = new FormData();
-  const blob = new Blob([buffer]);
   form.append("file", blob, fileName);
   form.append(
     "pinataMetadata",
