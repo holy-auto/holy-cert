@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 /**
  * crypto.ts のユニットテスト
  * ECDSA P-256 署名・検証のラウンドトリップと改ざん検知を検証

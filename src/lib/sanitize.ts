@@ -25,8 +25,7 @@ export function escapeIlike(str: string): string {
  * Use this on user-supplied values that are interpolated into `.or()` strings.
  */
 export function escapePostgrestValue(str: string): string {
-  // eslint-disable-next-line no-useless-escape
-  return str.replace(/[,(). ;:"'`:]/g, "");
+  return str.replace(/[,()]/g, "");
 }
 
 /**

@@ -35,6 +35,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Claude Code worktree files — not part of the main source tree
     ".claude/**",
+    // Backup snapshots — not part of the main source tree
+    "_backup/**",
   ]),
 ]);
 
