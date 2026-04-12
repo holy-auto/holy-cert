@@ -37,6 +37,7 @@ const CRITICAL_ENV_VARS: EnvVarCheck[] = [
   { name: "POLYGON_ANCHOR_ENABLED", required: false, warnOnly: true },
   { name: "POLYGON_RPC_URL", required: false, warnOnly: true },
   { name: "POLYGON_PRIVATE_KEY", required: false, warnOnly: true },
+  { name: "POLYGON_CONTRACT_ADDRESS", required: false, warnOnly: true },
 ];
 
 export function validateRequiredEnvVars(): void {

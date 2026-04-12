@@ -92,6 +92,73 @@ describe("signC2pa directly", () => {
   });
 });
 
+describe("anchorToPolygon", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.POLYGON_ANCHOR_ENABLED;
+    delete process.env.POLYGON_RPC_URL;
+    delete process.env.POLYGON_PRIVATE_KEY;
+    delete process.env.POLYGON_CONTRACT_ADDRESS;
+  });
+
+  it("returns disabled result when POLYGON_ANCHOR_ENABLED is not set", async () => {
+    vi.resetModules();
+    const { anchorToPolygon } = await import("../polygon");
+    const result = await anchorToPolygon("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+    expect(result).toEqual({ txHash: null, anchored: false });
+  });
+
+  it("returns disabled result when enabled but missing config", async () => {
+    process.env.POLYGON_ANCHOR_ENABLED = "true";
+    // Missing RPC_URL, PRIVATE_KEY, CONTRACT_ADDRESS
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    vi.resetModules();
+    const { anchorToPolygon } = await import("../polygon");
+    const result = await anchorToPolygon("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+
+    expect(result).toEqual({ txHash: null, anchored: false });
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[polygon] enabled but missing config"));
+
+    warnSpy.mockRestore();
+  });
+
+  it("returns disabled result when transaction fails", async () => {
+    process.env.POLYGON_ANCHOR_ENABLED = "true";
+    process.env.POLYGON_RPC_URL = "https://polygon-rpc.com";
+    process.env.POLYGON_PRIVATE_KEY = "0x0000000000000000000000000000000000000000000000000000000000000001";
+    process.env.POLYGON_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000001";
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    vi.resetModules();
+    const { anchorToPolygon } = await import("../polygon");
+    // Will fail because we can't actually connect to RPC in tests
+    const result = await anchorToPolygon("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+
+    expect(result).toEqual({ txHash: null, anchored: false });
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[polygon] anchoring failed:"), expect.anything());
+
+    errorSpy.mockRestore();
+  });
+});
+
+describe("verifyAnchor", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.POLYGON_RPC_URL;
+    delete process.env.POLYGON_PRIVATE_KEY;
+    delete process.env.POLYGON_CONTRACT_ADDRESS;
+  });
+
+  it("returns false when config is missing", async () => {
+    vi.resetModules();
+    const { verifyAnchor } = await import("../polygon");
+    const result = await verifyAnchor("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+    expect(result).toBe(false);
+  });
+});
+
 describe("computeAuthenticityGrade with c2paKind", () => {
   it("returns basic when c2paKind is dev-signed even if hasC2pa is true", async () => {
     const { computeAuthenticityGrade } = await loadGrade();
