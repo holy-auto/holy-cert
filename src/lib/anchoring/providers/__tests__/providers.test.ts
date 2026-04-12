@@ -50,15 +50,16 @@ describe("invokeAllUploadProviders", () => {
     infoSpy.mockRestore();
   });
 
-  it("logs warning for unimplemented deepfake provider", async () => {
+  it("returns disabled deepfake result when HIVE_API_KEY is missing", async () => {
     process.env.DEEPFAKE_PROVIDER = "hive";
+    delete process.env.HIVE_API_KEY;
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const { invokeAllUploadProviders } = await loadProviders();
     const result = await invokeAllUploadProviders(dummyBuffer, "image/jpeg", "abc123");
 
     expect(result.deepfake).toEqual({ score: null, verdict: null });
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[deepfake] provider=hive not yet implemented"));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[deepfake] HIVE_API_KEY not set"));
 
     warnSpy.mockRestore();
   });
@@ -150,5 +151,125 @@ describe("computeAuthenticityGrade with c2paKind", () => {
     });
 
     expect(grade).toBe("basic");
+  });
+});
+
+describe("checkDeepfake", () => {
+  const dummyBuffer = Buffer.from("test-image-data");
+
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.DEEPFAKE_PROVIDER;
+    delete process.env.HIVE_API_KEY;
+  });
+
+  it("returns disabled result when DEEPFAKE_PROVIDER is unset", async () => {
+    const { checkDeepfake } = await (async () => {
+      vi.resetModules();
+      return import("../deepfake");
+    })();
+
+    const result = await checkDeepfake(dummyBuffer);
+    expect(result).toEqual({ score: null, verdict: null });
+  });
+
+  it("returns disabled result when DEEPFAKE_PROVIDER is disabled", async () => {
+    process.env.DEEPFAKE_PROVIDER = "disabled";
+    const { checkDeepfake } = await (async () => {
+      vi.resetModules();
+      return import("../deepfake");
+    })();
+
+    const result = await checkDeepfake(dummyBuffer);
+    expect(result).toEqual({ score: null, verdict: null });
+  });
+
+  it("returns disabled result when provider=hive but HIVE_API_KEY missing", async () => {
+    process.env.DEEPFAKE_PROVIDER = "hive";
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { checkDeepfake } = await (async () => {
+      vi.resetModules();
+      return import("../deepfake");
+    })();
+
+    const result = await checkDeepfake(dummyBuffer);
+    expect(result).toEqual({ score: null, verdict: null });
+    expect(warnSpy).toHaveBeenCalledWith("[deepfake] HIVE_API_KEY not set, skipping");
+
+    warnSpy.mockRestore();
+  });
+
+  it("warns for unimplemented sensity provider", async () => {
+    process.env.DEEPFAKE_PROVIDER = "sensity";
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { checkDeepfake } = await (async () => {
+      vi.resetModules();
+      return import("../deepfake");
+    })();
+
+    const result = await checkDeepfake(dummyBuffer);
+    expect(result).toEqual({ score: null, verdict: null });
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("sensity"));
+
+    warnSpy.mockRestore();
+  });
+});
+
+describe("anchorToPolygon", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.POLYGON_ANCHOR_ENABLED;
+    delete process.env.POLYGON_RPC_URL;
+    delete process.env.POLYGON_PRIVATE_KEY;
+    delete process.env.POLYGON_CONTRACT_ADDRESS;
+  });
+
+  it("returns disabled result when POLYGON_ANCHOR_ENABLED is unset", async () => {
+    const { anchorToPolygon } = await (async () => {
+      vi.resetModules();
+      return import("../polygon");
+    })();
+
+    const result = await anchorToPolygon("abc123");
+    expect(result).toEqual({ txHash: null, anchored: false });
+  });
+
+  it("returns disabled result when enabled but env vars missing", async () => {
+    process.env.POLYGON_ANCHOR_ENABLED = "true";
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { anchorToPolygon } = await (async () => {
+      vi.resetModules();
+      return import("../polygon");
+    })();
+
+    const result = await anchorToPolygon("abc123");
+    expect(result).toEqual({ txHash: null, anchored: false });
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("missing POLYGON_RPC_URL"),
+    );
+
+    warnSpy.mockRestore();
+  });
+});
+
+describe("signC2pa IPFS pinning", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.C2PA_MODE;
+    delete process.env.PINATA_JWT;
+  });
+
+  it("returns null manifestCid when PINATA_JWT is unset", async () => {
+    process.env.C2PA_MODE = "disabled";
+    const { signC2pa } = await (async () => {
+      vi.resetModules();
+      return import("../c2pa");
+    })();
+
+    const result = await signC2pa(Buffer.from("test"), "image/jpeg");
+    expect(result.manifestCid).toBeNull();
   });
 });
