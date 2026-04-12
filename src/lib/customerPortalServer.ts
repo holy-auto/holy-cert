@@ -117,7 +117,7 @@ export async function markCodeUsed(id: string) {
   if (error) throw new Error(`markCodeUsed failed: ${error.message}`);
 }
 
-export async function createSession(tenantId: string, email: string, phoneHash: string) {
+export async function createSession(tenantId: string, email: string, phoneHash: string, phoneLast4?: string) {
   const token = randomHex(32);
   const sHash = sessionHash(token);
   const expires = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
@@ -128,6 +128,7 @@ export async function createSession(tenantId: string, email: string, phoneHash: 
       tenant_id: tenantId,
       email: normalizeEmail(email),
       phone_last4_hash: phoneHash,
+      phone_last4: phoneLast4 ?? null,
       session_hash: sHash,
       expires_at: expires,
     });
@@ -149,7 +150,7 @@ export async function validateSession(tenantId: string, token: string) {
   const sHash = sessionHash(token);
   const { data } = await admin()
     .from("customer_sessions")
-    .select("id, email, phone_last4_hash, expires_at, revoked_at")
+    .select("id, email, phone_last4_hash, phone_last4, expires_at, revoked_at")
     .eq("tenant_id", tenantId)
     .eq("session_hash", sHash)
     .limit(1)
@@ -157,7 +158,7 @@ export async function validateSession(tenantId: string, token: string) {
   if (!data) return null;
   if (data.revoked_at) return null;
   if (new Date(data.expires_at).getTime() < Date.now()) return null;
-  return data as { email: string; phone_last4_hash: string };
+  return data as { email: string; phone_last4_hash: string; phone_last4: string | null };
 }
 
 export async function listCertificatesForCustomer(tenantId: string, phoneHash: string, phoneLast4?: string) {

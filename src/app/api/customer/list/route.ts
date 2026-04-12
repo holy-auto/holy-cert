@@ -33,6 +33,8 @@ export async function GET(req: Request) {
       const tenantSession = await validateSession(tenantId, tenantToken);
       if (tenantSession) {
         phoneHash = tenantSession.phone_last4_hash;
+        // 後方互換: セッションに平文 last4 が保存されていれば渡す
+        if (tenantSession.phone_last4) phoneLast4 = tenantSession.phone_last4;
       }
     }
 
