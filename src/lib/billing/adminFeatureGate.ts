@@ -101,30 +101,34 @@ export function billingDenyResponse(g: Gate, feature: FeatureKey, returnTo: stri
     return NextResponse.json({ error: "guard_unexpected_ok" }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 
-  if (g.reason === "unauthorized") {
+  // Narrow to GateNg explicitly. With strict: false in tsconfig, TS doesn't
+  // reliably narrow the discriminated union across the early return above.
+  const ng = g as GateNg;
+
+  if (ng.reason === "unauthorized") {
     return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
-  if (g.reason === "no_tenant") {
+  if (ng.reason === "no_tenant") {
     return NextResponse.json({ error: "no_tenant" }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
-  if (g.reason === "tenant_not_found") {
+  if (ng.reason === "tenant_not_found") {
     return NextResponse.json({ error: "tenant_not_found" }, { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
   const billing_url =
-    g.billing_url ?? buildBillingDenyUrl({ reason: (g.reason as BillingReason) ?? "plan", action: feature, returnTo });
+    ng.billing_url ?? buildBillingDenyUrl({ reason: (ng.reason as BillingReason) ?? "plan", action: feature, returnTo });
 
   return NextResponse.json(
     {
       error: "billing_denied",
-      reason: g.reason,
+      reason: ng.reason,
       action: feature,
       return: returnTo,
       billing_url,
-      plan_tier: g.planTier ?? null,
-      is_active: g.isActive ?? null,
+      plan_tier: ng.planTier ?? null,
+      is_active: ng.isActive ?? null,
     },
-    { status: g.status ?? 402, headers: { "Cache-Control": "no-store" } }
+    { status: ng.status ?? 402, headers: { "Cache-Control": "no-store" } }
   );
 }
 
