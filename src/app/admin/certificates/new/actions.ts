@@ -108,6 +108,90 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   if (!customer_name) return { ok: false, error: "customer_name_required" };
   if (!vehicle_id && !vehicle_maker && !model) return { ok: false, error: "vehicle_required" };
 
+  // Auto-create customer record if not linked to existing master
+  // (Allows "type-to-create" — name entered freely will be registered to customer master.)
+  let resolvedCustomerId = customer_id;
+  if (!resolvedCustomerId && customer_name) {
+    // Try to find an existing customer with the same name to avoid duplicates
+    const { data: existingCustomer } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("name", customer_name)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingCustomer?.id) {
+      resolvedCustomerId = existingCustomer.id as string;
+    } else {
+      const { data: newCustomer, error: customerErr } = await supabase
+        .from("customers")
+        .insert({ tenant_id: tenantId, name: customer_name })
+        .select("id")
+        .single();
+      if (customerErr) {
+        console.warn("[cert] auto customer create failed:", customerErr);
+      } else if (newCustomer?.id) {
+        resolvedCustomerId = newCustomer.id as string;
+      }
+    }
+  }
+
+  // Auto-create vehicle record if not linked to existing master
+  let resolvedVehicleId = vehicle_id;
+  if (!resolvedVehicleId && (vehicle_maker || model || plate)) {
+    // Prefer match on plate (unique-ish per tenant) when provided
+    let existingVehicleId: string | null = null;
+    if (plate) {
+      const { data: byPlate } = await supabase
+        .from("vehicles")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("plate_display", plate)
+        .limit(1)
+        .maybeSingle();
+      if (byPlate?.id) existingVehicleId = byPlate.id as string;
+    }
+
+    if (existingVehicleId) {
+      resolvedVehicleId = existingVehicleId;
+    } else {
+      const { data: newVehicle, error: vehicleErr } = await supabase
+        .from("vehicles")
+        .insert({
+          tenant_id: tenantId,
+          maker: vehicle_maker || null,
+          model: model || null,
+          plate_display: plate || null,
+          customer_id: resolvedCustomerId ?? null,
+        })
+        .select("id")
+        .single();
+      if (vehicleErr) {
+        console.warn("[cert] auto vehicle create failed:", vehicleErr);
+      } else if (newVehicle?.id) {
+        resolvedVehicleId = newVehicle.id as string;
+      }
+    }
+  }
+
+  // If the existing vehicle lacks a customer link but we have one, link it now
+  if (resolvedVehicleId && resolvedCustomerId) {
+    const { data: currentVehicle } = await supabase
+      .from("vehicles")
+      .select("customer_id")
+      .eq("id", resolvedVehicleId)
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    if (currentVehicle && !currentVehicle.customer_id) {
+      await supabase
+        .from("vehicles")
+        .update({ customer_id: resolvedCustomerId })
+        .eq("id", resolvedVehicleId)
+        .eq("tenant_id", tenantId);
+    }
+  }
+
   // Collect template field values
   const values: Record<string, any> = {};
   for (const [k, v] of formData.entries()) {
@@ -135,8 +219,8 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     public_id,
     status: certStatus,
     customer_name,
-    customer_id: customer_id ?? undefined,
-    vehicle_id: vehicle_id ?? undefined,
+    customer_id: resolvedCustomerId ?? undefined,
+    vehicle_id: resolvedVehicleId ?? undefined,
     vehicle_info_json: { maker: vehicle_maker, model, plate },
     content_free_text,
     content_preset_json: {
@@ -166,10 +250,10 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   if (error) return { ok: false, error: error.message };
 
   // Record vehicle history entry
-  if (vehicle_id) {
+  if (resolvedVehicleId) {
     await supabase.from("vehicle_histories").insert({
       tenant_id: tenantId,
-      vehicle_id,
+      vehicle_id: resolvedVehicleId,
       type: "certificate_issued",
       title: "施工証明書を発行",
       description: `Public ID: ${public_id}`,
@@ -197,7 +281,7 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     triggerPostIssueFollowUp({
       tenantId,
       publicId: public_id,
-      customerId: customer_id ?? undefined,
+      customerId: resolvedCustomerId ?? undefined,
       customerName: customer_name,
     }).catch((e) => console.warn("[cert] post_issue follow-up failed:", e));
   }

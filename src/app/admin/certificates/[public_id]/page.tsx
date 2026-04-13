@@ -9,8 +9,10 @@ import AiExplainPanel from "@/components/certificates/AiExplainPanel";
 import SignatureRequestPanel from "./SignatureRequestPanel";
 import CertEditForm from "./CertEditForm";
 import CertEditHistory from "./CertEditHistory";
+import CertImageUpload from "./CertImageUpload";
 import { formatDateTime } from "@/lib/format";
 import { buildExplorerUrl } from "@/lib/anchoring/providers";
+import { normalizePlanTier, PHOTO_LIMITS } from "@/lib/billing/planFeatures";
 
 type PageProps = {
   params: Promise<{ public_id: string }>;
@@ -78,7 +80,6 @@ export default async function Page({ params }: PageProps) {
 
   const isVoid = String(row.status ?? "").toLowerCase() === "void";
   const info = asObj(row.vehicle_info_json);
-  const preset = asObj(row.content_preset_json);
 
   const publicUrl = `/c/${row.public_id}`;
   const csvUrl = `/admin/certificates/export-one?pid=${encodeURIComponent(row.public_id)}`;
@@ -130,6 +131,12 @@ export default async function Page({ params }: PageProps) {
   // Aggregate blockchain stats for summary panel
   const anchoredCount = images.filter((i) => !!i.polygon_tx_hash).length;
   const pendingAnchorCount = images.filter((i) => !!i.sha256 && !i.polygon_tx_hash).length;
+
+  // Plan tier → photo upload limit
+  const { data: tenantRow } = await admin.from("tenants").select("plan_tier").eq("id", tenantId).single();
+  const planTier = normalizePlanTier((tenantRow as any)?.plan_tier);
+  const maxPhotos = PHOTO_LIMITS[planTier];
+  const remainingPhotos = Math.max(maxPhotos - images.length, 0);
 
   // Fetch edit history
   const { data: editHistoryRaw } = await admin
@@ -321,6 +328,14 @@ export default async function Page({ params }: PageProps) {
               ) : null}
             </div>
 
+            {!isVoid && (
+              <CertImageUpload
+                publicId={row.public_id as string}
+                remaining={remainingPhotos}
+                maxPhotos={maxPhotos}
+              />
+            )}
+
             {images.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {images.map((img) => {
@@ -449,45 +464,6 @@ export default async function Page({ params }: PageProps) {
             <CertEditHistory entries={editHistory} />
           </section>
 
-          <section className="glass-card p-5 space-y-4">
-            <div>
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">OUTPUT</div>
-              <div className="mt-1 text-lg font-semibold text-primary">出力導線</div>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <div className="rounded-xl bg-base p-4">
-                <div className="text-xs text-muted">公開ページ</div>
-                <div className="mt-1 break-all text-primary">{publicUrl}</div>
-              </div>
-
-              <div className="rounded-xl bg-base p-4">
-                <div className="text-xs text-muted">CSV(1件)</div>
-                <div className="mt-1 break-all text-primary">{csvUrl}</div>
-              </div>
-
-              <div className="rounded-xl bg-base p-4">
-                <div className="text-xs text-muted">PDF(1件)</div>
-                <div className="mt-1 break-all text-primary">{pdfUrl}</div>
-              </div>
-            </div>
-          </section>
-
-          <section className="glass-card p-5 space-y-4">
-            <div>
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">PRESET SNAPSHOT</div>
-              <div className="mt-1 text-lg font-semibold text-primary">保存済み preset 情報</div>
-            </div>
-
-            <div className="rounded-xl bg-base p-4 text-sm">
-              <div className="text-xs text-muted">template_name</div>
-              <div className="mt-1 text-primary">{preset.template_name ? String(preset.template_name) : "-"}</div>
-            </div>
-
-            <pre className="overflow-x-auto rounded-xl bg-neutral-950 p-4 text-xs text-neutral-100">
-              {JSON.stringify(preset, null, 2)}
-            </pre>
-          </section>
         </aside>
       </div>
     </div>
