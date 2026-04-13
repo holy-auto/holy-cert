@@ -30,7 +30,7 @@ describe("invokeAllUploadProviders", () => {
     expect(result.c2pa).toEqual({ manifestCid: null, verified: false, signedBuffer: null });
     expect(result.deepfake).toEqual({ score: null, verdict: null });
     expect(result.deviceAttestation).toEqual({ provider: "none", verified: false });
-    expect(result.polygon).toEqual({ txHash: null, anchored: false });
+    expect(result.polygon).toEqual({ txHash: null, anchored: false, network: null });
   });
 
   it("falls back gracefully when c2pa signing fails on non-JPEG buffer", async () => {
@@ -90,6 +90,97 @@ describe("signC2pa directly", () => {
 
     const result = await signC2pa(Buffer.from("test"), "image/jpeg");
     expect(result).toEqual({ manifestCid: null, verified: false, signedBuffer: null });
+  });
+});
+
+describe("anchorToPolygon", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.POLYGON_ANCHOR_ENABLED;
+    delete process.env.POLYGON_NETWORK;
+    delete process.env.POLYGON_RPC_URL;
+    delete process.env.POLYGON_PRIVATE_KEY;
+    delete process.env.POLYGON_CONTRACT_ADDRESS;
+  });
+
+  it("returns disabled result when POLYGON_ANCHOR_ENABLED is not set", async () => {
+    vi.resetModules();
+    const { anchorToPolygon } = await import("../polygon");
+    const result = await anchorToPolygon("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+    expect(result).toEqual({ txHash: null, anchored: false, network: null });
+  });
+
+  it("returns disabled result when enabled but missing config", async () => {
+    process.env.POLYGON_ANCHOR_ENABLED = "true";
+    // Missing RPC_URL, PRIVATE_KEY, CONTRACT_ADDRESS
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    vi.resetModules();
+    const { anchorToPolygon } = await import("../polygon");
+    const result = await anchorToPolygon("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+
+    expect(result).toEqual({ txHash: null, anchored: false, network: null });
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[polygon] enabled but missing config"));
+
+    warnSpy.mockRestore();
+  });
+
+  it("returns disabled result when transaction fails", async () => {
+    process.env.POLYGON_ANCHOR_ENABLED = "true";
+    process.env.POLYGON_RPC_URL = "https://polygon-rpc.com";
+    process.env.POLYGON_PRIVATE_KEY = "0x0000000000000000000000000000000000000000000000000000000000000001";
+    process.env.POLYGON_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000001";
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    vi.resetModules();
+    const { anchorToPolygon } = await import("../polygon");
+    // Will fail because we can't actually connect to RPC in tests
+    const result = await anchorToPolygon("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+
+    expect(result).toEqual({ txHash: null, anchored: false, network: null });
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[polygon] anchoring failed:"), expect.anything());
+
+    errorSpy.mockRestore();
+  });
+});
+
+describe("verifyAnchor", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.POLYGON_NETWORK;
+    delete process.env.POLYGON_RPC_URL;
+    delete process.env.POLYGON_PRIVATE_KEY;
+    delete process.env.POLYGON_CONTRACT_ADDRESS;
+  });
+
+  it("returns false when config is missing", async () => {
+    vi.resetModules();
+    const { verifyAnchor } = await import("../polygon");
+    const result = await verifyAnchor("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+    expect(result).toBe(false);
+  });
+});
+
+describe("buildExplorerUrl", () => {
+  it("returns mainnet Polygonscan URL", async () => {
+    const { buildExplorerUrl } = await import("../polygon");
+    expect(buildExplorerUrl("0xabc", "polygon")).toBe("https://polygonscan.com/tx/0xabc");
+  });
+
+  it("returns Amoy testnet Polygonscan URL", async () => {
+    const { buildExplorerUrl } = await import("../polygon");
+    expect(buildExplorerUrl("0xabc", "amoy")).toBe("https://amoy.polygonscan.com/tx/0xabc");
+  });
+
+  it("returns null when tx hash missing", async () => {
+    const { buildExplorerUrl } = await import("../polygon");
+    expect(buildExplorerUrl(null, "polygon")).toBeNull();
+  });
+
+  it("returns null when network missing", async () => {
+    const { buildExplorerUrl } = await import("../polygon");
+    expect(buildExplorerUrl("0xabc", null)).toBeNull();
   });
 });
 
@@ -212,44 +303,6 @@ describe("checkDeepfake", () => {
     const result = await checkDeepfake(dummyBuffer);
     expect(result).toEqual({ score: null, verdict: null });
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("sensity"));
-
-    warnSpy.mockRestore();
-  });
-});
-
-describe("anchorToPolygon", () => {
-  beforeEach(() => {
-    vi.resetModules();
-    delete process.env.POLYGON_ANCHOR_ENABLED;
-    delete process.env.POLYGON_RPC_URL;
-    delete process.env.POLYGON_PRIVATE_KEY;
-    delete process.env.POLYGON_CONTRACT_ADDRESS;
-  });
-
-  it("returns disabled result when POLYGON_ANCHOR_ENABLED is unset", async () => {
-    const { anchorToPolygon } = await (async () => {
-      vi.resetModules();
-      return import("../polygon");
-    })();
-
-    const result = await anchorToPolygon("abc123");
-    expect(result).toEqual({ txHash: null, anchored: false });
-  });
-
-  it("returns disabled result when enabled but env vars missing", async () => {
-    process.env.POLYGON_ANCHOR_ENABLED = "true";
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    const { anchorToPolygon } = await (async () => {
-      vi.resetModules();
-      return import("../polygon");
-    })();
-
-    const result = await anchorToPolygon("abc123");
-    expect(result).toEqual({ txHash: null, anchored: false });
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("missing POLYGON_RPC_URL"),
-    );
 
     warnSpy.mockRestore();
   });
