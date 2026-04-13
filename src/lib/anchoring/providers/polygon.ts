@@ -150,6 +150,7 @@ export async function verifyAnchor(sha256: string): Promise<boolean> {
       abi: LEDRA_ANCHOR_ABI,
       functionName: "isAnchored",
       args: [hashBytes32],
+      authorizationList: undefined,
     });
 
     return isAnchored as boolean;
