@@ -100,6 +100,8 @@ export async function anchorToPolygon(sha256: string): Promise<PolygonAnchorResu
       abi: LEDRA_ANCHOR_ABI,
       functionName: "anchor",
       args: [hashBytes32],
+      chain,
+      account,
     });
 
     // Wait for the transaction to be included in a block
