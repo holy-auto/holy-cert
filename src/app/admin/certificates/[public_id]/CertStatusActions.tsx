@@ -21,10 +21,10 @@ export default function CertStatusActions({ publicId, status }: Props) {
     setError(null);
     startTransition(async () => {
       const res = await activateCertAction(publicId);
-      if (!res.ok) {
-        setError(`公開失敗: ${res.error}`);
-      } else {
+      if (res.ok) {
         router.refresh();
+      } else {
+        setError(`公開失敗: ${"error" in res ? res.error : "unknown"}`);
       }
     });
   };
@@ -34,10 +34,10 @@ export default function CertStatusActions({ publicId, status }: Props) {
     setError(null);
     startTransition(async () => {
       const res = await voidCertAction(publicId);
-      if (!res.ok) {
-        setError(`無効化失敗: ${res.error}`);
-      } else {
+      if (res.ok) {
         router.refresh();
+      } else {
+        setError(`無効化失敗: ${"error" in res ? res.error : "unknown"}`);
       }
     });
   };

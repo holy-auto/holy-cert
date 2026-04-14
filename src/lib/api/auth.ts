@@ -52,7 +52,8 @@ async function resolveMembership(
       .limit(1)
       .maybeSingle();
 
-    if (mem && typeof mem === "object" && "tenant_id" in mem) return mem as Record<string, any>;
+    const rec = mem as Record<string, any> | null;
+    if (rec && "tenant_id" in rec) return rec;
   }
 
   // Fallback: first membership (ordered by created_at)
@@ -64,7 +65,8 @@ async function resolveMembership(
     .limit(1)
     .single();
 
-  if (mem && typeof mem === "object" && "tenant_id" in mem) return mem as Record<string, any>;
+  const rec = mem as Record<string, any> | null;
+  if (rec && "tenant_id" in rec) return rec;
   return null;
 }
 

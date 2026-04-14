@@ -152,12 +152,13 @@ export default function CertNewFormWrapper({
     startTransition(async () => {
       const result = await createCertAction(formData);
       if (!result.ok) {
+        const errCode = "error" in result ? result.error : "unknown";
         setError(
-          result.error === "vehicle_required"
+          errCode === "vehicle_required"
             ? "車両情報を入力してください（マスタ選択またはメーカー・車種を手入力）。"
-            : result.error === "customer_name_required"
+            : errCode === "customer_name_required"
               ? "お客様名を入力してください。"
-              : `エラー: ${result.error}`,
+              : `エラー: ${errCode}`,
         );
         return;
       }

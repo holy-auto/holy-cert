@@ -137,6 +137,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/insurer/search", label: "証明書検索", icon: I.document },
       { href: "/insurer/vehicles", label: "車両検索", icon: I.car },
       { href: "/insurer/stores", label: "店舗検索", icon: I.store },
+      { href: "/insurer/anchor-verify", label: "ブロックチェーン検証", icon: I.shield },
       { href: "/insurer/watchlist", label: "ウォッチリスト", icon: I.bookmark },
     ],
   },

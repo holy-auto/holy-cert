@@ -48,7 +48,7 @@ export default function SettingsForm({ name, contactEmail, contactPhone, address
       if (res.ok) {
         setSuccess(true);
       } else {
-        setError(res.error);
+        setError("error" in res ? res.error : "unknown");
       }
     });
   };
