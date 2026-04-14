@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
@@ -503,15 +504,24 @@ export default function ReservationsClient() {
         title="予約管理"
         description="予約の登録・管理を行います。"
         actions={
-          <button
-            onClick={openCreateForm}
-            className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            新規予約
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/jobs/new"
+              className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent-dim px-4 py-2 text-sm font-semibold text-accent-text hover:bg-accent/10 transition-colors"
+              title="予約なしで来店された案件を即座に開始"
+            >
+              🏃 飛び込み案件
+            </Link>
+            <button
+              onClick={openCreateForm}
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              新規予約
+            </button>
+          </div>
         }
       />
 
@@ -997,6 +1007,12 @@ export default function ReservationsClient() {
                               {/* Detail panel */}
                               {detailId === r.id && (
                                 <div className="mt-3 pt-3 border-t border-border-subtle flex flex-wrap gap-2">
+                                  <Link
+                                    href={`/admin/jobs/${r.id}`}
+                                    className="px-3 py-1.5 text-xs rounded-lg border border-accent/30 bg-accent-dim text-accent-text hover:bg-accent/10 transition-colors font-semibold"
+                                  >
+                                    🧭 案件ワークフローを開く
+                                  </Link>
                                   {r.status !== "cancelled" && r.status !== "completed" && (
                                     <button
                                       onClick={() => {

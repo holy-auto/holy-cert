@@ -130,6 +130,13 @@ export async function POST(req: NextRequest) {
     const scheduledDate = String(body?.scheduled_date ?? "").trim();
     if (!scheduledDate) return apiValidationError("missing_scheduled_date");
 
+    // 初期ステータス (未指定時は confirmed)。飛び込み案件用に arrived も許可。
+    const VALID_INITIAL_STATUS = ["confirmed", "arrived", "in_progress"] as const;
+    const requestedStatus = String(body?.status ?? "confirmed").trim();
+    const initialStatus: string = (VALID_INITIAL_STATUS as readonly string[]).includes(requestedStatus)
+      ? requestedStatus
+      : "confirmed";
+
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
@@ -142,7 +149,7 @@ export async function POST(req: NextRequest) {
       start_time: String(body?.start_time ?? "").trim() || null,
       end_time: String(body?.end_time ?? "").trim() || null,
       assigned_user_id: String(body?.assigned_user_id ?? "").trim() || null,
-      status: "confirmed",
+      status: initialStatus,
       estimated_amount: parseInt(String(body?.estimated_amount ?? 0), 10) || 0,
     };
 
