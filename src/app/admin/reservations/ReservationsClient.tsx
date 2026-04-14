@@ -504,15 +504,24 @@ export default function ReservationsClient() {
         title="予約管理"
         description="予約の登録・管理を行います。"
         actions={
-          <button
-            onClick={openCreateForm}
-            className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            新規予約
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/jobs/new"
+              className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent-dim px-4 py-2 text-sm font-semibold text-accent-text hover:bg-accent/10 transition-colors"
+              title="予約なしで来店された案件を即座に開始"
+            >
+              🏃 飛び込み案件
+            </Link>
+            <button
+              onClick={openCreateForm}
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              新規予約
+            </button>
+          </div>
         }
       />
 

@@ -399,6 +399,21 @@ export default async function AdminHome() {
           </Link>
 
           <Link
+            href="/admin/jobs/new"
+            className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-dim">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-accent">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              </svg>
+            </span>
+            <div>
+              <div className="text-sm font-semibold text-primary group-hover:text-accent transition-colors">🏃 飛び込み案件</div>
+              <div className="text-xs text-muted">予約なしで案件をすぐ開始</div>
+            </div>
+          </Link>
+
+          <Link
             href="/admin/customers"
             className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
           >
