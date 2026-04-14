@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
@@ -997,6 +998,12 @@ export default function ReservationsClient() {
                               {/* Detail panel */}
                               {detailId === r.id && (
                                 <div className="mt-3 pt-3 border-t border-border-subtle flex flex-wrap gap-2">
+                                  <Link
+                                    href={`/admin/jobs/${r.id}`}
+                                    className="px-3 py-1.5 text-xs rounded-lg border border-accent/30 bg-accent-dim text-accent-text hover:bg-accent/10 transition-colors font-semibold"
+                                  >
+                                    🧭 案件ワークフローを開く
+                                  </Link>
                                   {r.status !== "cancelled" && r.status !== "completed" && (
                                     <button
                                       onClick={() => {
