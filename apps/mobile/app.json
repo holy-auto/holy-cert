@@ -27,6 +27,7 @@
     },
     "android": {
       "package": "com.ledra.app",
+      "minSdkVersion": 26,
       "adaptiveIcon": {
         "backgroundColor": "#1a1a2e",
         "foregroundImage": "./assets/android-icon-foreground.png",
