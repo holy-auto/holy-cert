@@ -25,6 +25,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@ledra/contracts": [
+        "./packages/contracts/src/index.ts"
+      ],
+      "@ledra/contracts/*": [
+        "./packages/contracts/src/*"
       ]
     }
   },
@@ -33,6 +39,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.mts",
+    "packages/contracts/src/**/*.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "*.ts",
