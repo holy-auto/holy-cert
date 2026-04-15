@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import PageHeader from "@/components/ui/PageHeader";
-import JobWorkflowClient from "./JobWorkflowClient";
+import JobWorkflowModeSwitch from "./JobWorkflowModeSwitch";
 
 /**
  * 案件ワークフロー (Job Workflow) 画面
@@ -20,20 +20,12 @@ import JobWorkflowClient from "./JobWorkflowClient";
 async function getMyTenantId(supabase: any) {
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) return null;
-  const { data, error } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .limit(1)
-    .single();
+  const { data, error } = await supabase.from("tenant_memberships").select("tenant_id").limit(1).single();
   if (error || !data) return null;
   return data.tenant_id as string;
 }
 
-export default async function JobWorkflowPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function JobWorkflowPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
   const { data: userRes } = await supabase.auth.getUser();
@@ -44,9 +36,7 @@ export default async function JobWorkflowPage({
     return (
       <div className="space-y-6">
         <PageHeader tag="JOB" title="案件ワークフロー" />
-        <div className="glass-card p-4 text-sm text-danger">
-          テナントが見つかりません。
-        </div>
+        <div className="glass-card p-4 text-sm text-danger">テナントが見つかりません。</div>
       </div>
     );
   }
@@ -71,9 +61,7 @@ export default async function JobWorkflowPage({
             </Link>
           }
         />
-        <div className="glass-card p-4 text-sm text-danger">
-          指定された案件 (予約) が見つかりません。
-        </div>
+        <div className="glass-card p-4 text-sm text-danger">指定された案件 (予約) が見つかりません。</div>
       </div>
     );
   }
@@ -126,13 +114,7 @@ export default async function JobWorkflowPage({
       .select("id, doc_number, doc_type, status, total, issued_at, due_date")
       .eq("tenant_id", tenantId)
       .eq("customer_id", reservation.customer_id)
-      .in("doc_type", [
-        "invoice",
-        "consolidated_invoice",
-        "estimate",
-        "receipt",
-        "delivery",
-      ])
+      .in("doc_type", ["invoice", "consolidated_invoice", "estimate", "receipt", "delivery"])
       .order("created_at", { ascending: false });
     documents = data ?? [];
   }
@@ -150,7 +132,7 @@ export default async function JobWorkflowPage({
         }
       />
 
-      <JobWorkflowClient
+      <JobWorkflowModeSwitch
         reservation={reservation}
         customer={customer}
         vehicle={vehicle}

@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 
-const ReservationsClient = dynamic(() => import("./ReservationsClient"), {
+const ReservationsModeSwitch = dynamic(() => import("./ReservationsModeSwitch"), {
   loading: () => (
     <div className="flex items-center justify-center py-20">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
@@ -11,5 +11,5 @@ const ReservationsClient = dynamic(() => import("./ReservationsClient"), {
 export const revalidate = 0;
 
 export default function Page() {
-  return <ReservationsClient />;
+  return <ReservationsModeSwitch />;
 }
