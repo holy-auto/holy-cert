@@ -10,6 +10,7 @@ import { canUseFeature } from "@/lib/billing/planFeatures";
 import { buildBillingDenyUrl } from "@/lib/billing/billingRedirect";
 import PageHeader from "@/components/ui/PageHeader";
 import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
+import CertificatesModeSwitch from "./CertificatesModeSwitch";
 
 type SearchParams = { q?: string };
 
@@ -17,11 +18,7 @@ async function getMyTenantId(supabase: any) {
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) return null;
 
-  const { data, error } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .limit(1)
-    .single();
+  const { data, error } = await supabase.from("tenant_memberships").select("tenant_id").limit(1).single();
 
   if (error || !data) return null;
   return data.tenant_id as string;
@@ -71,14 +68,19 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   }
 
   const { data: rows, error } = await query;
-  if (error) return <div className="space-y-6"><div className="text-danger">読み込みエラー: {error.message}</div></div>;
+  if (error)
+    return (
+      <div className="space-y-6">
+        <div className="text-danger">読み込みエラー: {error.message}</div>
+      </div>
+    );
 
   const allRows = rows ?? [];
   const activeCount = allRows.filter((r) => r.status === "active").length;
   const voidCount = allRows.filter((r) => r.status === "void").length;
 
-  return (
-    <div className="space-y-6">
+  const adminContent = (
+    <>
       {!isActive ? (
         <div className="glass-card p-4 text-sm text-amber-400">
           お支払い停止中のため、一部機能（発行/出力）が制限されています。{" "}
@@ -142,6 +144,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       </section>
 
       <CertificatesTableClient rows={allRows as any} q={q} />
+    </>
+  );
+
+  return (
+    <div className="space-y-6">
+      <CertificatesModeSwitch adminContent={adminContent} />
     </div>
   );
 }
