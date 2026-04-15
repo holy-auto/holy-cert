@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
@@ -128,7 +129,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { data: session, error } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: session, error } = await admin
       .from("register_sessions")
       .insert({
         tenant_id: caller.tenantId,
@@ -203,7 +206,9 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    const { data: session, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: session, error } = await admin
       .from("register_sessions")
       .update(updates)
       .eq("id", id)
@@ -237,7 +242,9 @@ export async function DELETE(req: NextRequest) {
     const id = String(body?.id ?? "").trim();
     if (!id) return apiValidationError("idは必須です");
 
-    const { error } = await supabase.from("register_sessions").delete().eq("id", id).eq("tenant_id", caller.tenantId);
+    // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("register_sessions").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "register_sessions delete");

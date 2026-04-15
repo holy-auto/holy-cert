@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
@@ -40,7 +41,9 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const value = typeof body.default_warranty_exclusions === "string" ? body.default_warranty_exclusions : "";
 
-    const { error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（id=tenantId で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin
       .from("tenants")
       .update({ default_warranty_exclusions: value })
       .eq("id", caller.tenantId);

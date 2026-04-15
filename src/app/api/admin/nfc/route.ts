@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiError } from "@/lib/api/response";
@@ -38,7 +39,9 @@ export async function PATCH(request: NextRequest) {
     return apiValidationError("このタグは既に廃止されています。");
   }
 
-  const { error: updateErr } = await supabase
+  // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+  const admin = getSupabaseAdmin();
+  const { error: updateErr } = await admin
     .from("nfc_tags")
     .update({ status: "retired" })
     .eq("id", body.id)
@@ -81,7 +84,9 @@ export async function DELETE(request: NextRequest) {
     return apiNotFound("NFCタグが見つかりません。");
   }
 
-  const { error: delErr } = await supabase
+  // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+  const admin = getSupabaseAdmin();
+  const { error: delErr } = await admin
     .from("nfc_tags")
     .delete()
     .eq("id", id)

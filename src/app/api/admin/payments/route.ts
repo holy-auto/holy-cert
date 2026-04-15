@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { parsePagination } from "@/lib/api/pagination";
@@ -171,7 +172,9 @@ export async function POST(req: NextRequest) {
       created_by: caller.userId,
     };
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("payments")
       .insert(row)
       .select(
@@ -233,7 +236,9 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("payments")
       .update(updates)
       .eq("id", id)
@@ -268,7 +273,9 @@ export async function DELETE(req: NextRequest) {
     const id = String(body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
-    const { error } = await supabase.from("payments").delete().eq("id", id).eq("tenant_id", caller.tenantId);
+    // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("payments").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "payments delete");

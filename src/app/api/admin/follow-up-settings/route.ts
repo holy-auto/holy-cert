@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
@@ -61,10 +62,12 @@ export async function PUT(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
+    // RLS をバイパスしてサービスロールで UPSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
     if (existing) {
-      await supabase.from("follow_up_settings").update(row).eq("tenant_id", caller.tenantId);
+      await admin.from("follow_up_settings").update(row).eq("tenant_id", caller.tenantId);
     } else {
-      await supabase.from("follow_up_settings").insert({ ...row, id: crypto.randomUUID() });
+      await admin.from("follow_up_settings").insert({ ...row, id: crypto.randomUUID() });
     }
 
     return NextResponse.json({ ok: true });

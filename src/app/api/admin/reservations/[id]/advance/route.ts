@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { sendProgressUpdate } from "@/lib/line/client";
 import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
@@ -63,6 +64,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return apiValidationError("この予約はすでに完了またはキャンセルされています");
     }
 
+    // RLS をバイパスしてサービスロールで UPDATE/INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+
     // ─── テンプレート未設定: レガシーフロー ───
     if (!reservation.workflow_template_id) {
       const currentIdx = LEGACY_STATUS_FLOW.indexOf(reservation.status as (typeof LEGACY_STATUS_FLOW)[number]);
@@ -70,7 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return apiValidationError("no_next_step");
       }
       const nextStatus = LEGACY_STATUS_FLOW[currentIdx + 1];
-      const { data: updated, error } = await supabase
+      const { data: updated, error } = await admin
         .from("reservations")
         .update({ status: nextStatus })
         .eq("id", id)
@@ -116,7 +120,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (existingLog?.started_at) {
         const startedAt = new Date(existingLog.started_at);
         const durationSec = Math.round((now.getTime() - startedAt.getTime()) / 1000);
-        await supabase
+        await admin
           .from("reservation_step_logs")
           .update({
             completed_at: now.toISOString(),
@@ -124,7 +128,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             completed_by: caller.userId,
             note: note,
           })
-          .eq("id", existingLog.id);
+          .eq("id", existingLog.id)
+          .eq("tenant_id", caller.tenantId);
       }
     }
 
@@ -138,7 +143,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (!nextStep) return apiValidationError("step_not_found");
 
       // 次ステップのlog挿入
-      await supabase.from("reservation_step_logs").upsert(
+      await admin.from("reservation_step_logs").upsert(
         {
           reservation_id: id,
           tenant_id: caller.tenantId,
@@ -164,7 +169,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // ─── 予約更新 ───
-    const { data: updatedReservation, error: updateError } = await supabase
+    const { data: updatedReservation, error: updateError } = await admin
       .from("reservations")
       .update({
         status: newStatus,
@@ -190,7 +195,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         : `${currentStepForHistory.label}を開始しました`;
 
       // vehicle_histories に記録（顧客ポータル表示用）
-      await supabase.from("vehicle_histories").insert({
+      await admin.from("vehicle_histories").insert({
         tenant_id: caller.tenantId,
         vehicle_id: reservation.vehicle_id,
         reservation_id: id,

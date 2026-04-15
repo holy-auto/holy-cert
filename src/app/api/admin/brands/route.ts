@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { brandCreateSchema, brandUpdateSchema } from "@/lib/validations/brand";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import {
@@ -48,7 +49,9 @@ export async function POST(req: Request) {
     }
     const b = parsed.data;
 
-    const { data: brand, error } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: brand, error } = await admin
       .from("brands")
       .insert({
         tenant_id: caller.tenantId,
@@ -80,7 +83,9 @@ export async function PUT(req: Request) {
     }
     const { id, ...fields } = parsed.data;
 
-    const { data: brand, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: brand, error } = await admin
       .from("brands")
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq("id", id)
@@ -122,7 +127,9 @@ export async function DELETE(req: Request) {
       });
     }
 
-    const { error } = await supabase.from("brands").delete().eq("id", id).eq("tenant_id", caller.tenantId);
+    // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("brands").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) return apiInternalError(error, "brands DELETE");
 

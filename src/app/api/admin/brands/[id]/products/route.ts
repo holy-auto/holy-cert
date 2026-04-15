@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { coatingProductCreateSchema, coatingProductUpdateSchema } from "@/lib/validations/brand";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiOk, apiInternalError, apiUnauthorized, apiNotFound, apiValidationError } from "@/lib/api/response";
@@ -41,7 +42,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     const b = parsed.data;
 
-    const { data: product, error } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: product, error } = await admin
       .from("coating_products")
       .insert({
         brand_id: b.brand_id,
@@ -76,7 +79,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { id, ...fields } = parsed.data;
     if (!id) return apiValidationError("IDが必要です。");
 
-    const { data: product, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: product, error } = await admin
       .from("coating_products")
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq("id", id)
@@ -105,7 +110,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const { id } = await req.json();
     if (!id) return apiValidationError("IDが必要です。");
 
-    const { error } = await supabase.from("coating_products").delete().eq("id", id).eq("tenant_id", caller.tenantId);
+    // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("coating_products").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) return apiInternalError(error, "brands/[id]/products DELETE");
 

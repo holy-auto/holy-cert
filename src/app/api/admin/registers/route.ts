@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
@@ -102,7 +103,9 @@ export async function POST(req: NextRequest) {
       return apiValidationError("指定された店舗が見つかりません");
     }
 
-    const { data: register, error } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: register, error } = await admin
       .from("registers")
       .insert({
         tenant_id: caller.tenantId,
@@ -143,7 +146,9 @@ export async function PUT(req: NextRequest) {
     if (body.is_active !== undefined) updates.is_active = body.is_active;
     if (body.sort_order !== undefined) updates.sort_order = body.sort_order;
 
-    const { data: register, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: register, error } = await admin
       .from("registers")
       .update(updates)
       .eq("id", id)
@@ -186,7 +191,9 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError("開いているセッションがあるため削除できません");
     }
 
-    const { error } = await supabase.from("registers").delete().eq("id", id).eq("tenant_id", caller.tenantId);
+    // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("registers").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "registers delete");

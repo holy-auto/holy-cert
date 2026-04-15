@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
@@ -84,9 +85,12 @@ export async function PUT(req: NextRequest) {
     const deletedSlotIds: string[] = body.deleted_slot_ids ?? [];
     const deletedClosedDayIds: string[] = body.deleted_closed_day_ids ?? [];
 
+    // RLS をバイパスしてサービスロールで書き込み（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+
     // ── スロット削除 ──
     if (deletedSlotIds.length > 0) {
-      const { error } = await supabase
+      const { error } = await admin
         .from("external_booking_slots")
         .delete()
         .in("id", deletedSlotIds)
@@ -99,7 +103,7 @@ export async function PUT(req: NextRequest) {
 
     // ── 定休日削除 ──
     if (deletedClosedDayIds.length > 0) {
-      const { error } = await supabase
+      const { error } = await admin
         .from("closed_days")
         .delete()
         .in("id", deletedClosedDayIds)
@@ -123,7 +127,7 @@ export async function PUT(req: NextRequest) {
       };
 
       if (slot.id) {
-        const { error } = await supabase
+        const { error } = await admin
           .from("external_booking_slots")
           .update(payload)
           .eq("id", slot.id)
@@ -133,7 +137,7 @@ export async function PUT(req: NextRequest) {
           return apiInternalError(error, "booking-settings");
         }
       } else {
-        const { error } = await supabase.from("external_booking_slots").insert(payload);
+        const { error } = await admin.from("external_booking_slots").insert(payload);
         if (error) {
           console.error("[booking-settings] insert slot error:", error.message);
           return apiInternalError(error, "booking-settings");
@@ -152,7 +156,7 @@ export async function PUT(req: NextRequest) {
       };
 
       if (cd.id) {
-        const { error } = await supabase
+        const { error } = await admin
           .from("closed_days")
           .update(payload)
           .eq("id", cd.id)
@@ -162,7 +166,7 @@ export async function PUT(req: NextRequest) {
           return apiInternalError(error, "booking-settings");
         }
       } else {
-        const { error } = await supabase.from("closed_days").insert(payload);
+        const { error } = await admin.from("closed_days").insert(payload);
         if (error) {
           console.error("[booking-settings] insert closed_day error:", error.message);
           return apiInternalError(error, "booking-settings");

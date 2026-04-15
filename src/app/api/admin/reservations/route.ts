@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { syncCreateEvent, syncUpdateEvent, syncDeleteEvent } from "@/lib/gcal/client";
 import { enforceBilling } from "@/lib/billing/guard";
@@ -153,7 +154,9 @@ export async function POST(req: NextRequest) {
       estimated_amount: parseInt(String(body?.estimated_amount ?? 0), 10) || 0,
     };
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("reservations")
       .insert(row)
       .select(
@@ -223,7 +226,9 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("reservations")
       .update(updates)
       .eq("id", id)
@@ -306,7 +311,9 @@ export async function DELETE(req: NextRequest) {
         return apiValidationError("active_reservation_cannot_delete");
       }
 
-      const { error: delErr } = await supabase
+      // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+      const admin = getSupabaseAdmin();
+      const { error: delErr } = await admin
         .from("reservations")
         .delete()
         .eq("id", id)
@@ -329,7 +336,9 @@ export async function DELETE(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .single();
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("reservations")
       .update({
         status: "cancelled",

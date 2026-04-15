@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
@@ -17,10 +18,13 @@ export async function PUT(
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const { error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin
       .from("notifications")
       .update({ read_at: new Date().toISOString() })
       .eq("id", id)
+      .eq("tenant_id", caller.tenantId)
       .is("read_at", null);
 
     if (error) return apiInternalError(error, "mark notification read");

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
@@ -46,7 +47,9 @@ export async function POST(req: NextRequest) {
       return apiValidationError("vehicle_id and customer_name required");
     }
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("vehicle_interests")
       .insert({
         vehicle_id,
@@ -86,7 +89,9 @@ export async function PUT(req: NextRequest) {
 
     updates.updated_at = new Date().toISOString();
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("vehicle_interests")
       .update(updates)
       .eq("id", id)

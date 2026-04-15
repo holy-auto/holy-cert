@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 import { normalizePlanTier, STORE_LIMITS } from "@/lib/billing/planFeatures";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
@@ -88,7 +89,9 @@ export async function POST(req: NextRequest) {
     // If first store, make it default
     const isFirst = (count ?? 0) === 0;
 
-    const { data: store, error } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: store, error } = await admin
       .from("stores")
       .insert({
         tenant_id: caller.tenantId,
@@ -137,7 +140,9 @@ export async function PUT(req: NextRequest) {
     if (business_hours !== undefined) updates.business_hours = business_hours;
     if (is_active !== undefined) updates.is_active = is_active;
 
-    const { data: store, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: store, error } = await admin
       .from("stores")
       .update(updates)
       .eq("id", id)
@@ -180,7 +185,9 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError("デフォルト店舗は削除できません");
     }
 
-    const { error } = await supabase.from("stores").delete().eq("id", id).eq("tenant_id", caller.tenantId);
+    // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("stores").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) return apiInternalError(error, "stores delete");
 

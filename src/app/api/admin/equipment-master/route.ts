@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import {
   apiOk,
@@ -63,7 +64,9 @@ export async function POST(req: NextRequest) {
       return apiValidationError("category と name は空にできません。");
     }
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("equipment_master")
       .insert({
         tenant_id: caller.tenantId,

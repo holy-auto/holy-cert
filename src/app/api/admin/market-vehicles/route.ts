@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { escapeIlike } from "@/lib/sanitize";
 import { enforceBilling } from "@/lib/billing/guard";
@@ -178,7 +179,9 @@ export async function POST(req: NextRequest) {
       row.listed_at = new Date().toISOString();
     }
 
-    const { data, error } = await supabase.from("market_vehicles").insert(row).select(MV_COLS).single();
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin.from("market_vehicles").insert(row).select(MV_COLS).single();
     if (error) {
       return apiInternalError(error, "market-vehicles insert");
     }
@@ -251,7 +254,9 @@ export async function PUT(req: NextRequest) {
       updates.listed_at = new Date().toISOString();
     }
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("market_vehicles")
       .update(updates)
       .eq("id", id)
@@ -308,6 +313,9 @@ export async function DELETE(req: NextRequest) {
       .eq("vehicle_id", id)
       .eq("tenant_id", caller.tenantId);
 
+    // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+
     if (images && images.length > 0) {
       const paths = images.map((img) => img.storage_path).filter(Boolean);
       if (paths.length > 0) {
@@ -315,11 +323,11 @@ export async function DELETE(req: NextRequest) {
       }
 
       // Delete image records
-      await supabase.from("market_vehicle_images").delete().eq("vehicle_id", id).eq("tenant_id", caller.tenantId);
+      await admin.from("market_vehicle_images").delete().eq("vehicle_id", id).eq("tenant_id", caller.tenantId);
     }
 
     // Delete the vehicle
-    const { error } = await supabase.from("market_vehicles").delete().eq("id", id).eq("tenant_id", caller.tenantId);
+    const { error } = await admin.from("market_vehicles").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "market-vehicles delete");

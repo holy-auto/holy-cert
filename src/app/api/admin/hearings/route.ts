@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
@@ -44,8 +45,10 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
     // ヒアリングレコード作成
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("hearings")
       .insert({
         tenant_id: caller.tenantId,
@@ -107,8 +110,11 @@ export async function PUT(req: NextRequest) {
 
       if (!hearing) return apiNotFound("ヒアリングが見つかりません。");
 
+      // RLS をバイパスしてサービスロールで INSERT/UPDATE（tenant_id で必ずスコープ限定）
+      const admin = getSupabaseAdmin();
+
       // 顧客作成
-      const { data: customer, error: custErr } = await supabase
+      const { data: customer, error: custErr } = await admin
         .from("customers")
         .insert({
           tenant_id: caller.tenantId,
@@ -124,7 +130,7 @@ export async function PUT(req: NextRequest) {
       // 車両作成
       let vehicleId: string | null = null;
       if (hearing.vehicle_maker || hearing.vehicle_model) {
-        const { data: vehicle, error: vehErr } = await supabase
+        const { data: vehicle, error: vehErr } = await admin
           .from("vehicles")
           .insert({
             tenant_id: caller.tenantId,
@@ -142,7 +148,7 @@ export async function PUT(req: NextRequest) {
       }
 
       // ヒアリングレコード更新
-      await supabase
+      await admin
         .from("hearings")
         .update({
           customer_id: customer.id,
@@ -150,7 +156,8 @@ export async function PUT(req: NextRequest) {
           status: "linked",
           updated_at: new Date().toISOString(),
         })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("tenant_id", caller.tenantId);
 
       return NextResponse.json({
         ok: true,
@@ -188,7 +195,9 @@ export async function PUT(req: NextRequest) {
       if (k in fields) updateFields[k] = fields[k];
     }
 
-    const { error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const adminUpdate = getSupabaseAdmin();
+    const { error } = await adminUpdate
       .from("hearings")
       .update(updateFields)
       .eq("id", id)

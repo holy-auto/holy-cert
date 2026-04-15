@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
@@ -58,8 +59,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // ステータス判定
     const newStatus = refundAmount === (payment.amount ?? 0) ? "refunded" : "partial_refund";
 
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+
     // payment更新
-    const { data: updated, error: updateErr } = await supabase
+    const { data: updated, error: updateErr } = await admin
       .from("payments")
       .update({
         refund_amount: refundAmount,
@@ -80,7 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // 予約がある場合、payment_statusを更新
     if (payment.reservation_id) {
-      const { error: resErr } = await supabase
+      const { error: resErr } = await admin
         .from("reservations")
         .update({
           payment_status: "refunded",

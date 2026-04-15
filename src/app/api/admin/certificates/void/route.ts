@@ -1,4 +1,5 @@
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound, apiForbidden } from "@/lib/api/response";
@@ -44,7 +45,9 @@ export async function POST(req: Request) {
       return apiOk({ already_void: true });
     }
 
-    const { error: updateErr } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error: updateErr } = await admin
       .from("certificates")
       .update({ status: "void", updated_at: new Date().toISOString() })
       .eq("tenant_id", tenantId)

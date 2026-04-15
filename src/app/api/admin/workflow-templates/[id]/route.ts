@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
 import type { WorkflowStep } from "../route";
@@ -40,11 +41,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
       updates.steps = steps;
     }
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
     if (body.is_default !== undefined) {
       updates.is_default = !!body.is_default;
       // is_default = true にする場合、同一service_typeの他テンプレートを解除
       if (updates.is_default) {
-        await supabase
+        await admin
           .from("workflow_templates")
           .update({ is_default: false })
           .eq("tenant_id", caller.tenantId)
@@ -53,7 +56,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("workflow_templates")
       .update(updates)
       .eq("id", id)
@@ -95,7 +98,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return apiForbidden();
     }
 
-    const { error } = await supabase.from("workflow_templates").delete().eq("id", id).eq("tenant_id", caller.tenantId);
+    // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("workflow_templates").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "workflow-templates DELETE");

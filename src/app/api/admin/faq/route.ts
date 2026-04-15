@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
@@ -54,7 +55,9 @@ export async function POST(req: NextRequest) {
       return apiValidationError("question and answer required");
     }
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（support_faq はプラットフォーム共通テーブル、settings:edit 権限で保護）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("support_faq")
       .insert({ question, answer, sort_order: body?.sort_order ?? 0 })
       .select("id, question, answer, sort_order, created_at")
@@ -80,7 +83,9 @@ export async function DELETE(req: NextRequest) {
     const id = String(body?.id ?? "").trim();
     if (!id) return apiValidationError("id is required");
 
-    await supabase.from("support_faq").delete().eq("id", id);
+    // RLS をバイパスしてサービスロールで DELETE（support_faq はプラットフォーム共通テーブル、settings:edit 権限で保護）
+    const admin = getSupabaseAdmin();
+    await admin.from("support_faq").delete().eq("id", id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return apiInternalError(e, "faq DELETE");

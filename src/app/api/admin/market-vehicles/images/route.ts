@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
@@ -112,8 +113,9 @@ export async function POST(req: NextRequest) {
       return apiInternalError(uploadError, "market-vehicle-images upload");
     }
 
-    // Insert record
-    const { data: image, error: insertError } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data: image, error: insertError } = await admin
       .from("market_vehicle_images")
       .insert({
         vehicle_id: vehicleId,
@@ -170,8 +172,9 @@ export async function DELETE(req: NextRequest) {
       // Continue to delete the DB record even if storage delete fails
     }
 
-    // Delete record
-    const { error: deleteError } = await supabase
+    // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error: deleteError } = await admin
       .from("market_vehicle_images")
       .delete()
       .eq("id", id)

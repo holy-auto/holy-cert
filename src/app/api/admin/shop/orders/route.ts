@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiOk, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
@@ -96,8 +97,10 @@ export async function POST(req: NextRequest) {
   // 注文番号生成
   const orderNumber = `SO-${Date.now().toString(36).toUpperCase()}`;
 
+  // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定、明細は直前作成した order_id に紐付け）
+  const admin = getSupabaseAdmin();
   // 注文作成
-  const { data: order, error: oErr } = await supabase
+  const { data: order, error: oErr } = await admin
     .from("shop_orders")
     .insert({
       tenant_id: caller.tenantId,
@@ -121,7 +124,7 @@ export async function POST(req: NextRequest) {
     order_id: order.id,
   }));
 
-  const { error: iErr } = await supabase.from("shop_order_items").insert(itemsToInsert);
+  const { error: iErr } = await admin.from("shop_order_items").insert(itemsToInsert);
 
   if (iErr) return apiInternalError(iErr, "shop_order_items insert");
 

@@ -124,7 +124,8 @@ export async function POST(req: NextRequest) {
     const orderNumber = `SO-${Date.now().toString(36).toUpperCase()}`;
 
     // 注文レコード作成（status: pending → webhook で paid に更新）
-    const { data: order, error: oErr } = await supabase
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const { data: order, error: oErr } = await admin
       .from("shop_orders")
       .insert({
         tenant_id: caller.tenantId,
@@ -142,12 +143,12 @@ export async function POST(req: NextRequest) {
 
     if (oErr) return apiInternalError(oErr, "shop_orders insert");
 
-    // 明細作成
+    // 明細作成（shop_order_items は tenant_id を持たず order_id 経由でテナント紐付け）
     const itemsToInsert = orderItems.map((item) => ({
       ...item,
       order_id: order.id,
     }));
-    await supabase.from("shop_order_items").insert(itemsToInsert);
+    await admin.from("shop_order_items").insert(itemsToInsert);
 
     // Stripe Checkout Session作成
     const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;

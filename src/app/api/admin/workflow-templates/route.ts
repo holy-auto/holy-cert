@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
@@ -68,16 +69,19 @@ export async function POST(req: NextRequest) {
       return apiValidationError("ステップは1つ以上必要です");
     }
 
+    // RLS をバイパスしてサービスロールで書き込み（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+
     // is_default を設定する場合、既存のデフォルトを解除
     if (body.is_default) {
-      await supabase
+      await admin
         .from("workflow_templates")
         .update({ is_default: false })
         .eq("tenant_id", caller.tenantId)
         .eq("service_type", serviceType);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("workflow_templates")
       .insert({
         tenant_id: caller.tenantId,
