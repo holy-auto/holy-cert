@@ -19,7 +19,8 @@
         "NFCReaderUsageDescription": "Ledraは証明書NFCタグの読み取りと書き込みに使用します",
         "NSCameraUsageDescription": "Ledraは施工写真の撮影に使用します",
         "NSLocationWhenInUseUsageDescription": "Stripe Terminal の利用に位置情報が必要です",
-        "NSBluetoothAlwaysUsageDescription": "将来のカードリーダー接続にBluetoothを使用します"
+        "NSBluetoothAlwaysUsageDescription": "将来のカードリーダー接続にBluetoothを使用します",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -32,7 +33,8 @@
       },
       "permissions": [
         "android.permission.NFC",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
