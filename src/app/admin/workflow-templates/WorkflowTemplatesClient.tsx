@@ -228,7 +228,7 @@ export default function WorkflowTemplatesClient() {
                       {SERVICE_TYPE_LABELS[t.service_type] ?? t.service_type}
                     </span>
                     {t.is_default && (
-                      <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] text-indigo-700">
+                      <span className="rounded-full bg-accent-dim px-2 py-0.5 text-[11px] text-accent-text">
                         デフォルト
                       </span>
                     )}
