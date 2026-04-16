@@ -73,7 +73,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       })
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select("id, tenant_id, status, workflow_template_id, current_step_order, current_step_key, progress_pct, created_at, updated_at")
+      .select(
+        "id, tenant_id, status, workflow_template_id, current_step_order, current_step_key, progress_pct, created_at, updated_at",
+      )
       .single();
 
     if (updateError) {

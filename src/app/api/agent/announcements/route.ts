@@ -38,9 +38,7 @@ export async function GET() {
       .select("announcement_id")
       .eq("user_id", auth.user.id);
 
-    const readIds = new Set(
-      (reads ?? []).map((r: { announcement_id: string }) => r.announcement_id)
-    );
+    const readIds = new Set((reads ?? []).map((r: { announcement_id: string }) => r.announcement_id));
 
     const result = (announcements ?? []).map((a) => ({
       ...a,

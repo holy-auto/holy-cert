@@ -39,8 +39,7 @@ export async function POST(req: Request) {
     const row = await getLatestGlobalCodeRow(email, last4);
     if (!row) return apiNotFound("no_code");
     if (row.used_at) return apiValidationError("code_used");
-    if (new Date(row.expires_at).getTime() < Date.now())
-      return apiValidationError("code_expired");
+    if (new Date(row.expires_at).getTime() < Date.now()) return apiValidationError("code_expired");
 
     const expected = globalOtpCodeHash(email, last4, code);
     if (expected !== row.code_hash) {

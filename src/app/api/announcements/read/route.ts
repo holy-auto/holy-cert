@@ -18,10 +18,7 @@ export async function POST(req: NextRequest) {
 
     const { error } = await supabase
       .from("announcement_reads")
-      .upsert(
-        { announcement_id, user_id: userRes.user.id },
-        { onConflict: "announcement_id,user_id" }
-      );
+      .upsert({ announcement_id, user_id: userRes.user.id }, { onConflict: "announcement_id,user_id" });
 
     if (error) throw error;
 

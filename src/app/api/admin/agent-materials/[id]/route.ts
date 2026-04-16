@@ -31,7 +31,9 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
       .from("agent_materials")
       .update(updates)
       .eq("id", id)
-      .select("id, category_id, title, description, file_name, file_size, file_type, storage_path, version, is_pinned, is_published, uploaded_by, created_at, updated_at")
+      .select(
+        "id, category_id, title, description, file_name, file_size, file_type, storage_path, version, is_pinned, is_published, uploaded_by, created_at, updated_at",
+      )
       .single();
 
     if (error) {
@@ -55,20 +57,13 @@ export async function DELETE(_request: NextRequest, ctx: RouteContext) {
     const admin = getAdminClient();
 
     // Get storage path before deleting
-    const { data: material } = await admin
-      .from("agent_materials")
-      .select("storage_path")
-      .eq("id", id)
-      .single();
+    const { data: material } = await admin.from("agent_materials").select("storage_path").eq("id", id).single();
 
     if (material?.storage_path) {
       await admin.storage.from("agent-materials").remove([material.storage_path]);
     }
 
-    const { error } = await admin
-      .from("agent_materials")
-      .delete()
-      .eq("id", id);
+    const { error } = await admin.from("agent_materials").delete().eq("id", id);
 
     if (error) {
       return apiInternalError(error, "agent-materials DELETE");

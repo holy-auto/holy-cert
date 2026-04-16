@@ -46,10 +46,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const ids = body.ids as string[] | undefined;
 
-    let query = supabase
-      .from("agent_notifications")
-      .update({ is_read: true })
-      .eq("agent_id", agent.agent_id);
+    let query = supabase.from("agent_notifications").update({ is_read: true }).eq("agent_id", agent.agent_id);
 
     if (ids && ids.length > 0) {
       query = query.in("id", ids);

@@ -122,15 +122,13 @@ export async function POST(req: Request) {
   const code = genCode6();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
 
-  const { error: insertErr } = await supabase
-    .from("insurer_email_verifications")
-    .insert({
-      email: email.toLowerCase(),
-      code: sha256Hex(`insurer-otp|v1|${email.toLowerCase()}|${code}`),
-      expires_at: expiresAt,
-      verified: false,
-      attempts: 0,
-    });
+  const { error: insertErr } = await supabase.from("insurer_email_verifications").insert({
+    email: email.toLowerCase(),
+    code: sha256Hex(`insurer-otp|v1|${email.toLowerCase()}|${code}`),
+    expires_at: expiresAt,
+    verified: false,
+    attempts: 0,
+  });
 
   if (insertErr) {
     return apiInternalError(insertErr, "join/send-code insert");

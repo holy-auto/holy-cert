@@ -2,20 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { coatingProductCreateSchema, coatingProductUpdateSchema } from "@/lib/validations/brand";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import {
-  apiOk,
-  apiInternalError,
-  apiUnauthorized,
-  apiNotFound,
-  apiValidationError,
-} from "@/lib/api/response";
+import { apiOk, apiInternalError, apiUnauthorized, apiNotFound, apiValidationError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: brand_id } = await params;
     const supabase = await createSupabaseServerClient();
@@ -36,10 +27,7 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: brand_id } = await params;
     const supabase = await createSupabaseServerClient();
@@ -73,10 +61,7 @@ export async function POST(
   }
 }
 
-export async function PUT(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: brand_id } = await params;
     const supabase = await createSupabaseServerClient();
@@ -110,10 +95,7 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: _brand_id } = await params;
     const supabase = await createSupabaseServerClient();
@@ -123,11 +105,7 @@ export async function DELETE(
     const { id } = await req.json();
     if (!id) return apiValidationError("IDが必要です。");
 
-    const { error } = await supabase
-      .from("coating_products")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("coating_products").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) return apiInternalError(error, "brands/[id]/products DELETE");
 

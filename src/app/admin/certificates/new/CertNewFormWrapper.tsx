@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createCertAction } from "./actions";
@@ -14,8 +15,17 @@ import PhotoUploadSection, { type PhotoUploadHandle } from "./PhotoUploadSection
 import Button from "@/components/ui/Button";
 import type { PlanTier } from "@/lib/billing/planFeatures";
 import { PHOTO_LIMITS, canUseFeature } from "@/lib/billing/planFeatures";
-import AiDraftPanel from "./AiDraftPanel";
-import AiQualityPanel from "./AiQualityPanel";
+
+// AI panels are heavy, opt-in features that are collapsed by default.
+// Defer their JS to keep initial INP on /admin/certificates/new low.
+const AiDraftPanel = dynamic(() => import("./AiDraftPanel"), {
+  ssr: false,
+  loading: () => null,
+});
+const AiQualityPanel = dynamic(() => import("./AiQualityPanel"), {
+  ssr: false,
+  loading: () => null,
+});
 
 type Vehicle = {
   id: string;
@@ -152,12 +162,13 @@ export default function CertNewFormWrapper({
     startTransition(async () => {
       const result = await createCertAction(formData);
       if (!result.ok) {
+        const errCode = "error" in result ? result.error : "unknown";
         setError(
-          result.error === "vehicle_required"
+          errCode === "vehicle_required"
             ? "車両情報を入力してください（マスタ選択またはメーカー・車種を手入力）。"
-            : result.error === "customer_name_required"
+            : errCode === "customer_name_required"
               ? "お客様名を入力してください。"
-              : `エラー: ${result.error}`,
+              : `エラー: ${errCode}`,
         );
         return;
       }

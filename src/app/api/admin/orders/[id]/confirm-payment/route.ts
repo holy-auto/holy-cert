@@ -9,10 +9,7 @@ import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } fr
  * 支払確認（双方が確認 → both_confirmed → completed）
  * Body: { payment_method?: string, amount?: number }
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
@@ -26,7 +23,9 @@ export async function POST(
     // 注文取得
     const { data: order, error: fetchErr } = await admin
       .from("job_orders")
-      .select("id, status, from_tenant_id, to_tenant_id, payment_method, accepted_amount, payment_confirmed_by_client, payment_confirmed_by_vendor, payment_status")
+      .select(
+        "id, status, from_tenant_id, to_tenant_id, payment_method, accepted_amount, payment_confirmed_by_client, payment_confirmed_by_vendor, payment_status",
+      )
       .eq("id", id)
       .or(`from_tenant_id.eq.${tenantId},to_tenant_id.eq.${tenantId}`)
       .single();
@@ -80,7 +79,9 @@ export async function POST(
       .from("job_orders")
       .update(updateData)
       .eq("id", id)
-      .select("id, public_id, from_tenant_id, to_tenant_id, title, status, payment_status, payment_method, accepted_amount, payment_confirmed_by_client, payment_confirmed_by_vendor, created_at, updated_at")
+      .select(
+        "id, public_id, from_tenant_id, to_tenant_id, title, status, payment_status, payment_method, accepted_amount, payment_confirmed_by_client, payment_confirmed_by_vendor, created_at, updated_at",
+      )
       .single();
 
     if (error) {

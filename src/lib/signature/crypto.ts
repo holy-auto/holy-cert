@@ -11,9 +11,9 @@
  * - NIST P-256 曲線は国際標準（FIPS 186-4）
  */
 
-import { createSign, createVerify, createPublicKey } from 'crypto';
-import { computePublicKeyFingerprint } from './hash';
-import type { ActiveKeyInfo } from './types';
+import { createSign, createVerify, createPublicKey } from "crypto";
+import { computePublicKeyFingerprint } from "./hash";
+import type { ActiveKeyInfo } from "./types";
 
 /**
  * ECDSA P-256 署名を生成する。
@@ -27,10 +27,10 @@ import type { ActiveKeyInfo } from './types';
  * @returns Base64 エンコードされた署名値
  */
 export function signPayload(payload: string, privateKey: string): string {
-  const sign = createSign('SHA256');
-  sign.update(payload, 'utf8');
+  const sign = createSign("SHA256");
+  sign.update(payload, "utf8");
   sign.end();
-  return sign.sign(privateKey, 'base64');
+  return sign.sign(privateKey, "base64");
 }
 
 /**
@@ -47,16 +47,12 @@ export function signPayload(payload: string, privateKey: string): string {
  * @param publicKey - PEM 形式の ECDSA P-256 公開鍵
  * @returns 署名が有効なら true、無効・エラーなら false
  */
-export function verifySignature(
-  payload: string,
-  signature: string,
-  publicKey: string,
-): boolean {
+export function verifySignature(payload: string, signature: string, publicKey: string): boolean {
   try {
-    const verify = createVerify('SHA256');
-    verify.update(payload, 'utf8');
+    const verify = createVerify("SHA256");
+    verify.update(payload, "utf8");
     verify.end();
-    return verify.verify(publicKey, signature, 'base64');
+    return verify.verify(publicKey, signature, "base64");
   } catch {
     // 不正な署名・鍵フォーマットの場合は例外ではなく false を返す
     return false;
@@ -74,12 +70,9 @@ export function verifySignature(
 export function getPrivateKey(): string {
   const key = process.env.LEDRA_SIGNING_PRIVATE_KEY;
   if (!key) {
-    throw new Error(
-      '[signature] LEDRA_SIGNING_PRIVATE_KEY is not set. ' +
-      'Set it in Vercel environment variables.',
-    );
+    throw new Error("[signature] LEDRA_SIGNING_PRIVATE_KEY is not set. " + "Set it in Vercel environment variables.");
   }
-  return key.replace(/\\n/g, '\n');
+  return key.replace(/\\n/g, "\n");
 }
 
 /**
@@ -90,12 +83,9 @@ export function getPrivateKey(): string {
 export function getPublicKey(): string {
   const key = process.env.LEDRA_SIGNING_PUBLIC_KEY;
   if (!key) {
-    throw new Error(
-      '[signature] LEDRA_SIGNING_PUBLIC_KEY is not set. ' +
-      'Set it in Vercel environment variables.',
-    );
+    throw new Error("[signature] LEDRA_SIGNING_PUBLIC_KEY is not set. " + "Set it in Vercel environment variables.");
   }
-  return key.replace(/\\n/g, '\n');
+  return key.replace(/\\n/g, "\n");
 }
 
 /**
@@ -108,7 +98,7 @@ export function getPublicKey(): string {
 export function getActiveKeyInfo(): ActiveKeyInfo {
   const publicKey = getPublicKey();
   return {
-    version: process.env.LEDRA_SIGNING_KEY_VERSION ?? 'v1',
+    version: process.env.LEDRA_SIGNING_KEY_VERSION ?? "v1",
     fingerprint: computePublicKeyFingerprint(publicKey),
   };
 }
@@ -122,7 +112,7 @@ export function getActiveKeyInfo(): ActiveKeyInfo {
 export function validatePublicKeyFormat(publicKeyPem: string): boolean {
   try {
     const key = createPublicKey(publicKeyPem);
-    return key.asymmetricKeyType === 'ec';
+    return key.asymmetricKeyType === "ec";
   } catch {
     return false;
   }

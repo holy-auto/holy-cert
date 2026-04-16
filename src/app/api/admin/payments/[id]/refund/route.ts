@@ -6,10 +6,7 @@ import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInte
 export const dynamic = "force-dynamic";
 
 // ─── POST: 返金処理 ───
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -34,7 +31,7 @@ export async function POST(
       return apiValidationError("invalid_refund_amount");
     }
 
-    const reason = (String(body?.reason ?? "")).trim() || null;
+    const reason = String(body?.reason ?? "").trim() || null;
 
     // 対象paymentを取得（tenant_id確認）
     const { data: payment, error: fetchErr } = await supabase
@@ -59,8 +56,7 @@ export async function POST(
     }
 
     // ステータス判定
-    const newStatus =
-      refundAmount === (payment.amount ?? 0) ? "refunded" : "partial_refund";
+    const newStatus = refundAmount === (payment.amount ?? 0) ? "refunded" : "partial_refund";
 
     // payment更新
     const { data: updated, error: updateErr } = await supabase
@@ -73,7 +69,9 @@ export async function POST(
       })
       .eq("id", paymentId)
       .eq("tenant_id", caller.tenantId)
-      .select("id, tenant_id, store_id, document_id, reservation_id, customer_id, payment_method, amount, status, refund_amount, refund_reason, paid_at, created_at, updated_at")
+      .select(
+        "id, tenant_id, store_id, document_id, reservation_id, customer_id, payment_method, amount, status, refund_amount, refund_reason, paid_at, created_at, updated_at",
+      )
       .single();
 
     if (updateErr) {

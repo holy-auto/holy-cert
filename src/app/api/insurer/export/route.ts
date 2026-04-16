@@ -59,7 +59,15 @@ export async function GET(req: NextRequest) {
     if (logErr) return apiValidationError(logErr.message);
 
     const rows = (data ?? []) as any[];
-    const header = ["public_id", "status", "customer_name", "vehicle_model", "vehicle_plate", "created_at", "tenant_id"];
+    const header = [
+      "public_id",
+      "status",
+      "customer_name",
+      "vehicle_model",
+      "vehicle_plate",
+      "created_at",
+      "tenant_id",
+    ];
 
     // Stream CSV to avoid building large string in memory
     const encoder = new TextEncoder();
@@ -78,8 +86,8 @@ export async function GET(req: NextRequest) {
                 csvEscape(r.vehicle_plate),
                 csvEscape(r.created_at),
                 csvEscape(r.tenant_id),
-              ].join(",") + "\r\n"
-            )
+              ].join(",") + "\r\n",
+            ),
           );
         }
         controller.close();
@@ -95,9 +103,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (e) {
     console.error("[insurer/export]", e);
-    return NextResponse.json(
-      { error: "internal_error", message: "内部エラーが発生しました" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "internal_error", message: "内部エラーが発生しました" }, { status: 500 });
   }
 }

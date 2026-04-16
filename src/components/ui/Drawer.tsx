@@ -16,8 +16,8 @@ export default function Drawer({ open, onClose, title, children }: DrawerProps) 
     if (!panelRef.current) return [];
     return Array.from(
       panelRef.current.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      )
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
     );
   }, []);
 
@@ -25,7 +25,10 @@ export default function Drawer({ open, onClose, title, children }: DrawerProps) 
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
       if (e.key === "Tab") {
         const focusable = getFocusableElements();
         if (focusable.length === 0) return;
@@ -63,7 +66,9 @@ export default function Drawer({ open, onClose, title, children }: DrawerProps) 
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   if (!open) return null;
@@ -91,12 +96,17 @@ export default function Drawer({ open, onClose, title, children }: DrawerProps) 
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border-subtle bg-[var(--bg-surface-solid)] px-5 py-4">
           <h2 className="text-base font-semibold text-primary">{title}</h2>
-          <button
-            onClick={onClose}
-            className="btn-ghost p-1"
-            aria-label="閉じる"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <button onClick={onClose} className="btn-ghost p-1" aria-label="閉じる">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>

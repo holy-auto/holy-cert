@@ -108,14 +108,7 @@ export async function GET() {
       }
     })();
 
-    const [
-      reservationsRes,
-      squareRes,
-      expiringCerts,
-      draftCerts,
-      overdueInvoices,
-      pendingOrders,
-    ] = await Promise.all([
+    const [reservationsRes, squareRes, expiringCerts, draftCerts, overdueInvoices, pendingOrders] = await Promise.all([
       reservationsPromise,
       squareUnlinkedPromise,
       expiringCertsPromise,
@@ -124,19 +117,22 @@ export async function GET() {
       pendingOrdersPromise,
     ]);
 
-    return NextResponse.json({
-      ok: true,
-      reservations_today: reservationsRes.count ?? 0,
-      square_unlinked: squareRes.count ?? 0,
-      expiring_certs_7d: expiringCerts,
-      draft_certs: draftCerts,
-      overdue_invoices: overdueInvoices,
-      pending_orders: pendingOrders,
-    }, {
-      headers: {
-        "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+    return NextResponse.json(
+      {
+        ok: true,
+        reservations_today: reservationsRes.count ?? 0,
+        square_unlinked: squareRes.count ?? 0,
+        expiring_certs_7d: expiringCerts,
+        draft_certs: draftCerts,
+        overdue_invoices: overdueInvoices,
+        pending_orders: pendingOrders,
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+        },
+      },
+    );
   } catch (e) {
     return apiInternalError(e, "sidebar-badges");
   }

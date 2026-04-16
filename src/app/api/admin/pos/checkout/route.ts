@@ -20,10 +20,7 @@ export async function POST(req: NextRequest) {
     const rlKey = `pos-checkout:${caller.userId || getClientIp(req)}`;
     const rl = await checkRateLimit(rlKey, { limit: 10, windowSec: 60 });
     if (!rl.allowed) {
-      return NextResponse.json(
-        { error: "rate_limited", retry_after: rl.retryAfterSec },
-        { status: 429 },
-      );
+      return NextResponse.json({ error: "rate_limited", retry_after: rl.retryAfterSec }, { status: 429 });
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
@@ -50,18 +47,16 @@ export async function POST(req: NextRequest) {
     // RPC呼び出し
     const { data, error } = await supabase.rpc("pos_checkout", {
       p_tenant_id: caller.tenantId,
-      p_reservation_id: (String(body?.reservation_id ?? "")).trim() || null,
-      p_customer_id: (String(body?.customer_id ?? "")).trim() || null,
-      p_store_id: (String(body?.store_id ?? "")).trim() || null,
-      p_register_session_id: (String(body?.register_session_id ?? "")).trim() || null,
+      p_reservation_id: String(body?.reservation_id ?? "").trim() || null,
+      p_customer_id: String(body?.customer_id ?? "").trim() || null,
+      p_store_id: String(body?.store_id ?? "").trim() || null,
+      p_register_session_id: String(body?.register_session_id ?? "").trim() || null,
       p_payment_method: paymentMethod,
       p_amount: amount,
-      p_received_amount: body?.received_amount != null
-        ? parseInt(String(body.received_amount), 10)
-        : null,
+      p_received_amount: body?.received_amount != null ? parseInt(String(body.received_amount), 10) : null,
       p_items_json: body?.items_json ?? [],
       p_tax_rate: taxRate,
-      p_note: (String(body?.note ?? "")).trim() || null,
+      p_note: String(body?.note ?? "").trim() || null,
       p_create_receipt: body?.create_receipt !== false,
       p_user_id: caller.userId,
     });

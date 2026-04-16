@@ -39,25 +39,24 @@ async function handler(request: Request) {
 
   try {
     // 1. Get tenant info for context
-    const { data: tenant } = await admin
-      .from("tenants")
-      .select("name, contact_email")
-      .eq("id", tenant_id)
-      .single();
+    const { data: tenant } = await admin.from("tenants").select("name, contact_email").eq("id", tenant_id).single();
 
     const shopName = tenant?.name ?? "施工店";
 
     // 2. Log notification event
-    await admin.from("notification_logs").insert({
-      tenant_id,
-      type: "certificate_created",
-      target_type: "certificate",
-      target_id: certificate_id,
-      recipient_email: tenant?.contact_email ?? null,
-      status: "sent",
-    }).then(({ error }) => {
-      if (error) console.warn("[QSTASH] notification_logs insert failed:", error.message);
-    });
+    await admin
+      .from("notification_logs")
+      .insert({
+        tenant_id,
+        type: "certificate_created",
+        target_type: "certificate",
+        target_id: certificate_id,
+        recipient_email: tenant?.contact_email ?? null,
+        status: "sent",
+      })
+      .then(({ error }) => {
+        if (error) console.warn("[QSTASH] notification_logs insert failed:", error.message);
+      });
 
     // 3. Check if any insurers exist and should be notified
     //    (Future: insurer notification preferences, API subscriptions)

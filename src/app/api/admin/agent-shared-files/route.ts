@@ -34,7 +34,9 @@ export async function GET(request: NextRequest) {
     const admin = getAdminClient();
     const { data, error } = await admin
       .from("agent_shared_files")
-      .select("id, agent_id, uploaded_by, direction, file_name, file_size, file_type, storage_path, note, created_at, updated_at")
+      .select(
+        "id, agent_id, uploaded_by, direction, file_name, file_size, file_type, storage_path, note, created_at, updated_at",
+      )
       .eq("agent_id", agentId)
       .order("created_at", { ascending: false });
 
@@ -75,11 +77,7 @@ export async function POST(request: NextRequest) {
     const admin = getAdminClient();
 
     // Verify agent exists
-    const { data: agent, error: agentErr } = await admin
-      .from("agents")
-      .select("id")
-      .eq("id", agentId)
-      .single();
+    const { data: agent, error: agentErr } = await admin.from("agents").select("id").eq("id", agentId).single();
     if (agentErr || !agent) return apiValidationError("agent not found");
 
     const uuid = crypto.randomUUID();
@@ -107,7 +105,9 @@ export async function POST(request: NextRequest) {
         storage_path: storagePath,
         note: note?.trim() || null,
       })
-      .select("id, agent_id, uploaded_by, direction, file_name, file_size, file_type, storage_path, note, created_at, updated_at")
+      .select(
+        "id, agent_id, uploaded_by, direction, file_name, file_size, file_type, storage_path, note, created_at, updated_at",
+      )
       .single();
 
     if (insertErr) throw insertErr;

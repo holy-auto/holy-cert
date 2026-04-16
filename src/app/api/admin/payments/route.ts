@@ -29,7 +29,9 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("payments")
-      .select("id, tenant_id, store_id, document_id, reservation_id, customer_id, register_session_id, payment_method, amount, received_amount, change_amount, status, refund_amount, refund_reason, note, paid_at, created_by, created_at, updated_at")
+      .select(
+        "id, tenant_id, store_id, document_id, reservation_id, customer_id, register_session_id, payment_method, amount, received_amount, change_amount, status, refund_amount, refund_reason, note, paid_at, created_by, created_at, updated_at",
+      )
       .eq("tenant_id", caller.tenantId)
       .order("paid_at", { ascending: false });
 
@@ -76,10 +78,7 @@ export async function GET(req: NextRequest) {
     const customerIds = [...new Set((payments ?? []).map((p) => p.customer_id).filter(Boolean))];
     const customerMap: Record<string, string> = {};
     if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name")
-        .in("id", customerIds);
+      const { data: customers } = await supabase.from("customers").select("id, name").in("id", customerIds);
       (customers ?? []).forEach((c) => {
         customerMap[c.id] = c.name;
       });
@@ -92,26 +91,27 @@ export async function GET(req: NextRequest) {
 
     // 統計
     const total = enriched.length;
-    const totalAmount = enriched
-      .filter((p) => p.status === "completed")
-      .reduce((sum, p) => sum + (p.amount ?? 0), 0);
+    const totalAmount = enriched.filter((p) => p.status === "completed").reduce((sum, p) => sum + (p.amount ?? 0), 0);
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return NextResponse.json({
-      payments: enriched,
-      stats: {
-        total: totalCount ?? total,
-        total_amount: totalAmount,
-      },
-      ...(page > 0 && {
-        pagination: {
-          page,
-          per_page: perPage,
+    return NextResponse.json(
+      {
+        payments: enriched,
+        stats: {
           total: totalCount ?? total,
-          total_pages: Math.ceil((totalCount ?? total) / perPage),
+          total_amount: totalAmount,
         },
-      }),
-    }, { headers });
+        ...(page > 0 && {
+          pagination: {
+            page,
+            per_page: perPage,
+            total: totalCount ?? total,
+            total_pages: Math.ceil((totalCount ?? total) / perPage),
+          },
+        }),
+      },
+      { headers },
+    );
   } catch (e: unknown) {
     return apiInternalError(e, "payments list");
   }
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
 
-    const paymentMethod = (String(body?.payment_method ?? "")).trim();
+    const paymentMethod = String(body?.payment_method ?? "").trim();
     if (!paymentMethod) return apiValidationError("missing_payment_method");
 
     const validMethods = ["cash", "card", "qr", "bank_transfer", "other"];
@@ -146,36 +146,38 @@ export async function POST(req: NextRequest) {
       return apiValidationError("invalid_amount");
     }
 
-    const receivedAmount = body?.received_amount != null
-      ? parseInt(String(body.received_amount), 10)
-      : null;
+    const receivedAmount = body?.received_amount != null ? parseInt(String(body.received_amount), 10) : null;
     if (receivedAmount != null && (isNaN(receivedAmount) || receivedAmount < 0)) {
       return apiValidationError("invalid_received_amount");
     }
-    const changeAmount = receivedAmount != null && receivedAmount > amount
-      ? receivedAmount - amount
-      : 0;
+    const changeAmount = receivedAmount != null && receivedAmount > amount ? receivedAmount - amount : 0;
 
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
-      store_id: (String(body?.store_id ?? "")).trim() || null,
-      document_id: (String(body?.document_id ?? "")).trim() || null,
-      reservation_id: (String(body?.reservation_id ?? "")).trim() || null,
-      customer_id: (String(body?.customer_id ?? "")).trim() || null,
-      register_session_id: (String(body?.register_session_id ?? "")).trim() || null,
+      store_id: String(body?.store_id ?? "").trim() || null,
+      document_id: String(body?.document_id ?? "").trim() || null,
+      reservation_id: String(body?.reservation_id ?? "").trim() || null,
+      customer_id: String(body?.customer_id ?? "").trim() || null,
+      register_session_id: String(body?.register_session_id ?? "").trim() || null,
       payment_method: paymentMethod,
       amount,
       received_amount: receivedAmount,
       change_amount: changeAmount,
       status: "completed",
       refund_amount: 0,
-      note: (String(body?.note ?? "")).trim() || null,
+      note: String(body?.note ?? "").trim() || null,
       paid_at: body?.paid_at || new Date().toISOString(),
       created_by: caller.userId,
     };
 
-    const { data, error } = await supabase.from("payments").insert(row).select("id, tenant_id, store_id, document_id, reservation_id, customer_id, register_session_id, payment_method, amount, received_amount, change_amount, status, refund_amount, note, paid_at, created_by, created_at, updated_at").single();
+    const { data, error } = await supabase
+      .from("payments")
+      .insert(row)
+      .select(
+        "id, tenant_id, store_id, document_id, reservation_id, customer_id, register_session_id, payment_method, amount, received_amount, change_amount, status, refund_amount, note, paid_at, created_by, created_at, updated_at",
+      )
+      .single();
     if (error) {
       return apiInternalError(error, "payments insert");
     }
@@ -198,20 +200,21 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
+    const id = String(body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-    if (body.store_id !== undefined) updates.store_id = (String(body.store_id ?? "")).trim() || null;
-    if (body.document_id !== undefined) updates.document_id = (String(body.document_id ?? "")).trim() || null;
-    if (body.reservation_id !== undefined) updates.reservation_id = (String(body.reservation_id ?? "")).trim() || null;
-    if (body.customer_id !== undefined) updates.customer_id = (String(body.customer_id ?? "")).trim() || null;
+    if (body.store_id !== undefined) updates.store_id = String(body.store_id ?? "").trim() || null;
+    if (body.document_id !== undefined) updates.document_id = String(body.document_id ?? "").trim() || null;
+    if (body.reservation_id !== undefined) updates.reservation_id = String(body.reservation_id ?? "").trim() || null;
+    if (body.customer_id !== undefined) updates.customer_id = String(body.customer_id ?? "").trim() || null;
     if (body.payment_method !== undefined) updates.payment_method = body.payment_method;
     if (body.amount !== undefined) updates.amount = parseInt(String(body.amount), 10);
-    if (body.received_amount !== undefined) updates.received_amount = body.received_amount != null ? parseInt(String(body.received_amount), 10) : null;
+    if (body.received_amount !== undefined)
+      updates.received_amount = body.received_amount != null ? parseInt(String(body.received_amount), 10) : null;
     if (body.change_amount !== undefined) updates.change_amount = parseInt(String(body.change_amount ?? 0), 10);
-    if (body.note !== undefined) updates.note = (String(body.note ?? "")).trim() || null;
+    if (body.note !== undefined) updates.note = String(body.note ?? "").trim() || null;
     if (body.paid_at !== undefined) updates.paid_at = body.paid_at;
 
     // ステータス変更（返金処理）
@@ -222,11 +225,11 @@ export async function PUT(req: NextRequest) {
           updates.refund_amount = parseInt(String(body.refund_amount), 10) || 0;
         }
         if (body.refund_reason !== undefined) {
-          updates.refund_reason = (String(body.refund_reason ?? "")).trim() || null;
+          updates.refund_reason = String(body.refund_reason ?? "").trim() || null;
         }
       }
       if (body.status === "voided") {
-        updates.refund_reason = (String(body.refund_reason ?? "")).trim() || null;
+        updates.refund_reason = String(body.refund_reason ?? "").trim() || null;
       }
     }
 
@@ -235,7 +238,9 @@ export async function PUT(req: NextRequest) {
       .update(updates)
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select("id, tenant_id, store_id, document_id, reservation_id, customer_id, register_session_id, payment_method, amount, received_amount, change_amount, status, refund_amount, refund_reason, note, paid_at, created_by, created_at, updated_at")
+      .select(
+        "id, tenant_id, store_id, document_id, reservation_id, customer_id, register_session_id, payment_method, amount, received_amount, change_amount, status, refund_amount, refund_reason, note, paid_at, created_by, created_at, updated_at",
+      )
       .single();
 
     if (error) {
@@ -260,14 +265,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
+    const id = String(body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
-    const { error } = await supabase
-      .from("payments")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("payments").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "payments delete");

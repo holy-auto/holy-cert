@@ -48,10 +48,7 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     if (error) return apiInternalError(error, "agent/support/[id]/messages insert");
 
     // Update ticket status
-    await supabase
-      .from("agent_support_tickets")
-      .update({ status: "awaiting_reply" })
-      .eq("id", id);
+    await supabase.from("agent_support_tickets").update({ status: "awaiting_reply" }).eq("id", id);
 
     return NextResponse.json({ message: msg }, { status: 201 });
   } catch (e) {

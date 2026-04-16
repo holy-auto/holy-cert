@@ -15,14 +15,8 @@ export async function GET(req: NextRequest) {
     }
 
     const url = new URL(req.url);
-    const limit = Math.min(
-      parseInt(url.searchParams.get("limit") ?? "100", 10) || 100,
-      500,
-    );
-    const offset = Math.max(
-      parseInt(url.searchParams.get("offset") ?? "0", 10) || 0,
-      0,
-    );
+    const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100", 10) || 100, 500);
+    const offset = Math.max(parseInt(url.searchParams.get("offset") ?? "0", 10) || 0, 0);
     const action = url.searchParams.get("action") ?? "";
 
     const admin = createAdminClient();

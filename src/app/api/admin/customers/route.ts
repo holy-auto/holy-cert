@@ -95,22 +95,25 @@ export async function GET(req: NextRequest) {
     const totalCerts = Object.values(certCounts).reduce((a, b) => a + b, 0);
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return NextResponse.json({
-      customers: enriched,
-      stats: {
-        total: totalCount ?? enriched.length,
-        this_month_new: thisMonthNew,
-        linked_certificates: totalCerts,
-      },
-      ...(page > 0 && {
-        pagination: {
-          page,
-          per_page: perPage,
+    return NextResponse.json(
+      {
+        customers: enriched,
+        stats: {
           total: totalCount ?? enriched.length,
-          total_pages: Math.ceil((totalCount ?? enriched.length) / perPage),
+          this_month_new: thisMonthNew,
+          linked_certificates: totalCerts,
         },
-      }),
-    }, { headers });
+        ...(page > 0 && {
+          pagination: {
+            page,
+            per_page: perPage,
+            total: totalCount ?? enriched.length,
+            total_pages: Math.ceil((totalCount ?? enriched.length) / perPage),
+          },
+        }),
+      },
+      { headers },
+    );
   } catch (e) {
     return apiInternalError(e, "customers GET");
   }
@@ -123,10 +126,14 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_create", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "free",
+      action: "customer_create",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const name = (body?.name ?? "").trim();
     if (!name) return apiValidationError("顧客名は必須です。");
 
@@ -144,7 +151,11 @@ export async function POST(req: NextRequest) {
 
     // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
     const admin = getSupabaseAdmin();
-    const { data, error } = await admin.from("customers").insert(row).select("id, tenant_id, name, name_kana, email, phone, postal_code, address, note, created_at, updated_at").single();
+    const { data, error } = await admin
+      .from("customers")
+      .insert(row)
+      .select("id, tenant_id, name, name_kana, email, phone, postal_code, address, note, created_at, updated_at")
+      .single();
     if (error) {
       return apiInternalError(error, "customers POST");
     }
@@ -162,10 +173,14 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_update", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "free",
+      action: "customer_update",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("id is required");
 
@@ -230,10 +245,14 @@ export async function DELETE(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "free", action: "customer_delete", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "free",
+      action: "customer_delete",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("id is required");
 
@@ -259,11 +278,7 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError("この顧客には証明書または請求書が紐付いているため削除できません。");
     }
 
-    const { error } = await admin
-      .from("customers")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await admin.from("customers").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "customers DELETE");

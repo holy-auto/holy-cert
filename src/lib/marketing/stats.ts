@@ -25,7 +25,11 @@ const fetchMarketingStats = unstable_cache(
   async (): Promise<MarketingStats> => {
     try {
       let supabase;
-      try { supabase = getSupabaseAdmin(); } catch { return fallback; }
+      try {
+        supabase = getSupabaseAdmin();
+      } catch {
+        return fallback;
+      }
 
       const [tenants, certs] = await Promise.all([
         supabase.from("tenants").select("id", { count: "exact", head: true }).eq("is_active", true),

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { View, StyleSheet, ScrollView, Platform } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 import {
   Text,
   Card,
@@ -480,40 +481,16 @@ export default function PosCheckoutScreen() {
                 お客様のスマホでQRを読み込んでください
               </Text>
 
-              {/* QRコード：expo-barcode-scanner は読み取り専用のため
-                  react-native-qrcode-svg を使用（要 npm install）     */}
-              {/* eslint-disable-next-line @typescript-eslint/no-require-imports */}
-              {(() => {
-                try {
-                  const QRCode =
-                    require("react-native-qrcode-svg").default;
-                  return (
-                    <View
-                      style={{
-                        padding: 16,
-                        backgroundColor: "#ffffff",
-                        borderRadius: 12,
-                        marginBottom: 12,
-                      }}
-                    >
-                      <QRCode value={qrUrl} size={200} />
-                    </View>
-                  );
-                } catch {
-                  // パッケージ未インストール時のフォールバック
-                  return (
-                    <View style={styles.qrFallback}>
-                      <Text style={{ fontSize: 48 }}>🔲</Text>
-                      <Text
-                        variant="bodySmall"
-                        style={{ color: "#71717a", marginTop: 4 }}
-                      >
-                        QRコード
-                      </Text>
-                    </View>
-                  );
-                }
-              })()}
+              <View
+                style={{
+                  padding: 16,
+                  backgroundColor: "#ffffff",
+                  borderRadius: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <QRCode value={qrUrl} size={200} />
+              </View>
 
               <Text variant="bodySmall" style={{ color: "#15803d" }}>
                 ¥{total.toLocaleString()} · Stripe Checkout

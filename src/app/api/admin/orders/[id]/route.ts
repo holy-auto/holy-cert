@@ -8,10 +8,7 @@ import { apiUnauthorized, apiNotFound, apiInternalError } from "@/lib/api/respon
  * GET /api/admin/orders/[id]
  * 受発注の詳細取得（帳票・チャット最新・評価を含む）
  */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
@@ -24,7 +21,9 @@ export async function GET(
     // 注文取得 (admin client to bypass RLS)
     const { data: order, error } = await admin
       .from("job_orders")
-      .select("id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, cancelled_by, cancel_reason, vendor_completed_at, client_approved_at, payment_status, payment_method, accepted_amount, payment_confirmed_by_client, payment_confirmed_by_vendor, created_at, updated_at")
+      .select(
+        "id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, cancelled_by, cancel_reason, vendor_completed_at, client_approved_at, payment_status, payment_method, accepted_amount, payment_confirmed_by_client, payment_confirmed_by_vendor, created_at, updated_at",
+      )
       .eq("id", id)
       .or(`from_tenant_id.eq.${tenantId},to_tenant_id.eq.${tenantId}`)
       .single();
@@ -74,9 +73,7 @@ export async function GET(
       .limit(20);
 
     // 相手方のパートナースコアを取得
-    const counterpartyId = order.from_tenant_id === tenantId
-      ? order.to_tenant_id
-      : order.from_tenant_id;
+    const counterpartyId = order.from_tenant_id === tenantId ? order.to_tenant_id : order.from_tenant_id;
     let counterpartyScore = null;
     if (counterpartyId) {
       const { data: ps } = await admin

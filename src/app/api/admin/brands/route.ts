@@ -21,7 +21,9 @@ export async function GET(_req: Request) {
 
     const { data: brands, error } = await supabase
       .from("brands")
-      .select("id, tenant_id, name, description, website_url, created_at, updated_at, coating_products(id, brand_id, name, product_code, description, created_at, updated_at)")
+      .select(
+        "id, tenant_id, name, description, website_url, created_at, updated_at, coating_products(id, brand_id, name, product_code, description, created_at, updated_at)",
+      )
       .or(`tenant_id.is.null,tenant_id.eq.${caller.tenantId}`)
       .order("name");
 
@@ -120,11 +122,7 @@ export async function DELETE(req: Request) {
       });
     }
 
-    const { error } = await supabase
-      .from("brands")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("brands").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) return apiInternalError(error, "brands DELETE");
 

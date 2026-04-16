@@ -60,7 +60,17 @@ export async function GET(req: NextRequest) {
     const vehicleModel = row.vehicle_model ?? "";
     const vehiclePlate = row.vehicle_plate ?? "";
 
-    const header = ["public_id", "status", "tenant_id", "customer_name", "vehicle_model", "vehicle_plate", "service_type", "certificate_no", "created_at"];
+    const header = [
+      "public_id",
+      "status",
+      "tenant_id",
+      "customer_name",
+      "vehicle_model",
+      "vehicle_plate",
+      "service_type",
+      "certificate_no",
+      "created_at",
+    ];
     const line = [
       csvEscape(row.public_id),
       csvEscape(row.status),
@@ -85,9 +95,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (e) {
     console.error("[insurer/export-one]", e);
-    return NextResponse.json(
-      { error: "internal_error", message: "内部エラーが発生しました" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "internal_error", message: "内部エラーが発生しました" }, { status: 500 });
   }
 }

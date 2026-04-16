@@ -25,9 +25,7 @@ export async function GET(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   const alerts: string[] = [];
   const now = new Date();
-  const oneDayAgo = new Date(
-    now.getTime() - 24 * 60 * 60 * 1000,
-  ).toISOString();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
   // ─── 1. Billing inconsistencies ───
   // Tenants with a Stripe subscription but is_active=false
@@ -39,9 +37,7 @@ export async function GET(req: NextRequest) {
       .eq("is_active", false);
 
     if (billingIssues && billingIssues.length > 0) {
-      alerts.push(
-        `BILLING: ${billingIssues.length} tenant(s) have subscription but is_active=false`,
-      );
+      alerts.push(`BILLING: ${billingIssues.length} tenant(s) have subscription but is_active=false`);
     }
   } catch (e) {
     console.error("[cron/monitor] billing check failed:", e);
@@ -81,8 +77,7 @@ export async function GET(req: NextRequest) {
 
     const accessCounts: Record<string, number> = {};
     (accessLogs ?? []).forEach((log: { insurer_id: string }) => {
-      accessCounts[log.insurer_id] =
-        (accessCounts[log.insurer_id] || 0) + 1;
+      accessCounts[log.insurer_id] = (accessCounts[log.insurer_id] || 0) + 1;
     });
 
     heavyAccessors = Object.entries(accessCounts)
@@ -90,9 +85,7 @@ export async function GET(req: NextRequest) {
       .map(([id, count]) => `${id}: ${count} accesses`);
 
     if (heavyAccessors.length > 0) {
-      alerts.push(
-        `SECURITY: Heavy insurer access - ${heavyAccessors.join(", ")}`,
-      );
+      alerts.push(`SECURITY: Heavy insurer access - ${heavyAccessors.join(", ")}`);
     }
   } catch (e) {
     console.error("[cron/monitor] insurer access check failed:", e);
@@ -126,14 +119,9 @@ export async function GET(req: NextRequest) {
             from: process.env.RESEND_FROM ?? "noreply@ledra.co.jp",
             to: alertEmail,
             subject: `[Ledra Monitor] ${alerts.length} alert(s) detected`,
-            text: [
-              "Monitoring Report",
-              "",
-              ...alerts,
-              "",
-              "Metrics:",
-              JSON.stringify(summary.metrics, null, 2),
-            ].join("\n"),
+            text: ["Monitoring Report", "", ...alerts, "", "Metrics:", JSON.stringify(summary.metrics, null, 2)].join(
+              "\n",
+            ),
           }),
         });
       } catch {

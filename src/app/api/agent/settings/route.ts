@@ -24,7 +24,9 @@ export async function GET() {
     // Fetch agent profile
     const { data: profile, error: profileErr } = await supabase
       .from("agents")
-      .select("id, name, contact_name, contact_email, contact_phone, company_name, company_address, website_url, logo_url, status, commission_type, commission_rate, bank_name, bank_branch, bank_account_type, bank_account_number, bank_account_holder, stripe_account_id, stripe_onboarding_done, notes, created_at, updated_at")
+      .select(
+        "id, name, contact_name, contact_email, contact_phone, company_name, company_address, website_url, logo_url, status, commission_type, commission_rate, bank_name, bank_branch, bank_account_type, bank_account_number, bank_account_holder, stripe_account_id, stripe_onboarding_done, notes, created_at, updated_at",
+      )
       .eq("id", agentId)
       .single();
 
@@ -80,7 +82,7 @@ export async function PUT(request: NextRequest) {
       return apiForbidden("設定を更新する権限がありません。");
     }
 
-    const body = await request.json().catch(() => ({} as Record<string, unknown>));
+    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
 
     // Build the update object from allowed fields
     const allowedFields = [
@@ -125,7 +127,9 @@ export async function PUT(request: NextRequest) {
       .from("agents")
       .update(updates)
       .eq("id", agentId)
-      .select("id, name, contact_name, contact_email, contact_phone, company_name, company_address, website_url, logo_url, status, commission_type, commission_rate, bank_name, bank_branch, bank_account_type, bank_account_number, bank_account_holder, stripe_account_id, stripe_onboarding_done, notes, created_at, updated_at")
+      .select(
+        "id, name, contact_name, contact_email, contact_phone, company_name, company_address, website_url, logo_url, status, commission_type, commission_rate, bank_name, bank_branch, bank_account_type, bank_account_number, bank_account_holder, stripe_account_id, stripe_onboarding_done, notes, created_at, updated_at",
+      )
       .single();
 
     if (updateErr) {

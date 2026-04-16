@@ -17,23 +17,16 @@ export async function GET(req: NextRequest) {
   if (!requireMinRole(caller, "admin")) return apiForbidden("管理者権限が必要です。");
 
   const certificateId = req.nextUrl.searchParams.get("certificate_id");
-  if (!certificateId)
-    return apiValidationError("certificate_id は必須です。");
+  if (!certificateId) return apiValidationError("certificate_id は必須です。");
 
   const admin = createAdminClient();
 
-  const { data: cert } = await admin
-    .from("certificates")
-    .select("tenant_id")
-    .eq("id", certificateId)
-    .maybeSingle();
+  const { data: cert } = await admin.from("certificates").select("tenant_id").eq("id", certificateId).maybeSingle();
 
-  if (!cert)
-    return apiNotFound("証明書が見つかりません。");
+  if (!cert) return apiNotFound("証明書が見つかりません。");
 
   // Verify certificate belongs to caller's tenant
-  if (cert.tenant_id !== caller.tenantId)
-    return apiForbidden("他テナントの証明書にはアクセスできません。");
+  if (cert.tenant_id !== caller.tenantId) return apiForbidden("他テナントの証明書にはアクセスできません。");
 
   const { data: consents, error } = await admin
     .from("pii_disclosure_consents")
@@ -69,18 +62,12 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  const { data: cert } = await admin
-    .from("certificates")
-    .select("tenant_id")
-    .eq("id", certificate_id)
-    .maybeSingle();
+  const { data: cert } = await admin.from("certificates").select("tenant_id").eq("id", certificate_id).maybeSingle();
 
-  if (!cert)
-    return apiNotFound("証明書が見つかりません。");
+  if (!cert) return apiNotFound("証明書が見つかりません。");
 
   // Verify certificate belongs to caller's tenant
-  if (cert.tenant_id !== caller.tenantId)
-    return apiForbidden("他テナントの証明書にはアクセスできません。");
+  if (cert.tenant_id !== caller.tenantId) return apiForbidden("他テナントの証明書にはアクセスできません。");
 
   const { data, error } = await admin
     .from("pii_disclosure_consents")
@@ -91,12 +78,13 @@ export async function POST(req: NextRequest) {
     .eq("certificate_id", certificate_id)
     .eq("insurer_id", insurer_id)
     .eq("is_active", true)
-    .select("id, certificate_id, insurer_id, tenant_consented_at, tenant_consented_by, is_active, created_at, updated_at")
+    .select(
+      "id, certificate_id, insurer_id, tenant_consented_at, tenant_consented_by, is_active, created_at, updated_at",
+    )
     .single();
 
   if (error) return apiInternalError(error, "POST /api/admin/pii-disclosure");
-  if (!data)
-    return apiNotFound("対象の開示リクエストが見つかりません。");
+  if (!data) return apiNotFound("対象の開示リクエストが見つかりません。");
 
   return NextResponse.json({ consent: data });
 }

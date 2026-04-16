@@ -17,7 +17,9 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     const admin = getAdminClient();
     const { data, error } = await admin
       .from("agents")
-      .select("id, name, contact_name, contact_email, contact_phone, address, status, commission_type, default_commission_rate, default_commission_fixed, stripe_account_id, stripe_onboarding_done, line_official_id, notes, created_at, updated_at")
+      .select(
+        "id, name, contact_name, contact_email, contact_phone, address, status, commission_type, default_commission_rate, default_commission_fixed, stripe_account_id, stripe_onboarding_done, line_official_id, notes, created_at, updated_at",
+      )
       .eq("id", id)
       .single();
 
@@ -34,7 +36,9 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
         .order("created_at", { ascending: false }),
       admin
         .from("agent_commissions")
-        .select("id, agent_id, referral_id, amount, rate, status, period_start, period_end, paid_at, created_at, updated_at")
+        .select(
+          "id, agent_id, referral_id, amount, rate, status, period_start, period_end, paid_at, created_at, updated_at",
+        )
         .eq("agent_id", id)
         .order("period_start", { ascending: false }),
       admin
@@ -69,9 +73,17 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     // Whitelist of updatable fields
     const updates: Record<string, unknown> = {};
     const allowedFields = [
-      "name", "status", "contact_name", "contact_email", "contact_phone",
-      "address", "default_commission_rate", "commission_type",
-      "default_commission_fixed", "line_official_id", "notes",
+      "name",
+      "status",
+      "contact_name",
+      "contact_email",
+      "contact_phone",
+      "address",
+      "default_commission_rate",
+      "commission_type",
+      "default_commission_fixed",
+      "line_official_id",
+      "notes",
     ];
 
     for (const key of allowedFields) {
@@ -88,7 +100,9 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
       .from("agents")
       .update(updates)
       .eq("id", id)
-      .select("id, name, contact_name, contact_email, contact_phone, address, status, commission_type, default_commission_rate, default_commission_fixed, stripe_account_id, stripe_onboarding_done, line_official_id, notes, created_at, updated_at")
+      .select(
+        "id, name, contact_name, contact_email, contact_phone, address, status, commission_type, default_commission_rate, default_commission_fixed, stripe_account_id, stripe_onboarding_done, line_official_id, notes, created_at, updated_at",
+      )
       .single();
 
     if (error) {

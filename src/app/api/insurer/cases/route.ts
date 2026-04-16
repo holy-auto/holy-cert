@@ -25,14 +25,8 @@ export async function GET(req: NextRequest) {
   const dateFrom = url.searchParams.get("date_from");
   const dateTo = url.searchParams.get("date_to");
   const q = url.searchParams.get("q")?.trim();
-  const limit = Math.min(
-    parseInt(url.searchParams.get("limit") ?? "50", 10) || 50,
-    200,
-  );
-  const offset = Math.max(
-    parseInt(url.searchParams.get("offset") ?? "0", 10) || 0,
-    0,
-  );
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50", 10) || 50, 200);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") ?? "0", 10) || 0, 0);
 
   const admin = createAdminClient();
 
@@ -40,7 +34,10 @@ export async function GET(req: NextRequest) {
     // Build query
     let query = admin
       .from("insurer_cases")
-      .select("id, insurer_id, title, description, status, priority, category, case_number, certificate_id, vehicle_id, tenant_id, assigned_to, created_by, resolved_at, closed_at, created_at, updated_at", { count: "exact" })
+      .select(
+        "id, insurer_id, title, description, status, priority, category, case_number, certificate_id, vehicle_id, tenant_id, assigned_to, created_by, resolved_at, closed_at, created_at, updated_at",
+        { count: "exact" },
+      )
       .eq("insurer_id", caller.insurerId)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -128,16 +125,23 @@ export async function POST(req: NextRequest) {
     return apiValidationError("Invalid JSON body.");
   }
 
-  const { title, description, certificate_id, vehicle_id, priority, category, tenant_id: bodyTenantId } =
-    body as {
-      title?: string;
-      description?: string;
-      certificate_id?: string;
-      vehicle_id?: string;
-      priority?: string;
-      category?: string;
-      tenant_id?: string;
-    };
+  const {
+    title,
+    description,
+    certificate_id,
+    vehicle_id,
+    priority,
+    category,
+    tenant_id: bodyTenantId,
+  } = body as {
+    title?: string;
+    description?: string;
+    certificate_id?: string;
+    vehicle_id?: string;
+    priority?: string;
+    category?: string;
+    tenant_id?: string;
+  };
 
   if (!title || typeof title !== "string" || title.trim().length === 0) {
     return apiValidationError("title is required.");
@@ -157,11 +161,7 @@ export async function POST(req: NextRequest) {
       if (cert) tenant_id = cert.tenant_id;
     }
     if (!tenant_id && vehicle_id) {
-      const { data: v } = await admin
-        .from("vehicles")
-        .select("tenant_id")
-        .eq("id", vehicle_id)
-        .maybeSingle();
+      const { data: v } = await admin.from("vehicles").select("tenant_id").eq("id", vehicle_id).maybeSingle();
       if (v) tenant_id = v.tenant_id;
     }
 
@@ -196,7 +196,9 @@ export async function POST(req: NextRequest) {
     const { data: newCase, error } = await admin
       .from("insurer_cases")
       .insert(insertData)
-      .select("id, insurer_id, title, description, certificate_id, vehicle_id, tenant_id, priority, category, created_by, status, case_number, created_at, updated_at")
+      .select(
+        "id, insurer_id, title, description, certificate_id, vehicle_id, tenant_id, priority, category, created_by, status, case_number, created_at, updated_at",
+      )
       .single();
 
     if (error) return apiValidationError(error.message);

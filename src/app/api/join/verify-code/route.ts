@@ -77,10 +77,7 @@ export async function POST(req: Request) {
   }
 
   // Mark as verified
-  await supabase
-    .from("insurer_email_verifications")
-    .update({ verified: true })
-    .eq("id", record.id);
+  await supabase.from("insurer_email_verifications").update({ verified: true }).eq("id", record.id);
 
   return NextResponse.json({ ok: true, verified: true });
 }

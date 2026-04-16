@@ -5,13 +5,10 @@
  * 期限切れ処理を担当するモジュール。
  */
 
-import { randomUUID } from 'crypto';
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { computeDocumentHash } from './hash';
-import type {
-  CreateSignatureSessionInput,
-  SignatureSession,
-} from './types';
+import { randomUUID } from "crypto";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { computeDocumentHash } from "./hash";
+import type { CreateSignatureSessionInput, SignatureSession } from "./types";
 
 /** 署名セッションの有効時間（環境変数で上書き可、デフォルト72時間） */
 const EXPIRES_HOURS = Number(process.env.SIGNATURE_SESSION_EXPIRES_HOURS ?? 72);
@@ -33,51 +30,45 @@ const EXPIRES_HOURS = Number(process.env.SIGNATURE_SESSION_EXPIRES_HOURS ?? 72);
  * @returns 作成された SignatureSession
  * @throws DB エラー時
  */
-export async function createSignatureSession(
-  input: CreateSignatureSessionInput,
-): Promise<SignatureSession> {
+export async function createSignatureSession(input: CreateSignatureSessionInput): Promise<SignatureSession> {
   const supabase = getSupabaseAdmin();
 
   const token = randomUUID();
-  const expiresAt = new Date(
-    Date.now() + EXPIRES_HOURS * 60 * 60 * 1000,
-  ).toISOString();
+  const expiresAt = new Date(Date.now() + EXPIRES_HOURS * 60 * 60 * 1000).toISOString();
   const documentHash = computeDocumentHash(input.pdf_bytes);
 
   const { data, error } = await supabase
-    .from('signature_sessions')
+    .from("signature_sessions")
     .insert({
-      certificate_id:      input.certificate_id,
-      tenant_id:           input.tenant_id,
-      created_by:          input.created_by,
+      certificate_id: input.certificate_id,
+      tenant_id: input.tenant_id,
+      created_by: input.created_by,
       token,
-      expires_at:          expiresAt,
-      status:              'pending',
-      document_hash:       documentHash,
-      document_hash_alg:   'SHA-256',
-      signer_name:         input.signer_name    ?? null,
-      signer_email:        input.signer_email   ?? null,
-      signer_phone:        input.signer_phone   ?? null,
-      notification_method: input.notification_method ?? 'line',
+      expires_at: expiresAt,
+      status: "pending",
+      document_hash: documentHash,
+      document_hash_alg: "SHA-256",
+      signer_name: input.signer_name ?? null,
+      signer_email: input.signer_email ?? null,
+      signer_phone: input.signer_phone ?? null,
+      notification_method: input.notification_method ?? "line",
     })
     .select()
     .single();
 
   if (error || !data) {
-    throw new Error(
-      `[signature] Failed to create signature session: ${error?.message}`,
-    );
+    throw new Error(`[signature] Failed to create signature session: ${error?.message}`);
   }
 
   // 監査ログ: セッション作成
-  await supabase.from('signature_audit_logs').insert({
+  await supabase.from("signature_audit_logs").insert({
     session_id: data.id,
-    event:      'session_created',
+    event: "session_created",
     metadata: {
       certificate_id: input.certificate_id,
-      tenant_id:      input.tenant_id,
-      expires_at:     expiresAt,
-      document_hash:  documentHash,
+      tenant_id: input.tenant_id,
+      expires_at: expiresAt,
+      document_hash: documentHash,
     },
   });
 
@@ -99,17 +90,15 @@ export async function createSignatureSession(
  * @param token - ワンタイムトークン
  * @returns 有効なセッション、または null（無効・期限切れ・署名済み）
  */
-export async function getValidSessionByToken(
-  token: string,
-): Promise<SignatureSession | null> {
+export async function getValidSessionByToken(token: string): Promise<SignatureSession | null> {
   const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
-    .from('signature_sessions')
-    .select('*')
-    .eq('token', token)
-    .eq('status', 'pending')
-    .gt('expires_at', new Date().toISOString())
+    .from("signature_sessions")
+    .select("*")
+    .eq("token", token)
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
     .single();
 
   if (error || !data) return null;
@@ -122,16 +111,10 @@ export async function getValidSessionByToken(
  * @param sessionId - セッション UUID
  * @returns SignatureSession または null
  */
-export async function getSessionById(
-  sessionId: string,
-): Promise<SignatureSession | null> {
+export async function getSessionById(sessionId: string): Promise<SignatureSession | null> {
   const supabase = getSupabaseAdmin();
 
-  const { data, error } = await supabase
-    .from('signature_sessions')
-    .select('*')
-    .eq('id', sessionId)
-    .single();
+  const { data, error } = await supabase.from("signature_sessions").select("*").eq("id", sessionId).single();
 
   if (error || !data) return null;
   return data as SignatureSession;
@@ -144,18 +127,16 @@ export async function getSessionById(
  * @param certificateId - 証明書 UUID
  * @returns 有効な pending セッション、または null
  */
-export async function getExistingPendingSession(
-  certificateId: string,
-): Promise<SignatureSession | null> {
+export async function getExistingPendingSession(certificateId: string): Promise<SignatureSession | null> {
   const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
-    .from('signature_sessions')
-    .select('*')
-    .eq('certificate_id', certificateId)
-    .eq('status', 'pending')
-    .gt('expires_at', new Date().toISOString())
-    .order('created_at', { ascending: false })
+    .from("signature_sessions")
+    .select("*")
+    .eq("certificate_id", certificateId)
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
     .limit(1)
     .single();
 
@@ -179,11 +160,11 @@ export async function expireOldSessions(): Promise<number> {
   const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
-    .from('signature_sessions')
-    .update({ status: 'expired' })
-    .eq('status', 'pending')
-    .lt('expires_at', new Date().toISOString())
-    .select('id');
+    .from("signature_sessions")
+    .update({ status: "expired" })
+    .eq("status", "pending")
+    .lt("expires_at", new Date().toISOString())
+    .select("id");
 
   if (error) {
     throw new Error(`[signature] Failed to expire sessions: ${error.message}`);
@@ -191,11 +172,11 @@ export async function expireOldSessions(): Promise<number> {
 
   // 各期限切れセッションに監査ログを記録
   if (data && data.length > 0) {
-    await supabase.from('signature_audit_logs').insert(
+    await supabase.from("signature_audit_logs").insert(
       data.map((s: { id: string }) => ({
         session_id: s.id,
-        event:      'expired',
-        metadata:   { expired_at: new Date().toISOString() },
+        event: "expired",
+        metadata: { expired_at: new Date().toISOString() },
       })),
     );
   }
@@ -215,29 +196,25 @@ export async function expireOldSessions(): Promise<number> {
  * @param reason        - キャンセル理由
  * @param cancelledBy   - キャンセルを実行したユーザー ID
  */
-export async function cancelPendingSessions(
-  certificateId: string,
-  reason: string,
-  cancelledBy: string,
-): Promise<void> {
+export async function cancelPendingSessions(certificateId: string, reason: string, cancelledBy: string): Promise<void> {
   const supabase = getSupabaseAdmin();
 
   const { data: sessions } = await supabase
-    .from('signature_sessions')
+    .from("signature_sessions")
     .update({
-      status:       'cancelled',
+      status: "cancelled",
       cancelled_at: new Date().toISOString(),
       cancel_reason: reason,
     })
-    .eq('certificate_id', certificateId)
-    .eq('status', 'pending')
-    .select('id');
+    .eq("certificate_id", certificateId)
+    .eq("status", "pending")
+    .select("id");
 
   if (sessions && sessions.length > 0) {
-    await supabase.from('signature_audit_logs').insert(
+    await supabase.from("signature_audit_logs").insert(
       sessions.map((s: { id: string }) => ({
         session_id: s.id,
-        event:      'cancelled',
+        event: "cancelled",
         metadata: {
           reason,
           cancelled_by: cancelledBy,

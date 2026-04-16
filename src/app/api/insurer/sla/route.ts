@@ -190,9 +190,7 @@ export async function PATCH(req: NextRequest) {
         normal_hours: normal ?? DEFAULT_SLA.normal,
         low_hours: low ?? DEFAULT_SLA.low,
       };
-      const { error } = await admin
-        .from("insurer_sla_config")
-        .insert(insertData);
+      const { error } = await admin.from("insurer_sla_config").insert(insertData);
 
       if (error) {
         console.error("[sla] PATCH insert error:", error.message);

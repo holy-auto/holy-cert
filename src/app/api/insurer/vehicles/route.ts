@@ -7,8 +7,7 @@ import { checkRateLimit } from "@/lib/api/rateLimit";
 export const runtime = "nodejs";
 
 function getClientMeta(req: Request) {
-  const ip =
-    req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? null;
+  const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? null;
   const ua = req.headers.get("user-agent") ?? null;
   return { ip, ua };
 }
@@ -23,14 +22,8 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url);
     const q = url.searchParams.get("q") ?? "";
-    const limit = Math.min(
-      parseInt(url.searchParams.get("limit") ?? "50", 10) || 50,
-      200,
-    );
-    const offset = Math.max(
-      parseInt(url.searchParams.get("offset") ?? "0", 10) || 0,
-      0,
-    );
+    const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50", 10) || 50, 200);
+    const offset = Math.max(parseInt(url.searchParams.get("offset") ?? "0", 10) || 0, 0);
 
     const { ip, ua } = getClientMeta(req);
     const supabase = await createClient();
@@ -48,9 +41,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ rows: data ?? [] });
   } catch (e) {
     console.error("[insurer/vehicles]", e);
-    return NextResponse.json(
-      { error: "internal_error", message: "内部エラーが発生しました" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "internal_error", message: "内部エラーが発生しました" }, { status: 500 });
   }
 }

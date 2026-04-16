@@ -13,7 +13,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   trial: ["contracted", "cancelled"],
   contracted: ["churned"],
   cancelled: [], // terminal
-  churned: [],   // terminal
+  churned: [], // terminal
 };
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -36,7 +36,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     const agent = Array.isArray(agentData) ? agentData[0] : agentData;
     const agentId = agent.agent_id as string;
 
-    const referralColumns = "id, agent_id, shop_name, contact_name, contact_email, contact_phone, referral_code, status, notes, contract_date, contracted_at, created_at, updated_at";
+    const referralColumns =
+      "id, agent_id, shop_name, contact_name, contact_email, contact_phone, referral_code, status, notes, contract_date, contracted_at, created_at, updated_at";
     const { data: referral, error } = await supabase
       .from("agent_referrals")
       .select(referralColumns)
@@ -90,7 +91,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return apiNotFound("not_found");
     }
 
-    const body = await request.json().catch(() => ({} as Record<string, unknown>));
+    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
 
     const updates: Record<string, unknown> = {};
 
@@ -115,10 +116,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       const allowed = VALID_TRANSITIONS[currentStatus] ?? [];
 
       if (!allowed.includes(newStatus)) {
-        return apiValidationError(
-          `ステータスを「${currentStatus}」から「${newStatus}」に変更することはできません。`,
-          { allowed_transitions: allowed },
-        );
+        return apiValidationError(`ステータスを「${currentStatus}」から「${newStatus}」に変更することはできません。`, {
+          allowed_transitions: allowed,
+        });
       }
 
       updates.status = newStatus;
@@ -140,7 +140,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       .update(updates)
       .eq("id", id)
       .eq("agent_id", agentId)
-      .select("id, agent_id, shop_name, contact_name, contact_email, contact_phone, referral_code, status, notes, contract_date, contracted_at, created_at, updated_at")
+      .select(
+        "id, agent_id, shop_name, contact_name, contact_email, contact_phone, referral_code, status, notes, contract_date, contracted_at, created_at, updated_at",
+      )
       .single();
 
     if (updateErr) {

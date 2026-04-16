@@ -84,14 +84,7 @@ export function DocumentRequestForm({ role }: { role: RoleType }) {
           <label htmlFor="docreq-name" className="block text-sm font-medium text-white/80 mb-2">
             お名前 <span className="text-red-400">*</span>
           </label>
-          <input
-            id="docreq-name"
-            type="text"
-            name="name"
-            required
-            className={inputClass}
-            placeholder="山田 太郎"
-          />
+          <input id="docreq-name" type="text" name="name" required className={inputClass} placeholder="山田 太郎" />
         </div>
         <div>
           <label htmlFor="docreq-company" className="block text-sm font-medium text-white/80 mb-2">
@@ -103,7 +96,9 @@ export function DocumentRequestForm({ role }: { role: RoleType }) {
             name="company"
             required
             className={inputClass}
-            placeholder={role === "insurer" ? "〇〇損害保険株式会社" : role === "agent" ? "株式会社〇〇" : "〇〇自動車 〇〇店"}
+            placeholder={
+              role === "insurer" ? "〇〇損害保険株式会社" : role === "agent" ? "株式会社〇〇" : "〇〇自動車 〇〇店"
+            }
           />
         </div>
       </div>
@@ -125,13 +120,7 @@ export function DocumentRequestForm({ role }: { role: RoleType }) {
           <label htmlFor="docreq-phone" className="block text-sm font-medium text-white/80 mb-2">
             電話番号
           </label>
-          <input
-            id="docreq-phone"
-            type="tel"
-            name="phone"
-            className={inputClass}
-            placeholder="03-1234-5678"
-          />
+          <input id="docreq-phone" type="tel" name="phone" className={inputClass} placeholder="03-1234-5678" />
         </div>
       </div>
       <div>
@@ -146,9 +135,7 @@ export function DocumentRequestForm({ role }: { role: RoleType }) {
           placeholder="具体的なご質問やご要望があればご記入ください"
         />
       </div>
-      {error && (
-        <p className="text-red-400 text-sm">{error}</p>
-      )}
+      {error && <p className="text-red-400 text-sm">{error}</p>}
       <button
         type="submit"
         disabled={sending}
@@ -156,9 +143,7 @@ export function DocumentRequestForm({ role }: { role: RoleType }) {
       >
         {sending ? "送信中..." : "無料で資料を請求する"}
       </button>
-      <p className="text-xs text-white/30">
-        ご入力いただいた情報は資料送付およびご連絡のみに使用いたします。
-      </p>
+      <p className="text-xs text-white/30">ご入力いただいた情報は資料送付およびご連絡のみに使用いたします。</p>
     </form>
   );
 }

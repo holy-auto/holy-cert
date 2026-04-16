@@ -32,10 +32,7 @@ function verifySquareSignature(
   const hmac = crypto.createHmac("sha256", signatureKey);
   hmac.update(notificationUrl + rawBody);
   const expected = hmac.digest("base64");
-  return crypto.timingSafeEqual(
-    Buffer.from(expected, "utf8"),
-    Buffer.from(signatureHeader, "utf8"),
-  );
+  return crypto.timingSafeEqual(Buffer.from(expected, "utf8"), Buffer.from(signatureHeader, "utf8"));
 }
 
 // ─── Event types ───
@@ -73,9 +70,7 @@ export async function POST(req: NextRequest) {
   }
 
   // The notification URL must match what was registered in Square Dashboard
-  const notificationUrl =
-    process.env.SQUARE_WEBHOOK_NOTIFICATION_URL ??
-    `${req.nextUrl.origin}/api/webhooks/square`;
+  const notificationUrl = process.env.SQUARE_WEBHOOK_NOTIFICATION_URL ?? `${req.nextUrl.origin}/api/webhooks/square`;
 
   try {
     const valid = verifySquareSignature(rawBody, signature, signatureKey, notificationUrl);
@@ -114,11 +109,7 @@ export async function POST(req: NextRequest) {
 
 // ─── Event processing ───
 
-async function processEvent(
-  type: string,
-  merchantId: string,
-  data: SquareWebhookEvent["data"],
-) {
+async function processEvent(type: string, merchantId: string, data: SquareWebhookEvent["data"]) {
   switch (type) {
     case "order.updated":
       await handleOrderUpdated(merchantId, data);
@@ -153,10 +144,7 @@ async function resolveTenant(merchantId: string) {
 /**
  * Handle order.updated — upsert the order into square_orders.
  */
-async function handleOrderUpdated(
-  merchantId: string,
-  data: SquareWebhookEvent["data"],
-) {
+async function handleOrderUpdated(merchantId: string, data: SquareWebhookEvent["data"]) {
   const conn = await resolveTenant(merchantId);
   if (!conn) {
     console.warn(`[square-webhook] No active connection for merchant: ${merchantId}`);
@@ -193,10 +181,7 @@ async function handleOrderUpdated(
 /**
  * Handle payment.completed — look up related order and upsert.
  */
-async function handlePaymentCompleted(
-  merchantId: string,
-  data: SquareWebhookEvent["data"],
-) {
+async function handlePaymentCompleted(merchantId: string, data: SquareWebhookEvent["data"]) {
   const conn = await resolveTenant(merchantId);
   if (!conn) {
     console.warn(`[square-webhook] No active connection for merchant: ${merchantId}`);
@@ -227,20 +212,14 @@ async function handlePaymentCompleted(
 /**
  * Fetch a single order from Square Orders API.
  */
-async function fetchSquareOrder(
-  accessToken: string,
-  orderId: string,
-): Promise<Record<string, unknown> | null> {
+async function fetchSquareOrder(accessToken: string, orderId: string): Promise<Record<string, unknown> | null> {
   try {
-    const res = await fetch(
-      `https://connect.squareup.com/v2/orders/${encodeURIComponent(orderId)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+    const res = await fetch(`https://connect.squareup.com/v2/orders/${encodeURIComponent(orderId)}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-    );
+    });
 
     if (!res.ok) {
       console.error(`[square-webhook] Fetch order ${orderId} failed: ${res.status}`);
@@ -258,11 +237,7 @@ async function fetchSquareOrder(
 /**
  * Upsert an order into square_orders (matching pattern from sync endpoint).
  */
-async function upsertOrder(
-  admin: ReturnType<typeof getAdminClient>,
-  tenantId: string,
-  order: Record<string, unknown>,
-) {
+async function upsertOrder(admin: ReturnType<typeof getAdminClient>, tenantId: string, order: Record<string, unknown>) {
   const orderId = order.id as string;
   const totalMoney = (order.total_money as any)?.amount ?? 0;
   const taxMoney = (order.total_tax_money as any)?.amount ?? 0;

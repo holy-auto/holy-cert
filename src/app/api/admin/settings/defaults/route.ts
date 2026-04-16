@@ -38,9 +38,7 @@ export async function PUT(req: NextRequest) {
     if (!caller) return apiUnauthorized();
 
     const body = await req.json();
-    const value = typeof body.default_warranty_exclusions === "string"
-      ? body.default_warranty_exclusions
-      : "";
+    const value = typeof body.default_warranty_exclusions === "string" ? body.default_warranty_exclusions : "";
 
     const { error } = await supabase
       .from("tenants")

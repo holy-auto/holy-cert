@@ -8,20 +8,37 @@ import { apiUnauthorized, apiValidationError, apiNotFound, apiForbidden, apiInte
 
 // ─── 有効なステータス一覧 ───
 const VALID_STATUSES = [
-  "pending", "quoting", "accepted", "in_progress",
-  "approval_pending", "payment_pending",
-  "completed", "rejected", "cancelled",
+  "pending",
+  "quoting",
+  "accepted",
+  "in_progress",
+  "approval_pending",
+  "payment_pending",
+  "completed",
+  "rejected",
+  "cancelled",
 ] as const;
 
 // ─── ステータス遷移ルール ───
 // key: 現在のステータス, value: { next: 次ステータス, side: "from" | "to" | "both" }[]
 const TRANSITIONS: Record<string, { next: string; side: "from" | "to" | "both" }[]> = {
-  pending:          [{ next: "accepted", side: "to" }, { next: "rejected", side: "to" }, { next: "cancelled", side: "from" }],
-  quoting:          [{ next: "accepted", side: "to" }, { next: "rejected", side: "to" }, { next: "cancelled", side: "from" }],
-  accepted:         [{ next: "in_progress", side: "to" }, { next: "cancelled", side: "from" }],
-  in_progress:      [{ next: "approval_pending", side: "to" }],
+  pending: [
+    { next: "accepted", side: "to" },
+    { next: "rejected", side: "to" },
+    { next: "cancelled", side: "from" },
+  ],
+  quoting: [
+    { next: "accepted", side: "to" },
+    { next: "rejected", side: "to" },
+    { next: "cancelled", side: "from" },
+  ],
+  accepted: [
+    { next: "in_progress", side: "to" },
+    { next: "cancelled", side: "from" },
+  ],
+  in_progress: [{ next: "approval_pending", side: "to" }],
   approval_pending: [{ next: "payment_pending", side: "from" }],
-  payment_pending:  [{ next: "completed", side: "both" }],
+  payment_pending: [{ next: "completed", side: "both" }],
 };
 
 export async function GET(req: NextRequest) {
@@ -49,10 +66,7 @@ export async function GET(req: NextRequest) {
       let tenantMap: Record<string, string> = {};
 
       if (tenantIds.length > 0) {
-        const { data: tenants } = await supabase
-          .from("tenants")
-          .select("id, name")
-          .in("id", tenantIds);
+        const { data: tenants } = await supabase.from("tenants").select("id, name").in("id", tenantIds);
         for (const t of tenants ?? []) {
           tenantMap[t.id] = t.name;
         }
@@ -86,7 +100,9 @@ export async function GET(req: NextRequest) {
       const admin = getSupabaseAdmin();
       let query = admin
         .from("job_orders")
-        .select("id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, created_at, updated_at")
+        .select(
+          "id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, created_at, updated_at",
+        )
         .is("to_tenant_id", null)
         .in("status", ["pending"])
         .order("created_at", { ascending: false });
@@ -113,10 +129,7 @@ export async function GET(req: NextRequest) {
       const tenantIds = [...new Set((orders ?? []).map((o) => o.from_tenant_id))];
       let tenantNameMap: Record<string, string> = {};
       if (tenantIds.length > 0) {
-        const { data: tenants } = await admin
-          .from("tenants")
-          .select("id, name")
-          .in("id", tenantIds);
+        const { data: tenants } = await admin.from("tenants").select("id, name").in("id", tenantIds);
         for (const t of tenants ?? []) {
           tenantNameMap[t.id] = t.name;
         }
@@ -132,7 +145,9 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("job_orders")
-      .select("id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, cancelled_by, cancel_reason, vendor_completed_at, client_approved_at, created_at, updated_at")
+      .select(
+        "id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, cancelled_by, cancel_reason, vendor_completed_at, client_approved_at, created_at, updated_at",
+      )
       .order("created_at", { ascending: false });
 
     if (type === "sent") {
@@ -167,7 +182,11 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "free", action: "order_create", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "free",
+      action: "order_create",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
     const tenantId = caller.tenantId;
@@ -200,11 +219,16 @@ export async function POST(req: NextRequest) {
     const { data, error } = await admin
       .from("job_orders")
       .insert(insertPayload)
-      .select("id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, created_at, updated_at")
+      .select(
+        "id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, created_at, updated_at",
+      )
       .single();
 
     if (error) {
-      console.error("[orders] insert_failed:", JSON.stringify({ message: error.message, details: error.details, hint: error.hint, code: error.code }));
+      console.error(
+        "[orders] insert_failed:",
+        JSON.stringify({ message: error.message, details: error.details, hint: error.hint, code: error.code }),
+      );
       return apiInternalError(error, "orders insert");
     }
 
@@ -221,7 +245,11 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "free", action: "order_update", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "free",
+      action: "order_update",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
     const tenantId = caller.tenantId;
@@ -290,7 +318,9 @@ export async function PUT(req: NextRequest) {
       .from("job_orders")
       .update(updateData)
       .eq("id", id)
-      .select("id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, cancelled_by, cancel_reason, vendor_completed_at, client_approved_at, created_at, updated_at")
+      .select(
+        "id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, cancelled_by, cancel_reason, vendor_completed_at, client_approved_at, created_at, updated_at",
+      )
       .single();
 
     if (error) {
@@ -309,7 +339,10 @@ export async function PUT(req: NextRequest) {
         old_value: { status: current.status },
         new_value: { status },
       })
-      .then(() => {}, (e: unknown) => console.error("[orders] audit log failed:", e));
+      .then(
+        () => {},
+        (e: unknown) => console.error("[orders] audit log failed:", e),
+      );
 
     return NextResponse.json({ ok: true, order: data });
   } catch (e: unknown) {
@@ -324,7 +357,11 @@ export async function PATCH(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "free", action: "order_accept", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "free",
+      action: "order_accept",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
     const tenantId = caller.tenantId;
@@ -373,7 +410,9 @@ export async function PATCH(req: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
-      .select("id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, created_at, updated_at")
+      .select(
+        "id, public_id, from_tenant_id, to_tenant_id, title, description, category, budget, deadline, vehicle_id, status, created_at, updated_at",
+      )
       .single();
 
     if (error) {
@@ -392,7 +431,10 @@ export async function PATCH(req: NextRequest) {
         old_value: { status: order.status, to_tenant_id: null },
         new_value: { status: "accepted", to_tenant_id: tenantId },
       })
-      .then(() => {}, (e: unknown) => console.error("[orders] audit log failed:", e));
+      .then(
+        () => {},
+        (e: unknown) => console.error("[orders] audit log failed:", e),
+      );
 
     return NextResponse.json({ ok: true, order: data });
   } catch (e: unknown) {

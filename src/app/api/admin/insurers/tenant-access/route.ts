@@ -25,18 +25,21 @@ async function logAdminAction(params: {
   userAgent?: string;
 }) {
   const admin = createAdminClient();
-  await admin.from("admin_audit_logs").insert({
-    actor_id: params.actorId,
-    action: params.action,
-    target_type: params.targetType,
-    target_id: params.targetId,
-    before_data: params.beforeData ?? null,
-    after_data: params.afterData ?? null,
-    ip: params.ip ?? null,
-    user_agent: params.userAgent ?? null,
-  }).then(({ error }) => {
-    if (error) console.error("[admin-audit] insert failed:", error.message);
-  });
+  await admin
+    .from("admin_audit_logs")
+    .insert({
+      actor_id: params.actorId,
+      action: params.action,
+      target_type: params.targetType,
+      target_id: params.targetId,
+      before_data: params.beforeData ?? null,
+      after_data: params.afterData ?? null,
+      ip: params.ip ?? null,
+      user_agent: params.userAgent ?? null,
+    })
+    .then(({ error }) => {
+      if (error) console.error("[admin-audit] insert failed:", error.message);
+    });
 }
 
 /**
@@ -74,12 +77,8 @@ export async function GET(req: NextRequest) {
   const tenantIds = [...new Set((data ?? []).map((r) => r.tenant_id))];
 
   const [insurerRes, tenantRes] = await Promise.all([
-    insurerIds.length > 0
-      ? admin.from("insurers").select("id, name").in("id", insurerIds)
-      : { data: [] },
-    tenantIds.length > 0
-      ? admin.from("tenants").select("id, name").in("id", tenantIds)
-      : { data: [] },
+    insurerIds.length > 0 ? admin.from("insurers").select("id, name").in("id", insurerIds) : { data: [] },
+    tenantIds.length > 0 ? admin.from("tenants").select("id, name").in("id", tenantIds) : { data: [] },
   ]);
 
   const insurerMap = new Map((insurerRes.data ?? []).map((i: any) => [i.id, i.name]));

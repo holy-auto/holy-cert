@@ -18,7 +18,9 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
     const [invoiceRes, linesRes, agentRes] = await Promise.all([
       supabase
         .from("agent_invoices")
-        .select("id, agent_id, invoice_number, amount, tax, total, status, period_start, period_end, issued_at, paid_at, created_at, updated_at")
+        .select(
+          "id, agent_id, invoice_number, amount, tax, total, status, period_start, period_end, issued_at, paid_at, created_at, updated_at",
+        )
         .eq("id", id)
         .eq("agent_id", agent.agent_id)
         .single(),
@@ -27,11 +29,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext) {
         .select("id, invoice_id, description, quantity, unit_price, amount, created_at")
         .eq("invoice_id", id)
         .order("created_at", { ascending: true }),
-      supabase
-        .from("agents")
-        .select("name, contact_name, contact_email, address")
-        .eq("id", agent.agent_id)
-        .single(),
+      supabase.from("agents").select("name, contact_name, contact_email, address").eq("id", agent.agent_id).single(),
     ]);
 
     if (!invoiceRes.data) {

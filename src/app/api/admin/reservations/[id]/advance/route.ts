@@ -18,8 +18,11 @@ type WorkflowStep = {
 const LEGACY_STATUS_FLOW = ["confirmed", "arrived", "in_progress", "completed"] as const;
 
 function calcMacroStatus(stepOrder: number, totalSteps: number, isCompleting: boolean): string | null {
-  if (isCompleting && stepOrder === 1) return "arrived";
-  if (!isCompleting && stepOrder >= 2) return "in_progress";
+  // 最終ステップ完了時は呼び出し側で "completed" を直接設定するため、ここでは主に
+  // 次ステップへ進む場合（isCompleting=false）のマクロステータス遷移を決める。
+  if (!isCompleting && stepOrder === 1) return "arrived"; // 来店
+  if (!isCompleting && stepOrder >= 2 && stepOrder < totalSteps) return "in_progress";
+  if (!isCompleting && stepOrder === totalSteps) return "in_progress"; // 最終ステップ進行中
   if (isCompleting && stepOrder === totalSteps) return "completed";
   return null;
 }
@@ -75,7 +78,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .update({ status: nextStatus })
         .eq("id", id)
         .eq("tenant_id", caller.tenantId)
-        .select("id, status, customer_id, vehicle_id, title, scheduled_date, start_time, end_time, created_at, updated_at")
+        .select(
+          "id, status, customer_id, vehicle_id, title, scheduled_date, start_time, end_time, created_at, updated_at",
+        )
         .single();
 
       if (error) return apiInternalError(error, "advance legacy update");

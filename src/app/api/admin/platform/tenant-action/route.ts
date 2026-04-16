@@ -7,12 +7,7 @@ import { apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiInte
 
 export const dynamic = "force-dynamic";
 
-type TenantAction =
-  | "activate"
-  | "deactivate"
-  | "change_plan"
-  | "reset_billing"
-  | "send_notification";
+type TenantAction = "activate" | "deactivate" | "change_plan" | "reset_billing" | "send_notification";
 
 /**
  * POST /api/admin/platform/tenant-action
@@ -57,19 +52,13 @@ export async function POST(req: NextRequest) {
 
     switch (action) {
       case "activate": {
-        const { error } = await admin
-          .from("tenants")
-          .update({ is_active: true })
-          .eq("id", tenantId);
+        const { error } = await admin.from("tenants").update({ is_active: true }).eq("id", tenantId);
         if (error) throw error;
         result = { message: `${tenant.name} を有効化しました`, is_active: true };
         break;
       }
       case "deactivate": {
-        const { error } = await admin
-          .from("tenants")
-          .update({ is_active: false })
-          .eq("id", tenantId);
+        const { error } = await admin.from("tenants").update({ is_active: false }).eq("id", tenantId);
         if (error) throw error;
         result = { message: `${tenant.name} を無効化しました`, is_active: false };
         break;
@@ -83,19 +72,13 @@ export async function POST(req: NextRequest) {
         if (!validPlans.includes(newPlan)) {
           return apiValidationError("無効なプランです");
         }
-        const { error } = await admin
-          .from("tenants")
-          .update({ plan_tier: newPlan })
-          .eq("id", tenantId);
+        const { error } = await admin.from("tenants").update({ plan_tier: newPlan }).eq("id", tenantId);
         if (error) throw error;
         result = { message: `${tenant.name} のプランを ${newPlan} に変更しました`, plan_tier: newPlan };
         break;
       }
       case "reset_billing": {
-        const { error } = await admin
-          .from("tenants")
-          .update({ is_active: true })
-          .eq("id", tenantId);
+        const { error } = await admin.from("tenants").update({ is_active: true }).eq("id", tenantId);
         if (error) throw error;
         result = { message: `${tenant.name} の課金状態をリセットしました` };
         break;
@@ -106,10 +89,7 @@ export async function POST(req: NextRequest) {
           return apiValidationError("message が���要です");
         }
         // Get all members of the tenant
-        const { data: members } = await admin
-          .from("tenant_memberships")
-          .select("user_id")
-          .eq("tenant_id", tenantId);
+        const { data: members } = await admin.from("tenant_memberships").select("user_id").eq("tenant_id", tenantId);
         const userIds = (members ?? []).map((m: any) => m.user_id);
         // Create notifications for each member
         if (userIds.length > 0) {

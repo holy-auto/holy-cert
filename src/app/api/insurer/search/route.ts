@@ -45,7 +45,11 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       // Fallback: if RPC doesn't support new params yet, retry without them and filter in JS
-      if (error.message?.includes("p_status") || error.message?.includes("p_date_from") || error.message?.includes("p_date_to")) {
+      if (
+        error.message?.includes("p_status") ||
+        error.message?.includes("p_date_from") ||
+        error.message?.includes("p_date_to")
+      ) {
         const { data: fallbackData, error: fallbackErr } = await supabase.rpc("insurer_search_certificates", {
           p_query: q,
           p_limit: limit,
@@ -62,7 +66,11 @@ export async function GET(req: NextRequest) {
           const s = status.toLowerCase();
           rows = rows.filter((r: any) => {
             const rowStatus = String(
-              r?.status ?? r?.latest_active_certificate_status ?? r?.latest_certificate_status ?? r?.certificate_status ?? ""
+              r?.status ??
+                r?.latest_active_certificate_status ??
+                r?.latest_certificate_status ??
+                r?.certificate_status ??
+                "",
             ).toLowerCase();
             return rowStatus === s;
           });
@@ -72,7 +80,9 @@ export async function GET(req: NextRequest) {
           const from = new Date(dateFrom);
           if (!Number.isNaN(from.getTime())) {
             rows = rows.filter((r: any) => {
-              const createdAt = String(r?.created_at ?? r?.latest_active_certificate_created_at ?? r?.latest_certificate_created_at ?? "");
+              const createdAt = String(
+                r?.created_at ?? r?.latest_active_certificate_created_at ?? r?.latest_certificate_created_at ?? "",
+              );
               if (!createdAt) return true;
               return new Date(createdAt) >= from;
             });
@@ -84,7 +94,9 @@ export async function GET(req: NextRequest) {
           to.setHours(23, 59, 59, 999);
           if (!Number.isNaN(to.getTime())) {
             rows = rows.filter((r: any) => {
-              const createdAt = String(r?.created_at ?? r?.latest_active_certificate_created_at ?? r?.latest_certificate_created_at ?? "");
+              const createdAt = String(
+                r?.created_at ?? r?.latest_active_certificate_created_at ?? r?.latest_certificate_created_at ?? "",
+              );
               if (!createdAt) return true;
               return new Date(createdAt) <= to;
             });

@@ -14,10 +14,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 };
 
 // ─── PATCH: Update deal status ───
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -25,7 +22,7 @@ export async function PATCH(
 
     const { id: dealId } = await params;
     const admin = createAdminClient();
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     const newStatus = (body?.status ?? "").trim();
     if (!newStatus) {
@@ -62,7 +59,9 @@ export async function PATCH(
       .from("market_deals")
       .update(updates)
       .eq("id", dealId)
-      .select("id, inquiry_id, vehicle_id, seller_tenant_id, buyer_name, buyer_email, buyer_company, agreed_price, note, status, updated_at")
+      .select(
+        "id, inquiry_id, vehicle_id, seller_tenant_id, buyer_name, buyer_email, buyer_company, agreed_price, note, status, updated_at",
+      )
       .single();
 
     if (updateErr) {
@@ -86,7 +85,9 @@ export async function PATCH(
     try {
       const { data: fullDeal } = await admin
         .from("market_deals")
-        .select("buyer_email, buyer_name, vehicle_id, seller_tenant_id, market_vehicles(maker, model, tenants(name, contact_email))")
+        .select(
+          "buyer_email, buyer_name, vehicle_id, seller_tenant_id, market_vehicles(maker, model, tenants(name, contact_email))",
+        )
         .eq("id", dealId)
         .single();
       const vehicle = (fullDeal as any)?.market_vehicles;
@@ -98,12 +99,12 @@ export async function PATCH(
 
       if (buyerEmail) {
         notifyDealStatusChanged(buyerEmail, { vehicleLabel, newStatus, otherPartyName: sellerName }).catch((e) =>
-          console.warn("[market] notifyDealStatusChanged (buyer) failed:", e)
+          console.warn("[market] notifyDealStatusChanged (buyer) failed:", e),
         );
       }
       if (sellerEmail) {
         notifyDealStatusChanged(sellerEmail, { vehicleLabel, newStatus, otherPartyName: buyerName }).catch((e) =>
-          console.warn("[market] notifyDealStatusChanged (seller) failed:", e)
+          console.warn("[market] notifyDealStatusChanged (seller) failed:", e),
         );
       }
     } catch (e) {

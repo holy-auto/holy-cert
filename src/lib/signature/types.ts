@@ -8,20 +8,20 @@
 // ============================================================
 
 /** 署名セッションのステータス */
-export type SignatureStatus = 'pending' | 'signed' | 'expired' | 'cancelled';
+export type SignatureStatus = "pending" | "signed" | "expired" | "cancelled";
 
 /** 監査ログのイベント種別 */
 export type SignatureAuditEvent =
-  | 'session_created'    // 署名セッション作成
-  | 'notification_sent'  // 通知（LINE/メール）送信完了
-  | 'page_opened'        // 顧客が署名ページを開いた
-  | 'signed'             // 署名完了
-  | 'verified'           // 第三者が検証ページにアクセス
-  | 'expired'            // 有効期限切れ
-  | 'cancelled';         // キャンセル
+  | "session_created" // 署名セッション作成
+  | "notification_sent" // 通知（LINE/メール）送信完了
+  | "page_opened" // 顧客が署名ページを開いた
+  | "signed" // 署名完了
+  | "verified" // 第三者が検証ページにアクセス
+  | "expired" // 有効期限切れ
+  | "cancelled"; // キャンセル
 
 /** 通知方法 */
-export type NotificationMethod = 'line' | 'email' | 'sms';
+export type NotificationMethod = "line" | "email" | "sms";
 
 // ============================================================
 // DB レコード型
@@ -117,7 +117,7 @@ export interface SignatureResult {
   session_id: string;
   signed_at: string;
   verify_url: string;
-  signature_preview: string;  // 表示用省略形
+  signature_preview: string; // 表示用省略形
 }
 
 /** 署名検証の結果 */

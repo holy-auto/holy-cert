@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import {
-  apiUnauthorized,
-  apiValidationError,
-  apiInternalError,
-} from "@/lib/api/response";
+import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +42,7 @@ export async function POST(req: NextRequest) {
     const caller = await resolveInsurerCaller();
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const body = await req.json().catch(() => ({}) as Record<string, unknown>);
     const name = (typeof body?.name === "string" ? body.name : "").trim();
     if (!name) {
       return apiValidationError("name is required");

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = createAdminClient();
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     const vehicleId = (body?.vehicle_id ?? "").trim();
     const buyerName = (body?.buyer_name ?? "").trim();
@@ -59,7 +59,9 @@ export async function POST(req: NextRequest) {
     const { data: inquiry, error } = await admin
       .from("market_inquiries")
       .insert(row)
-      .select("id, vehicle_id, seller_tenant_id, buyer_name, buyer_email, buyer_company, buyer_phone, message, status, created_at")
+      .select(
+        "id, vehicle_id, seller_tenant_id, buyer_name, buyer_email, buyer_company, buyer_phone, message, status, created_at",
+      )
       .single();
 
     if (error) {

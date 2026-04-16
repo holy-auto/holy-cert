@@ -72,9 +72,7 @@ export async function GET(req: NextRequest) {
             ...item,
             target_detail: vehicle
               ? {
-                  identifier: [vehicle.maker, vehicle.model, vehicle.plate_number]
-                    .filter(Boolean)
-                    .join(" "),
+                  identifier: [vehicle.maker, vehicle.model, vehicle.plate_number].filter(Boolean).join(" "),
                   status: null,
                   updated_at: vehicle.updated_at,
                 }
@@ -169,11 +167,7 @@ export async function DELETE(req: NextRequest) {
   const admin = createAdminClient();
 
   try {
-    const { error } = await admin
-      .from("insurer_watchlist")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", caller.userId);
+    const { error } = await admin.from("insurer_watchlist").delete().eq("id", id).eq("user_id", caller.userId);
 
     if (error) {
       console.error("[watchlist] DELETE error:", error.message);

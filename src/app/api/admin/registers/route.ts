@@ -84,8 +84,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const name = (String(body?.name ?? "")).trim();
-    const storeId = (String(body?.store_id ?? "")).trim();
+    const name = String(body?.name ?? "").trim();
+    const storeId = String(body?.store_id ?? "").trim();
 
     if (!name) return apiValidationError("レジ名は必須です");
     if (!storeId) return apiValidationError("store_idは必須です");
@@ -135,11 +135,11 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
+    const id = String(body?.id ?? "").trim();
     if (!id) return apiValidationError("idは必須です");
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (body.name !== undefined) updates.name = (String(body.name)).trim();
+    if (body.name !== undefined) updates.name = String(body.name).trim();
     if (body.is_active !== undefined) updates.is_active = body.is_active;
     if (body.sort_order !== undefined) updates.sort_order = body.sort_order;
 
@@ -186,11 +186,7 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError("開いているセッションがあるため削除できません");
     }
 
-    const { error } = await supabase
-      .from("registers")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("registers").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "registers delete");

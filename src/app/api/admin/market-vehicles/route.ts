@@ -5,7 +5,8 @@ import { escapeIlike } from "@/lib/sanitize";
 import { enforceBilling } from "@/lib/billing/guard";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
-const MV_COLS = "id, tenant_id, maker, model, grade, year, mileage, color, color_code, plate_number, chassis_number, engine_type, displacement, transmission, drive_type, fuel_type, door_count, seating_capacity, body_type, inspection_date, repair_history, condition_grade, condition_note, asking_price, wholesale_price, description, features, status, listed_at, created_at, updated_at";
+const MV_COLS =
+  "id, tenant_id, maker, model, grade, year, mileage, color, color_code, plate_number, chassis_number, engine_type, displacement, transmission, drive_type, fuel_type, door_count, seating_capacity, body_type, inspection_date, repair_history, condition_grade, condition_note, asking_price, wholesale_price, description, features, status, listed_at, created_at, updated_at";
 const MVI_COLS = "id, vehicle_id, tenant_id, storage_path, file_name, content_type, file_size, sort_order, created_at";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,11 @@ export async function GET(req: NextRequest) {
       // Fetch images
       let imgs: any[] = [];
       if (vehicles && vehicles.length > 0) {
-        const { data } = await supabase.from("market_vehicle_images").select(MVI_COLS).eq("vehicle_id", singleId).order("sort_order", { ascending: true });
+        const { data } = await supabase
+          .from("market_vehicle_images")
+          .select(MVI_COLS)
+          .eq("vehicle_id", singleId)
+          .order("sort_order", { ascending: true });
         imgs = data ?? [];
       }
       const enriched = (vehicles ?? []).map((v) => ({ ...v, images: imgs }));
@@ -120,10 +125,14 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "standard", action: "market_create", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "standard",
+      action: "market_create",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     const makerVal = (body?.maker ?? "").trim();
     const modelVal = (body?.model ?? "").trim();
@@ -187,10 +196,14 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "standard", action: "market_update", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "standard",
+      action: "market_update",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
@@ -263,10 +276,14 @@ export async function DELETE(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "standard", action: "market_delete", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "standard",
+      action: "market_delete",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
@@ -298,19 +315,11 @@ export async function DELETE(req: NextRequest) {
       }
 
       // Delete image records
-      await supabase
-        .from("market_vehicle_images")
-        .delete()
-        .eq("vehicle_id", id)
-        .eq("tenant_id", caller.tenantId);
+      await supabase.from("market_vehicle_images").delete().eq("vehicle_id", id).eq("tenant_id", caller.tenantId);
     }
 
     // Delete the vehicle
-    const { error } = await supabase
-      .from("market_vehicles")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("market_vehicles").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "market-vehicles delete");

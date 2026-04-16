@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
@@ -294,9 +295,14 @@ export default function ReservationsClient() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ workflow_template_id: workflowTemplateId }),
       });
-      if (!res.ok) throw new Error("Failed");
-      mutate();
-      setDetailId(null);
+      const j = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(j?.error ?? "Failed");
+      // ワークフロー開始直後にドロワーを閉じずに、そのままステッパーを表示させる。
+      // 返却された steps を即座に反映して「次へ」ボタンで来店→証明書発行→会計と進行できるようにする。
+      if (Array.isArray(j?.steps)) setDetailSteps(j.steps);
+      setDetailStepLogs([]);
+      setWorkflowTemplateId("");
+      await mutate();
     } catch (e: unknown) {
       alert("ワークフロー開始に失敗: " + (e instanceof Error ? e.message : String(e)));
     }
@@ -503,15 +509,24 @@ export default function ReservationsClient() {
         title="予約管理"
         description="予約の登録・管理を行います。"
         actions={
-          <button
-            onClick={openCreateForm}
-            className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            新規予約
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/jobs/new"
+              className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent-dim px-4 py-2 text-sm font-semibold text-accent-text hover:bg-accent/10 transition-colors"
+              title="予約なしで来店された案件を即座に開始"
+            >
+              🏃 飛び込み案件
+            </Link>
+            <button
+              onClick={openCreateForm}
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              新規予約
+            </button>
+          </div>
         }
       />
 
@@ -622,7 +637,11 @@ export default function ReservationsClient() {
             }`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m9.86-2.54a4.5 4.5 0 0 0-1.242-7.244l-4.5-4.5a4.5 4.5 0 0 0-6.364 6.364L5.25 9.75" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m9.86-2.54a4.5 4.5 0 0 0-1.242-7.244l-4.5-4.5a4.5 4.5 0 0 0-6.364 6.364L5.25 9.75"
+              />
             </svg>
             予約ページ共有
           </button>
@@ -686,7 +705,11 @@ export default function ReservationsClient() {
               ) : (
                 <>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
+                    />
                   </svg>
                   URLをコピー
                 </>
@@ -900,8 +923,14 @@ export default function ReservationsClient() {
                                     )}
                                   </div>
 
-                                  {/* Title */}
-                                  <div className="text-sm font-bold text-primary mb-1">{r.title}</div>
+                                  {/* Title — clickable link to the dedicated job/workflow page */}
+                                  <Link
+                                    href={`/admin/jobs/${r.id}`}
+                                    className="block text-sm font-bold text-primary mb-1 hover:text-accent hover:underline transition-colors"
+                                    title="案件ワークフローを開く"
+                                  >
+                                    {r.title}
+                                  </Link>
 
                                   {/* Meta */}
                                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
@@ -960,7 +989,15 @@ export default function ReservationsClient() {
 
                                 {/* Right: actions */}
                                 <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                  {/* Detail button */}
+                                  {/* Open dedicated job workflow page */}
+                                  <Link
+                                    href={`/admin/jobs/${r.id}`}
+                                    className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-accent/30 bg-accent-dim text-accent-text hover:bg-accent/10 transition-colors whitespace-nowrap"
+                                    title="案件ワークフローを別画面で開く"
+                                  >
+                                    🧭 案件を開く
+                                  </Link>
+                                  {/* Detail button (inline drawer) */}
                                   <button
                                     onClick={() => {
                                       if (detailId === r.id) {
@@ -989,6 +1026,12 @@ export default function ReservationsClient() {
                               {/* Detail panel */}
                               {detailId === r.id && (
                                 <div className="mt-3 pt-3 border-t border-border-subtle flex flex-wrap gap-2">
+                                  <Link
+                                    href={`/admin/jobs/${r.id}`}
+                                    className="px-3 py-1.5 text-xs rounded-lg border border-accent/30 bg-accent-dim text-accent-text hover:bg-accent/10 transition-colors font-semibold"
+                                  >
+                                    🧭 案件ワークフローを開く
+                                  </Link>
                                   {r.status !== "cancelled" && r.status !== "completed" && (
                                     <button
                                       onClick={() => {

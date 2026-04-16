@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* data-theme="dark" を Tailwind の dark: バリアントに紐づける */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
 /* ══════════════════════════════════════════════════
    Ledra Design System — Design Tokens
    ══════════════════════════════════════════════════ */
@@ -69,10 +72,10 @@
   --shadow-focus: 0 0 0 3px var(--accent-blue-dim);
 
   /* Fonts */
-  --font-sans: var(--font-noto-sans, "Noto Sans JP"), "Hiragino Sans",
-               "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
-  --font-serif: "Yu Mincho", "YuMincho", "游明朝", "Hiragino Mincho ProN",
-                "HG明朝E", serif;
+  --font-sans:
+    var(--font-noto-sans, "Noto Sans JP"), "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo",
+    sans-serif;
+  --font-serif: "Yu Mincho", "YuMincho", "游明朝", "Hiragino Mincho ProN", "HG明朝E", serif;
   --font-mono: var(--font-geist-mono, "SF Mono", ui-monospace, monospace);
 
   /* Easing */
@@ -86,7 +89,7 @@
   --bg-surface: rgba(255, 255, 255, 0.04);
   --bg-surface-solid: #0d1525;
   --bg-surface-hover: rgba(255, 255, 255, 0.07);
-  --bg-surface-active: rgba(255, 255, 255, 0.10);
+  --bg-surface-active: rgba(255, 255, 255, 0.1);
   --bg-elevated: rgba(255, 255, 255, 0.06);
   --bg-inset: #0a0f1a;
   --bg-overlay: rgba(0, 0, 0, 0.5);
@@ -241,12 +244,18 @@ body {
     background: var(--accent-blue-hover);
     box-shadow: 0 2px 12px rgba(0, 113, 227, 0.25);
   }
-  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:active {
+    transform: scale(0.97);
+  }
   .btn-primary:focus-visible {
     outline: 2px solid var(--accent-blue);
     outline-offset: 2px;
   }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 
   /* ── Secondary Button ── */
   .btn-secondary {
@@ -269,12 +278,18 @@ body {
     background: var(--bg-surface-hover);
     border-color: var(--border-strong);
   }
-  .btn-secondary:active { transform: scale(0.97); }
+  .btn-secondary:active {
+    transform: scale(0.97);
+  }
   .btn-secondary:focus-visible {
     outline: 2px solid var(--accent-blue);
     outline-offset: 2px;
   }
-  .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .btn-secondary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 
   /* ── Ghost Button ── */
   .btn-ghost {
@@ -297,12 +312,18 @@ body {
     background: var(--bg-surface-hover);
     color: var(--text-primary);
   }
-  .btn-ghost:active { transform: scale(0.97); }
+  .btn-ghost:active {
+    transform: scale(0.97);
+  }
   .btn-ghost:focus-visible {
     outline: 2px solid var(--accent-blue);
     outline-offset: 2px;
   }
-  .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .btn-ghost:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 
   /* ── Danger Button ── */
   .btn-danger {
@@ -325,12 +346,18 @@ body {
     background: rgba(255, 59, 48, 0.12);
     border-color: rgba(255, 59, 48, 0.25);
   }
-  .btn-danger:active { transform: scale(0.97); }
+  .btn-danger:active {
+    transform: scale(0.97);
+  }
   .btn-danger:focus-visible {
     outline: 2px solid var(--accent-red);
     outline-offset: 2px;
   }
-  .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .btn-danger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 
   /* ── Outline Button ── */
   .btn-outline {
@@ -353,12 +380,18 @@ body {
     background: var(--bg-surface-hover);
     border-color: var(--border-strong);
   }
-  .btn-outline:active { transform: scale(0.97); }
+  .btn-outline:active {
+    transform: scale(0.97);
+  }
   .btn-outline:focus-visible {
     outline: 2px solid var(--accent-blue);
     outline-offset: 2px;
   }
-  .btn-outline:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .btn-outline:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 
   /* ── Button Size Modifiers ── */
   .btn-primary[data-size="sm"],
@@ -390,10 +423,14 @@ body {
     font-size: 0.875rem;
     letter-spacing: -0.01em;
     padding: 0.5rem 0.875rem;
-    transition: border-color 200ms, box-shadow 200ms;
+    transition:
+      border-color 200ms,
+      box-shadow 200ms;
     outline: none;
   }
-  .input-field::placeholder { color: var(--text-muted); }
+  .input-field::placeholder {
+    color: var(--text-muted);
+  }
   .input-field:focus-visible {
     border-color: var(--border-focus);
     box-shadow: var(--shadow-focus);
@@ -419,7 +456,9 @@ body {
     font-size: 0.875rem;
     letter-spacing: -0.01em;
     padding: 0.5rem 0.875rem;
-    transition: border-color 200ms, box-shadow 200ms;
+    transition:
+      border-color 200ms,
+      box-shadow 200ms;
     outline: none;
     cursor: pointer;
   }
@@ -448,7 +487,10 @@ body {
 
   /* ── Native form element dark-mode reset ──
      Catches inputs/selects/textareas that don't use .input-field / .select-field */
-  [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]):not(.hidden),
+  [data-theme="dark"]
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]):not(
+      .hidden
+    ),
   [data-theme="dark"] select:not(.hidden),
   [data-theme="dark"] textarea:not(.hidden) {
     background-color: var(--bg-surface-solid);
@@ -483,10 +525,18 @@ body {
    Utility Classes
    ══════════════════════════════════════════════════ */
 @layer utilities {
-  .glow-cyan { box-shadow: 0 0 20px var(--accent-blue-dim); }
-  .glow-emerald { box-shadow: 0 0 20px var(--accent-emerald-dim); }
-  .glow-amber { box-shadow: 0 0 20px var(--accent-amber-dim); }
-  .glow-red { box-shadow: 0 0 20px var(--accent-red-dim); }
+  .glow-cyan {
+    box-shadow: 0 0 20px var(--accent-blue-dim);
+  }
+  .glow-emerald {
+    box-shadow: 0 0 20px var(--accent-emerald-dim);
+  }
+  .glow-amber {
+    box-shadow: 0 0 20px var(--accent-amber-dim);
+  }
+  .glow-red {
+    box-shadow: 0 0 20px var(--accent-red-dim);
+  }
 }
 
 /* ══════════════════════════════════════════════════
@@ -495,77 +545,157 @@ body {
 
 /* Skeleton pulse */
 @keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* Modal / overlay enter */
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Drawer slide */
 @keyframes slide-in-right {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 /* Toast enter */
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Hero & scroll-reveal animations */
 @keyframes hero-fade-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes hero-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes scroll-fade-left {
-  from { opacity: 0; transform: translateX(-24px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 @keyframes scroll-fade-right {
-  from { opacity: 0; transform: translateX(24px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 @keyframes scroll-scale-up {
-  from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 @keyframes scroll-blur-in {
-  from { opacity: 0; filter: blur(8px); }
-  to   { opacity: 1; filter: blur(0); }
+  from {
+    opacity: 0;
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
 }
 @keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 @keyframes shimmer {
-  0%, 100% { opacity: 0.3; }
-  50%      { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Marketing — gradient border */
 @keyframes gradient-border-spin {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Marketing — float */
 @keyframes dark-float {
-  0%, 100% { transform: translateY(0px) scale(1); }
-  50%       { transform: translateY(-12px) scale(1.02); }
+  0%,
+  100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-12px) scale(1.02);
+  }
 }
 
 /* ══════════════════════════════════════════════════
@@ -576,7 +706,11 @@ body {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 1rem;
-    transition: background 300ms, border-color 300ms, box-shadow 300ms, transform 300ms;
+    transition:
+      background 300ms,
+      border-color 300ms,
+      box-shadow 300ms,
+      transform 300ms;
   }
   .dark-card:hover {
     background: rgba(255, 255, 255, 0.07);

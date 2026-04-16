@@ -29,15 +29,11 @@ export async function GET(req: NextRequest) {
           plan_tier: "pro",
           is_active: true,
         },
-        { headers: { "Cache-Control": "no-store" } }
+        { headers: { "Cache-Control": "no-store" } },
       );
     }
 
-    const { data: mem } = await supabase
-      .from("tenant_memberships")
-      .select("tenant_id")
-      .limit(1)
-      .single();
+    const { data: mem } = await supabase.from("tenant_memberships").select("tenant_id").limit(1).single();
 
     const tenantId = mem?.tenant_id as string | undefined;
     if (!tenantId) {
@@ -61,7 +57,7 @@ export async function GET(req: NextRequest) {
         plan_tier: String(t.plan_tier ?? ""),
         is_active: !!t.is_active,
       },
-      { headers: { "Cache-Control": "no-store" } }
+      { headers: { "Cache-Control": "no-store" } },
     );
   } catch (e) {
     return apiInternalError(e, "admin/billing-status");

@@ -16,13 +16,31 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
 
     const body = await request.json();
     const admin = getAdminClient();
-    const allowed = ["title", "description", "category", "content_type", "content_url", "thumbnail_url", "duration_min", "is_required", "is_published", "sort_order"];
+    const allowed = [
+      "title",
+      "description",
+      "category",
+      "content_type",
+      "content_url",
+      "thumbnail_url",
+      "duration_min",
+      "is_required",
+      "is_published",
+      "sort_order",
+    ];
     const updates: Record<string, unknown> = {};
     for (const key of allowed) {
       if (key in body) updates[key] = body[key];
     }
 
-    const { data, error } = await admin.from("agent_training_courses").update(updates).eq("id", id).select("id, title, description, category, content_type, content_url, thumbnail_url, duration_min, is_required, is_published, sort_order, created_at, updated_at").single();
+    const { data, error } = await admin
+      .from("agent_training_courses")
+      .update(updates)
+      .eq("id", id)
+      .select(
+        "id, title, description, category, content_type, content_url, thumbnail_url, duration_min, is_required, is_published, sort_order, created_at, updated_at",
+      )
+      .single();
     if (error) return apiInternalError(error, "agent-training PUT");
     return NextResponse.json({ course: data });
   } catch (e) {

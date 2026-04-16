@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (!caller) return apiUnauthorized();
 
     const admin = createAdminClient();
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     const inquiryId = (body?.inquiry_id ?? "").trim();
     const vehicleId = (body?.vehicle_id ?? "").trim();
@@ -41,7 +41,9 @@ export async function POST(req: NextRequest) {
     const { data: deal, error } = await admin
       .from("market_deals")
       .insert(row)
-      .select("id, inquiry_id, vehicle_id, seller_tenant_id, buyer_name, buyer_email, buyer_company, agreed_price, status, created_at")
+      .select(
+        "id, inquiry_id, vehicle_id, seller_tenant_id, buyer_name, buyer_email, buyer_company, agreed_price, status, created_at",
+      )
       .single();
 
     if (error) {

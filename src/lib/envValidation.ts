@@ -27,6 +27,23 @@ const CRITICAL_ENV_VARS: EnvVarCheck[] = [
   { name: "GOOGLE_CLIENT_SECRET", required: false, warnOnly: true },
   { name: "RESEND_API_KEY", required: false, warnOnly: true },
   { name: "APP_URL", required: false, warnOnly: true },
+  // Phase 3a: Verification provider env vars (all optional until activated)
+  { name: "C2PA_MODE", required: false, warnOnly: true },
+  { name: "C2PA_SIGNER_KEY", required: false, warnOnly: true },
+  { name: "C2PA_SIGNER_CERT", required: false, warnOnly: true },
+  { name: "DEEPFAKE_PROVIDER", required: false, warnOnly: true },
+  { name: "DEEPFAKE_API_KEY", required: false, warnOnly: true },
+  { name: "DEVICE_ATTESTATION_ENABLED", required: false, warnOnly: true },
+  { name: "POLYGON_ANCHOR_ENABLED", required: false, warnOnly: true },
+  { name: "POLYGON_NETWORK", required: false, warnOnly: true },
+  { name: "POLYGON_RPC_URL", required: false, warnOnly: true },
+  { name: "POLYGON_PRIVATE_KEY", required: false, warnOnly: true },
+  { name: "POLYGON_CONTRACT_ADDRESS", required: false, warnOnly: true },
+  { name: "POLYGON_WALLET_WARN_BALANCE_POL", required: false, warnOnly: true },
+  { name: "POLYGON_WALLET_ALERT_BALANCE_POL", required: false, warnOnly: true },
+  // Phase 4: Provider-specific API keys
+  { name: "HIVE_API_KEY", required: false, warnOnly: true },
+  { name: "PINATA_JWT", required: false, warnOnly: true },
 ];
 
 export function validateRequiredEnvVars(): void {
@@ -45,9 +62,7 @@ export function validateRequiredEnvVars(): void {
   }
 
   if (warnings.length > 0) {
-    console.warn(
-      `[env-validation] Optional env vars not set (some features disabled): ${warnings.join(", ")}`,
-    );
+    console.warn(`[env-validation] Optional env vars not set (some features disabled): ${warnings.join(", ")}`);
   }
 
   if (missing.length > 0) {

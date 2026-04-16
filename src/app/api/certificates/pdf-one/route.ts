@@ -15,13 +15,7 @@ function baseUrl(req: NextRequest) {
 
 function pickId(body: any): string | null {
   return (
-    body?.certificate_id ??
-    body?.certificateId ??
-    body?.id ??
-    body?.cid ??
-    body?.public_id ??
-    body?.publicId ??
-    null
+    body?.certificate_id ?? body?.certificateId ?? body?.id ?? body?.cid ?? body?.public_id ?? body?.publicId ?? null
   );
 }
 
@@ -70,7 +64,7 @@ async function proxyToCertificatePdf(req: NextRequest, id: string) {
   const text = last ? await last.text().catch(() => "") : "";
   return NextResponse.json(
     { error: "Failed to proxy to /api/certificate/pdf", status, detail: text.slice(0, 500) },
-    { status }
+    { status },
   );
 }
 

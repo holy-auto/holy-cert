@@ -23,10 +23,7 @@ export async function GET() {
     // Fetch read status for current user
     let readIds: Set<string> = new Set();
     if (userId) {
-      const { data: reads } = await supabase
-        .from("announcement_reads")
-        .select("announcement_id")
-        .eq("user_id", userId);
+      const { data: reads } = await supabase.from("announcement_reads").select("announcement_id").eq("user_id", userId);
       if (reads) {
         readIds = new Set(reads.map((r: { announcement_id: string }) => r.announcement_id));
       }

@@ -41,9 +41,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ rows: data ?? [] });
   } catch (e) {
     console.error("[insurer/stores]", e);
-    return NextResponse.json(
-      { error: "internal_error", message: "内部エラーが発生しました" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "internal_error", message: "内部エラーが発生しました" }, { status: 500 });
   }
 }

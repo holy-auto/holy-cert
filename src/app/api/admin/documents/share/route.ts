@@ -19,14 +19,15 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const documentId = (body?.document_id ?? "").trim();
     const channel = (body?.channel ?? "").trim() as Channel;
     const recipient = (body?.recipient ?? "").trim();
     const message = (body?.message ?? "").trim() || undefined;
 
     if (!documentId) return apiValidationError("document_id は必須です。");
-    if (!VALID_CHANNELS.includes(channel)) return apiValidationError("channel は email, line, sms のいずれかを指定してください。");
+    if (!VALID_CHANNELS.includes(channel))
+      return apiValidationError("channel は email, line, sms のいずれかを指定してください。");
     if (!recipient) return apiValidationError("recipient は必須です。");
 
     // Fetch document
@@ -43,21 +44,13 @@ export async function POST(req: NextRequest) {
     const docLabel = DOC_TYPES[docType]?.label ?? doc.doc_type;
 
     // Fetch tenant name for email sender
-    const { data: tenant } = await supabase
-      .from("tenants")
-      .select("name")
-      .eq("id", caller.tenantId)
-      .single();
+    const { data: tenant } = await supabase.from("tenants").select("name").eq("id", caller.tenantId).single();
     const senderName = tenant?.name ?? "Ledra";
 
     // Fetch customer name
     let recipientName = doc.recipient_name ?? "";
     if (!recipientName && doc.customer_id) {
-      const { data: cust } = await supabase
-        .from("customers")
-        .select("name")
-        .eq("id", doc.customer_id)
-        .single();
+      const { data: cust } = await supabase.from("customers").select("name").eq("id", doc.customer_id).single();
       recipientName = cust?.name ?? "";
     }
 
@@ -94,34 +87,39 @@ export async function POST(req: NextRequest) {
       success = false;
     }
 
-    // Log the share attempt
-    const admin = getAdminClient();
-    await admin.from("document_share_log").insert({
-      document_id: documentId,
-      tenant_id: caller.tenantId,
-      channel,
-      recipient,
-      status: success ? "sent" : "failed",
-      error_message: success ? null : (errorMessage ?? "送信に失敗しました"),
-      sent_by: caller.userId,
-    });
+    // Log the share attempt (non-fatal: table may not exist in all environments)
+    try {
+      const admin = getAdminClient();
+      await admin.from("document_share_log").insert({
+        document_id: documentId,
+        tenant_id: caller.tenantId,
+        channel,
+        recipient,
+        status: success ? "sent" : "failed",
+        error_message: success ? null : (errorMessage ?? "送信に失敗しました"),
+        sent_by: caller.userId,
+      });
+    } catch (logErr) {
+      console.error("[document_share] Failed to write share log:", logErr);
+    }
 
     if (!success) {
-      return apiInternalError(
-        errorMessage ?? "送信に失敗しました",
-        "document_share",
-      );
+      return apiInternalError(errorMessage ?? "送信に失敗しました", "document_share");
     }
 
     // Auto-update status from draft to sent
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
     let updatedDoc = doc;
     if (doc.status === "draft") {
-      const { data: updated } = await supabase
+      const adminForUpdate = getAdminClient();
+      const { data: updated } = await adminForUpdate
         .from("documents")
         .update({ status: "sent", updated_at: new Date().toISOString() })
         .eq("id", documentId)
         .eq("tenant_id", caller.tenantId)
-        .select("id, tenant_id, customer_id, recipient_name, doc_type, doc_number, status, total, created_at, updated_at")
+        .select(
+          "id, tenant_id, customer_id, recipient_name, doc_type, doc_number, status, total, created_at, updated_at",
+        )
         .single();
       if (updated) updatedDoc = updated;
     }

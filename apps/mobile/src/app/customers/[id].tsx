@@ -133,9 +133,7 @@ export default function CustomerDetailScreen() {
         mode="contained"
         style={styles.editButton}
         buttonColor="#1a1a2e"
-        onPress={() => {
-          // TODO: navigate to edit screen
-        }}
+        onPress={() => router.push(`/customers/edit/${id}`)}
       >
         編集
       </Button>

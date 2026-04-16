@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { parsePagination } from "@/lib/api/pagination";
@@ -60,7 +61,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ certificates: certs ?? [] });
     }
 
-    const selectCols = "id, tenant_id, customer_id, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, payment_date, created_at, updated_at";
+    const selectCols =
+      "id, tenant_id, customer_id, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, payment_date, created_at, updated_at";
 
     let query = supabase
       .from("documents")
@@ -97,10 +99,7 @@ export async function GET(req: NextRequest) {
     const customerIds = [...new Set((docs ?? []).map((i) => i.customer_id).filter(Boolean))];
     let customerNames: Record<string, string> = {};
     if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name")
-        .in("id", customerIds);
+      const { data: customers } = await supabase.from("customers").select("id, name").in("id", customerIds);
       (customers ?? []).forEach((c) => {
         customerNames[c.id] = c.name;
       });
@@ -120,27 +119,28 @@ export async function GET(req: NextRequest) {
     const unpaidAmount = allInvoices
       .filter((i) => i.status === "sent" || i.status === "overdue")
       .reduce((sum, i) => sum + (i.total ?? 0), 0);
-    const thisMonthIssued = allInvoices.filter(
-      (i) => i.issued_at && i.issued_at >= thisMonthStart
-    ).length;
+    const thisMonthIssued = allInvoices.filter((i) => i.issued_at && i.issued_at >= thisMonthStart).length;
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return NextResponse.json({
-      invoices: enriched,
-      stats: {
-        total: totalCount ?? allInvoices.length,
-        unpaid_amount: unpaidAmount,
-        this_month_issued: thisMonthIssued,
-      },
-      ...(page > 0 && {
-        pagination: {
-          page,
-          per_page: perPage,
+    return NextResponse.json(
+      {
+        invoices: enriched,
+        stats: {
           total: totalCount ?? allInvoices.length,
-          total_pages: Math.ceil((totalCount ?? allInvoices.length) / perPage),
+          unpaid_amount: unpaidAmount,
+          this_month_issued: thisMonthIssued,
         },
-      }),
-    }, { headers });
+        ...(page > 0 && {
+          pagination: {
+            page,
+            per_page: perPage,
+            total: totalCount ?? allInvoices.length,
+            total_pages: Math.ceil((totalCount ?? allInvoices.length) / perPage),
+          },
+        }),
+      },
+      { headers },
+    );
   } catch (e: unknown) {
     return apiInternalError(e, "invoices list");
   }
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     const docNumber = body?.invoice_number?.trim() || (await generateInvoiceNumber(supabase, caller.tenantId));
     const customerId = body?.customer_id?.trim() || null;
@@ -221,7 +221,15 @@ export async function POST(req: NextRequest) {
       vehicle_info_json: vehicleInfo ?? {},
     };
 
-    const { data, error } = await supabase.from("documents").insert(row).select("id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, items_json, is_invoice_compliant, show_seal, show_logo, show_bank_info, recipient_name, vehicle_id, vehicle_info_json, created_at, updated_at").single();
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
+      .from("documents")
+      .insert(row)
+      .select(
+        "id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, items_json, is_invoice_compliant, show_seal, show_logo, show_bank_info, recipient_name, vehicle_id, vehicle_info_json, created_at, updated_at",
+      )
+      .single();
     if (error) {
       return apiInternalError(error, "invoices insert");
     }
@@ -240,7 +248,7 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
@@ -289,13 +297,17 @@ export async function PUT(req: NextRequest) {
       updates.tax_rate = taxRate;
     }
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id と doc_type で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("documents")
       .update(updates)
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
       .eq("doc_type", "invoice")
-      .select("id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, items_json, is_invoice_compliant, show_seal, show_logo, show_bank_info, recipient_name, payment_date, created_at, updated_at")
+      .select(
+        "id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, items_json, is_invoice_compliant, show_seal, show_logo, show_bank_info, recipient_name, payment_date, created_at, updated_at",
+      )
       .single();
 
     if (error) {
@@ -319,7 +331,7 @@ export async function DELETE(req: NextRequest) {
     }
     const caller = { userId: callerWithRole.userId, tenantId: callerWithRole.tenantId };
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
@@ -338,11 +350,9 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError("下書きステータスの請求書のみ削除できます。");
     }
 
-    const { error } = await supabase
-      .from("documents")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    // RLS をバイパスしてサービスロールで DELETE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin.from("documents").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "invoices delete");

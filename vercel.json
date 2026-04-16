@@ -1,4 +1,10 @@
 {
+  "functions": {
+    "src/app/api/certificates/images/upload/route.ts": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/billing",
@@ -19,6 +25,10 @@
     {
       "path": "/api/cron/monitor",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/polygon-signer",
+      "schedule": "0 * * * *"
     }
   ]
 }

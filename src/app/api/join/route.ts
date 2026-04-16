@@ -136,9 +136,9 @@ export async function POST(req: NextRequest) {
     console.error("[insurer-register] RPC error, rolling back auth user:", msg);
 
     // Rollback: delete the auth user we just created
-    await supabase.auth.admin.deleteUser(userId).catch((err: unknown) =>
-      console.error("[insurer-register] rollback deleteUser failed:", err),
-    );
+    await supabase.auth.admin
+      .deleteUser(userId)
+      .catch((err: unknown) => console.error("[insurer-register] rollback deleteUser failed:", err));
 
     return apiInternalError(rpcError, "insurer-register RPC");
   }

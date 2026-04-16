@@ -6,23 +6,59 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import PageHeader from "@/components/ui/PageHeader";
 import DashboardCharts from "./DashboardCharts";
 import OnboardingTour from "./OnboardingTour";
+import DashboardModeSwitch from "./DashboardModeSwitch";
 
 // ── Partner Rank System ──
 interface PartnerRank {
   key: string;
   label: string;
-  color: string;    // tailwind text color
-  bgColor: string;  // tailwind bg color
+  color: string; // tailwind text color
+  bgColor: string; // tailwind bg color
   minCompleted: number;
   minRating: number | null;
 }
 
 const PARTNER_RANKS: PartnerRank[] = [
-  { key: "platinum", label: "プラチナ", color: "text-violet-600 dark:text-violet-400", bgColor: "bg-violet-100 dark:bg-violet-900/40", minCompleted: 50, minRating: 4.0 },
-  { key: "gold",     label: "ゴールド", color: "text-yellow-600 dark:text-yellow-400", bgColor: "bg-yellow-100 dark:bg-yellow-900/40", minCompleted: 20, minRating: 3.5 },
-  { key: "silver",   label: "シルバー", color: "text-gray-500 dark:text-gray-400",     bgColor: "bg-gray-100 dark:bg-gray-800/60",     minCompleted: 5,  minRating: null },
-  { key: "bronze",   label: "ブロンズ", color: "text-orange-600 dark:text-orange-400", bgColor: "bg-orange-100 dark:bg-orange-900/40", minCompleted: 1,  minRating: null },
-  { key: "starter",  label: "スターター", color: "text-muted",                          bgColor: "bg-surface-hover",                    minCompleted: 0,  minRating: null },
+  {
+    key: "platinum",
+    label: "プラチナ",
+    color: "text-violet-600 dark:text-violet-400",
+    bgColor: "bg-violet-100 dark:bg-violet-900/40",
+    minCompleted: 50,
+    minRating: 4.0,
+  },
+  {
+    key: "gold",
+    label: "ゴールド",
+    color: "text-yellow-600 dark:text-yellow-400",
+    bgColor: "bg-yellow-100 dark:bg-yellow-900/40",
+    minCompleted: 20,
+    minRating: 3.5,
+  },
+  {
+    key: "silver",
+    label: "シルバー",
+    color: "text-gray-500 dark:text-gray-400",
+    bgColor: "bg-gray-100 dark:bg-gray-800/60",
+    minCompleted: 5,
+    minRating: null,
+  },
+  {
+    key: "bronze",
+    label: "ブロンズ",
+    color: "text-orange-600 dark:text-orange-400",
+    bgColor: "bg-orange-100 dark:bg-orange-900/40",
+    minCompleted: 1,
+    minRating: null,
+  },
+  {
+    key: "starter",
+    label: "スターター",
+    color: "text-muted",
+    bgColor: "bg-surface-hover",
+    minCompleted: 0,
+    minRating: null,
+  },
 ];
 
 function resolveRank(completedOrders: number, avgRating: number | null): PartnerRank {
@@ -84,7 +120,14 @@ async function TenantStats({ tenantId }: { tenantId: string }) {
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
-  const ps = partnerScore ?? { total_orders: 0, completed_orders: 0, on_time_orders: 0, cancelled_orders: 0, avg_rating: null, rating_count: 0 };
+  const ps = partnerScore ?? {
+    total_orders: 0,
+    completed_orders: 0,
+    on_time_orders: 0,
+    cancelled_orders: 0,
+    avg_rating: null,
+    rating_count: 0,
+  };
   const rank = resolveRank(ps.completed_orders, ps.avg_rating);
   const completionRate = ps.total_orders > 0 ? Math.round((ps.completed_orders / ps.total_orders) * 100) : null;
   const onTimeRate = ps.completed_orders > 0 ? Math.round((ps.on_time_orders / ps.completed_orders) * 100) : null;
@@ -102,7 +145,15 @@ async function TenantStats({ tenantId }: { tenantId: string }) {
           <div className="flex items-center gap-4 mb-4">
             <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${rank.bgColor}`}>
               <span className={`text-2xl font-bold ${rank.color}`}>
-                {rank.key === "platinum" ? "P" : rank.key === "gold" ? "G" : rank.key === "silver" ? "S" : rank.key === "bronze" ? "B" : "—"}
+                {rank.key === "platinum"
+                  ? "P"
+                  : rank.key === "gold"
+                    ? "G"
+                    : rank.key === "silver"
+                      ? "S"
+                      : rank.key === "bronze"
+                        ? "B"
+                        : "—"}
               </span>
             </div>
             <div>
@@ -112,9 +163,12 @@ async function TenantStats({ tenantId }: { tenantId: string }) {
             {ps.avg_rating != null && (
               <div className="ml-auto text-right">
                 <div className="text-2xl font-bold text-yellow-500">
-                  {"★".repeat(Math.round(ps.avg_rating))}{"☆".repeat(5 - Math.round(ps.avg_rating))}
+                  {"★".repeat(Math.round(ps.avg_rating))}
+                  {"☆".repeat(5 - Math.round(ps.avg_rating))}
                 </div>
-                <div className="text-xs text-muted">{ps.avg_rating.toFixed(1)} / 5.0（{ps.rating_count}件）</div>
+                <div className="text-xs text-muted">
+                  {ps.avg_rating.toFixed(1)} / 5.0（{ps.rating_count}件）
+                </div>
               </div>
             )}
           </div>
@@ -125,7 +179,9 @@ async function TenantStats({ tenantId }: { tenantId: string }) {
               <div className="text-[11px] text-muted">完了取引</div>
             </div>
             <div className="p-3 rounded-lg bg-surface-hover">
-              <div className="text-2xl font-bold text-primary">{completionRate != null ? `${completionRate}%` : "—"}</div>
+              <div className="text-2xl font-bold text-primary">
+                {completionRate != null ? `${completionRate}%` : "—"}
+              </div>
               <div className="text-[11px] text-muted">完了率</div>
             </div>
             <div className="p-3 rounded-lg bg-surface-hover">
@@ -143,7 +199,10 @@ async function TenantStats({ tenantId }: { tenantId: string }) {
               <span className={`font-semibold ${nextRank.color}`}>{nextRank.label}</span>
               まであと
               {ps.completed_orders < nextRank.minCompleted && (
-                <span className="font-semibold text-primary"> {nextRank.minCompleted - ps.completed_orders}件の完了取引</span>
+                <span className="font-semibold text-primary">
+                  {" "}
+                  {nextRank.minCompleted - ps.completed_orders}件の完了取引
+                </span>
               )}
               {nextRank.minRating != null && (ps.avg_rating == null || ps.avg_rating < nextRank.minRating) && (
                 <span className="font-semibold text-primary"> 平均評価{nextRank.minRating}以上</span>
@@ -283,7 +342,9 @@ async function PlatformStats() {
                     return (
                       <div key={cat.category}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-secondary">{CATEGORY_LABELS[cat.category] ?? cat.category}</span>
+                          <span className="text-sm text-secondary">
+                            {CATEGORY_LABELS[cat.category] ?? cat.category}
+                          </span>
                           <span className="text-sm font-semibold text-primary">{cat.count}</span>
                         </div>
                         <div className="h-2 rounded-full bg-surface-active overflow-hidden">
@@ -341,25 +402,47 @@ export default async function AdminHome() {
 
   const tenantId = caller.tenantId;
 
-  return (
-    <div className="space-y-6">
-      <OnboardingTour />
-      <PageHeader tag="管理画面" title="ダッシュボード" description="施工証明書の管理状況を一目で確認" />
-
+  const adminContent = (
+    <>
       {/* Getting Started - 一番上に表示 */}
       <div className="glass-card p-5 flex items-start gap-4 border-l-4 border-accent">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent-dim">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-accent">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+          <svg
+            width="20"
+            height="20"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            className="text-accent"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
+            />
           </svg>
         </span>
         <div className="space-y-1">
           <div className="text-sm font-semibold text-primary">はじめての方へ</div>
           <p className="text-xs text-muted leading-relaxed">
-            Ledraへようこそ！まずは<Link href="/admin/settings" className="text-accent hover:underline">店舗設定</Link>を完了し、
-            <Link href="/admin/certificates/new" className="text-accent hover:underline">最初の証明書を発行</Link>してみましょう。
-            ご不明な点は<Link href="/admin/support" className="text-accent hover:underline">サポート</Link>または
-            <Link href="/admin/support" className="text-accent hover:underline">お問い合わせ</Link>をご利用ください。
+            Ledraへようこそ！まずは
+            <Link href="/admin/settings" className="text-accent hover:underline">
+              店舗設定
+            </Link>
+            を完了し、
+            <Link href="/admin/certificates/new" className="text-accent hover:underline">
+              最初の証明書を発行
+            </Link>
+            してみましょう。 ご不明な点は
+            <Link href="/admin/support" className="text-accent hover:underline">
+              サポート
+            </Link>
+            または
+            <Link href="/admin/support" className="text-accent hover:underline">
+              お問い合わせ
+            </Link>
+            をご利用ください。
           </p>
         </div>
       </div>
@@ -373,12 +456,26 @@ export default async function AdminHome() {
             className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-dim">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-accent">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                className="text-accent"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+                />
               </svg>
             </span>
             <div>
-              <div className="text-sm font-semibold text-primary group-hover:text-accent transition-colors">証明書一覧</div>
+              <div className="text-sm font-semibold text-primary group-hover:text-accent transition-colors">
+                証明書一覧
+              </div>
               <div className="text-xs text-muted">証明書の管理・検索</div>
             </div>
           </Link>
@@ -388,13 +485,48 @@ export default async function AdminHome() {
             className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-success-dim">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-success">
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                className="text-success"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
             </span>
             <div>
-              <div className="text-sm font-semibold text-primary group-hover:text-success transition-colors">新規発行</div>
+              <div className="text-sm font-semibold text-primary group-hover:text-success transition-colors">
+                新規発行
+              </div>
               <div className="text-xs text-muted">施工証明書を発行</div>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/jobs/new"
+            className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-dim">
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                className="text-accent"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              </svg>
+            </span>
+            <div>
+              <div className="text-sm font-semibold text-primary group-hover:text-accent transition-colors">
+                🏃 飛び込み案件
+              </div>
+              <div className="text-xs text-muted">予約なしで案件をすぐ開始</div>
             </div>
           </Link>
 
@@ -403,12 +535,26 @@ export default async function AdminHome() {
             className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-dim">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-accent">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                className="text-accent"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+                />
               </svg>
             </span>
             <div>
-              <div className="text-sm font-semibold text-primary group-hover:text-accent transition-colors">顧客管理</div>
+              <div className="text-sm font-semibold text-primary group-hover:text-accent transition-colors">
+                顧客管理
+              </div>
               <div className="text-xs text-muted">顧客情報の登録・編集</div>
             </div>
           </Link>
@@ -418,12 +564,26 @@ export default async function AdminHome() {
             className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-dim">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-warning">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                className="text-warning"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                />
               </svg>
             </span>
             <div>
-              <div className="text-sm font-semibold text-primary group-hover:text-warning transition-colors">請求書</div>
+              <div className="text-sm font-semibold text-primary group-hover:text-warning transition-colors">
+                請求書
+              </div>
               <div className="text-xs text-muted">請求書の作成・管理</div>
             </div>
           </Link>
@@ -433,16 +593,29 @@ export default async function AdminHome() {
             className="glass-card p-5 flex items-center gap-4 hover:bg-surface-hover transition-colors group"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-dim">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-warning">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+              <svg
+                width="20"
+                height="20"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                className="text-warning"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"
+                />
               </svg>
             </span>
             <div>
-              <div className="text-sm font-semibold text-primary group-hover:text-warning transition-colors">請求・プラン</div>
+              <div className="text-sm font-semibold text-primary group-hover:text-warning transition-colors">
+                請求・プラン
+              </div>
               <div className="text-xs text-muted">課金状況の確認</div>
             </div>
           </Link>
-
         </div>
       </div>
 
@@ -457,6 +630,14 @@ export default async function AdminHome() {
       <Suspense fallback={<StatSkeleton />}>
         <PlatformStats />
       </Suspense>
+    </>
+  );
+
+  return (
+    <div className="space-y-6">
+      <OnboardingTour />
+      <PageHeader tag="管理画面" title="ダッシュボード" description="施工証明書の管理状況を一目で確認" />
+      <DashboardModeSwitch adminContent={adminContent} />
     </div>
   );
 }

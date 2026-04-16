@@ -59,7 +59,7 @@ export function createTenantScopedAdmin(tenantId: string) {
   if (!tenantId || typeof tenantId !== "string" || tenantId.trim() === "") {
     throw new Error(
       "[security] createTenantScopedAdmin called with falsy or empty tenantId. " +
-      "This is a critical error — aborting to prevent cross-tenant data leakage."
+        "This is a critical error — aborting to prevent cross-tenant data leakage.",
     );
   }
   return { admin: getSupabaseAdmin(), tenantId };

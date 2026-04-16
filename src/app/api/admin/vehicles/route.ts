@@ -19,7 +19,9 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("vehicles")
-      .select("id, maker, model, year, plate_display, vin_code, customer_id, customer:customers(id, name)", { count: "exact" })
+      .select("id, maker, model, year, plate_display, vin_code, customer_id, customer:customers(id, name)", {
+        count: "exact",
+      })
       .eq("tenant_id", caller.tenantId)
       .order("created_at", { ascending: false });
 
@@ -39,10 +41,13 @@ export async function GET(req: NextRequest) {
     }
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return NextResponse.json({
-      vehicles: vehicles ?? [],
-      ...(pagination.page > 0 && { page: pagination.page, per_page: pagination.perPage, total: count ?? 0 }),
-    }, { headers });
+    return NextResponse.json(
+      {
+        vehicles: vehicles ?? [],
+        ...(pagination.page > 0 && { page: pagination.page, per_page: pagination.perPage, total: count ?? 0 }),
+      },
+      { headers },
+    );
   } catch (e: unknown) {
     return apiInternalError(e, "admin/vehicles GET");
   }

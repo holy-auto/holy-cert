@@ -154,10 +154,7 @@ export async function processExpiryReminders(
     const customerIds = [...new Set(certList.map((c) => c.customer_id).filter(Boolean))] as string[];
     const customerMap = new Map<string, { name: string | null; email: string | null }>();
     if (customerIds.length) {
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name, email")
-        .in("id", customerIds);
+      const { data: customers } = await supabase.from("customers").select("id, name, email").in("id", customerIds);
       for (const c of customers ?? []) {
         customerMap.set(c.id, { name: c.name, email: c.email });
       }
@@ -315,10 +312,7 @@ export async function processPostIssueFollowUps(
   const customerIds = [...new Set(newCertList.map((c) => c.customer_id).filter(Boolean))] as string[];
   const customerMap = new Map<string, { name: string | null; email: string | null }>();
   if (customerIds.length) {
-    const { data: customers } = await supabase
-      .from("customers")
-      .select("id, name, email")
-      .in("id", customerIds);
+    const { data: customers } = await supabase.from("customers").select("id, name, email").in("id", customerIds);
     for (const c of customers ?? []) {
       customerMap.set(c.id, { name: c.name, email: c.email });
     }
@@ -397,10 +391,7 @@ export async function processFirstReminderFollowUps(
   const customerIds = [...new Set(certList.map((c) => c.customer_id).filter(Boolean))] as string[];
   const customerMap = new Map<string, { name: string | null; email: string | null }>();
   if (customerIds.length) {
-    const { data: customers } = await supabase
-      .from("customers")
-      .select("id, name, email")
-      .in("id", customerIds);
+    const { data: customers } = await supabase.from("customers").select("id, name, email").in("id", customerIds);
     for (const c of customers ?? []) {
       customerMap.set(c.id, { name: c.name, email: c.email });
     }
@@ -478,10 +469,7 @@ export async function processWarrantyEndFollowUps(
   const customerIds = [...new Set(filtered.map((c) => c.customer_id).filter(Boolean))] as string[];
   const customerMap = new Map<string, { name: string | null; email: string | null }>();
   if (customerIds.length) {
-    const { data: customers } = await supabase
-      .from("customers")
-      .select("id, name, email")
-      .in("id", customerIds);
+    const { data: customers } = await supabase.from("customers").select("id, name, email").in("id", customerIds);
     for (const c of customers ?? []) {
       customerMap.set(c.id, { name: c.name, email: c.email });
     }

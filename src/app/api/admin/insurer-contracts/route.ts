@@ -24,7 +24,9 @@ export async function GET(req: NextRequest) {
 
     let query = admin
       .from("insurer_tenant_contracts")
-      .select("id, insurer_id, tenant_id, status, terminated_at, created_at, updated_at, insurers(name, slug), tenants(name, slug)")
+      .select(
+        "id, insurer_id, tenant_id, status, terminated_at, created_at, updated_at, insurers(name, slug), tenants(name, slug)",
+      )
       .order("created_at", { ascending: false });
 
     // Platform admin can filter by insurer or tenant

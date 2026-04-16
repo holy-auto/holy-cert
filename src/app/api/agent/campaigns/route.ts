@@ -16,7 +16,8 @@ export async function GET() {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const campaignColumns = "id, title, description, start_date, end_date, is_active, reward_type, reward_value, target_referrals, created_at, updated_at";
+    const campaignColumns =
+      "id, title, description, start_date, end_date, is_active, reward_type, reward_value, target_referrals, created_at, updated_at";
 
     const { data: campaigns } = await supabase
       .from("agent_campaigns")

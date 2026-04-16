@@ -22,64 +22,60 @@ export default async function Page({
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) redirect("/login?next=/admin/certificates/new");
 
-  const { data: mem } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .limit(1)
-    .single();
+  const { data: mem } = await supabase.from("tenant_memberships").select("tenant_id").limit(1).single();
 
   if (!mem) return <div className="text-sm text-muted">tenant_memberships が見つかりません。</div>;
   const tenantId = mem.tenant_id as string;
 
   // tenantId 確定後は全クエリを並列実行
-  const [
-    { data: tenantRow },
-    { data: templates, error: tplErr },
-    { data: vehiclesRaw },
-    brandedTemplateResult,
-  ] = await Promise.all([
-    supabase
-      .from("tenants")
-      .select("logo_asset_path, plan_tier, default_warranty_exclusions")
-      .eq("id", tenantId)
-      .single(),
-    supabase
-      .from("templates")
-      .select("id, name, schema_json, category, created_at")
-      .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("vehicles")
-      .select("id, maker, model, year, plate_display, vin_code, customer_id, customer:customers(id, name)")
-      .eq("tenant_id", tenantId)
-      .order("created_at", { ascending: false })
-      .limit(300),
-    // ブランドテンプレート確認（2クエリを並列）
-    Promise.all([
-      (async () => {
-        try {
-          return await supabase
-            .from("tenant_option_subscriptions")
-            .select("status")
-            .eq("tenant_id", tenantId)
-            .in("status", ["active", "past_due"])
-            .limit(1)
-            .maybeSingle();
-        } catch { return { data: null }; }
-      })(),
-      (async () => {
-        try {
-          return await supabase
-            .from("tenant_template_configs")
-            .select("id")
-            .eq("tenant_id", tenantId)
-            .eq("is_active", true)
-            .limit(1)
-            .maybeSingle();
-        } catch { return { data: null }; }
-      })(),
-    ]),
-  ]);
+  const [{ data: tenantRow }, { data: templates, error: tplErr }, { data: vehiclesRaw }, brandedTemplateResult] =
+    await Promise.all([
+      supabase
+        .from("tenants")
+        .select("logo_asset_path, plan_tier, default_warranty_exclusions")
+        .eq("id", tenantId)
+        .single(),
+      supabase
+        .from("templates")
+        .select("id, name, schema_json, category, created_at")
+        .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("vehicles")
+        .select("id, maker, model, year, plate_display, vin_code, customer_id, customer:customers(id, name)")
+        .eq("tenant_id", tenantId)
+        .order("created_at", { ascending: false })
+        .limit(300),
+      // ブランドテンプレート確認（2クエリを並列）
+      Promise.all([
+        (async () => {
+          try {
+            return await supabase
+              .from("tenant_option_subscriptions")
+              .select("status")
+              .eq("tenant_id", tenantId)
+              .in("status", ["active", "past_due"])
+              .limit(1)
+              .maybeSingle();
+          } catch {
+            return { data: null };
+          }
+        })(),
+        (async () => {
+          try {
+            return await supabase
+              .from("tenant_template_configs")
+              .select("id")
+              .eq("tenant_id", tenantId)
+              .eq("is_active", true)
+              .limit(1)
+              .maybeSingle();
+          } catch {
+            return { data: null };
+          }
+        })(),
+      ]),
+    ]);
 
   if (tplErr) return <div className="text-sm text-danger">テンプレ読み込みエラー: {tplErr.message}</div>;
 
@@ -101,7 +97,9 @@ export default async function Page({
         description={tenantLogoPath ? undefined : "ロゴ未設定（設定 → ロゴ管理）"}
         actions={
           <div className="flex gap-3 items-center">
-            <Link className="btn-ghost" href="/admin/certificates">一覧へ</Link>
+            <Link className="btn-ghost" href="/admin/certificates">
+              一覧へ
+            </Link>
           </div>
         }
       />
@@ -109,7 +107,9 @@ export default async function Page({
       {hasBrandedTemplate && (
         <div className="glass-card p-3 text-sm text-accent glow-cyan flex items-center justify-between">
           <span>ブランドテンプレートが適用中です。発行される証明書PDFに自動で反映されます。</span>
-          <Link href="/admin/template-options" className="text-xs underline">設定を確認</Link>
+          <Link href="/admin/template-options" className="text-xs underline">
+            設定を確認
+          </Link>
         </div>
       )}
 
@@ -123,10 +123,13 @@ export default async function Page({
         planTier={planTier}
         tid={tid}
         serviceType={
-          (selected as any)?.category === "ppf" ? "ppf"
-          : (selected as any)?.category === "maintenance" ? "maintenance"
-          : (selected as any)?.category === "body_repair" ? "body_repair"
-          : undefined
+          (selected as any)?.category === "ppf"
+            ? "ppf"
+            : (selected as any)?.category === "maintenance"
+              ? "maintenance"
+              : (selected as any)?.category === "body_repair"
+                ? "body_repair"
+                : undefined
         }
         defaultWarrantyExclusions={defaultWarrantyExclusions}
       />

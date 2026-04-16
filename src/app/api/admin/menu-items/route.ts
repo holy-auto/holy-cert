@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     // CSV一括インポート
     if (body.action === "csv_import" && body.csv) {
@@ -56,22 +57,26 @@ export async function POST(req: NextRequest) {
         .map((l: string) => l.trim())
         .filter((l: string) => l && !l.startsWith("品目名")); // ヘッダー行をスキップ
 
-      const rows = lines.map((line: string) => {
-        const parts = line.split(",").map((s: string) => s.trim());
-        return {
-          tenant_id: caller.tenantId,
-          name: parts[0] || "",
-          description: parts[1] || null,
-          unit_price: parseInt(parts[2] || "0", 10) || 0,
-          tax_category: parseInt(parts[3] || "10", 10) === 8 ? 8 : 10,
-        };
-      }).filter((r: any) => r.name);
+      const rows = lines
+        .map((line: string) => {
+          const parts = line.split(",").map((s: string) => s.trim());
+          return {
+            tenant_id: caller.tenantId,
+            name: parts[0] || "",
+            description: parts[1] || null,
+            unit_price: parseInt(parts[2] || "0", 10) || 0,
+            tax_category: parseInt(parts[3] || "10", 10) === 8 ? 8 : 10,
+          };
+        })
+        .filter((r: any) => r.name);
 
       if (rows.length === 0) {
         return apiValidationError("有効な行がありません");
       }
 
-      const { data, error } = await supabase.from("menu_items").insert(rows).select("id");
+      // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin.from("menu_items").insert(rows).select("id");
       if (error) {
         return apiInternalError(error, "menu-items csv insert");
       }
@@ -92,7 +97,13 @@ export async function POST(req: NextRequest) {
       sort_order: parseInt(String(body.sort_order ?? 0), 10) || 0,
     };
 
-    const { data, error } = await supabase.from("menu_items").insert(row).select("id, name, description, unit_price, tax_category, is_active, sort_order, created_at, updated_at").single();
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
+      .from("menu_items")
+      .insert(row)
+      .select("id, name, description, unit_price, tax_category, is_active, sort_order, created_at, updated_at")
+      .single();
     if (error) {
       return apiInternalError(error, "menu-items insert");
     }
@@ -110,7 +121,7 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
@@ -122,7 +133,9 @@ export async function PUT(req: NextRequest) {
     if (body.sort_order !== undefined) updates.sort_order = parseInt(String(body.sort_order), 10) || 0;
     if (body.is_active !== undefined) updates.is_active = !!body.is_active;
 
-    const { data, error } = await supabase
+    // RLS をバイパスしてサービスロールで UPDATE（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
       .from("menu_items")
       .update(updates)
       .eq("id", id)
@@ -147,11 +160,13 @@ export async function DELETE(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const id = (body.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
-    const { error } = await supabase
+    // RLS をバイパスしてサービスロールで論理削除（tenant_id で必ずスコープ限定）
+    const admin = getSupabaseAdmin();
+    const { error } = await admin
       .from("menu_items")
       .update({ is_active: false })
       .eq("id", id)

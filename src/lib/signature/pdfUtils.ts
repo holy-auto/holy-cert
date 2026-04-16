@@ -3,91 +3,136 @@
  *
  * 証明書 PDF のバイト列生成と、
  * 署名情報が埋め込まれた PDF の再生成を担当する。
- *
- * 注意: Phase 5 で pdfCertificate.tsx の拡張後に実装を完成させる。
- *       現時点では型定義と骨格のみ提供する。
  */
 
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { renderCertificatePdf, type CertRow } from "@/lib/pdfCertificate";
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.APP_URL ?? "https://ledra.jp";
 
 /** PDF に埋め込む署名情報 */
 export interface PdfSignatureInfo {
-  signedAt:             string;
-  signerEmail:          string;       // 表示用（マスク済み）
-  signerName?:          string;
-  signaturePreview:     string;       // 署名値の省略形（先頭20文字 + "..."）
+  signedAt: string;
+  signerEmail: string;
+  signerName?: string;
+  signaturePreview: string;
   publicKeyFingerprint: string;
-  verifyUrl:            string;
-  documentHash:         string;
+  verifyUrl: string;
+  documentHash: string;
 }
 
 /**
  * 証明書 PDF のバイト列を生成する。
  *
  * 署名前のハッシュ計算に使用する。
- * 既存の /api/certificate/pdf ルートの実装を参照して実装する。
+ * 証明書データを Supabase から取得し、renderCertificatePdf で PDF を生成する。
  *
  * @param certificateId - 証明書 UUID
  * @returns PDF バイト列（Uint8Array）
  * @throws 証明書が見つからない場合、PDF 生成失敗時
- *
- * TODO: Phase 5 で pdfCertificate.tsx の renderToBuffer を使って実装
  */
-export async function generateCertificatePdfBytes(
-  certificateId: string,
-): Promise<Uint8Array> {
+export async function generateCertificatePdfBytes(certificateId: string): Promise<Uint8Array> {
   const supabase = getSupabaseAdmin();
 
-  // 証明書の存在確認
   const { data: cert, error } = await supabase
-    .from('certificates')
-    .select('id, public_id')
-    .eq('id', certificateId)
+    .from("certificates")
+    .select(
+      `
+      id,
+      public_id,
+      customer_name,
+      vehicle_info_json,
+      content_free_text,
+      content_preset_json,
+      coating_products_json,
+      ppf_coverage_json,
+      maintenance_json,
+      body_repair_json,
+      service_type,
+      expiry_type,
+      expiry_value,
+      warranty_period_end,
+      warranty_exclusions,
+      logo_asset_path,
+      current_version,
+      created_at,
+      tenant:tenants(custom_domain)
+    `,
+    )
+    .eq("id", certificateId)
     .single();
 
   if (error || !cert) {
     throw new Error(`[pdfUtils] Certificate not found: ${certificateId}`);
   }
 
-  // TODO: Phase 5 で実装
-  // 既存の /api/certificate/pdf ルートで使用している renderToBuffer を
-  // 直接呼び出してバイト列を生成する
-  //
-  // import { renderToBuffer } from '@react-pdf/renderer';
-  // import { PdfCertificate } from '@/lib/pdfCertificate';
-  //
-  // const pdfBuffer = await renderToBuffer(<PdfCertificate cert={certData} />);
-  // return new Uint8Array(pdfBuffer);
-  //
-  // ── Phase 5 実装まではプレースホルダーとして公開 ID の UTF-8 バイト列を返す ──
-  // （実際のハッシュ計算では使用しないこと）
-  const placeholder = new TextEncoder().encode(
-    `PLACEHOLDER_PDF_${cert.public_id}_TODO_REPLACE_IN_PHASE5`,
-  );
-  return placeholder;
+  const tenantDomain = (cert.tenant as { custom_domain?: string | null } | null)?.custom_domain ?? null;
+  const origin = tenantDomain ? `https://${tenantDomain}` : BASE_URL;
+  const publicUrl = `${origin}/c/${cert.public_id}`;
+
+  const row: CertRow = {
+    public_id: cert.public_id,
+    tenant_custom_domain: tenantDomain,
+    customer_name: cert.customer_name ?? "",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vehicle_info_json: (cert.vehicle_info_json as any) ?? {},
+    content_free_text: cert.content_free_text ?? null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    content_preset_json: (cert.content_preset_json as any) ?? {},
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    coating_products_json: (cert.coating_products_json as any[]) ?? null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ppf_coverage_json: (cert.ppf_coverage_json as any[]) ?? null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    maintenance_json: (cert.maintenance_json as any) ?? null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    body_repair_json: (cert.body_repair_json as any) ?? null,
+    service_type: cert.service_type ?? null,
+    expiry_type: cert.expiry_type ?? null,
+    expiry_value: cert.expiry_value ?? null,
+    warranty_period_end: cert.warranty_period_end ?? null,
+    warranty_exclusions: cert.warranty_exclusions ?? null,
+    logo_asset_path: cert.logo_asset_path ?? null,
+    created_at: cert.created_at ?? new Date().toISOString(),
+    current_version: cert.current_version ?? null,
+  };
+
+  const buffer = await renderCertificatePdf(row, publicUrl);
+  return new Uint8Array(buffer as unknown as ArrayBuffer);
 }
 
 /**
- * 署名情報が埋め込まれた証明書 PDF を再生成する。
+ * 署名済み証明書 PDF を Supabase Storage に保存する。
  *
- * 署名完了後に呼び出し、Supabase Storage に保存する。
- * 非同期で実行するため、呼び出し元は await せず void で使用すること。
+ * 署名完了後に非同期で呼び出す（void で使用）。
+ * 生成した PDF は assets バケットの
+ * certificates/{certificateId}/signed_certificate.pdf に保存される。
  *
  * @param certificateId - 証明書 UUID
- * @param signatureInfo - 埋め込む署名情報
- *
- * TODO: Phase 5 で pdfCertificate.tsx に ElectronicSignatureSection を追加後に実装
+ * @param signatureInfo - 埋め込む署名情報（将来の UI 表示用）
  */
-export async function regenerateSignedPdf(
-  certificateId: string,
-  signatureInfo:  PdfSignatureInfo,
-): Promise<void> {
-  // TODO: Phase 5 で実装
-  // 1. 証明書データを Supabase から取得
-  // 2. signatureInfo を含む PdfCertificate コンポーネントで PDF を再生成
-  // 3. Supabase Storage の certificates/{certificateId}/signed_certificate.pdf に保存
-  console.info(
-    `[pdfUtils] regenerateSignedPdf called for ${certificateId} (Phase 5 TODO)`,
-    { verifyUrl: signatureInfo.verifyUrl },
-  );
+export async function regenerateSignedPdf(certificateId: string, signatureInfo: PdfSignatureInfo): Promise<void> {
+  try {
+    const pdfBytes = await generateCertificatePdfBytes(certificateId);
+
+    const supabase = getSupabaseAdmin();
+    const storagePath = `certificates/${certificateId}/signed_certificate.pdf`;
+
+    const { error: uploadError } = await supabase.storage.from("assets").upload(storagePath, pdfBytes, {
+      contentType: "application/pdf",
+      upsert: true,
+    });
+
+    if (uploadError) {
+      console.error("[pdfUtils] Failed to upload signed PDF:", uploadError.message);
+      return;
+    }
+
+    // 署名完了日時を certificates テーブルに記録
+    await supabase.from("certificates").update({ signed_at: signatureInfo.signedAt }).eq("id", certificateId);
+
+    console.info("[pdfUtils] Signed PDF stored:", storagePath);
+  } catch (err) {
+    console.error("[pdfUtils] regenerateSignedPdf failed:", err);
+  }
 }

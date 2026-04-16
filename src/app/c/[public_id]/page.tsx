@@ -1,6 +1,9 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { getPublicCertificateData } from "@/lib/certificate/publicData";
 import CustomerActions from "./CustomerActions";
+import HeroCard from "@/components/customer/HeroCard";
+import { highestGrade, type AuthenticityGrade } from "@/lib/anchoring/authenticityGrade";
 import { logCertificateAction } from "@/lib/audit/certificateLog";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { getPanelLabel, getCoverageLabel, getFilmTypeLabel } from "@/lib/ppf/constants";
@@ -79,12 +82,22 @@ type PublicStatusResponse = {
     sort_order?: number | null;
     created_at?: string | null;
     url?: string | null;
+    authenticity_grade?: string | null;
+    sha256?: string | null;
+    polygon_tx_hash?: string | null;
+    polygon_network?: string | null;
   }>;
   shop?: {
     name?: string | null;
     slug?: string | null;
     custom_domain?: string | null;
   } | null;
+  verification_url?: string | null;
+  days_until_expiry?: number | null;
+  warranty_active?: boolean;
+  vehicle_service_history_count?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vehicle_certificates?: any[];
 };
 
 function asText(v: unknown) {
@@ -126,27 +139,8 @@ function getNfcStatusLabel(status?: string | null) {
   return "未設定";
 }
 
-async function getOrigin() {
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
-}
-
 async function fetchPublicStatus(publicId: string): Promise<PublicStatusResponse | null> {
-  const origin = await getOrigin();
-  const res = await fetch(`${origin}/api/certificate/public-status?pid=${encodeURIComponent(publicId)}`, {
-    cache: "no-store",
-  });
-
-  if (res.status === 404) return null;
-
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`public-status failed: ${res.status} ${txt}`);
-  }
-
-  return (await res.json()) as PublicStatusResponse;
+  return (await getPublicCertificateData(publicId)) as PublicStatusResponse | null;
 }
 
 export default async function CertificatePublicPage({ params, searchParams }: PageProps) {
@@ -170,14 +164,13 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
     });
   }
 
-  const origin = await getOrigin();
   const sp = await searchParams;
   const notice = Array.isArray(sp?.notice) ? sp?.notice[0] : sp?.notice;
   const certStatus = String(data.certificate.status ?? "").toLowerCase();
   const isVoidCertificate = certStatus === "void";
 
   const info = asObj(data.certificate.vehicle_info_json);
-  const publicUrl = `${origin}/c/${data.certificate.public_id}`;
+  const publicUrl = data.verification_url ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/c/${data.certificate.public_id}`;
   const pdfHref = `/api/certificate/pdf?pid=${encodeURIComponent(data.certificate.public_id)}`;
   const returnTo = typeof sp?.returnTo === "string" ? sp.returnTo : undefined;
   const logoutHref = typeof sp?.logout === "string" && sp.logout !== "1" ? sp.logout : undefined;
@@ -199,6 +192,16 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
   const customerName = asText(data.certificate.customer_name);
   const freeText = asText(data.certificate.content_free_text);
   const images = !isVoidCertificate ? (data.images ?? []).filter((img) => !!img?.url) : [];
+  const heroGrade: AuthenticityGrade = highestGrade(
+    images.map((img) => img.authenticity_grade as AuthenticityGrade | null | undefined),
+  );
+  // Pick the tx hash from the first image whose grade matches the best grade.
+  const heroAnchorImage = images.find((img) => img.authenticity_grade === heroGrade && !!img.polygon_tx_hash);
+  const heroPolygonTxHash = heroAnchorImage?.polygon_tx_hash ?? null;
+  const heroPolygonNetwork =
+    heroAnchorImage?.polygon_network === "amoy" || heroAnchorImage?.polygon_network === "polygon"
+      ? (heroAnchorImage.polygon_network as "amoy" | "polygon")
+      : null;
 
   const isPdfBlocked =
     notice === "pdf_blocked" ||
@@ -208,6 +211,16 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
 
   return (
     <main className="mx-auto max-w-[980px] p-4">
+      {certStatus === "active" && !isVoidCertificate ? (
+        <HeroCard
+          maker={maker || null}
+          model={model || null}
+          recordCount={images.length}
+          grade={heroGrade}
+          polygonTxHash={heroPolygonTxHash}
+          polygonNetwork={heroPolygonNetwork}
+        />
+      ) : null}
       <div className="glass-card mb-4 p-5">
         <div className="text-[28px] font-extrabold tracking-wide text-primary">Ledra</div>
         <div className="mt-1 text-sm text-muted">施工証明書</div>

@@ -25,7 +25,9 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("register_sessions")
-      .select("id, tenant_id, register_id, opened_by, closed_by, opening_cash, closing_cash, expected_cash, cash_difference, total_sales, total_transactions, status, note, opened_at, closed_at, created_at, updated_at")
+      .select(
+        "id, tenant_id, register_id, opened_by, closed_by, opening_cash, closing_cash, expected_cash, cash_difference, total_sales, total_transactions, status, note, opened_at, closed_at, created_at, updated_at",
+      )
       .eq("tenant_id", caller.tenantId)
       .order("opened_at", { ascending: false });
 
@@ -90,7 +92,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const registerId = (String(body?.register_id ?? "")).trim();
+    const registerId = String(body?.register_id ?? "").trim();
     const openingCash = parseInt(String(body?.opening_cash ?? 0), 10) || 0;
 
     if (!registerId) {
@@ -134,7 +136,7 @@ export async function POST(req: NextRequest) {
         opened_by: caller.userId,
         opening_cash: openingCash,
         status: "open",
-        note: (String(body?.note ?? "")).trim() || null,
+        note: String(body?.note ?? "").trim() || null,
       })
       .select("id, tenant_id, register_id, opened_by, opening_cash, status, note, opened_at, created_at, updated_at")
       .single();
@@ -160,7 +162,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
+    const id = String(body?.id ?? "").trim();
     if (!id) return apiValidationError("idは必須です");
 
     // 現在のセッション取得
@@ -177,9 +179,10 @@ export async function PUT(req: NextRequest) {
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-    if (body.note !== undefined) updates.note = (String(body.note ?? "")).trim() || null;
+    if (body.note !== undefined) updates.note = String(body.note ?? "").trim() || null;
     if (body.total_sales !== undefined) updates.total_sales = parseInt(String(body.total_sales), 10) || 0;
-    if (body.total_transactions !== undefined) updates.total_transactions = parseInt(String(body.total_transactions), 10) || 0;
+    if (body.total_transactions !== undefined)
+      updates.total_transactions = parseInt(String(body.total_transactions), 10) || 0;
     if (body.expected_cash !== undefined) updates.expected_cash = parseInt(String(body.expected_cash), 10) || 0;
 
     // closing_cashが設定された場合、セッションを閉鎖
@@ -191,9 +194,8 @@ export async function PUT(req: NextRequest) {
       updates.closed_by = caller.userId;
 
       // cash_difference計算: 期待値がある場合はそれとの差額、なければopeningとの差額
-      const expectedCash = body.expected_cash !== undefined
-        ? parseInt(String(body.expected_cash), 10) || 0
-        : current.expected_cash;
+      const expectedCash =
+        body.expected_cash !== undefined ? parseInt(String(body.expected_cash), 10) || 0 : current.expected_cash;
 
       if (expectedCash !== null && expectedCash !== undefined) {
         updates.cash_difference = closingCash - expectedCash;
@@ -206,7 +208,9 @@ export async function PUT(req: NextRequest) {
       .update(updates)
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select("id, tenant_id, register_id, opened_by, closed_by, opening_cash, closing_cash, expected_cash, cash_difference, total_sales, total_transactions, status, note, opened_at, closed_at, created_at, updated_at")
+      .select(
+        "id, tenant_id, register_id, opened_by, closed_by, opening_cash, closing_cash, expected_cash, cash_difference, total_sales, total_transactions, status, note, opened_at, closed_at, created_at, updated_at",
+      )
       .single();
 
     if (error) {
@@ -230,14 +234,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
+    const id = String(body?.id ?? "").trim();
     if (!id) return apiValidationError("idは必須です");
 
-    const { error } = await supabase
-      .from("register_sessions")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("register_sessions").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) {
       return apiInternalError(error, "register_sessions delete");

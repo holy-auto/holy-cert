@@ -127,11 +127,7 @@ export async function POST(req: Request) {
       .eq("is_active", true);
 
     // Get insurer name for invite emails
-    const { data: insurerData } = await adminSb
-      .from("insurers")
-      .select("name")
-      .eq("id", caller.insurerId)
-      .single();
+    const { data: insurerData } = await adminSb.from("insurers").select("name").eq("id", caller.insurerId).single();
     const companyName = insurerData?.name ?? "Ledra加盟店";
 
     // CSV読み込み

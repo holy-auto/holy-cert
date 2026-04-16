@@ -99,12 +99,7 @@ export default function ShareDocumentModal({
           <button type="button" className="btn-ghost text-sm" onClick={onClose}>
             閉じる
           </button>
-          <button
-            type="button"
-            className="btn-primary text-sm"
-            disabled={sending}
-            onClick={handleSend}
-          >
+          <button type="button" className="btn-primary text-sm" disabled={sending} onClick={handleSend}>
             {sending ? "送信中..." : "送信"}
           </button>
         </>
@@ -117,11 +112,12 @@ export default function ShareDocumentModal({
             key={t.key}
             type="button"
             className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              tab === t.key
-                ? "bg-[var(--bg-primary)] text-primary shadow-sm"
-                : "text-muted hover:text-secondary"
+              tab === t.key ? "bg-[var(--bg-primary)] text-primary shadow-sm" : "text-muted hover:text-secondary"
             }`}
-            onClick={() => { setTab(t.key); resetForm(); }}
+            onClick={() => {
+              setTab(t.key);
+              resetForm();
+            }}
           >
             {t.label}
           </button>
@@ -129,17 +125,15 @@ export default function ShareDocumentModal({
       </div>
 
       {/* Result message */}
-      {result && (
-        <div className={`text-sm ${result.ok ? "text-success" : "text-danger"}`}>
-          {result.text}
-        </div>
-      )}
+      {result && <div className={`text-sm ${result.ok ? "text-success" : "text-danger"}`}>{result.text}</div>}
 
       {/* Email tab */}
       {tab === "email" && (
         <div className="space-y-3">
           <div>
-            <label htmlFor="share-email" className="mb-1 block text-xs text-muted">メールアドレス</label>
+            <label htmlFor="share-email" className="mb-1 block text-xs text-muted">
+              メールアドレス
+            </label>
             <input
               id="share-email"
               type="email"
@@ -150,7 +144,9 @@ export default function ShareDocumentModal({
             />
           </div>
           <div>
-            <label htmlFor="share-email-message" className="mb-1 block text-xs text-muted">メッセージ（任意）</label>
+            <label htmlFor="share-email-message" className="mb-1 block text-xs text-muted">
+              メッセージ（任意）
+            </label>
             <textarea
               id="share-email-message"
               className="input-field w-full"
@@ -167,7 +163,9 @@ export default function ShareDocumentModal({
       {tab === "line" && (
         <div className="space-y-3">
           <div>
-            <label htmlFor="share-line-userid" className="mb-1 block text-xs text-muted">LINE ユーザーID</label>
+            <label htmlFor="share-line-userid" className="mb-1 block text-xs text-muted">
+              LINE ユーザーID
+            </label>
             <input
               id="share-line-userid"
               type="text"
@@ -177,11 +175,11 @@ export default function ShareDocumentModal({
               onChange={(e) => setLineUserId(e.target.value)}
             />
           </div>
-          <p className="text-xs text-muted">
-            LINE公式アカウントと友だち登録済みのユーザーIDを入力してください。
-          </p>
+          <p className="text-xs text-muted">LINE公式アカウントと友だち登録済みのユーザーIDを入力してください。</p>
           <div>
-            <label htmlFor="share-line-message" className="mb-1 block text-xs text-muted">メッセージ（任意）</label>
+            <label htmlFor="share-line-message" className="mb-1 block text-xs text-muted">
+              メッセージ（任意）
+            </label>
             <textarea
               id="share-line-message"
               className="input-field w-full"
@@ -198,7 +196,9 @@ export default function ShareDocumentModal({
       {tab === "sms" && (
         <div className="space-y-3">
           <div>
-            <label htmlFor="share-sms-phone" className="mb-1 block text-xs text-muted">電話番号</label>
+            <label htmlFor="share-sms-phone" className="mb-1 block text-xs text-muted">
+              電話番号
+            </label>
             <input
               id="share-sms-phone"
               type="tel"
@@ -209,7 +209,9 @@ export default function ShareDocumentModal({
             />
           </div>
           <div>
-            <label htmlFor="share-sms-message" className="mb-1 block text-xs text-muted">メッセージ（任意）</label>
+            <label htmlFor="share-sms-message" className="mb-1 block text-xs text-muted">
+              メッセージ（任意）
+            </label>
             <textarea
               id="share-sms-message"
               className="input-field w-full"
@@ -219,9 +221,7 @@ export default function ShareDocumentModal({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
-            <div className="mt-1 text-right text-xs text-muted">
-              {message.length} / 160文字
-            </div>
+            <div className="mt-1 text-right text-xs text-muted">{message.length} / 160文字</div>
           </div>
         </div>
       )}

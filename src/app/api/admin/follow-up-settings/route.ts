@@ -37,7 +37,7 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const reminderDays = Array.isArray(body.reminder_days_before)
       ? body.reminder_days_before.filter((n: number) => typeof n === "number" && n > 0)
       : [30, 7, 1];
@@ -62,14 +62,9 @@ export async function PUT(req: NextRequest) {
       .maybeSingle();
 
     if (existing) {
-      await supabase
-        .from("follow_up_settings")
-        .update(row)
-        .eq("tenant_id", caller.tenantId);
+      await supabase.from("follow_up_settings").update(row).eq("tenant_id", caller.tenantId);
     } else {
-      await supabase
-        .from("follow_up_settings")
-        .insert({ ...row, id: crypto.randomUUID() });
+      await supabase.from("follow_up_settings").insert({ ...row, id: crypto.randomUUID() });
     }
 
     return NextResponse.json({ ok: true });

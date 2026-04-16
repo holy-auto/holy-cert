@@ -96,13 +96,8 @@ export async function PATCH(req: NextRequest) {
 
   // Validate session_timeout_minutes
   const validTimeouts = [15, 30, 60, 120];
-  if (
-    session_timeout_minutes !== undefined &&
-    !validTimeouts.includes(session_timeout_minutes)
-  ) {
-    return apiValidationError(
-      `セッションタイムアウトは ${validTimeouts.join("/")} 分のいずれかを指定してください。`,
-    );
+  if (session_timeout_minutes !== undefined && !validTimeouts.includes(session_timeout_minutes)) {
+    return apiValidationError(`セッションタイムアウトは ${validTimeouts.join("/")} 分のいずれかを指定してください。`);
   }
 
   try {

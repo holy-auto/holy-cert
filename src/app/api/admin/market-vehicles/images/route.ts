@@ -14,13 +14,11 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller)
-      return apiUnauthorized();
+    if (!caller) return apiUnauthorized();
 
     const url = new URL(req.url);
     const vehicleId = url.searchParams.get("vehicle_id");
-    if (!vehicleId)
-      return apiValidationError("missing vehicle_id");
+    if (!vehicleId) return apiValidationError("missing vehicle_id");
 
     // Verify vehicle belongs to caller's tenant
     const { data: vehicle } = await supabase
@@ -30,8 +28,7 @@ export async function GET(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
-    if (!vehicle)
-      return apiNotFound("vehicle_not_found");
+    if (!vehicle) return apiNotFound("vehicle_not_found");
 
     const { data: images, error } = await supabase
       .from("market_vehicle_images")
@@ -55,26 +52,21 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller)
-      return apiUnauthorized();
+    if (!caller) return apiUnauthorized();
 
     const form = await req.formData();
     const vehicleId = String(form.get("vehicle_id") ?? "").trim();
     const file = form.get("file") as File | null;
 
-    if (!vehicleId)
-      return apiValidationError("missing vehicle_id");
-    if (!file || !file.size)
-      return apiValidationError("missing file");
+    if (!vehicleId) return apiValidationError("missing vehicle_id");
+    if (!file || !file.size) return apiValidationError("missing file");
 
     // Validate MIME
     const mime = file.type || "application/octet-stream";
-    if (!ALLOWED_MIME.includes(mime))
-      return apiValidationError("invalid_file_type");
+    if (!ALLOWED_MIME.includes(mime)) return apiValidationError("invalid_file_type");
 
     // Validate size
-    if (file.size > MAX_FILE_BYTES)
-      return apiValidationError("file_too_large");
+    if (file.size > MAX_FILE_BYTES) return apiValidationError("file_too_large");
 
     // Verify vehicle belongs to caller's tenant
     const { data: vehicle } = await supabase
@@ -84,8 +76,7 @@ export async function POST(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
-    if (!vehicle)
-      return apiNotFound("vehicle_not_found");
+    if (!vehicle) return apiNotFound("vehicle_not_found");
 
     // Check max images
     const { count: existingCount } = await supabase
@@ -102,7 +93,7 @@ export async function POST(req: NextRequest) {
           max: MAX_IMAGES_PER_VEHICLE,
           current: existing,
         },
-        { status: 422 }
+        { status: 422 },
       );
 
     // Build storage path
@@ -153,14 +144,12 @@ export async function DELETE(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
-    if (!caller)
-      return apiUnauthorized();
+    if (!caller) return apiUnauthorized();
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const { id, vehicle_id: vehicleId } = body;
 
-    if (!id || !vehicleId)
-      return apiValidationError("missing id or vehicle_id");
+    if (!id || !vehicleId) return apiValidationError("missing id or vehicle_id");
 
     // Verify image belongs to caller's tenant
     const { data: image } = await supabase
@@ -171,13 +160,10 @@ export async function DELETE(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
-    if (!image)
-      return apiNotFound("image_not_found");
+    if (!image) return apiNotFound("image_not_found");
 
     // Delete from storage
-    const { error: storageError } = await supabase.storage
-      .from("market")
-      .remove([image.storage_path]);
+    const { error: storageError } = await supabase.storage.from("market").remove([image.storage_path]);
 
     if (storageError) {
       console.error("market image storage delete error", storageError);

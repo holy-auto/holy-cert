@@ -15,7 +15,9 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from("vehicle_interests")
-      .select("id, vehicle_id, tenant_id, customer_name, customer_phone, customer_email, interest_level, note, follow_up_date, created_at, updated_at")
+      .select(
+        "id, vehicle_id, tenant_id, customer_name, customer_phone, customer_email, interest_level, note, follow_up_date, created_at, updated_at",
+      )
       .eq("vehicle_id", vehicleId)
       .eq("tenant_id", caller.tenantId)
       .order("created_at", { ascending: false });
@@ -56,7 +58,9 @@ export async function POST(req: NextRequest) {
         note: note || null,
         follow_up_date: follow_up_date || null,
       })
-      .select("id, vehicle_id, tenant_id, customer_name, customer_phone, customer_email, interest_level, note, follow_up_date, created_at, updated_at")
+      .select(
+        "id, vehicle_id, tenant_id, customer_name, customer_phone, customer_email, interest_level, note, follow_up_date, created_at, updated_at",
+      )
       .single();
 
     if (error) throw error;
@@ -87,7 +91,9 @@ export async function PUT(req: NextRequest) {
       .update(updates)
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select("id, vehicle_id, tenant_id, customer_name, customer_phone, customer_email, interest_level, note, follow_up_date, created_at, updated_at")
+      .select(
+        "id, vehicle_id, tenant_id, customer_name, customer_phone, customer_email, interest_level, note, follow_up_date, created_at, updated_at",
+      )
       .single();
 
     if (error) throw error;

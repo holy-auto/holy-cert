@@ -17,7 +17,9 @@ export async function GET() {
 
     const { data: stores, error } = await supabase
       .from("stores")
-      .select("id, name, address, phone, email, manager_name, business_hours, is_active, is_default, sort_order, created_at")
+      .select(
+        "id, name, address, phone, email, manager_name, business_hours, is_active, is_default, sort_order, created_at",
+      )
       .eq("tenant_id", caller.tenantId)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
@@ -62,11 +64,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check plan store limit
-    const { data: tenant } = await supabase
-      .from("tenants")
-      .select("plan_tier")
-      .eq("id", caller.tenantId)
-      .single();
+    const { data: tenant } = await supabase.from("tenants").select("plan_tier").eq("id", caller.tenantId).single();
 
     const planTier = normalizePlanTier(tenant?.plan_tier);
     const limit = STORE_LIMITS[planTier];
@@ -101,9 +99,11 @@ export async function POST(req: NextRequest) {
         manager_name: manager_name?.trim() || null,
         business_hours: business_hours || null,
         is_default: isFirst,
-        sort_order: (count ?? 0),
+        sort_order: count ?? 0,
       })
-      .select("id, tenant_id, name, address, phone, email, manager_name, business_hours, is_active, is_default, sort_order, created_at, updated_at")
+      .select(
+        "id, tenant_id, name, address, phone, email, manager_name, business_hours, is_active, is_default, sort_order, created_at, updated_at",
+      )
       .single();
 
     if (error) return apiInternalError(error, "stores insert");
@@ -142,7 +142,9 @@ export async function PUT(req: NextRequest) {
       .update(updates)
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select("id, tenant_id, name, address, phone, email, manager_name, business_hours, is_active, is_default, sort_order, created_at, updated_at")
+      .select(
+        "id, tenant_id, name, address, phone, email, manager_name, business_hours, is_active, is_default, sort_order, created_at, updated_at",
+      )
       .single();
 
     if (error) return apiInternalError(error, "stores update");
@@ -178,11 +180,7 @@ export async function DELETE(req: NextRequest) {
       return apiValidationError("デフォルト店舗は削除できません");
     }
 
-    const { error } = await supabase
-      .from("stores")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", caller.tenantId);
+    const { error } = await supabase.from("stores").delete().eq("id", id).eq("tenant_id", caller.tenantId);
 
     if (error) return apiInternalError(error, "stores delete");
 

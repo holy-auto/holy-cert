@@ -2,20 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { vehicleUpdateSchema } from "@/lib/validations/vehicle";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import {
-  apiOk,
-  apiInternalError,
-  apiUnauthorized,
-  apiNotFound,
-  apiValidationError,
-} from "@/lib/api/response";
+import { apiOk, apiInternalError, apiUnauthorized, apiNotFound, apiValidationError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
@@ -38,10 +29,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();

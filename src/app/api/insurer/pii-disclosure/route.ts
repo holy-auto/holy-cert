@@ -19,7 +19,9 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("pii_disclosure_consents")
-    .select("id, certificate_id, insurer_id, insurer_requested_at, insurer_requested_by, insurer_reason, tenant_consented_at, is_active, created_at, updated_at")
+    .select(
+      "id, certificate_id, insurer_id, insurer_requested_at, insurer_requested_by, insurer_reason, tenant_consented_at, is_active, created_at, updated_at",
+    )
     .eq("certificate_id", certificateId)
     .eq("insurer_id", caller.insurerId)
     .eq("is_active", true)
@@ -27,10 +29,7 @@ export async function GET(req: NextRequest) {
 
   if (error) return apiValidationError(error.message);
 
-  const disclosed =
-    data &&
-    data.insurer_requested_at !== null &&
-    data.tenant_consented_at !== null;
+  const disclosed = data && data.insurer_requested_at !== null && data.tenant_consented_at !== null;
 
   return NextResponse.json({
     consent: data,
@@ -72,7 +71,9 @@ export async function POST(req: NextRequest) {
       },
       { onConflict: "certificate_id,insurer_id" },
     )
-    .select("id, certificate_id, insurer_id, insurer_requested_at, insurer_requested_by, insurer_reason, tenant_consented_at, is_active, created_at, updated_at")
+    .select(
+      "id, certificate_id, insurer_id, insurer_requested_at, insurer_requested_by, insurer_reason, tenant_consented_at, is_active, created_at, updated_at",
+    )
     .single();
 
   if (error) return apiValidationError(error.message);
@@ -83,8 +84,7 @@ export async function POST(req: NextRequest) {
     certificate_id,
     action: "pii_disclosure_request",
     meta: { reason: reason || null },
-    ip:
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
     user_agent: req.headers.get("user-agent") ?? null,
   });
 

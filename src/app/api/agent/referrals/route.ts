@@ -34,7 +34,10 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("agent_referrals")
-      .select("id, agent_id, shop_name, contact_name, contact_email, contact_phone, referral_code, status, notes, contract_date, contracted_at, created_at, updated_at", { count: "exact" })
+      .select(
+        "id, agent_id, shop_name, contact_name, contact_email, contact_phone, referral_code, status, notes, contract_date, contracted_at, created_at, updated_at",
+        { count: "exact" },
+      )
       .eq("agent_id", agentId)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -42,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (q) {
       const safeQ = escapePostgrestValue(escapeIlike(q));
       query = query.or(
-        `shop_name.ilike.%${safeQ}%,contact_name.ilike.%${safeQ}%,contact_email.ilike.%${safeQ}%,referral_code.ilike.%${safeQ}%`
+        `shop_name.ilike.%${safeQ}%,contact_name.ilike.%${safeQ}%,contact_email.ilike.%${safeQ}%,referral_code.ilike.%${safeQ}%`,
       );
     }
 
@@ -93,7 +96,7 @@ export async function POST(request: NextRequest) {
       return apiForbidden("紹介を作成する権限がありません。");
     }
 
-    const body = await request.json().catch(() => ({} as Record<string, unknown>));
+    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
     const shopName = ((body?.shop_name as string) ?? "").trim();
     if (!shopName) {
       return apiValidationError("shop_name は必須です。");
@@ -111,7 +114,9 @@ export async function POST(request: NextRequest) {
     const { data: created, error: insertErr } = await supabase
       .from("agent_referrals")
       .insert(row)
-      .select("id, agent_id, shop_name, contact_name, contact_email, contact_phone, referral_code, status, notes, contract_date, contracted_at, created_at, updated_at")
+      .select(
+        "id, agent_id, shop_name, contact_name, contact_email, contact_phone, referral_code, status, notes, contract_date, contracted_at, created_at, updated_at",
+      )
       .single();
 
     if (insertErr) {

@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
-import {
-  apiUnauthorized,
-  apiValidationError,
-  apiNotFound,
-  apiForbidden,
-  apiInternalError,
-} from "@/lib/api/response";
+import { apiUnauthorized, apiValidationError, apiNotFound, apiForbidden, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendCaseMessageNotification } from "@/lib/insurer/notifications";
@@ -17,16 +11,8 @@ export const runtime = "nodejs";
  * Verify the case exists and belongs to the caller's insurer.
  * Returns the case data or a Response (error).
  */
-async function verifyCase(
-  admin: ReturnType<typeof createAdminClient>,
-  caseId: string,
-  insurerId: string,
-) {
-  const { data, error } = await admin
-    .from("insurer_cases")
-    .select("id, insurer_id")
-    .eq("id", caseId)
-    .maybeSingle();
+async function verifyCase(admin: ReturnType<typeof createAdminClient>, caseId: string, insurerId: string) {
+  const { data, error } = await admin.from("insurer_cases").select("id, insurer_id").eq("id", caseId).maybeSingle();
 
   if (error) return apiValidationError(error.message);
   if (!data) return apiNotFound("ケースが見つかりません。");
@@ -38,10 +24,7 @@ async function verifyCase(
  * GET /api/insurer/cases/[id]/messages
  * List messages for a case with sender display info.
  */
-export async function GET(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> },
-) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const limited = await checkRateLimit(req, "general");
   if (limited) return limited;
 
@@ -65,9 +48,7 @@ export async function GET(
     if (error) return apiValidationError(error.message);
 
     // Collect unique sender_ids to look up display names from insurer_users
-    const senderIds = [
-      ...new Set((messages ?? []).map((m) => m.sender_id).filter(Boolean)),
-    ];
+    const senderIds = [...new Set((messages ?? []).map((m) => m.sender_id).filter(Boolean))];
 
     let senderMap: Record<string, string> = {};
     if (senderIds.length > 0) {
@@ -77,9 +58,7 @@ export async function GET(
         .in("user_id", senderIds);
 
       if (users) {
-        senderMap = Object.fromEntries(
-          users.map((u) => [u.user_id, u.display_name]),
-        );
+        senderMap = Object.fromEntries(users.map((u) => [u.user_id, u.display_name]));
       }
     }
 
@@ -99,10 +78,7 @@ export async function GET(
  * POST /api/insurer/cases/[id]/messages
  * Send a message to a case.
  */
-export async function POST(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const limited = await checkRateLimit(req, "general");
   if (limited) return limited;
 
@@ -234,9 +210,7 @@ export async function POST(
 
             if (notifications.length > 0) {
               try {
-                await admin
-                  .from("insurer_notifications")
-                  .insert(notifications);
+                await admin.from("insurer_notifications").insert(notifications);
               } catch {
                 // insurer_notifications table may not exist yet — silently skip
                 console.warn("[mention-notification] insurer_notifications table may not exist yet, skipping.");

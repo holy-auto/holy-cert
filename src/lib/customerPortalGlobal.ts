@@ -191,19 +191,28 @@ export async function listPortalMemberships(email: string, last4: string, prefer
       const slug = String(tenant?.slug ?? "").trim();
       if (!slug) return null;
 
-      const tenantCustomers = (customers ?? []).filter((c: { tenant_id: string }) => String(c.tenant_id) === String(tenantId));
+      const tenantCustomers = (customers ?? []).filter(
+        (c: { tenant_id: string }) => String(c.tenant_id) === String(tenantId),
+      );
       const customer =
-        tenantCustomers.find((c: { phone: string | null }) => customerPhoneMatchesLast4(c?.phone, last4Norm)) ?? tenantCustomers[0] ?? null;
+        tenantCustomers.find((c: { phone: string | null }) => customerPhoneMatchesLast4(c?.phone, last4Norm)) ??
+        tenantCustomers[0] ??
+        null;
       const phoneHash = phoneLast4Hash(String(tenantId), last4Norm);
-      const certs = await listCertificatesForCustomer(String(tenantId), phoneHash);
-      const phoneMatched = tenantCustomers.some((c: { phone: string | null }) => customerPhoneMatchesLast4(c?.phone, last4Norm));
+      const certs = await listCertificatesForCustomer(String(tenantId), phoneHash, last4Norm);
+      const phoneMatched = tenantCustomers.some((c: { phone: string | null }) =>
+        customerPhoneMatchesLast4(c?.phone, last4Norm),
+      );
       if (!phoneMatched && certs.length === 0) return null;
 
       const reservations = customer?.id
         ? await listFutureReservationsByCustomer(String(tenantId), String(customer.id))
         : [];
 
-      const nextReservationAt = reservations.length > 0 ? reservationDateTimeIso(reservations[0] as { scheduled_date?: string | null; start_time?: string | null }) : null;
+      const nextReservationAt =
+        reservations.length > 0
+          ? reservationDateTimeIso(reservations[0] as { scheduled_date?: string | null; start_time?: string | null })
+          : null;
       const lastActivityAt = certs[0]?.created_at ?? customer?.updated_at ?? null;
 
       return {

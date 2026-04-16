@@ -2,6 +2,58 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { apiValidationError, apiInternalError } from "@/lib/api/response";
+import { escapeHtml } from "@/lib/sanitize";
+
+async function sendPayoutFailedEmail(params: {
+  to: string;
+  recipientName: string;
+  payoutId: string;
+  amount: number;
+  failureCode: string | null;
+  failureMessage: string | null;
+}): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+  if (!apiKey || !from) return;
+
+  const name = escapeHtml(params.recipientName);
+  const amount = (params.amount / 100).toLocaleString("ja-JP");
+  const reason = escapeHtml(params.failureMessage ?? params.failureCode ?? "不明なエラー");
+
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+      <div style="border-bottom:2px solid #ef4444;padding-bottom:12px;margin-bottom:20px;">
+        <h2 style="margin:0;color:#1d1d1f;font-size:18px;">振込が失敗しました</h2>
+      </div>
+      <p style="color:#1d1d1f;font-size:14px;">
+        ${name} 様<br><br>
+        Stripe からの振込処理が失敗しました。銀行口座の情報をご確認ください。
+      </p>
+      <div style="background:#fef2f2;border-radius:8px;padding:12px;margin:16px 0;font-size:14px;color:#991b1b;">
+        振込金額: <strong>¥${amount}</strong><br>
+        エラー: ${reason}<br>
+        振込ID: ${escapeHtml(params.payoutId)}
+      </div>
+      <p style="font-size:13px;color:#86868b;">
+        お手数ですが、Stripe ダッシュボードで銀行口座情報をご確認ください。
+        解決しない場合はサポートまでお問い合わせください。
+      </p>
+      <div style="border-top:1px solid #e5e5e5;margin-top:24px;padding-top:12px;font-size:12px;color:#86868b;">
+        Ledra
+      </div>
+    </div>
+  `;
+
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from, to: params.to, subject: "[Ledra] 振込処理が失敗しました", html }),
+    });
+  } catch (err) {
+    console.error("connect-webhook: payout failed email error:", err);
+  }
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,7 +110,7 @@ export async function POST(req: NextRequest) {
 
   if (claimError) {
     if (claimError.code === "23505") {
-      console.log("connect-webhook: duplicate event skipped", { id: event.id, type: event.type });
+      console.info("connect-webhook: duplicate event skipped", { id: event.id, type: event.type });
       return NextResponse.json({ received: true, duplicate: true });
     }
     console.warn("connect-webhook: idempotency claim error (proceeding)", { id: event.id, error: claimError.message });
@@ -100,7 +152,7 @@ export async function POST(req: NextRequest) {
           { onConflict: "stripe_transfer_id" },
         );
 
-        console.log("connect-webhook: transfer created", {
+        console.info("connect-webhook: transfer created", {
           transferId: transfer.id,
           accountId,
           tenantId,
@@ -129,13 +181,13 @@ export async function POST(req: NextRequest) {
             .from("agent_commissions")
             .update({ status: "paid", paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
             .eq("id", meta.source_id);
-          console.log("connect-webhook: agent commission paid", {
+          console.info("connect-webhook: agent commission paid", {
             commissionId: meta.source_id,
             transferId: transfer.id,
           });
         }
 
-        console.log("connect-webhook: transfer paid", { transferId: transfer.id });
+        console.info("connect-webhook: transfer paid", { transferId: transfer.id });
         break;
       }
 
@@ -157,13 +209,13 @@ export async function POST(req: NextRequest) {
             .from("agent_commissions")
             .update({ status: "failed", updated_at: new Date().toISOString() })
             .eq("id", meta.source_id);
-          console.log("connect-webhook: agent commission reversed", {
+          console.info("connect-webhook: agent commission reversed", {
             commissionId: meta.source_id,
             transferId: transfer.id,
           });
         }
 
-        console.log("connect-webhook: transfer reversed", { transferId: transfer.id });
+        console.info("connect-webhook: transfer reversed", { transferId: transfer.id });
         break;
       }
 
@@ -183,7 +235,7 @@ export async function POST(req: NextRequest) {
             .eq("stripe_payment_intent_id", chargeId);
         }
 
-        console.log("connect-webhook: application_fee created", {
+        console.info("connect-webhook: application_fee created", {
           feeId: fee.id,
           accountId,
           amount: fee.amount,
@@ -198,7 +250,7 @@ export async function POST(req: NextRequest) {
       case "payout.paid": {
         const payout = event.data.object as Stripe.Payout;
         const accountId = connectedAccountId ?? "";
-        console.log("connect-webhook: payout paid", {
+        console.info("connect-webhook: payout paid", {
           payoutId: payout.id,
           accountId,
           amount: payout.amount,
@@ -223,7 +275,47 @@ export async function POST(req: NextRequest) {
           failureCode: payout.failure_code,
           failureMessage: payout.failure_message,
         });
-        // TODO: 振込失敗メール通知
+
+        // 振込失敗メール通知（テナントまたは代理店の contact_email に送信）
+        void (async () => {
+          try {
+            if (tenantId) {
+              const { data: tenant } = await supabase
+                .from("tenants")
+                .select("name, contact_email")
+                .eq("id", tenantId)
+                .single();
+              if (tenant?.contact_email) {
+                await sendPayoutFailedEmail({
+                  to: tenant.contact_email,
+                  recipientName: tenant.name ?? "店舗",
+                  payoutId: payout.id,
+                  amount: payout.amount,
+                  failureCode: payout.failure_code ?? null,
+                  failureMessage: payout.failure_message ?? null,
+                });
+              }
+            } else if (agentId) {
+              const { data: agent } = await supabase
+                .from("agents")
+                .select("name, contact_email")
+                .eq("id", agentId)
+                .single();
+              if (agent?.contact_email) {
+                await sendPayoutFailedEmail({
+                  to: agent.contact_email,
+                  recipientName: agent.name ?? "代理店",
+                  payoutId: payout.id,
+                  amount: payout.amount,
+                  failureCode: payout.failure_code ?? null,
+                  failureMessage: payout.failure_message ?? null,
+                });
+              }
+            }
+          } catch (notifyErr) {
+            console.error("connect-webhook: payout failed notification error:", notifyErr);
+          }
+        })();
         break;
       }
 
@@ -245,7 +337,7 @@ export async function POST(req: NextRequest) {
 
         if (tenant && tenant.stripe_connect_onboarded !== onboarded) {
           await supabase.from("tenants").update({ stripe_connect_onboarded: onboarded }).eq("id", tenant.id);
-          console.log("connect-webhook: tenant connect synced", { accountId: account.id, onboarded });
+          console.info("connect-webhook: tenant connect synced", { accountId: account.id, onboarded });
         }
 
         // agent
@@ -258,7 +350,7 @@ export async function POST(req: NextRequest) {
 
         if (agent && agent.stripe_connect_onboarded !== onboarded) {
           await supabase.from("agents").update({ stripe_connect_onboarded: onboarded }).eq("id", agent.id);
-          console.log("connect-webhook: agent connect synced", { accountId: account.id, onboarded });
+          console.info("connect-webhook: agent connect synced", { accountId: account.id, onboarded });
         }
 
         break;

@@ -21,11 +21,7 @@ function getRedis(): Redis | null {
  * @param ttl  TTL（秒）
  * @param fn   実際のデータ取得関数
  */
-export async function withCache<T>(
-  key: string,
-  ttl: number,
-  fn: () => Promise<T>,
-): Promise<T> {
+export async function withCache<T>(key: string, ttl: number, fn: () => Promise<T>): Promise<T> {
   const r = getRedis();
   if (!r) return fn();
 

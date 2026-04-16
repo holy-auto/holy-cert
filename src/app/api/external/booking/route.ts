@@ -37,23 +37,7 @@ export async function POST(req: NextRequest) {
     // ── API Key 認証 ──
     const apiKey = req.headers.get("x-api-key");
     if (!apiKey) {
-      return apiError({
-        code: "unauthorized",
-        message: "API key required",
-        status: 401,
-      });
-    }
-
-    // TODO: Implement per-tenant API keys (tenant.api_key field).
-    // Temporary measure: validate against CRON_SECRET as a Bearer token fallback.
-    const bearerToken = req.headers.get("authorization")?.replace("Bearer ", "");
-    const cronSecret = process.env.CRON_SECRET;
-    if (apiKey !== cronSecret && bearerToken !== cronSecret) {
-      return apiError({
-        code: "unauthorized",
-        message: "Invalid API key",
-        status: 401,
-      });
+      return apiError({ code: "unauthorized", message: "API key required", status: 401 });
     }
 
     // 必須フィールド検証
@@ -78,16 +62,24 @@ export async function POST(req: NextRequest) {
 
     const admin = getAdminClient();
 
-    // テナント解決
+    // テナント解決 + API キー検証（同時に行いタイミング攻撃を防ぐ）
     const { data: tenant } = await admin
       .from("tenants")
-      .select("id, name")
+      .select("id, name, external_api_key")
       .eq("slug", tenantSlug)
       .eq("is_active", true)
       .single();
 
     if (!tenant) {
       return apiValidationError("指定された店舗が見つかりません");
+    }
+
+    // テナント固有のAPIキーで検証
+    // テナントにキーが設定されていない場合は CRON_SECRET へフォールバック（後方互換）
+    const cronSecret = process.env.CRON_SECRET;
+    const expectedKey = tenant.external_api_key ?? cronSecret;
+    if (!expectedKey || apiKey !== expectedKey) {
+      return apiError({ code: "unauthorized", message: "Invalid API key", status: 401 });
     }
 
     // ── 定休日チェック ──
@@ -239,7 +231,9 @@ export async function POST(req: NextRequest) {
         line_user_id: body.line_user_id || null,
         status: "confirmed",
       })
-      .select("id, tenant_id, customer_id, title, scheduled_date, start_time, end_time, note, source, line_user_id, status")
+      .select(
+        "id, tenant_id, customer_id, title, scheduled_date, start_time, end_time, note, source, line_user_id, status",
+      )
       .single();
 
     if (error) return apiInternalError(error, "external booking insert");

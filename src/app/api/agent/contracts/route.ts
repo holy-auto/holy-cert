@@ -25,7 +25,9 @@ export async function GET() {
     // RLS ensures only own agent's records
     const { data, error } = await supabase
       .from("agent_signing_requests")
-      .select("id, agent_id, template_type, title, status, signer_email, signer_name, sent_at, signed_at, created_at, updated_at")
+      .select(
+        "id, agent_id, template_type, title, status, signer_email, signer_name, sent_at, signed_at, created_at, updated_at",
+      )
       .eq("agent_id", agentRow.agent_id)
       .order("created_at", { ascending: false });
 

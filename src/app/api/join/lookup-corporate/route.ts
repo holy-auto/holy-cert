@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import {
-  isValidCorporateNumber,
-  verifyCorporateNumberViaApi,
-} from "@/lib/insurer/corporateNumber";
+import { isValidCorporateNumber, verifyCorporateNumberViaApi } from "@/lib/insurer/corporateNumber";
 import { apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";

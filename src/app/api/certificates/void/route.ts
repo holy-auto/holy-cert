@@ -4,7 +4,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog";
 import { certificateVoidSchema } from "@/lib/validations/certificate";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound, apiForbidden } from "@/lib/api/response";
+import {
+  apiOk,
+  apiInternalError,
+  apiUnauthorized,
+  apiValidationError,
+  apiNotFound,
+  apiForbidden,
+} from "@/lib/api/response";
 
 /**
  * POST /api/certificates/void

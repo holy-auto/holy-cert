@@ -9,11 +9,7 @@ export type SettingsResult = { ok: true } | { ok: false; error: string };
 async function getTenantId(supabase: SupabaseClient): Promise<string | null> {
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes.user) return null;
-  const { data } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .limit(1)
-    .single();
+  const { data } = await supabase.from("tenant_memberships").select("tenant_id").limit(1).single();
   return (data?.tenant_id as string | null) ?? null;
 }
 
@@ -29,14 +25,14 @@ export async function updateTenantSettingsAction(formData: FormData): Promise<Se
   const payload: Record<string, unknown> = { name };
   const contact_email = String(formData.get("contact_email") ?? "").trim();
   const contact_phone = String(formData.get("contact_phone") ?? "").trim();
-  const address       = String(formData.get("address") ?? "").trim();
-  const website_url   = String(formData.get("website_url") ?? "").trim();
+  const address = String(formData.get("address") ?? "").trim();
+  const website_url = String(formData.get("website_url") ?? "").trim();
   const registration_number = String(formData.get("registration_number") ?? "").trim();
   // Only include extended fields if the form sent them (columnsExist path)
   if (formData.has("contact_email")) payload.contact_email = contact_email || null;
   if (formData.has("contact_phone")) payload.contact_phone = contact_phone || null;
-  if (formData.has("address"))       payload.address       = address || null;
-  if (formData.has("website_url"))   payload.website_url   = website_url || null;
+  if (formData.has("address")) payload.address = address || null;
+  if (formData.has("website_url")) payload.website_url = website_url || null;
   if (formData.has("registration_number")) payload.registration_number = registration_number || null;
 
   if (formData.has("bank_name")) {
@@ -49,10 +45,7 @@ export async function updateTenantSettingsAction(formData: FormData): Promise<Se
     };
   }
 
-  const { error } = await supabase
-    .from("tenants")
-    .update(payload)
-    .eq("id", tenantId);
+  const { error } = await supabase.from("tenants").update(payload).eq("id", tenantId);
 
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/settings");

@@ -6,8 +6,8 @@
  * 署名ペイロードの正規化により改ざん検知範囲を明確化する。
  */
 
-import { createHash } from 'crypto';
-import { createPublicKey } from 'crypto';
+import { createHash } from "crypto";
+import { createPublicKey } from "crypto";
 
 /**
  * PDF バイト列の SHA-256 ハッシュを計算する。
@@ -20,7 +20,7 @@ import { createPublicKey } from 'crypto';
  * @returns 小文字 HEX 文字列形式の SHA-256 ハッシュ（64文字）
  */
 export function computeDocumentHash(pdfBytes: Uint8Array): string {
-  return createHash('sha256').update(pdfBytes).digest('hex');
+  return createHash("sha256").update(pdfBytes).digest("hex");
 }
 
 /**
@@ -34,8 +34,8 @@ export function computeDocumentHash(pdfBytes: Uint8Array): string {
  */
 export function computePublicKeyFingerprint(publicKeyPem: string): string {
   const pubKey = createPublicKey(publicKeyPem);
-  const der = pubKey.export({ type: 'spki', format: 'der' }) as Buffer;
-  return createHash('sha256').update(der).digest('hex');
+  const der = pubKey.export({ type: "spki", format: "der" }) as Buffer;
+  return createHash("sha256").update(der).digest("hex");
 }
 
 /**
@@ -69,11 +69,11 @@ export function buildSigningPayload(
   sessionId: string,
 ): string {
   return [
-    'ledra-signature-v1',
+    "ledra-signature-v1",
     documentHash.toLowerCase(),
     signedAt,
     signerEmail.toLowerCase().trim(),
     certificateId.toLowerCase(),
     sessionId.toLowerCase(),
-  ].join(':');
+  ].join(":");
 }

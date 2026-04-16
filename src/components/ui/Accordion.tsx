@@ -50,9 +50,7 @@ export default function Accordion({ items, className = "" }: AccordionProps) {
               style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
             >
               <div className="overflow-hidden">
-                <p className="pb-4 text-sm text-secondary leading-relaxed">
-                  {item.answer}
-                </p>
+                <p className="pb-4 text-sm text-secondary leading-relaxed">{item.answer}</p>
               </div>
             </div>
           </div>

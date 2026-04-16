@@ -8,10 +8,7 @@ import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } fr
  * GET /api/admin/orders/[id]/messages
  * チャット履歴取得
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
@@ -66,10 +63,7 @@ export async function GET(
  * チャットメッセージ送信
  * Body: { body: string, attachment_path?: string, attachment_type?: string }
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
@@ -116,7 +110,9 @@ export async function POST(
         attachment_type: attachment_type || null,
         is_system: false,
       })
-      .select("id, job_order_id, sender_user_id, sender_tenant_id, body, attachment_path, attachment_type, is_system, created_at")
+      .select(
+        "id, job_order_id, sender_user_id, sender_tenant_id, body, attachment_path, attachment_type, is_system, created_at",
+      )
       .single();
 
     if (error) {

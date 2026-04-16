@@ -55,7 +55,7 @@ async function fetchLiveFeeds() {
       } catch {
         return [];
       }
-    })
+    }),
   );
 
   for (const r of results) {

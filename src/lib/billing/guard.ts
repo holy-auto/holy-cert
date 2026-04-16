@@ -197,9 +197,15 @@ export async function enforceBilling(
   if (!tenant_id) {
     console.warn("[billing guard] tenant_id could not be resolved", {
       action,
-      path: (() => { try { return new URL(req.url).pathname; } catch { return "?"; } })(),
+      path: (() => {
+        try {
+          return new URL(req.url).pathname;
+        } catch {
+          return "?";
+        }
+      })(),
     });
-    return null;
+    return json(400, { error: "Missing tenant_id" });
   }
 
   // --- Platform admin bypass ---
@@ -226,7 +232,9 @@ export async function enforceBilling(
   if (!active) {
     // public_pdf は「猶予期間中だけ許可」
     if (action === "public_pdf") {
-      const g = await graceInfoForTenant(((data as Record<string, unknown>).stripe_subscription_id as string | null) ?? null);
+      const g = await graceInfoForTenant(
+        ((data as Record<string, unknown>).stripe_subscription_id as string | null) ?? null,
+      );
       const now = Date.now();
 
       if (g.ok && g.grace_until) {

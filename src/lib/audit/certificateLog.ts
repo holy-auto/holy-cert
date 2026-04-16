@@ -63,8 +63,9 @@ export async function logCertificateAction(params: {
 }): Promise<void> {
   try {
     const admin = createAdminClient();
-    const desc = params.description
-      ?? [
+    const desc =
+      params.description ??
+      [
         `Public ID: ${params.publicId}`,
         params.userId ? `User: ${params.userId}` : null,
         params.ip ? `IP: ${params.ip}` : null,

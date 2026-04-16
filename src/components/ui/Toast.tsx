@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 
 type ToastVariant = "success" | "error" | "warning" | "info";
 
@@ -30,29 +24,65 @@ export function useToast() {
 
 const VARIANT_BORDER: Record<ToastVariant, string> = {
   success: "border-l-[3px] border-l-[var(--accent-emerald)]",
-  error:   "border-l-[3px] border-l-[var(--accent-red)]",
+  error: "border-l-[3px] border-l-[var(--accent-red)]",
   warning: "border-l-[3px] border-l-[var(--accent-amber)]",
-  info:    "border-l-[3px] border-l-[var(--accent-blue)]",
+  info: "border-l-[3px] border-l-[var(--accent-blue)]",
 };
 
 const VARIANT_ICON: Record<ToastVariant, ReactNode> = {
   success: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-emerald)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--accent-emerald)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M20 6L9 17l-5-5" />
     </svg>
   ),
   error: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-red)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--accent-red)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   ),
   warning: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--accent-amber)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M12 9v4m0 4h.01M10.29 3.86l-8.58 14.87a2 2 0 001.72 3h17.14a2 2 0 001.72-3L13.71 3.86a2 2 0 00-3.42 0z" />
     </svg>
   ),
   info: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--accent-blue)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="12" cy="12" r="10" />
       <path d="M12 16v-4m0-4h.01" />
     </svg>
@@ -96,7 +126,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               className="text-muted hover:text-primary transition-colors"
               aria-label="閉じる"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>

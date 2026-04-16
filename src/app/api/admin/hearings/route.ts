@@ -16,7 +16,9 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("hearings")
-      .select("id, tenant_id, customer_name, customer_phone, customer_email, vehicle_maker, vehicle_model, vehicle_year, vehicle_plate, vehicle_color, vehicle_vin, service_type, vehicle_size, coating_history, desired_menu, budget_range, concern_areas, scratches_dents, parking_environment, usage_frequency, additional_requests, hearing_json, status, customer_id, vehicle_id, created_at, updated_at")
+      .select(
+        "id, tenant_id, customer_name, customer_phone, customer_email, vehicle_maker, vehicle_model, vehicle_year, vehicle_plate, vehicle_color, vehicle_vin, service_type, vehicle_size, coating_history, desired_menu, budget_range, concern_areas, scratches_dents, parking_environment, usage_frequency, additional_requests, hearing_json, status, customer_id, vehicle_id, created_at, updated_at",
+      )
       .eq("tenant_id", caller.tenantId)
       .order("created_at", { ascending: false });
 
@@ -96,7 +98,9 @@ export async function PUT(req: NextRequest) {
       // 顧客レコード作成
       const { data: hearing } = await supabase
         .from("hearings")
-        .select("id, customer_name, customer_phone, customer_email, vehicle_maker, vehicle_model, vehicle_year, vehicle_plate, vehicle_vin, vehicle_size")
+        .select(
+          "id, customer_name, customer_phone, customer_email, vehicle_maker, vehicle_model, vehicle_year, vehicle_plate, vehicle_vin, vehicle_size",
+        )
         .eq("id", id)
         .eq("tenant_id", caller.tenantId)
         .single();
@@ -158,11 +162,27 @@ export async function PUT(req: NextRequest) {
     // 通常更新
     const updateFields: Record<string, unknown> = { updated_at: new Date().toISOString() };
     const allowedFields = [
-      "customer_name", "customer_phone", "customer_email",
-      "vehicle_maker", "vehicle_model", "vehicle_year", "vehicle_plate", "vehicle_color", "vehicle_vin",
-      "service_type", "vehicle_size", "coating_history", "desired_menu", "budget_range",
-      "concern_areas", "scratches_dents", "parking_environment", "usage_frequency",
-      "additional_requests", "hearing_json", "status",
+      "customer_name",
+      "customer_phone",
+      "customer_email",
+      "vehicle_maker",
+      "vehicle_model",
+      "vehicle_year",
+      "vehicle_plate",
+      "vehicle_color",
+      "vehicle_vin",
+      "service_type",
+      "vehicle_size",
+      "coating_history",
+      "desired_menu",
+      "budget_range",
+      "concern_areas",
+      "scratches_dents",
+      "parking_environment",
+      "usage_frequency",
+      "additional_requests",
+      "hearing_json",
+      "status",
     ];
     for (const k of allowedFields) {
       if (k in fields) updateFields[k] = fields[k];

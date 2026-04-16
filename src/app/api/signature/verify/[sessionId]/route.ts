@@ -12,28 +12,26 @@
  * 5. 検証結果・署名情報を返す（個人情報はマスク）
  */
 
-import { NextRequest } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { apiOk, apiError, apiInternalError } from '@/lib/api/response';
-import { verifySignature } from '@/lib/signature/crypto';
+import { NextRequest } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { apiOk, apiError, apiInternalError } from "@/lib/api/response";
+import { verifySignature } from "@/lib/signature/crypto";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ sessionId: string }> },
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
     const { sessionId } = await params;
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
-    const ua = req.headers.get('user-agent') ?? 'unknown';
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+    const ua = req.headers.get("user-agent") ?? "unknown";
 
     const supabase = getSupabaseAdmin();
 
     // セッションと関連情報を取得
     const { data: session, error } = await supabase
-      .from('signature_sessions')
-      .select(`
+      .from("signature_sessions")
+      .select(
+        `
         id,
         status,
         certificate_id,
@@ -48,60 +46,55 @@ export async function GET(
         certificates (
           public_id
         )
-      `)
-      .eq('id', sessionId)
+      `,
+      )
+      .eq("id", sessionId)
       .single();
 
     if (error || !session) {
       return apiError({
-        code:    'not_found',
-        message: '署名セッションが見つかりません',
-        status:  404,
+        code: "not_found",
+        message: "署名セッションが見つかりません",
+        status: 404,
       });
     }
 
     // 未署名の場合
-    if (session.status !== 'signed') {
+    if (session.status !== "signed") {
       return apiOk({
-        is_valid:   false,
-        status:     session.status,
-        message:    session.status === 'pending'
-          ? 'この文書はまだ署名されていません'
-          : '無効なセッションです',
+        is_valid: false,
+        status: session.status,
+        message: session.status === "pending" ? "この文書はまだ署名されていません" : "無効なセッションです",
         verified_at: new Date().toISOString(),
       });
     }
 
     // 公開鍵の取得（key_version に対応するものを使用）
     const { data: keyRecord } = await supabase
-      .from('signature_public_keys')
-      .select('public_key, fingerprint')
-      .eq('key_version', session.key_version)
+      .from("signature_public_keys")
+      .select("public_key, fingerprint")
+      .eq("key_version", session.key_version)
       .single();
 
     if (!keyRecord) {
       return apiError({
-        code:    'internal_error',
-        message: '検証鍵が見つかりません',
-        status:  500,
+        code: "internal_error",
+        message: "検証鍵が見つかりません",
+        status: 500,
       });
     }
 
     // ECDSA 署名の暗号的検証
-    const isValid = verifySignature(
-      session.signing_payload ?? '',
-      session.signature       ?? '',
-      keyRecord.public_key,
-    );
+    const isValid = verifySignature(session.signing_payload ?? "", session.signature ?? "", keyRecord.public_key);
 
     // 'verified' 監査ログを記録
-    await supabase.from('signature_audit_logs').insert({
+    await supabase.from("signature_audit_logs").insert({
       session_id: session.id,
-      event:      'verified',
+      event: "verified",
       ip,
       user_agent: ua,
-      metadata:   {
-        is_valid:    isValid,
+      metadata: {
+        is_valid: isValid,
         verified_at: new Date().toISOString(),
       },
     });
@@ -113,20 +106,18 @@ export async function GET(
       : ((certRaw as any)?.public_id ?? null);
 
     return apiOk({
-      is_valid:    isValid,
-      status:      session.status,
-      message:     isValid
-        ? 'この証明書の電子署名は有効です'
-        : '署名が無効です。証明書が改ざんされている可能性があります',
+      is_valid: isValid,
+      status: session.status,
+      message: isValid ? "この証明書の電子署名は有効です" : "署名が無効です。証明書が改ざんされている可能性があります",
       session: {
-        id:                     session.id,
-        signed_at:              session.signed_at,
+        id: session.id,
+        signed_at: session.signed_at,
         // 個人情報は部分マスク（例: te***@example.com）
-        signer_email_masked:    maskEmail(session.signer_confirmed_email),
-        document_hash:          session.document_hash,
-        document_hash_alg:      session.document_hash_alg,
+        signer_email_masked: maskEmail(session.signer_confirmed_email),
+        document_hash: session.document_hash,
+        document_hash_alg: session.document_hash_alg,
         public_key_fingerprint: session.public_key_fingerprint,
-        key_version:            session.key_version,
+        key_version: session.key_version,
       },
       certificate: certPublicId ? { public_id: certPublicId } : null,
       verified_at: new Date().toISOString(),
@@ -141,11 +132,11 @@ export async function GET(
  * 例: "test@example.com" → "te***@example.com"
  */
 function maskEmail(email: string | null): string {
-  if (!email) return '***';
-  const atIndex = email.indexOf('@');
-  if (atIndex <= 0) return '***';
-  const local  = email.slice(0, atIndex);
+  if (!email) return "***";
+  const atIndex = email.indexOf("@");
+  if (atIndex <= 0) return "***";
+  const local = email.slice(0, atIndex);
   const domain = email.slice(atIndex);
   const visibleChars = Math.min(2, local.length);
-  return local.slice(0, visibleChars) + '***' + domain;
+  return local.slice(0, visibleChars) + "***" + domain;
 }

@@ -27,11 +27,13 @@ export async function GET() {
     // Fetch published materials with category name
     const { data: materials } = await supabase
       .from("agent_materials")
-      .select(`
+      .select(
+        `
         id, category_id, title, description, file_name, file_size, file_type,
         version, is_pinned, download_count, created_at, updated_at,
         agent_material_categories ( name )
-      `)
+      `,
+      )
       .eq("is_published", true)
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false });

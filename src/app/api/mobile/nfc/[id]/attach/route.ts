@@ -13,10 +13,7 @@ import {
 export const dynamic = "force-dynamic";
 
 // ─── POST: Record NFC attach (written → attached) ───
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const caller = await resolveMobileCaller(request);
     if (!caller) return apiUnauthorized();
@@ -33,9 +30,7 @@ export async function POST(
 
     if (!tag) return apiNotFound();
     if (tag.status !== "written") {
-      return apiValidationError(
-        `Cannot attach: current status is "${tag.status}", expected "written"`,
-      );
+      return apiValidationError(`Cannot attach: current status is "${tag.status}", expected "written"`);
     }
 
     const { data, error } = await caller.supabase

@@ -56,11 +56,7 @@ export async function POST(req: Request) {
       size_class: sizeClass,
     };
 
-    const { data: vehicle, error } = await supabase
-      .from("vehicles")
-      .insert(insertRow)
-      .select("id")
-      .single();
+    const { data: vehicle, error } = await supabase.from("vehicles").insert(insertRow).select("id").single();
 
     if (error) {
       return apiInternalError(error, "vehicles/create insert");

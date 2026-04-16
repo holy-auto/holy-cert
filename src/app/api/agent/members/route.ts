@@ -51,7 +51,7 @@ export async function GET() {
           created_at: m.created_at,
           is_self: m.user_id === auth.user.id,
         };
-      })
+      }),
     );
 
     return NextResponse.json({ members: enriched });
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       return apiForbidden("メンバーを招待する権限がありません。");
     }
 
-    const body = await request.json().catch(() => ({} as Record<string, unknown>));
+    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
     const email = ((body?.email as string) ?? "").trim().toLowerCase();
     const role = ((body?.role as string) ?? "").trim() || "viewer";
     const displayName = ((body?.display_name as string) ?? "").trim() || null;

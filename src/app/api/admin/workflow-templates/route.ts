@@ -54,8 +54,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
 
     const name = String(body.name ?? "").trim();
-    if (!name)
-      return apiValidationError("テンプレート名は必須です");
+    if (!name) return apiValidationError("テンプレート名は必須です");
 
     const serviceType = String(body.service_type ?? "other");
     const validTypes = ["coating", "ppf", "wrapping", "body_repair", "other"];

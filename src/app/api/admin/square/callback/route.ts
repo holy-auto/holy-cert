@@ -15,24 +15,20 @@ export async function GET(req: NextRequest) {
 
   // ── 認証チェック: ユーザーがログイン済みかつテナントメンバーであることを確認 ──
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.redirect(
-      new URL("/admin/square?square=error&reason=unauthenticated", baseUrl),
-    );
+    return NextResponse.redirect(new URL("/admin/square?square=error&reason=unauthenticated", baseUrl));
   }
 
   // ユーザーが拒否した場合
   if (error) {
-    return NextResponse.redirect(
-      new URL("/admin/square?square=denied", baseUrl),
-    );
+    return NextResponse.redirect(new URL("/admin/square?square=denied", baseUrl));
   }
 
   if (!code || !state) {
-    return NextResponse.redirect(
-      new URL("/admin/square?square=error&reason=missing_params", baseUrl),
-    );
+    return NextResponse.redirect(new URL("/admin/square?square=error&reason=missing_params", baseUrl));
   }
 
   // ユーザーが対象テナントのメンバーであるか確認
@@ -46,21 +42,13 @@ export async function GET(req: NextRequest) {
     .maybeSingle();
 
   if (!membership) {
-    return NextResponse.redirect(
-      new URL("/admin/square?square=error&reason=unauthorized", baseUrl),
-    );
+    return NextResponse.redirect(new URL("/admin/square?square=error&reason=unauthorized", baseUrl));
   }
-  const { data: tenant } = await admin
-    .from("tenants")
-    .select("id")
-    .eq("id", state)
-    .maybeSingle();
+  const { data: tenant } = await admin.from("tenants").select("id").eq("id", state).maybeSingle();
 
   if (!tenant) {
     console.error("[square callback] invalid state (tenant not found):", state);
-    return NextResponse.redirect(
-      new URL("/admin/square?square=error&reason=invalid_state", baseUrl),
-    );
+    return NextResponse.redirect(new URL("/admin/square?square=error&reason=invalid_state", baseUrl));
   }
 
   const tenantId = tenant.id as string;
@@ -88,18 +76,11 @@ export async function GET(req: NextRequest) {
       console.error("[square callback] token exchange failed:", tokenRes.status, errBody);
       // Include status in redirect for easier debugging
       const reason = `token_exchange_${tokenRes.status}`;
-      return NextResponse.redirect(
-        new URL(`/admin/square?square=error&reason=${reason}`, baseUrl),
-      );
+      return NextResponse.redirect(new URL(`/admin/square?square=error&reason=${reason}`, baseUrl));
     }
 
     const tokenData = await tokenRes.json();
-    const {
-      access_token,
-      refresh_token,
-      expires_at,
-      merchant_id,
-    } = tokenData;
+    const { access_token, refresh_token, expires_at, merchant_id } = tokenData;
 
     // 2. Fetch locations
     let locationIds: string[] = [];
@@ -109,9 +90,7 @@ export async function GET(req: NextRequest) {
       });
       if (locRes.ok) {
         const locData = await locRes.json();
-        locationIds = (locData.locations ?? []).map(
-          (loc: { id: string }) => loc.id,
-        );
+        locationIds = (locData.locations ?? []).map((loc: { id: string }) => loc.id);
       }
     } catch (locErr) {
       console.error("[square callback] failed to fetch locations:", locErr);
@@ -119,36 +98,28 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Upsert into square_connections
-    const { error: dbError } = await admin
-      .from("square_connections")
-      .upsert(
-        {
-          tenant_id: tenantId,
-          square_access_token: access_token,
-          square_refresh_token: refresh_token,
-          square_token_expires_at: expires_at,
-          square_merchant_id: merchant_id ?? null,
-          square_location_ids: locationIds,
-          status: "active",
-          connected_at: new Date().toISOString(),
-        },
-        { onConflict: "tenant_id" },
-      );
+    const { error: dbError } = await admin.from("square_connections").upsert(
+      {
+        tenant_id: tenantId,
+        square_access_token: access_token,
+        square_refresh_token: refresh_token,
+        square_token_expires_at: expires_at,
+        square_merchant_id: merchant_id ?? null,
+        square_location_ids: locationIds,
+        status: "active",
+        connected_at: new Date().toISOString(),
+      },
+      { onConflict: "tenant_id" },
+    );
 
     if (dbError) {
       console.error("[square callback] db upsert error:", dbError.message);
-      return NextResponse.redirect(
-        new URL("/admin/square?square=error&reason=db_save", baseUrl),
-      );
+      return NextResponse.redirect(new URL("/admin/square?square=error&reason=db_save", baseUrl));
     }
 
-    return NextResponse.redirect(
-      new URL("/admin/square?square=connected", baseUrl),
-    );
+    return NextResponse.redirect(new URL("/admin/square?square=connected", baseUrl));
   } catch (e) {
     console.error("[square callback] unexpected error:", e);
-    return NextResponse.redirect(
-      new URL("/admin/square?square=error&reason=unexpected", baseUrl),
-    );
+    return NextResponse.redirect(new URL("/admin/square?square=error&reason=unexpected", baseUrl));
   }
 }

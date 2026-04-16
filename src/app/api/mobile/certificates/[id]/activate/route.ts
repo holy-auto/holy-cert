@@ -13,10 +13,7 @@ import {
 export const dynamic = "force-dynamic";
 
 // ─── POST: Activate certificate (draft → active) ───
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const caller = await resolveMobileCaller(request);
     if (!caller) return apiUnauthorized();
@@ -33,9 +30,7 @@ export async function POST(
 
     if (!cert) return apiNotFound();
     if (cert.status !== "draft") {
-      return apiValidationError(
-        `Cannot activate: current status is "${cert.status}", expected "draft"`,
-      );
+      return apiValidationError(`Cannot activate: current status is "${cert.status}", expected "draft"`);
     }
 
     const { data, error } = await caller.supabase
@@ -55,9 +50,7 @@ export async function POST(
       record_id: id,
       action: "certificate_activated",
       performed_by: caller.userId,
-      ip_address:
-        request.headers.get("x-forwarded-for") ??
-        request.headers.get("x-real-ip"),
+      ip_address: request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip"),
     });
 
     return apiOk({ certificate: data });

@@ -8,41 +8,72 @@ export type Permission =
   // Dashboard
   | "dashboard:view"
   // Certificates
-  | "certificates:view" | "certificates:create" | "certificates:edit" | "certificates:void"
+  | "certificates:view"
+  | "certificates:create"
+  | "certificates:edit"
+  | "certificates:void"
   // Vehicles (service vehicles)
-  | "vehicles:view" | "vehicles:create" | "vehicles:edit" | "vehicles:delete"
+  | "vehicles:view"
+  | "vehicles:create"
+  | "vehicles:edit"
+  | "vehicles:delete"
   // Customers
-  | "customers:view" | "customers:create" | "customers:edit"
+  | "customers:view"
+  | "customers:create"
+  | "customers:edit"
   // Reservations
-  | "reservations:view" | "reservations:create" | "reservations:edit"
+  | "reservations:view"
+  | "reservations:create"
+  | "reservations:edit"
   // Invoices
-  | "invoices:view" | "invoices:create" | "invoices:edit"
+  | "invoices:view"
+  | "invoices:create"
+  | "invoices:edit"
   // Market (BtoB)
-  | "market:view" | "market:create" | "market:edit"
+  | "market:view"
+  | "market:create"
+  | "market:edit"
   // Orders
-  | "orders:view" | "orders:create"
+  | "orders:view"
+  | "orders:create"
   // Templates & Menu Items
-  | "templates:manage" | "menu_items:manage"
+  | "templates:manage"
+  | "menu_items:manage"
   // Members
-  | "members:view" | "members:manage"
+  | "members:view"
+  | "members:manage"
   // Settings
-  | "settings:view" | "settings:edit"
+  | "settings:view"
+  | "settings:edit"
   // Billing
-  | "billing:view" | "billing:manage"
+  | "billing:view"
+  | "billing:manage"
   // Stores
-  | "stores:view" | "stores:manage"
+  | "stores:view"
+  | "stores:manage"
   // Payments
-  | "payments:view" | "payments:create" | "payments:manage"
+  | "payments:view"
+  | "payments:create"
+  | "payments:manage"
   // Template Options
-  | "template_options:view" | "template_options:manage"
+  | "template_options:view"
+  | "template_options:manage"
   // Registers
-  | "registers:view" | "registers:manage"
-  | "register_sessions:view" | "register_sessions:operate" | "register_sessions:manage"
+  | "registers:view"
+  | "registers:manage"
+  | "register_sessions:view"
+  | "register_sessions:operate"
+  | "register_sessions:manage"
   // Shop
   | "shop:view"
   // Other
-  | "announcements:view" | "news:view" | "price_stats:view"
-  | "management:view" | "audit:view" | "insurers:view" | "insurers:manage"
+  | "announcements:view"
+  | "news:view"
+  | "price_stats:view"
+  | "management:view"
+  | "audit:view"
+  | "insurers:view"
+  | "insurers:manage"
   | "logo:manage"
   // Platform (super_admin only)
   | "platform:manage"
@@ -56,92 +87,196 @@ export type Permission =
 const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   super_admin: [
     "dashboard:view",
-    "certificates:view", "certificates:create", "certificates:edit", "certificates:void",
-    "vehicles:view", "vehicles:create", "vehicles:edit", "vehicles:delete",
-    "customers:view", "customers:create", "customers:edit",
-    "reservations:view", "reservations:create", "reservations:edit",
-    "invoices:view", "invoices:create", "invoices:edit",
-    "market:view", "market:create", "market:edit",
-    "orders:view", "orders:create",
-    "templates:manage", "menu_items:manage",
-    "members:view", "members:manage",
-    "settings:view", "settings:edit",
-    "billing:view", "billing:manage",
-    "stores:view", "stores:manage",
-    "registers:view", "registers:manage",
-    "register_sessions:view", "register_sessions:operate", "register_sessions:manage",
-    "announcements:view", "news:view", "price_stats:view",
-    "management:view", "audit:view",
-    "insurers:view", "insurers:manage",
-    "payments:view", "payments:create", "payments:manage",
+    "certificates:view",
+    "certificates:create",
+    "certificates:edit",
+    "certificates:void",
+    "vehicles:view",
+    "vehicles:create",
+    "vehicles:edit",
+    "vehicles:delete",
+    "customers:view",
+    "customers:create",
+    "customers:edit",
+    "reservations:view",
+    "reservations:create",
+    "reservations:edit",
+    "invoices:view",
+    "invoices:create",
+    "invoices:edit",
+    "market:view",
+    "market:create",
+    "market:edit",
+    "orders:view",
+    "orders:create",
+    "templates:manage",
+    "menu_items:manage",
+    "members:view",
+    "members:manage",
+    "settings:view",
+    "settings:edit",
+    "billing:view",
+    "billing:manage",
+    "stores:view",
+    "stores:manage",
+    "registers:view",
+    "registers:manage",
+    "register_sessions:view",
+    "register_sessions:operate",
+    "register_sessions:manage",
+    "announcements:view",
+    "news:view",
+    "price_stats:view",
+    "management:view",
+    "audit:view",
+    "insurers:view",
+    "insurers:manage",
+    "payments:view",
+    "payments:create",
+    "payments:manage",
     "logo:manage",
-    "template_options:view", "template_options:manage",
+    "template_options:view",
+    "template_options:manage",
     "shop:view",
     "platform:manage",
     "platform:operations",
   ],
   owner: [
     "dashboard:view",
-    "certificates:view", "certificates:create", "certificates:edit", "certificates:void",
-    "vehicles:view", "vehicles:create", "vehicles:edit", "vehicles:delete",
-    "customers:view", "customers:create", "customers:edit",
-    "reservations:view", "reservations:create", "reservations:edit",
-    "invoices:view", "invoices:create", "invoices:edit",
-    "market:view", "market:create", "market:edit",
-    "orders:view", "orders:create",
-    "templates:manage", "menu_items:manage",
-    "members:view", "members:manage",
-    "settings:view", "settings:edit",
-    "billing:view", "billing:manage",
-    "stores:view", "stores:manage",
-    "registers:view", "registers:manage",
-    "register_sessions:view", "register_sessions:operate", "register_sessions:manage",
-    "announcements:view", "news:view", "price_stats:view",
-    "management:view", "audit:view",
-    "insurers:view", "insurers:manage",
-    "payments:view", "payments:create", "payments:manage",
+    "certificates:view",
+    "certificates:create",
+    "certificates:edit",
+    "certificates:void",
+    "vehicles:view",
+    "vehicles:create",
+    "vehicles:edit",
+    "vehicles:delete",
+    "customers:view",
+    "customers:create",
+    "customers:edit",
+    "reservations:view",
+    "reservations:create",
+    "reservations:edit",
+    "invoices:view",
+    "invoices:create",
+    "invoices:edit",
+    "market:view",
+    "market:create",
+    "market:edit",
+    "orders:view",
+    "orders:create",
+    "templates:manage",
+    "menu_items:manage",
+    "members:view",
+    "members:manage",
+    "settings:view",
+    "settings:edit",
+    "billing:view",
+    "billing:manage",
+    "stores:view",
+    "stores:manage",
+    "registers:view",
+    "registers:manage",
+    "register_sessions:view",
+    "register_sessions:operate",
+    "register_sessions:manage",
+    "announcements:view",
+    "news:view",
+    "price_stats:view",
+    "management:view",
+    "audit:view",
+    "insurers:view",
+    "insurers:manage",
+    "payments:view",
+    "payments:create",
+    "payments:manage",
     "logo:manage",
-    "template_options:view", "template_options:manage",
+    "template_options:view",
+    "template_options:manage",
     "shop:view",
   ],
   admin: [
     "dashboard:view",
-    "certificates:view", "certificates:create", "certificates:edit", "certificates:void",
-    "vehicles:view", "vehicles:create", "vehicles:edit", "vehicles:delete",
-    "customers:view", "customers:create", "customers:edit",
-    "reservations:view", "reservations:create", "reservations:edit",
-    "invoices:view", "invoices:create", "invoices:edit",
-    "market:view", "market:create", "market:edit",
-    "orders:view", "orders:create",
-    "templates:manage", "menu_items:manage",
-    "members:view", "members:manage",
-    "settings:view", "settings:edit",
+    "certificates:view",
+    "certificates:create",
+    "certificates:edit",
+    "certificates:void",
+    "vehicles:view",
+    "vehicles:create",
+    "vehicles:edit",
+    "vehicles:delete",
+    "customers:view",
+    "customers:create",
+    "customers:edit",
+    "reservations:view",
+    "reservations:create",
+    "reservations:edit",
+    "invoices:view",
+    "invoices:create",
+    "invoices:edit",
+    "market:view",
+    "market:create",
+    "market:edit",
+    "orders:view",
+    "orders:create",
+    "templates:manage",
+    "menu_items:manage",
+    "members:view",
+    "members:manage",
+    "settings:view",
+    "settings:edit",
     "billing:view",
-    "stores:view", "stores:manage",
-    "registers:view", "registers:manage",
-    "register_sessions:view", "register_sessions:operate", "register_sessions:manage",
-    "announcements:view", "news:view", "price_stats:view",
-    "management:view", "audit:view",
-    "insurers:view", "insurers:manage",
-    "payments:view", "payments:create", "payments:manage",
+    "stores:view",
+    "stores:manage",
+    "registers:view",
+    "registers:manage",
+    "register_sessions:view",
+    "register_sessions:operate",
+    "register_sessions:manage",
+    "announcements:view",
+    "news:view",
+    "price_stats:view",
+    "management:view",
+    "audit:view",
+    "insurers:view",
+    "insurers:manage",
+    "payments:view",
+    "payments:create",
+    "payments:manage",
     "logo:manage",
-    "template_options:view", "template_options:manage",
+    "template_options:view",
+    "template_options:manage",
     "shop:view",
   ],
   staff: [
     "dashboard:view",
-    "certificates:view", "certificates:create", "certificates:edit",
-    "vehicles:view", "vehicles:create", "vehicles:edit",
-    "customers:view", "customers:create", "customers:edit",
-    "reservations:view", "reservations:create", "reservations:edit",
+    "certificates:view",
+    "certificates:create",
+    "certificates:edit",
+    "vehicles:view",
+    "vehicles:create",
+    "vehicles:edit",
+    "customers:view",
+    "customers:create",
+    "customers:edit",
+    "reservations:view",
+    "reservations:create",
+    "reservations:edit",
     "invoices:view",
-    "market:view", "market:create", "market:edit",
-    "orders:view", "orders:create",
+    "market:view",
+    "market:create",
+    "market:edit",
+    "orders:view",
+    "orders:create",
     "stores:view",
     "registers:view",
-    "register_sessions:view", "register_sessions:operate",
-    "payments:view", "payments:create",
-    "announcements:view", "news:view", "price_stats:view",
+    "register_sessions:view",
+    "register_sessions:operate",
+    "payments:view",
+    "payments:create",
+    "announcements:view",
+    "news:view",
+    "price_stats:view",
     "template_options:view",
     "shop:view",
   ],
@@ -158,7 +293,9 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "registers:view",
     "register_sessions:view",
     "payments:view",
-    "announcements:view", "news:view", "price_stats:view",
+    "announcements:view",
+    "news:view",
+    "price_stats:view",
     "template_options:view",
     "shop:view",
   ],
@@ -197,6 +334,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/admin/invoices": "invoices:view",
   "/admin/management": "management:view",
   "/admin/menu-items": "menu_items:manage",
+  "/admin/inventory": "menu_items:manage",
   "/admin/templates": "templates:manage",
   "/admin/members": "members:view",
   "/admin/btob": "market:view",

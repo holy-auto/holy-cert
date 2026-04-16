@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     const tenant_slug = (body.tenant_slug ?? "").toString().trim();
     const emailRaw = (body.email ?? "").toString();
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       return apiValidationError("hash_failed");
     }
 
-    const ok = await tenantHasPhoneHash(tenantId, phoneHash);
+    const ok = await tenantHasPhoneHash(tenantId, phoneHash, last4Raw);
     if (!ok) return apiNotFound("no matching certificates");
 
     const code = genCode6();

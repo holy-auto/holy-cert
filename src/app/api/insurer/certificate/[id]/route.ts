@@ -7,10 +7,7 @@ import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
 
-export async function GET(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const caller = await resolveInsurerCaller();
   if (!caller) return apiUnauthorized();
 
@@ -23,7 +20,9 @@ export async function GET(
 
   const { data: cert, error } = await sb
     .from("certificates")
-    .select("id, public_id, tenant_id, vehicle_id, status, grade, inspection_date, expiry_date, inspector_name, notes, pdf_url, created_at, updated_at")
+    .select(
+      "id, public_id, tenant_id, vehicle_id, status, grade, inspection_date, expiry_date, inspector_name, notes, pdf_url, created_at, updated_at",
+    )
     .eq("id", id)
     .maybeSingle();
 

@@ -28,7 +28,9 @@ export async function GET(request: NextRequest) {
     // Query commissions joined with referrals for shop_name
     let query = supabase
       .from("agent_commissions")
-      .select("id, agent_id, referral_id, amount, rate, status, period_start, period_end, paid_at, notes, created_at, updated_at, agent_referrals(shop_name)")
+      .select(
+        "id, agent_id, referral_id, amount, rate, status, period_start, period_end, paid_at, notes, created_at, updated_at, agent_referrals(shop_name)",
+      )
       .eq("agent_id", agentId)
       .order("period_start", { ascending: false });
 
@@ -65,9 +67,7 @@ export async function GET(request: NextRequest) {
     }
 
     const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString()
-      .slice(0, 10);
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
 
     let totalEarned = 0;
     let totalPending = 0;
@@ -84,10 +84,7 @@ export async function GET(request: NextRequest) {
       if (status === "pending") {
         totalPending += amount;
       }
-      if (
-        (status === "pending" || status === "approved" || status === "paid") &&
-        periodStart >= thisMonthStart
-      ) {
+      if ((status === "pending" || status === "approved" || status === "paid") && periodStart >= thisMonthStart) {
         thisMonth += amount;
       }
     }

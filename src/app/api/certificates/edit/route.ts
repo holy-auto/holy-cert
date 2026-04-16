@@ -50,7 +50,9 @@ export async function PUT(req: NextRequest) {
     // Fetch current certificate
     const { data: cert, error: fetchError } = await admin
       .from("certificates")
-      .select("id, tenant_id, public_id, status, customer_name, vehicle_info_json, content_free_text, expiry_type, expiry_value, expiry_date, warranty_period_end, maintenance_date, warranty_exclusions, remarks, service_type, coating_products_json, ppf_coverage_json, maintenance_json, body_repair_json, current_version")
+      .select(
+        "id, tenant_id, public_id, status, customer_name, vehicle_info_json, content_free_text, expiry_type, expiry_value, expiry_date, warranty_period_end, maintenance_date, warranty_exclusions, remarks, service_type, coating_products_json, ppf_coverage_json, maintenance_json, body_repair_json, current_version",
+      )
       .eq("public_id", publicId)
       .eq("tenant_id", caller.tenantId)
       .single();
@@ -82,10 +84,7 @@ export async function PUT(req: NextRequest) {
     updatePayload.current_version = nextVersion;
 
     // Update certificate
-    const { error: updateError } = await admin
-      .from("certificates")
-      .update(updatePayload)
-      .eq("id", cert.id);
+    const { error: updateError } = await admin.from("certificates").update(updatePayload).eq("id", cert.id);
 
     if (updateError) {
       console.error("certificate update error", updateError);

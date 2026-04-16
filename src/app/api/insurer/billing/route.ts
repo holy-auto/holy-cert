@@ -18,7 +18,7 @@ function getStripe() {
 function resolveBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL.replace(/\/$/, "");
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
+  throw new Error("Missing NEXT_PUBLIC_BASE_URL or VERCEL_URL: cannot resolve base URL for Stripe Checkout redirect");
 }
 
 /**

@@ -22,7 +22,9 @@ export async function GET() {
         .order("sort_order", { ascending: true }),
       admin
         .from("agent_materials")
-        .select("id, category_id, title, description, file_name, file_size, file_type, storage_path, version, is_pinned, is_published, uploaded_by, created_at, updated_at, agent_material_categories(name)")
+        .select(
+          "id, category_id, title, description, file_name, file_size, file_type, storage_path, version, is_pinned, is_published, uploaded_by, created_at, updated_at, agent_material_categories(name)",
+        )
         .order("created_at", { ascending: false }),
     ]);
 
@@ -66,12 +68,10 @@ export async function POST(request: NextRequest) {
     const storagePath = `materials/${timestamp}_${safeName}`;
 
     const admin = getAdminClient();
-    const { error: uploadErr } = await admin.storage
-      .from("agent-materials")
-      .upload(storagePath, file, {
-        contentType: file.type,
-        upsert: false,
-      });
+    const { error: uploadErr } = await admin.storage.from("agent-materials").upload(storagePath, file, {
+      contentType: file.type,
+      upsert: false,
+    });
 
     if (uploadErr) {
       return apiInternalError(uploadErr, "agent-materials upload");
@@ -93,7 +93,9 @@ export async function POST(request: NextRequest) {
         is_published: true,
         uploaded_by: caller.userId,
       })
-      .select("id, category_id, title, description, file_name, file_size, file_type, storage_path, version, is_pinned, is_published, uploaded_by, created_at, updated_at")
+      .select(
+        "id, category_id, title, description, file_name, file_size, file_type, storage_path, version, is_pinned, is_published, uploaded_by, created_at, updated_at",
+      )
       .single();
 
     if (insertErr) {

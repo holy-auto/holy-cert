@@ -31,8 +31,14 @@ export default function IdleAutoLogout({ logoutUrl = "/login" }: IdleAutoLogoutP
       const supabase = createClient();
       await supabase.auth.signOut();
       // sessionStorageのキャッシュもクリア
-      try { sessionStorage.clear(); } catch { /* ignore */ }
-    } catch { /* ignore */ }
+      try {
+        sessionStorage.clear();
+      } catch {
+        /* ignore */
+      }
+    } catch {
+      /* ignore */
+    }
     // replaceでbfcacheに管理画面を残さない
     window.location.replace(`${logoutUrl}?reason=idle`);
   }, []);
@@ -71,7 +77,9 @@ export default function IdleAutoLogout({ logoutUrl = "/login" }: IdleAutoLogoutP
     let throttleTimer: ReturnType<typeof setTimeout> | null = null;
     const onActivity = () => {
       if (throttleTimer) return;
-      throttleTimer = setTimeout(() => { throttleTimer = null; }, 2000);
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+      }, 2000);
       resetTimer();
     };
 
@@ -114,23 +122,26 @@ export default function IdleAutoLogout({ logoutUrl = "/login" }: IdleAutoLogoutP
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
+              />
             </svg>
           </div>
           <div>
             <h3 className="text-base font-bold text-primary">セッション期限切れ間近</h3>
-            <p className="text-sm text-secondary">
-              操作が検出されないため、まもなく自動ログアウトされます。
-            </p>
+            <p className="text-sm text-secondary">操作が検出されないため、まもなく自動ログアウトされます。</p>
           </div>
         </div>
-        <p className="text-xs text-muted">
-          このまま操作がなければ60秒後に自動的にログアウトされます。
-        </p>
+        <p className="text-xs text-muted">このまま操作がなければ60秒後に自動的にログアウトされます。</p>
         <div className="flex gap-3 justify-end">
           <button
             type="button"
-            onClick={() => { dismissWarning(); resetTimer(); }}
+            onClick={() => {
+              dismissWarning();
+              resetTimer();
+            }}
             className="rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 transition-colors"
           >
             操作を続ける

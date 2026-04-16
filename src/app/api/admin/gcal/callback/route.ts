@@ -19,24 +19,20 @@ export async function GET(req: NextRequest) {
 
   // ── 認証チェック: ユーザーがログイン済みかつテナントメンバーであることを確認 ──
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.redirect(
-      new URL("/admin/reservations?gcal=error&reason=unauthenticated", req.url),
-    );
+    return NextResponse.redirect(new URL("/admin/reservations?gcal=error&reason=unauthenticated", req.url));
   }
 
   // ユーザーが拒否した場合
   if (error) {
-    return NextResponse.redirect(
-      new URL("/admin/reservations?gcal=denied", req.url),
-    );
+    return NextResponse.redirect(new URL("/admin/reservations?gcal=denied", req.url));
   }
 
   if (!code || !state) {
-    return NextResponse.redirect(
-      new URL("/admin/reservations?gcal=error&reason=missing_params", req.url),
-    );
+    return NextResponse.redirect(new URL("/admin/reservations?gcal=error&reason=missing_params", req.url));
   }
 
   // ユーザーが対象テナントのメンバーであるか確認
@@ -50,20 +46,14 @@ export async function GET(req: NextRequest) {
     .maybeSingle();
 
   if (!membership) {
-    return NextResponse.redirect(
-      new URL("/admin/reservations?gcal=error&reason=unauthorized", req.url),
-    );
+    return NextResponse.redirect(new URL("/admin/reservations?gcal=error&reason=unauthorized", req.url));
   }
 
   try {
     await exchangeCodeAndSave(code, state);
-    return NextResponse.redirect(
-      new URL("/admin/reservations?gcal=connected", req.url),
-    );
+    return NextResponse.redirect(new URL("/admin/reservations?gcal=connected", req.url));
   } catch (e) {
     console.error("[gcal callback] token exchange failed:", e);
-    return NextResponse.redirect(
-      new URL("/admin/reservations?gcal=error&reason=token_exchange", req.url),
-    );
+    return NextResponse.redirect(new URL("/admin/reservations?gcal=error&reason=token_exchange", req.url));
   }
 }

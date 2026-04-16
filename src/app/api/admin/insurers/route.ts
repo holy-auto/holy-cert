@@ -33,18 +33,21 @@ async function logAdminAction(params: {
   userAgent?: string;
 }) {
   const admin = createAdminClient();
-  await admin.from("admin_audit_logs").insert({
-    actor_id: params.actorId,
-    action: params.action,
-    target_type: params.targetType,
-    target_id: params.targetId,
-    before_data: params.beforeData ?? null,
-    after_data: params.afterData ?? null,
-    ip: params.ip ?? null,
-    user_agent: params.userAgent ?? null,
-  }).then(({ error }) => {
-    if (error) console.error("[admin-audit] insert failed:", error.message);
-  });
+  await admin
+    .from("admin_audit_logs")
+    .insert({
+      actor_id: params.actorId,
+      action: params.action,
+      target_type: params.targetType,
+      target_id: params.targetId,
+      before_data: params.beforeData ?? null,
+      after_data: params.afterData ?? null,
+      ip: params.ip ?? null,
+      user_agent: params.userAgent ?? null,
+    })
+    .then(({ error }) => {
+      if (error) console.error("[admin-audit] insert failed:", error.message);
+    });
 }
 
 /**
@@ -175,7 +178,9 @@ export async function GET(req: Request) {
   const admin = createAdminClient();
   let query = admin
     .from("insurers")
-    .select("id, name, slug, is_active, status, plan_tier, requested_plan, contact_person, contact_email, contact_phone, signup_source, business_type, corporate_number, address, representative_name, terms_accepted_at, rejection_reason, created_at, updated_at, reviewed_at, activated_at")
+    .select(
+      "id, name, slug, is_active, status, plan_tier, requested_plan, contact_person, contact_email, contact_phone, signup_source, business_type, corporate_number, address, representative_name, terms_accepted_at, rejection_reason, created_at, updated_at, reviewed_at, activated_at",
+    )
     .order("created_at", { ascending: false });
 
   if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {
@@ -221,7 +226,12 @@ export async function PATCH(req: Request) {
   }
 
   // Validate plan_tier
-  if (plan_tier !== undefined && plan_tier !== null && plan_tier !== "" && !(VALID_PLAN_TIERS as readonly string[]).includes(plan_tier)) {
+  if (
+    plan_tier !== undefined &&
+    plan_tier !== null &&
+    plan_tier !== "" &&
+    !(VALID_PLAN_TIERS as readonly string[]).includes(plan_tier)
+  ) {
     return apiValidationError(`Invalid plan_tier. Must be one of: ${VALID_PLAN_TIERS.join(", ")}`);
   }
 
@@ -285,11 +295,14 @@ export async function PATCH(req: Request) {
 
   // Send notification email
   if (status && beforeInsurer.contact_email) {
-    const emailAction = status === "active"
-      ? "approved" as const
-      : status === "suspended"
-        ? (beforeInsurer.status === "active_pending_review" ? "rejected" as const : "suspended" as const)
-        : null;
+    const emailAction =
+      status === "active"
+        ? ("approved" as const)
+        : status === "suspended"
+          ? beforeInsurer.status === "active_pending_review"
+            ? ("rejected" as const)
+            : ("suspended" as const)
+          : null;
 
     if (emailAction) {
       sendInsurerNotification({

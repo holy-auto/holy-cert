@@ -8,10 +8,7 @@ import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } fr
 export const dynamic = "force-dynamic";
 
 // ─── POST: Add a message to the inquiry thread ───
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -19,7 +16,7 @@ export async function POST(
 
     const { id: inquiryId } = await params;
     const admin = createAdminClient();
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     const message = (body?.message ?? "").trim();
     const senderType = (body?.sender_type ?? "").trim();
@@ -80,7 +77,7 @@ export async function POST(
         const vehicleLabel = [vehicle?.maker, vehicle?.model].filter(Boolean).join(" ") || "車両";
         if (buyerEmail) {
           notifyInquiryReply(buyerEmail, { sellerName, vehicleLabel, message }).catch((e) =>
-            console.warn("[market] notifyInquiryReply failed:", e)
+            console.warn("[market] notifyInquiryReply failed:", e),
           );
         }
       } catch (e) {
@@ -95,10 +92,7 @@ export async function POST(
 }
 
 // ─── GET: Get all messages for an inquiry ───
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);

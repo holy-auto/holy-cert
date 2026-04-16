@@ -33,7 +33,10 @@ export async function GET(req: NextRequest) {
 
     let query = admin
       .from("tenants")
-      .select("id, name, plan_tier, is_active, category, prefecture, created_at, stripe_subscription_id, stripe_customer_id", { count: "exact" })
+      .select(
+        "id, name, plan_tier, is_active, category, prefecture, created_at, stripe_subscription_id, stripe_customer_id",
+        { count: "exact" },
+      )
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -57,14 +60,8 @@ export async function GET(req: NextRequest) {
     const certCounts: Record<string, number> = {};
     if (tenantIds.length > 0) {
       const [membersRes, certsRes] = await Promise.all([
-        admin
-          .from("tenant_memberships")
-          .select("tenant_id")
-          .in("tenant_id", tenantIds),
-        admin
-          .from("certificates")
-          .select("tenant_id")
-          .in("tenant_id", tenantIds),
+        admin.from("tenant_memberships").select("tenant_id").in("tenant_id", tenantIds),
+        admin.from("certificates").select("tenant_id").in("tenant_id", tenantIds),
       ]);
       for (const m of membersRes.data ?? []) {
         memberCounts[m.tenant_id] = (memberCounts[m.tenant_id] ?? 0) + 1;

@@ -10,10 +10,7 @@ import { apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } fr
  * Body: { rating: 1-5, comment?: string }
  * 双方が送信後に自動公開（DB trigger で published_at をセット）
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
@@ -76,7 +73,9 @@ export async function POST(
         rating: Math.round(rating),
         comment: comment?.trim() || null,
       })
-      .select("id, job_order_id, reviewer_tenant_id, reviewed_tenant_id, rating, comment, published_at, created_at, updated_at")
+      .select(
+        "id, job_order_id, reviewer_tenant_id, reviewed_tenant_id, rating, comment, published_at, created_at, updated_at",
+      )
       .single();
 
     if (error) {

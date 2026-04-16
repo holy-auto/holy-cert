@@ -56,13 +56,21 @@ export async function GET() {
       // 6. Webhooks 24h
       admin.from("stripe_processed_events").select("id", { count: "exact", head: true }).gte("created_at", oneDayAgo),
       // 7. Billing issues: subscription exists but is_active=false
-      admin.from("tenants").select("id, name, plan_tier, stripe_subscription_id").not("stripe_subscription_id", "is", null).eq("is_active", false),
+      admin
+        .from("tenants")
+        .select("id, name, plan_tier, stripe_subscription_id")
+        .not("stripe_subscription_id", "is", null)
+        .eq("is_active", false),
       // 8. Heavy insurer access 24h
       admin.from("insurer_access_logs").select("insurer_id").gte("created_at", oneDayAgo),
       // 9. Agent applications pending
       admin.from("agent_applications").select("id", { count: "exact", head: true }).eq("status", "pending"),
       // 10. Recent certificates (for activity feed)
-      admin.from("certificates").select("public_id, customer_name, status, tenant_id, created_at").order("created_at", { ascending: false }).limit(20),
+      admin
+        .from("certificates")
+        .select("public_id, customer_name, status, tenant_id, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
 
     // Process tenants

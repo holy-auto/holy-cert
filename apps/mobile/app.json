@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Ledra",
-    "slug": "ledra",
+    "slug": "admin",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,9 +20,6 @@
         "NSCameraUsageDescription": "Ledraは施工写真の撮影に使用します",
         "NSLocationWhenInUseUsageDescription": "Stripe Terminal の利用に位置情報が必要です",
         "NSBluetoothAlwaysUsageDescription": "将来のカードリーダー接続にBluetoothを使用します"
-      },
-      "entitlements": {
-        "com.apple.developer.proximity-reader.payment.acceptance": true
       }
     },
     "android": {
@@ -44,18 +41,21 @@
     },
     "extra": {
       "eas": {
-        "projectId": "5d5394bd-6242-48ef-9e36-3151e0d3dc8a"
+        "projectId": "82934b68-084f-45f0-8a4e-0abba3d124cd"
       },
       "router": {}
     },
-    "owner": "ledra",
+    "owner": "cartrust",
     "plugins": [
       "expo-router",
       "expo-secure-store",
       [
         "@stripe/stripe-terminal-react-native",
         {
-          "bluetoothBackgroundMode": false
+          "bluetoothBackgroundMode": false,
+          "locationWhenInUsePermission": "Stripe Terminal の利用に位置情報が必要です",
+          "bluetoothPeripheralPermission": "将来のカードリーダー接続にBluetoothを使用します",
+          "bluetoothAlwaysUsagePermission": "将来のカードリーダー接続にBluetoothを使用します"
         }
       ],
       [

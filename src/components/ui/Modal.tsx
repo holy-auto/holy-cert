@@ -17,8 +17,8 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
     if (!contentRef.current) return [];
     return Array.from(
       contentRef.current.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      )
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
     );
   }, []);
 
@@ -26,7 +26,10 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
       if (e.key === "Tab") {
         const focusable = getFocusableElements();
         if (focusable.length === 0) return;
@@ -65,7 +68,9 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   if (!open) return null;
@@ -76,11 +81,7 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
       style={{ animation: "fade-in 150ms ease-out" }}
     >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       {/* Content */}
       <div
         ref={contentRef}
@@ -93,12 +94,17 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-primary">{title}</h2>
-          <button
-            onClick={onClose}
-            className="btn-ghost p-1"
-            aria-label="閉じる"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <button onClick={onClose} className="btn-ghost p-1" aria-label="閉じる">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
@@ -106,11 +112,7 @@ export default function Modal({ open, onClose, title, children, footer }: ModalP
         {/* Body */}
         <div className="space-y-4">{children}</div>
         {/* Footer */}
-        {footer && (
-          <div className="mt-6 flex justify-end gap-3 border-t border-border-subtle pt-4">
-            {footer}
-          </div>
-        )}
+        {footer && <div className="mt-6 flex justify-end gap-3 border-t border-border-subtle pt-4">{footer}</div>}
       </div>
     </div>
   );

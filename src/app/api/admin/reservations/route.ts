@@ -24,7 +24,10 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("reservations")
-      .select("id, customer_id, vehicle_id, title, menu_items_json, note, scheduled_date, start_time, end_time, assigned_user_id, status, estimated_amount, created_at", { count: "exact" })
+      .select(
+        "id, customer_id, vehicle_id, title, menu_items_json, note, scheduled_date, start_time, end_time, assigned_user_id, status, estimated_amount, created_at, workflow_template_id, current_step_key, current_step_order, progress_pct",
+        { count: "exact" },
+      )
       .eq("tenant_id", caller.tenantId)
       .order("scheduled_date", { ascending: true })
       .order("start_time", { ascending: true });
@@ -56,10 +59,7 @@ export async function GET(req: NextRequest) {
     const customerIds = [...new Set((reservations ?? []).map((r) => r.customer_id).filter(Boolean))];
     const customerMap: Record<string, string> = {};
     if (customerIds.length > 0) {
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("id, name")
-        .in("id", customerIds);
+      const { data: customers } = await supabase.from("customers").select("id, name").in("id", customerIds);
       (customers ?? []).forEach((c) => {
         customerMap[c.id] = c.name;
       });
@@ -91,15 +91,18 @@ export async function GET(req: NextRequest) {
     const activeCount = enriched.filter((r) => r.status !== "cancelled" && r.status !== "completed").length;
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return NextResponse.json({
-      reservations: enriched,
-      stats: {
-        total: count ?? enriched.length,
-        today_count: todayCount,
-        active_count: activeCount,
+    return NextResponse.json(
+      {
+        reservations: enriched,
+        stats: {
+          total: count ?? enriched.length,
+          today_count: todayCount,
+          active_count: activeCount,
+        },
+        ...(pagination.page > 0 && { page: pagination.page, per_page: pagination.perPage, total: count ?? 0 }),
       },
-      ...(pagination.page > 0 && { page: pagination.page, per_page: pagination.perPage, total: count ?? 0 }),
-    }, { headers });
+      { headers },
+    );
   } catch (e: unknown) {
     return apiInternalError(e, "reservations list");
   }
@@ -112,34 +115,51 @@ export async function POST(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "starter", action: "reservation_create", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "starter",
+      action: "reservation_create",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
 
-    const title = (String(body?.title ?? "")).trim();
+    const title = String(body?.title ?? "").trim();
     if (!title) return apiValidationError("missing_title");
 
     const scheduledDate = String(body?.scheduled_date ?? "").trim();
     if (!scheduledDate) return apiValidationError("missing_scheduled_date");
 
+    // 初期ステータス (未指定時は confirmed)。飛び込み案件用に arrived も許可。
+    const VALID_INITIAL_STATUS = ["confirmed", "arrived", "in_progress"] as const;
+    const requestedStatus = String(body?.status ?? "confirmed").trim();
+    const initialStatus: string = (VALID_INITIAL_STATUS as readonly string[]).includes(requestedStatus)
+      ? requestedStatus
+      : "confirmed";
+
     const row = {
       id: crypto.randomUUID(),
       tenant_id: caller.tenantId,
-      customer_id: (String(body?.customer_id ?? "")).trim() || null,
-      vehicle_id: (String(body?.vehicle_id ?? "")).trim() || null,
+      customer_id: String(body?.customer_id ?? "").trim() || null,
+      vehicle_id: String(body?.vehicle_id ?? "").trim() || null,
       title,
       menu_items_json: body?.menu_items_json ?? [],
-      note: (String(body?.note ?? "")).trim() || null,
+      note: String(body?.note ?? "").trim() || null,
       scheduled_date: scheduledDate,
-      start_time: (String(body?.start_time ?? "")).trim() || null,
-      end_time: (String(body?.end_time ?? "")).trim() || null,
-      assigned_user_id: (String(body?.assigned_user_id ?? "")).trim() || null,
-      status: "confirmed",
+      start_time: String(body?.start_time ?? "").trim() || null,
+      end_time: String(body?.end_time ?? "").trim() || null,
+      assigned_user_id: String(body?.assigned_user_id ?? "").trim() || null,
+      status: initialStatus,
       estimated_amount: parseInt(String(body?.estimated_amount ?? 0), 10) || 0,
     };
 
-    const { data, error } = await supabase.from("reservations").insert(row).select("id, tenant_id, customer_id, vehicle_id, title, menu_items_json, note, scheduled_date, start_time, end_time, assigned_user_id, status, estimated_amount, created_at, updated_at").single();
+    const { data, error } = await supabase
+      .from("reservations")
+      .insert(row)
+      .select(
+        "id, tenant_id, customer_id, vehicle_id, title, menu_items_json, note, scheduled_date, start_time, end_time, assigned_user_id, status, estimated_amount, created_at, updated_at",
+      )
+      .single();
     if (error) {
       return apiInternalError(error, "reservations insert");
     }
@@ -169,32 +189,37 @@ export async function PUT(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "starter", action: "reservation_update", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "starter",
+      action: "reservation_update",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
+    const id = String(body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-    if (body.title !== undefined) updates.title = (String(body.title)).trim();
-    if (body.customer_id !== undefined) updates.customer_id = (String(body.customer_id)).trim() || null;
-    if (body.vehicle_id !== undefined) updates.vehicle_id = (String(body.vehicle_id)).trim() || null;
+    if (body.title !== undefined) updates.title = String(body.title).trim();
+    if (body.customer_id !== undefined) updates.customer_id = String(body.customer_id).trim() || null;
+    if (body.vehicle_id !== undefined) updates.vehicle_id = String(body.vehicle_id).trim() || null;
     if (body.menu_items_json !== undefined) updates.menu_items_json = body.menu_items_json;
-    if (body.note !== undefined) updates.note = (String(body.note ?? "")).trim() || null;
+    if (body.note !== undefined) updates.note = String(body.note ?? "").trim() || null;
     if (body.scheduled_date !== undefined) updates.scheduled_date = body.scheduled_date;
-    if (body.start_time !== undefined) updates.start_time = (String(body.start_time)).trim() || null;
-    if (body.end_time !== undefined) updates.end_time = (String(body.end_time)).trim() || null;
-    if (body.assigned_user_id !== undefined) updates.assigned_user_id = (String(body.assigned_user_id)).trim() || null;
-    if (body.estimated_amount !== undefined) updates.estimated_amount = parseInt(String(body.estimated_amount), 10) || 0;
+    if (body.start_time !== undefined) updates.start_time = String(body.start_time).trim() || null;
+    if (body.end_time !== undefined) updates.end_time = String(body.end_time).trim() || null;
+    if (body.assigned_user_id !== undefined) updates.assigned_user_id = String(body.assigned_user_id).trim() || null;
+    if (body.estimated_amount !== undefined)
+      updates.estimated_amount = parseInt(String(body.estimated_amount), 10) || 0;
 
     // ステータス変更
     if (body.status !== undefined) {
       updates.status = body.status;
       if (body.status === "cancelled") {
         updates.cancelled_at = new Date().toISOString();
-        updates.cancel_reason = (String(body.cancel_reason ?? "")).trim() || null;
+        updates.cancel_reason = String(body.cancel_reason ?? "").trim() || null;
       }
     }
 
@@ -203,7 +228,9 @@ export async function PUT(req: NextRequest) {
       .update(updates)
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select("id, tenant_id, customer_id, vehicle_id, title, menu_items_json, note, scheduled_date, start_time, end_time, assigned_user_id, status, estimated_amount, gcal_event_id, cancelled_at, cancel_reason, created_at, updated_at")
+      .select(
+        "id, tenant_id, customer_id, vehicle_id, title, menu_items_json, note, scheduled_date, start_time, end_time, assigned_user_id, status, estimated_amount, gcal_event_id, cancelled_at, cancel_reason, created_at, updated_at",
+      )
       .single();
 
     if (error) {
@@ -213,8 +240,9 @@ export async function PUT(req: NextRequest) {
     // ── Google Calendar 同期（非ブロッキング） ──
     if (data.status === "cancelled" && data.gcal_event_id) {
       // キャンセル時は GCal イベントを削除
-      syncDeleteEvent(caller.tenantId, data.id, data.gcal_event_id)
-        .catch((e) => console.error("[reservations] gcal sync delete failed:", e));
+      syncDeleteEvent(caller.tenantId, data.id, data.gcal_event_id).catch((e) =>
+        console.error("[reservations] gcal sync delete failed:", e),
+      );
     } else if (data.gcal_event_id) {
       // 既存イベントの更新
       syncUpdateEvent(caller.tenantId, {
@@ -251,11 +279,15 @@ export async function DELETE(req: NextRequest) {
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
 
-    const deny = await enforceBilling(req as any, { minPlan: "starter", action: "reservation_delete", tenantId: caller.tenantId });
+    const deny = await enforceBilling(req as any, {
+      minPlan: "starter",
+      action: "reservation_delete",
+      tenantId: caller.tenantId,
+    });
     if (deny) return deny as any;
 
     const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-    const id = (String(body?.id ?? "")).trim();
+    const id = String(body?.id ?? "").trim();
     if (!id) return apiValidationError("missing_id");
 
     const hardDelete = body?.hard_delete === true;
@@ -287,7 +319,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // ソフトデリート（キャンセル扱い）
-    const cancelReason = (String(body?.cancel_reason ?? "")).trim() || null;
+    const cancelReason = String(body?.cancel_reason ?? "").trim() || null;
 
     // キャンセル前に gcal_event_id を取得
     const { data: existing } = await supabase
@@ -307,7 +339,9 @@ export async function DELETE(req: NextRequest) {
       })
       .eq("id", id)
       .eq("tenant_id", caller.tenantId)
-      .select("id, tenant_id, customer_id, vehicle_id, title, status, cancelled_at, cancel_reason, gcal_event_id, created_at, updated_at")
+      .select(
+        "id, tenant_id, customer_id, vehicle_id, title, status, cancelled_at, cancel_reason, gcal_event_id, created_at, updated_at",
+      )
       .single();
 
     if (error) {
@@ -316,8 +350,9 @@ export async function DELETE(req: NextRequest) {
 
     // ── Google Calendar 同期: イベント削除（非ブロッキング） ──
     if (existing?.gcal_event_id) {
-      syncDeleteEvent(caller.tenantId, id, existing.gcal_event_id)
-        .catch((e) => console.error("[reservations] gcal sync delete failed:", e));
+      syncDeleteEvent(caller.tenantId, id, existing.gcal_event_id).catch((e) =>
+        console.error("[reservations] gcal sync delete failed:", e),
+      );
     }
 
     return NextResponse.json({ ok: true, reservation: data });

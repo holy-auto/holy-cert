@@ -7,6 +7,10 @@ import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFou
 import { apiError } from "@/lib/api/response";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+import { hashSha256, computePerceptualHash } from "@/lib/anchoring/imageHashing";
+import { stripGpsAndReadExif } from "@/lib/anchoring/imageExif";
+import { computeAuthenticityGrade } from "@/lib/anchoring/authenticityGrade";
+import { invokeAllUploadProviders } from "@/lib/anchoring/providers";
 
 export const runtime = "nodejs";
 
@@ -18,22 +22,30 @@ function validateMagicBytes(buffer: Buffer): string | null {
   if (buffer.length < 12) return null;
 
   // JPEG: FF D8 FF
-  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
     return "image/jpeg";
   }
   // PNG: 89 50 4E 47 0D 0A 1A 0A
-  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
     return "image/png";
   }
   // WebP: 52 49 46 46 ... 57 45 42 50
-  if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
-      buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) {
+  if (
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
     return "image/webp";
   }
   // HEIF/HEIC: check for 'ftyp' box at offset 4, then 'heic', 'heix', 'hevc', 'mif1'
   if (buffer[4] === 0x66 && buffer[5] === 0x74 && buffer[6] === 0x79 && buffer[7] === 0x70) {
-    const brand = buffer.toString('ascii', 8, 12);
-    if (['heic', 'heix', 'hevc', 'mif1'].includes(brand)) {
+    const brand = buffer.toString("ascii", 8, 12);
+    if (["heic", "heix", "hevc", "mif1"].includes(brand)) {
       return "image/heic";
     }
   }
@@ -55,11 +67,7 @@ export async function POST(req: NextRequest) {
     const tenantId = caller.tenantId;
 
     // ── Plan tier → photo limit ───────────────────────────────────
-    const { data: tenant } = await supabase
-      .from("tenants")
-      .select("plan_tier")
-      .eq("id", tenantId)
-      .single();
+    const { data: tenant } = await supabase.from("tenants").select("plan_tier").eq("id", tenantId).single();
     const planTier = normalizePlanTier((tenant as any)?.plan_tier);
     const maxPhotos = PHOTO_LIMITS[planTier];
 
@@ -127,9 +135,29 @@ export async function POST(req: NextRequest) {
       const ext = mime.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
       const storagePath = `${tenantId}/${cert.id}/${Date.now()}_${i}.${ext}`;
 
+      // ── Phase 1: hash + strip EXIF/GPS ─────────────────────────
+      // Any failure here falls back to the original buffer so a
+      // flaky sharp binding never blocks a legitimate upload.
+      const exif = await stripGpsAndReadExif(buffer);
+      const uploadBuffer = exif.strippedBuffer;
+
+      const sha256 = hashSha256(uploadBuffer);
+      let perceptualHash: string | null = null;
+      try {
+        perceptualHash = await computePerceptualHash(uploadBuffer);
+      } catch (err) {
+        console.warn("[upload] perceptual hash failed", err);
+      }
+
+      // ── Phase 3a+3b: verification providers (sign before upload) ──
+      const providers = await invokeAllUploadProviders(uploadBuffer, mime, sha256);
+
+      // If C2PA signed, use the signed buffer (manifest embedded) for storage
+      const finalBuffer = providers.c2pa.signedBuffer ?? uploadBuffer;
+
       const { error: uploadError } = await admin.storage
         .from(CERTIFICATE_IMAGE_BUCKET)
-        .upload(storagePath, buffer, {
+        .upload(storagePath, finalBuffer, {
           contentType: mime,
           upsert: false,
         });
@@ -139,14 +167,43 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      const c2paMode = (process.env.C2PA_MODE ?? "disabled") as "disabled" | "dev-signed" | "production";
+      const grade = computeAuthenticityGrade({
+        hasSha256: true,
+        hasExif: exif.gpsStripped,
+        hasC2pa: providers.c2pa.verified,
+        c2paKind: c2paMode === "disabled" ? "none" : c2paMode,
+        deviceOk: providers.deviceAttestation.verified,
+        deepfakeOk:
+          providers.deepfake.verdict === "likely_real"
+            ? true
+            : providers.deepfake.verdict === "likely_fake"
+              ? false
+              : null,
+      });
+
       const { error: insertError } = await admin.from("certificate_images").insert({
         certificate_id: cert.id,
         tenant_id: tenantId,
         storage_path: storagePath,
         file_name: file.name || `photo_${i + 1}.${ext}`,
         content_type: mime,
-        file_size: file.size,
+        file_size: finalBuffer.length,
         sort_order: existing + uploaded,
+        sha256,
+        perceptual_hash: perceptualHash,
+        exif_captured_at: exif.capturedAt ? exif.capturedAt.toISOString() : null,
+        exif_device_model: exif.deviceModel,
+        exif_gps_stripped: exif.gpsStripped,
+        c2pa_manifest_cid: providers.c2pa.manifestCid,
+        c2pa_verified: providers.c2pa.verified,
+        device_attestation_provider: providers.deviceAttestation.provider,
+        device_attestation_verified: providers.deviceAttestation.verified,
+        deepfake_score: providers.deepfake.score,
+        deepfake_verdict: providers.deepfake.verdict,
+        polygon_tx_hash: providers.polygon.txHash,
+        polygon_network: providers.polygon.network,
+        authenticity_grade: grade,
       });
 
       if (insertError) {

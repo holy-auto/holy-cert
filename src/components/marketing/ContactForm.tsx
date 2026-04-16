@@ -20,7 +20,8 @@ export function ContactForm() {
         </div>
         <h3 className="mt-6 text-xl font-bold text-white">送信完了</h3>
         <p className="mt-3 text-white/50">
-          お問い合わせいただきありがとうございます。<br />
+          お問い合わせいただきありがとうございます。
+          <br />
           1営業日以内にご返信いたします。
         </p>
       </div>
@@ -68,26 +69,13 @@ export function ContactForm() {
           <label htmlFor="contact-name" className="block text-sm font-medium text-white/80 mb-2">
             お名前 <span className="text-red-400">*</span>
           </label>
-          <input
-            id="contact-name"
-            type="text"
-            name="name"
-            required
-            className={inputClass}
-            placeholder="山田 太郎"
-          />
+          <input id="contact-name" type="text" name="name" required className={inputClass} placeholder="山田 太郎" />
         </div>
         <div>
           <label htmlFor="contact-company" className="block text-sm font-medium text-white/80 mb-2">
             会社名
           </label>
-          <input
-            id="contact-company"
-            type="text"
-            name="company"
-            className={inputClass}
-            placeholder="株式会社〇〇"
-          />
+          <input id="contact-company" type="text" name="company" className={inputClass} placeholder="株式会社〇〇" />
         </div>
       </div>
       <div>
@@ -129,9 +117,7 @@ export function ContactForm() {
           placeholder="お問い合わせ内容をご記入ください"
         />
       </div>
-      {error && (
-        <p className="text-red-400 text-sm">{error}</p>
-      )}
+      {error && <p className="text-red-400 text-sm">{error}</p>}
       <button
         type="submit"
         disabled={sending}

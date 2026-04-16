@@ -100,7 +100,11 @@ export default function CertEditForm({ cert }: Props) {
     return (
       <div className="flex items-center gap-3">
         <button
-          onClick={() => { setEditing(true); setSuccess(null); setError(null); }}
+          onClick={() => {
+            setEditing(true);
+            setSuccess(null);
+            setError(null);
+          }}
           className="rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-surface-hover"
         >
           編集する
@@ -156,7 +160,12 @@ export default function CertEditForm({ cert }: Props) {
         </label>
         <label className={labelCls}>
           <span className={labelTextCls}>保証期間（終了日）</span>
-          <input type="date" value={form.warranty_period_end} onChange={set("warranty_period_end")} className={inputCls} />
+          <input
+            type="date"
+            value={form.warranty_period_end}
+            onChange={set("warranty_period_end")}
+            className={inputCls}
+          />
         </label>
         <label className={labelCls}>
           <span className={labelTextCls}>メンテナンス実施日</span>
@@ -166,7 +175,12 @@ export default function CertEditForm({ cert }: Props) {
 
       <label className={`${labelCls} block`}>
         <span className={labelTextCls}>保証除外内容</span>
-        <textarea value={form.warranty_exclusions} onChange={set("warranty_exclusions")} className={inputCls} rows={3} />
+        <textarea
+          value={form.warranty_exclusions}
+          onChange={set("warranty_exclusions")}
+          className={inputCls}
+          rows={3}
+        />
       </label>
 
       <label className={`${labelCls} block`}>
@@ -187,7 +201,10 @@ export default function CertEditForm({ cert }: Props) {
           {isPending ? "保存中…" : "変更を保存"}
         </button>
         <button
-          onClick={() => { setEditing(false); setError(null); }}
+          onClick={() => {
+            setEditing(false);
+            setError(null);
+          }}
           disabled={isPending}
           className="rounded-xl border border-border-default bg-surface px-5 py-2.5 text-sm font-medium text-primary hover:bg-surface-hover"
         >

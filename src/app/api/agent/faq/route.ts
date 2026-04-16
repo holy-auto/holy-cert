@@ -21,7 +21,9 @@ export async function GET() {
         .order("sort_order", { ascending: true }),
       supabase
         .from("agent_faqs")
-        .select("id, category_id, question, answer, sort_order, is_published, created_at, updated_at, agent_faq_categories(name)")
+        .select(
+          "id, category_id, question, answer, sort_order, is_published, created_at, updated_at, agent_faq_categories(name)",
+        )
         .eq("is_published", true)
         .order("sort_order", { ascending: true }),
     ]);
