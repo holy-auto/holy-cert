@@ -806,29 +806,9 @@ function CollapsibleGroup({
   onToggle: () => void;
   children: React.ReactNode;
 }) {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState<number | "auto">(isOpen ? "auto" : 0);
-
-  useEffect(() => {
-    if (!contentRef.current) return;
-    if (isOpen) {
-      const h = contentRef.current.scrollHeight;
-      setHeight(h);
-      // After transition, switch to auto so newly rendered items expand naturally
-      const timer = setTimeout(() => setHeight("auto"), 200);
-      return () => clearTimeout(timer);
-    } else {
-      // Set explicit height first so transition can animate from it
-      setHeight(contentRef.current.scrollHeight);
-      // Force reflow then collapse
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setHeight(0);
-        });
-      });
-    }
-  }, [isOpen]);
-
+  // Pure-CSS accordion via grid-template-rows: 0fr ↔ 1fr.
+  // Eliminates scrollHeight forced-layout reads and double-rAF calls that
+  // caused layout thrash on mobile (5 groups × measure + collapse = ~10 rAFs).
   return (
     <div className="mt-2 first:mt-0">
       <button
@@ -850,11 +830,12 @@ function CollapsibleGroup({
         {label}
       </button>
       <div
-        ref={contentRef}
-        className="overflow-hidden transition-[max-height] duration-200 ease-in-out"
-        style={{ maxHeight: height === "auto" ? "none" : height }}
+        className="grid transition-[grid-template-rows] duration-200 ease-in-out"
+        style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
       >
-        <ul className="space-y-0.5 pt-0.5">{children}</ul>
+        <div className="overflow-hidden">
+          <ul className="space-y-0.5 pt-0.5">{children}</ul>
+        </div>
       </div>
     </div>
   );
