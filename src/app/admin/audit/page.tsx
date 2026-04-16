@@ -15,7 +15,7 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   certificate_public_viewed: { label: "公開ページ閲覧", color: "text-violet-600 bg-violet-500/10 border-violet-500/30" },
   certificate_public_pdf: { label: "公開PDF閲覧", color: "text-violet-600 bg-violet-500/10 border-violet-500/30" },
   vehicle_registered: { label: "車両登録", color: "text-blue-600 bg-blue-500/10 border-blue-500/30" },
-  vehicle_updated: { label: "車両更新", color: "text-zinc-600 bg-zinc-500/10 border-zinc-500/30" },
+  vehicle_updated: { label: "車両更新", color: "text-secondary bg-surface-hover border-border-default" },
   member_added: { label: "メンバー追加", color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" },
   member_removed: { label: "メンバー削除", color: "text-red-500 bg-red-500/10 border-red-500/30" },
   member_role_changed: { label: "ロール変更", color: "text-amber-600 bg-amber-500/10 border-amber-500/30" },
@@ -24,11 +24,11 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   reservation_cancelled: { label: "予約キャンセル", color: "text-red-500 bg-red-500/10 border-red-500/30" },
   invoice_created: { label: "請求書作成", color: "text-blue-600 bg-blue-500/10 border-blue-500/30" },
   invoice_paid: { label: "入金記録", color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" },
-  note: { label: "メモ", color: "text-zinc-600 bg-zinc-500/10 border-zinc-500/30" },
+  note: { label: "メモ", color: "text-secondary bg-surface-hover border-border-default" },
 };
 
 function TypeBadge({ type }: { type: string }) {
-  const meta = TYPE_LABELS[type] ?? { label: type, color: "text-zinc-600 bg-zinc-500/10 border-zinc-500/30" };
+  const meta = TYPE_LABELS[type] ?? { label: type, color: "text-secondary bg-surface-hover border-border-default" };
   return (
     <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${meta.color}`}>
       {meta.label}

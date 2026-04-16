@@ -269,7 +269,7 @@ function AgentsTab() {
       {loading ? (
         <div className="animate-pulse space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-2xl bg-[rgba(0,0,0,0.04)]" />
+            <div key={i} className="h-16 rounded-2xl bg-border-subtle dark:bg-[rgba(255,255,255,0.06)]" />
           ))}
         </div>
       ) : agents.length === 0 ? (
@@ -649,7 +649,7 @@ function ApplicationsTab() {
       {loading ? (
         <div className="animate-pulse space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-2xl bg-[rgba(0,0,0,0.04)]" />
+            <div key={i} className="h-16 rounded-2xl bg-border-subtle dark:bg-[rgba(255,255,255,0.06)]" />
           ))}
         </div>
       ) : apps.length === 0 ? (
@@ -869,7 +869,7 @@ function SharedFilesTab() {
 
       {loading ? (
         <div className="animate-pulse space-y-3">
-          {[1, 2].map((i) => <div key={i} className="h-12 rounded-2xl bg-[rgba(0,0,0,0.04)]" />)}
+          {[1, 2].map((i) => <div key={i} className="h-12 rounded-2xl bg-border-subtle dark:bg-[rgba(255,255,255,0.06)]" />)}
         </div>
       ) : files.length === 0 && selectedAgent ? (
         <div className="glass-card p-8 text-center text-muted">ファイルはまだありません</div>
@@ -1130,7 +1130,7 @@ function ContractsTab() {
 
       {loading ? (
         <div className="animate-pulse space-y-3">
-          {[1, 2].map((i) => <div key={i} className="h-12 rounded-2xl bg-[rgba(0,0,0,0.04)]" />)}
+          {[1, 2].map((i) => <div key={i} className="h-12 rounded-2xl bg-border-subtle dark:bg-[rgba(255,255,255,0.06)]" />)}
         </div>
       ) : contracts.length === 0 && selectedAgent ? (
         <div className="glass-card p-8 text-center text-muted">契約書はまだありません</div>

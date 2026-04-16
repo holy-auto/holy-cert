@@ -142,7 +142,7 @@ export default function IdleAutoLogout({ logoutUrl = "/login" }: IdleAutoLogoutP
               dismissWarning();
               resetTimer();
             }}
-            className="rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 transition-colors"
+            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-inverse hover:bg-primary/90 transition-colors"
           >
             操作を続ける
           </button>
