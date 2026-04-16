@@ -38,9 +38,9 @@ function InfoItem({
 }) {
   return (
     <div>
-      <div className="text-xs font-medium text-neutral-500">{label}</div>
+      <div className="text-xs font-medium text-muted">{label}</div>
       <div
-        className={`mt-1 text-sm font-semibold text-neutral-900 ${mono ? "font-mono" : ""}`}
+        className={`mt-1 text-sm font-semibold text-primary ${mono ? "font-mono" : ""}`}
       >
         {value}
       </div>
@@ -104,7 +104,7 @@ export default function InsurerVehicleDetailPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/insurer/vehicles"
-              className="text-sm text-neutral-500 hover:text-neutral-700"
+              className="text-sm text-muted hover:text-secondary"
             >
               &larr; 車両検索へ
             </Link>
@@ -112,16 +112,16 @@ export default function InsurerVehicleDetailPage() {
           {vehicleId && (
             <Link
               href={`/insurer/cases?create=true&vehicle_id=${vehicleId}`}
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              className="rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover"
             >
               案件作成
             </Link>
           )}
         </div>
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           VEHICLE DETAIL
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+        <h1 className="text-3xl font-bold tracking-tight text-primary">
           車両詳細
         </h1>
       </header>
@@ -134,8 +134,8 @@ export default function InsurerVehicleDetailPage() {
 
       {vehicle && (
         <>
-          <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="mb-3 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+          <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+            <div className="mb-3 text-xs font-semibold tracking-[0.18em] text-muted">
               VEHICLE INFO
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -155,47 +155,47 @@ export default function InsurerVehicleDetailPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                   CERTIFICATES
                 </div>
-                <div className="mt-1 text-base font-semibold text-neutral-900">
+                <div className="mt-1 text-base font-semibold text-primary">
                   証明書履歴
                 </div>
               </div>
-              <div className="text-sm text-neutral-500">
-                <span className="font-semibold text-neutral-900">
+              <div className="text-sm text-muted">
+                <span className="font-semibold text-primary">
                   {certs.length}
                 </span>{" "}
                 件
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-neutral-200">
+            <div className="overflow-x-auto rounded-xl border border-border-default">
               <table className="min-w-full text-sm">
-                <thead className="bg-neutral-50">
+                <thead className="bg-inset">
                   <tr>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       証明書ID
                     </th>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       ステータス
                     </th>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       顧客名
                     </th>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       施工種別
                     </th>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       証明書番号
                     </th>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       作成日時
                     </th>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       操作
                     </th>
                   </tr>
@@ -204,9 +204,9 @@ export default function InsurerVehicleDetailPage() {
                   {certs.map((c) => (
                     <tr
                       key={c.certificate_id}
-                      className="border-t hover:bg-neutral-50"
+                      className="border-t hover:bg-inset"
                     >
-                      <td className="p-3 font-mono text-xs text-neutral-700">
+                      <td className="p-3 font-mono text-xs text-secondary">
                         {c.public_id}
                       </td>
                       <td className="p-3">
@@ -220,22 +220,22 @@ export default function InsurerVehicleDetailPage() {
                           {c.status === "active" ? "有効" : "無効"}
                         </span>
                       </td>
-                      <td className="p-3 text-neutral-600">
+                      <td className="p-3 text-secondary">
                         {c.customer_name}
                       </td>
-                      <td className="p-3 text-neutral-600">
+                      <td className="p-3 text-secondary">
                         {c.service_type || "-"}
                       </td>
-                      <td className="p-3 text-neutral-600">
+                      <td className="p-3 text-secondary">
                         {c.certificate_no || "-"}
                       </td>
-                      <td className="p-3 whitespace-nowrap text-neutral-600">
+                      <td className="p-3 whitespace-nowrap text-secondary">
                         {formatDateTime(c.created_at)}
                       </td>
                       <td className="p-3">
                         <Link
                           href={`/insurer/c/${encodeURIComponent(c.public_id)}`}
-                          className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+                          className="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-hover"
                         >
                           詳細
                         </Link>
@@ -246,7 +246,7 @@ export default function InsurerVehicleDetailPage() {
                     <tr>
                       <td
                         colSpan={7}
-                        className="p-8 text-center text-sm text-neutral-500"
+                        className="p-8 text-center text-sm text-muted"
                       >
                         この車両に関連する証明書がありません。
                       </td>
@@ -259,14 +259,14 @@ export default function InsurerVehicleDetailPage() {
 
           {/* Related cases */}
           {relatedCases.length > 0 && (
-            <section className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-3">
-              <h2 className="text-lg font-bold text-neutral-900">関連案件 ({relatedCases.length})</h2>
+            <section className="rounded-2xl border border-border-default bg-surface p-6 space-y-3">
+              <h2 className="text-lg font-bold text-primary">関連案件 ({relatedCases.length})</h2>
               <div className="space-y-2">
                 {relatedCases.map((c) => (
-                  <Link key={c.id} href={`/insurer/cases/${c.id}`} className="flex items-center justify-between rounded-xl border border-neutral-100 px-4 py-3 hover:bg-neutral-50">
+                  <Link key={c.id} href={`/insurer/cases/${c.id}`} className="flex items-center justify-between rounded-xl border border-border-subtle px-4 py-3 hover:bg-inset">
                     <div>
-                      <span className="font-mono text-xs text-neutral-500">{c.case_number}</span>
-                      <span className="ml-2 text-sm font-medium text-neutral-900">{c.title}</span>
+                      <span className="font-mono text-xs text-muted">{c.case_number}</span>
+                      <span className="ml-2 text-sm font-medium text-primary">{c.title}</span>
                     </div>
                     <span className="text-xs text-blue-600">詳細 →</span>
                   </Link>

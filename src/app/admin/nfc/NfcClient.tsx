@@ -46,7 +46,7 @@ function tagStatusMeta(status?: string | null) {
   if (s === "lost")     return { label: "紛失",   cls: "bg-red-50 text-red-700 border-red-200" };
   if (s === "retired")  return { label: "廃止",   cls: "bg-red-50 text-red-700 border-red-200" };
   if (s === "error")    return { label: "エラー", cls: "bg-red-50 text-red-700 border-red-200" };
-  return { label: status ?? "未設定", cls: "bg-inset text-secondary border-neutral-200" };
+  return { label: status ?? "未設定", cls: "bg-inset text-secondary border-border-default" };
 }
 
 function certStatusMeta(status?: string | null) {
@@ -55,7 +55,7 @@ function certStatusMeta(status?: string | null) {
   if (s === "void")     return { label: "無効",     cls: "bg-red-50 text-red-700 border-red-200" };
   if (s === "draft")    return { label: "下書き",   cls: "bg-blue-50 text-blue-700 border-blue-200" };
   if (s === "expired")  return { label: "期限切れ", cls: "bg-amber-50 text-amber-700 border-amber-200" };
-  return { label: status ?? "不明", cls: "bg-inset text-secondary border-neutral-200" };
+  return { label: status ?? "不明", cls: "bg-inset text-secondary border-border-default" };
 }
 
 function vehicleLabel(v: VehicleInfo | null) {
@@ -188,7 +188,7 @@ export default function NfcClient({ initialRows, vehicleMap, certMap, isAdmin }:
                       <td className="hidden sm:table-cell px-4 py-3">
                         {publicId ? (
                           <div className="space-y-1">
-                            <Link href={`/c/${publicId}`} target="_blank" className="font-mono text-xs text-neutral-700 hover:underline">
+                            <Link href={`/c/${publicId}`} target="_blank" className="font-mono text-xs text-secondary hover:underline">
                               {publicId}
                             </Link>
                             <div>

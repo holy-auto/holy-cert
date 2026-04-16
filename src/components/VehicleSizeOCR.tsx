@@ -120,11 +120,11 @@ export default function VehicleSizeOCR({ onResult }: VehicleSizeOCRProps) {
       )}
 
       {result && (
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm space-y-2">
+        <div className="rounded-lg border border-border-default bg-inset p-4 text-sm space-y-2">
           {result.dimensions ? (
             <>
               <p className="font-medium">検出結果</p>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-neutral-700">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-secondary">
                 <dt>長さ</dt>
                 <dd>{result.dimensions.length_mm.toLocaleString()} mm</dd>
                 <dt>幅</dt>
@@ -142,7 +142,7 @@ export default function VehicleSizeOCR({ onResult }: VehicleSizeOCRProps) {
               </dl>
 
               {result.parsed?.maker && (
-                <p className="text-neutral-500">
+                <p className="text-muted">
                   車名: {result.parsed.maker}
                   {result.parsed.model ? ` / 型式: ${result.parsed.model}` : ""}
                 </p>
@@ -167,7 +167,7 @@ export default function VehicleSizeOCR({ onResult }: VehicleSizeOCRProps) {
               </div>
             </>
           ) : (
-            <p className="text-neutral-500">
+            <p className="text-muted">
               寸法を読み取れませんでした。画像を確認して再度お試しください。
             </p>
           )}

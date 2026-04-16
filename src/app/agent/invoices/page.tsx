@@ -89,42 +89,42 @@ export default function AgentInvoicesPage() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <button onClick={() => setSelectedInvoice(null)} className="text-sm text-neutral-500 hover:text-neutral-700">
+          <button onClick={() => setSelectedInvoice(null)} className="text-sm text-muted hover:text-secondary">
             &larr; 請求書一覧に戻る
           </button>
-          <button onClick={printInvoice} className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50">
+          <button onClick={printInvoice} className="rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-inset">
             印刷 / PDF
           </button>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm print:shadow-none print:border-0" id="invoice-print">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 shadow-sm print:shadow-none print:border-0" id="invoice-print">
           {/* Invoice header */}
-          <div className="flex items-start justify-between border-b border-neutral-200 pb-6">
+          <div className="flex items-start justify-between border-b border-border-default pb-6">
             <div>
-              <h1 className="text-2xl font-bold text-neutral-900">請求書</h1>
-              <div className="mt-1 text-sm text-neutral-500">INVOICE</div>
+              <h1 className="text-2xl font-bold text-primary">請求書</h1>
+              <div className="mt-1 text-sm text-muted">INVOICE</div>
             </div>
             <div className="text-right">
-              <div className="text-sm font-semibold text-neutral-900">Ledra</div>
-              <div className="mt-1 text-xs text-neutral-500">株式会社Ledra</div>
+              <div className="text-sm font-semibold text-primary">Ledra</div>
+              <div className="mt-1 text-xs text-muted">株式会社Ledra</div>
             </div>
           </div>
 
           {/* Invoice info */}
           <div className="mt-6 grid grid-cols-2 gap-6">
             <div>
-              <div className="text-xs text-neutral-400 mb-1">請求先</div>
-              <div className="text-sm font-semibold text-neutral-900">{agent?.name ?? "-"}</div>
-              <div className="text-xs text-neutral-500">{agent?.contact_name}</div>
-              <div className="text-xs text-neutral-500">{agent?.address}</div>
+              <div className="text-xs text-muted mb-1">請求先</div>
+              <div className="text-sm font-semibold text-primary">{agent?.name ?? "-"}</div>
+              <div className="text-xs text-muted">{agent?.contact_name}</div>
+              <div className="text-xs text-muted">{agent?.address}</div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-neutral-400 mb-1">請求書情報</div>
+              <div className="text-xs text-muted mb-1">請求書情報</div>
               <div className="text-sm">
-                <span className="text-neutral-500">番号: </span>
+                <span className="text-muted">番号: </span>
                 <span className="font-mono font-semibold">{selectedInvoice.invoice_number}</span>
               </div>
-              <div className="text-xs text-neutral-500">
+              <div className="text-xs text-muted">
                 期間: {formatDate(selectedInvoice.period_start)} 〜 {formatDate(selectedInvoice.period_end)}
               </div>
               <div className="mt-1">
@@ -135,11 +135,11 @@ export default function AgentInvoicesPage() {
 
           {/* Line items */}
           {detailLoading ? (
-            <div className="mt-6 animate-pulse h-32 rounded bg-neutral-100" />
+            <div className="mt-6 animate-pulse h-32 rounded bg-surface-hover" />
           ) : (
             <table className="mt-6 w-full text-sm">
               <thead>
-                <tr className="border-b border-neutral-200 text-neutral-500">
+                <tr className="border-b border-border-default text-muted">
                   <th className="py-2 text-left font-medium">項目</th>
                   <th className="py-2 text-right font-medium w-20">数量</th>
                   <th className="py-2 text-right font-medium w-28">単価</th>
@@ -148,11 +148,11 @@ export default function AgentInvoicesPage() {
               </thead>
               <tbody>
                 {lines.map((line) => (
-                  <tr key={line.id} className="border-b border-neutral-100">
-                    <td className="py-3 text-neutral-900">{line.description}</td>
-                    <td className="py-3 text-right text-neutral-600">{line.quantity}</td>
-                    <td className="py-3 text-right font-mono text-neutral-600">{formatJpy(line.unit_price)}</td>
-                    <td className="py-3 text-right font-mono font-semibold text-neutral-900">{formatJpy(line.amount)}</td>
+                  <tr key={line.id} className="border-b border-border-subtle">
+                    <td className="py-3 text-primary">{line.description}</td>
+                    <td className="py-3 text-right text-secondary">{line.quantity}</td>
+                    <td className="py-3 text-right font-mono text-secondary">{formatJpy(line.unit_price)}</td>
+                    <td className="py-3 text-right font-mono font-semibold text-primary">{formatJpy(line.amount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -160,18 +160,18 @@ export default function AgentInvoicesPage() {
           )}
 
           {/* Totals */}
-          <div className="mt-4 border-t border-neutral-200 pt-4">
+          <div className="mt-4 border-t border-border-default pt-4">
             <div className="flex justify-end">
               <div className="w-64 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-neutral-500">小計</span>
+                  <span className="text-muted">小計</span>
                   <span className="font-mono">{formatJpy(selectedInvoice.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-neutral-500">消費税 ({selectedInvoice.tax_rate}%)</span>
+                  <span className="text-muted">消費税 ({selectedInvoice.tax_rate}%)</span>
                   <span className="font-mono">{formatJpy(selectedInvoice.tax_amount)}</span>
                 </div>
-                <div className="flex justify-between border-t border-neutral-200 pt-2 text-base font-bold">
+                <div className="flex justify-between border-t border-border-default pt-2 text-base font-bold">
                   <span>合計</span>
                   <span className="font-mono">{formatJpy(selectedInvoice.total)}</span>
                 </div>
@@ -180,7 +180,7 @@ export default function AgentInvoicesPage() {
           </div>
 
           {selectedInvoice.notes && (
-            <div className="mt-6 rounded-xl bg-neutral-50 p-4 text-xs text-neutral-500">
+            <div className="mt-6 rounded-xl bg-inset p-4 text-xs text-muted">
               <div className="font-semibold mb-1">備考</div>
               {selectedInvoice.notes}
             </div>
@@ -193,31 +193,31 @@ export default function AgentInvoicesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           INVOICES
         </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-neutral-900">請求書</h1>
-        <p className="mt-1 text-sm text-neutral-500">コミッション支払いの請求書一覧</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary">請求書</h1>
+        <p className="mt-1 text-sm text-muted">コミッション支払いの請求書一覧</p>
       </div>
 
       {loading ? (
         <div className="animate-pulse space-y-3">
-          {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-2xl bg-neutral-100" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-2xl bg-surface-hover" />)}
         </div>
       ) : invoices.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-muted">
           請求書はまだありません
         </div>
       ) : (
-        <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-border-default bg-surface shadow-sm overflow-hidden">
           <table className="min-w-full text-sm">
-            <thead className="bg-neutral-50">
+            <thead className="bg-inset">
               <tr>
-                <th className="p-3 text-left font-semibold text-neutral-500">請求書番号</th>
-                <th className="p-3 text-left font-semibold text-neutral-500">期間</th>
-                <th className="p-3 text-right font-semibold text-neutral-500">合計</th>
-                <th className="p-3 text-left font-semibold text-neutral-500">ステータス</th>
-                <th className="p-3 text-left font-semibold text-neutral-500">発行日</th>
+                <th className="p-3 text-left font-semibold text-muted">請求書番号</th>
+                <th className="p-3 text-left font-semibold text-muted">期間</th>
+                <th className="p-3 text-right font-semibold text-muted">合計</th>
+                <th className="p-3 text-left font-semibold text-muted">ステータス</th>
+                <th className="p-3 text-left font-semibold text-muted">発行日</th>
                 <th className="p-3" />
               </tr>
             </thead>
@@ -225,18 +225,18 @@ export default function AgentInvoicesPage() {
               {invoices.map((inv) => {
                 const st = STATUS_MAP[inv.status] ?? STATUS_MAP.draft;
                 return (
-                  <tr key={inv.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="p-3 font-mono font-semibold text-neutral-900">{inv.invoice_number}</td>
-                    <td className="p-3 text-neutral-600">
+                  <tr key={inv.id} className="border-t border-border-subtle hover:bg-inset">
+                    <td className="p-3 font-mono font-semibold text-primary">{inv.invoice_number}</td>
+                    <td className="p-3 text-secondary">
                       {formatDate(inv.period_start)} 〜 {formatDate(inv.period_end)}
                     </td>
-                    <td className="p-3 text-right font-mono font-bold text-neutral-900">{formatJpy(inv.total)}</td>
+                    <td className="p-3 text-right font-mono font-bold text-primary">{formatJpy(inv.total)}</td>
                     <td className="p-3"><Badge variant={st.variant}>{st.label}</Badge></td>
-                    <td className="p-3 text-neutral-500">{inv.issued_at ? formatDate(inv.issued_at) : "-"}</td>
+                    <td className="p-3 text-muted">{inv.issued_at ? formatDate(inv.issued_at) : "-"}</td>
                     <td className="p-3">
                       <button
                         onClick={() => openDetail(inv)}
-                        className="text-xs font-medium text-neutral-600 hover:text-neutral-900"
+                        className="text-xs font-medium text-secondary hover:text-primary"
                       >
                         詳細
                       </button>

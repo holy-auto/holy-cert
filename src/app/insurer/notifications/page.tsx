@@ -24,7 +24,7 @@ function typeColor(type: string) {
     emerald: "bg-emerald-100 text-emerald-700",
     red: "bg-red-100 text-red-700",
     purple: "bg-purple-100 text-purple-700",
-    neutral: "bg-neutral-100 text-neutral-600",
+    neutral: "bg-surface-hover text-secondary",
   };
   return map[c] ?? map.neutral;
 }
@@ -144,7 +144,7 @@ export default function InsurerNotificationsPage() {
   if (!ready) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-neutral-400">読み込み中...</div>
+        <div className="text-muted">読み込み中...</div>
       </div>
     );
   }
@@ -154,9 +154,9 @@ export default function InsurerNotificationsPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">通知センター</h1>
+          <h1 className="text-2xl font-bold text-primary">通知センター</h1>
           {unreadCount > 0 && (
-            <p className="mt-1 text-sm text-neutral-500">
+            <p className="mt-1 text-sm text-muted">
               {unreadCount}件の未読通知
             </p>
           )}
@@ -165,7 +165,7 @@ export default function InsurerNotificationsPage() {
         {unreadCount > 0 && (
           <button
             onClick={markAllAsRead}
-            className="rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-200"
+            className="rounded-lg bg-surface-hover px-4 py-2 text-sm font-medium text-secondary transition hover:bg-neutral-200"
           >
             すべて既読
           </button>
@@ -182,15 +182,15 @@ export default function InsurerNotificationsPage() {
       {/* Loading */}
       {loading && (
         <div className="flex justify-center py-12">
-          <div className="text-neutral-400">読み込み中...</div>
+          <div className="text-muted">読み込み中...</div>
         </div>
       )}
 
       {/* Empty state */}
       {!loading && notifications.length === 0 && (
-        <div className="rounded-2xl border border-neutral-200 bg-white py-16 text-center">
+        <div className="rounded-2xl border border-border-default bg-surface py-16 text-center">
           <div className="mb-2 text-4xl">🔔</div>
-          <p className="text-neutral-500">通知はまだありません</p>
+          <p className="text-muted">通知はまだありません</p>
         </div>
       )}
 
@@ -203,7 +203,7 @@ export default function InsurerNotificationsPage() {
               <div
                 className={`flex items-start gap-4 rounded-2xl border p-4 transition ${
                   n.is_read
-                    ? "border-neutral-200 bg-white"
+                    ? "border-border-default bg-surface"
                     : "border-blue-200 bg-blue-50/50"
                 } hover:shadow-sm`}
               >
@@ -224,7 +224,7 @@ export default function InsurerNotificationsPage() {
                         {cfg.label}
                       </span>
                       <h3
-                        className={`mt-1 text-sm ${n.is_read ? "font-normal text-neutral-700" : "font-semibold text-neutral-900"}`}
+                        className={`mt-1 text-sm ${n.is_read ? "font-normal text-secondary" : "font-semibold text-primary"}`}
                       >
                         {n.title}
                       </h3>
@@ -233,14 +233,14 @@ export default function InsurerNotificationsPage() {
                       {!n.is_read && (
                         <span className="h-2 w-2 rounded-full bg-blue-500" />
                       )}
-                      <span className="text-xs text-neutral-400 whitespace-nowrap">
+                      <span className="text-xs text-muted whitespace-nowrap">
                         {relativeTime(n.created_at)}
                       </span>
                     </div>
                   </div>
 
                   {n.body && (
-                    <p className="mt-1 text-sm text-neutral-500 line-clamp-2">
+                    <p className="mt-1 text-sm text-muted line-clamp-2">
                       {n.body}
                     </p>
                   )}

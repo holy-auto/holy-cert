@@ -31,7 +31,7 @@ const PRIORITY_LABELS: Record<string, string> = {
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  low: "bg-neutral-100 text-neutral-600",
+  low: "bg-surface-hover text-secondary",
   normal: "bg-blue-100 text-blue-800",
   high: "bg-amber-100 text-amber-800",
   urgent: "bg-red-100 text-red-800",
@@ -130,7 +130,7 @@ export default function InsurerSlaPage() {
   if (!ready) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-sm text-neutral-500">読み込み中…</p>
+        <p className="text-sm text-muted">読み込み中…</p>
       </div>
     );
   }
@@ -139,13 +139,13 @@ export default function InsurerSlaPage() {
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       {/* header */}
       <header className="space-y-2">
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-secondary">
           SLA管理
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+        <h1 className="text-3xl font-bold tracking-tight text-primary">
           SLA管理
         </h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted">
           優先度別の対応期限と、期限に近い・超過した案件を管理します
         </p>
       </header>
@@ -158,13 +158,13 @@ export default function InsurerSlaPage() {
       )}
 
       {/* SLA config card */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6">
+      <div className="rounded-2xl border border-border-default bg-surface p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-neutral-900">対応期限設定</h2>
+          <h2 className="text-lg font-bold text-primary">対応期限設定</h2>
           {!editing && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+              className="rounded-xl border border-border-default px-4 py-2 text-sm font-medium text-secondary hover:bg-inset"
             >
               編集
             </button>
@@ -176,7 +176,7 @@ export default function InsurerSlaPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {(["urgent", "high", "normal", "low"] as const).map((key) => (
                 <div key={key}>
-                  <label className="mb-1 block text-sm font-medium text-neutral-700">
+                  <label className="mb-1 block text-sm font-medium text-secondary">
                     <span
                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold mr-1 ${PRIORITY_COLORS[key]}`}
                     >
@@ -195,7 +195,7 @@ export default function InsurerSlaPage() {
                         [key]: parseInt(e.target.value, 10) || 0,
                       }))
                     }
-                    className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                   />
                 </div>
               ))}
@@ -207,7 +207,7 @@ export default function InsurerSlaPage() {
                   setEditing(false);
                   setEditConfig({ ...config });
                 }}
-                className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+                className="rounded-xl border border-border-default px-4 py-2 text-sm font-medium text-secondary hover:bg-inset"
               >
                 キャンセル
               </button>
@@ -225,14 +225,14 @@ export default function InsurerSlaPage() {
             {(["urgent", "high", "normal", "low"] as const).map((key) => (
               <div
                 key={key}
-                className="rounded-xl border border-neutral-100 bg-neutral-50 p-4 text-center"
+                className="rounded-xl border border-border-subtle bg-inset p-4 text-center"
               >
                 <span
                   className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold mb-2 ${PRIORITY_COLORS[key]}`}
                 >
                   {PRIORITY_LABELS[key]}
                 </span>
-                <p className="text-2xl font-bold text-neutral-900">
+                <p className="text-2xl font-bold text-primary">
                   {formatThreshold(config[key])}
                 </p>
               </div>
@@ -243,12 +243,12 @@ export default function InsurerSlaPage() {
 
       {busy ? (
         <div className="flex items-center justify-center py-20">
-          <p className="text-sm text-neutral-500">読み込み中…</p>
+          <p className="text-sm text-muted">読み込み中…</p>
         </div>
       ) : (
         <>
           {/* Overdue cases */}
-          <div className="rounded-2xl border border-red-200 bg-white p-6">
+          <div className="rounded-2xl border border-red-200 bg-surface p-6">
             <h2 className="text-lg font-bold text-red-800 mb-4">
               SLA超過案件
               {overdue.length > 0 && (
@@ -258,7 +258,7 @@ export default function InsurerSlaPage() {
               )}
             </h2>
             {overdue.length === 0 ? (
-              <p className="text-sm text-neutral-500">SLAを超過している案件はありません</p>
+              <p className="text-sm text-muted">SLAを超過している案件はありません</p>
             ) : (
               <div className="space-y-2">
                 {overdue.map((c) => (
@@ -268,7 +268,7 @@ export default function InsurerSlaPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-neutral-500">
+                        <span className="font-mono text-xs text-muted">
                           {c.case_number}
                         </span>
                         <span
@@ -277,7 +277,7 @@ export default function InsurerSlaPage() {
                           {PRIORITY_LABELS[c.priority] ?? c.priority}
                         </span>
                       </div>
-                      <p className="text-sm font-medium text-neutral-900 truncate">
+                      <p className="text-sm font-medium text-primary truncate">
                         {c.title}
                       </p>
                     </div>
@@ -299,7 +299,7 @@ export default function InsurerSlaPage() {
           </div>
 
           {/* At risk cases */}
-          <div className="rounded-2xl border border-amber-200 bg-white p-6">
+          <div className="rounded-2xl border border-amber-200 bg-surface p-6">
             <h2 className="text-lg font-bold text-amber-800 mb-4">
               SLA期限間近案件
               {atRisk.length > 0 && (
@@ -309,7 +309,7 @@ export default function InsurerSlaPage() {
               )}
             </h2>
             {atRisk.length === 0 ? (
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-muted">
                 SLA期限が近い案件はありません
               </p>
             ) : (
@@ -321,7 +321,7 @@ export default function InsurerSlaPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-neutral-500">
+                        <span className="font-mono text-xs text-muted">
                           {c.case_number}
                         </span>
                         <span
@@ -330,7 +330,7 @@ export default function InsurerSlaPage() {
                           {PRIORITY_LABELS[c.priority] ?? c.priority}
                         </span>
                       </div>
-                      <p className="text-sm font-medium text-neutral-900 truncate">
+                      <p className="text-sm font-medium text-primary truncate">
                         {c.title}
                       </p>
                     </div>

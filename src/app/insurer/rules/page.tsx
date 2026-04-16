@@ -174,7 +174,7 @@ export default function InsurerRulesPage() {
   if (!ready) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-sm text-neutral-500">読み込み中…</p>
+        <p className="text-sm text-muted">読み込み中…</p>
       </div>
     );
   }
@@ -184,13 +184,13 @@ export default function InsurerRulesPage() {
       {/* header */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
-          <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-neutral-600">
+          <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-secondary">
             自動振り分け
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-3xl font-bold tracking-tight text-primary">
             案件自動振り分けルール
           </h1>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted">
             条件に基づいて案件を自動的に担当者に振り分けます
           </p>
         </div>
@@ -209,15 +209,15 @@ export default function InsurerRulesPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4"
+          className="rounded-2xl border border-border-default bg-surface p-6 space-y-4"
         >
-          <h2 className="text-lg font-bold text-neutral-900">
+          <h2 className="text-lg font-bold text-primary">
             {editingId ? "ルール編集" : "新規ルール作成"}
           </h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 ルール名 <span className="text-red-500">*</span>
               </label>
               <input
@@ -225,19 +225,19 @@ export default function InsurerRulesPage() {
                 required
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 placeholder="例: 施工確認案件を田中さんに割り当て"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 条件タイプ <span className="text-red-500">*</span>
               </label>
               <select
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
               >
                 {CONDITION_TYPE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -248,7 +248,7 @@ export default function InsurerRulesPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 条件値 <span className="text-red-500">*</span>
               </label>
               <input
@@ -256,7 +256,7 @@ export default function InsurerRulesPage() {
                 required
                 value={formValue}
                 onChange={(e) => setFormValue(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 placeholder={
                   formType === "category"
                     ? "カテゴリ名（例: 施工確認）"
@@ -268,11 +268,11 @@ export default function InsurerRulesPage() {
             </div>
 
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 割り当て先 <span className="text-red-500">*</span>
               </label>
               {users.length === 0 ? (
-                <p className="text-sm text-neutral-400">
+                <p className="text-sm text-muted">
                   アクティブなユーザーが見つかりません
                 </p>
               ) : (
@@ -280,7 +280,7 @@ export default function InsurerRulesPage() {
                   value={formAssignTo}
                   onChange={(e) => setFormAssignTo(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 >
                   <option value="">担当者を選択</option>
                   {users.map((u) => (
@@ -297,7 +297,7 @@ export default function InsurerRulesPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+              className="rounded-xl border border-border-default px-4 py-2 text-sm font-medium text-secondary hover:bg-inset"
             >
               キャンセル
             </button>
@@ -322,12 +322,12 @@ export default function InsurerRulesPage() {
       {/* rules list */}
       {busy ? (
         <div className="flex items-center justify-center py-20">
-          <p className="text-sm text-neutral-500">読み込み中…</p>
+          <p className="text-sm text-muted">読み込み中…</p>
         </div>
       ) : rules.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center">
-          <p className="text-neutral-500">自動振り分けルールがありません</p>
-          <p className="mt-1 text-sm text-neutral-400">
+        <div className="rounded-2xl border border-border-default bg-surface p-12 text-center">
+          <p className="text-muted">自動振り分けルールがありません</p>
+          <p className="mt-1 text-sm text-muted">
             「新規ルール作成」ボタンからルールを追加できます
           </p>
         </div>
@@ -336,31 +336,31 @@ export default function InsurerRulesPage() {
           {rules.map((r) => (
             <div
               key={r.id}
-              className={`rounded-2xl border bg-white p-5 transition ${
+              className={`rounded-2xl border bg-surface p-5 transition ${
                 r.is_active
-                  ? "border-neutral-200 hover:border-neutral-300"
-                  : "border-neutral-100 opacity-60"
+                  ? "border-border-default hover:border-border-default"
+                  : "border-border-subtle opacity-60"
               }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-base font-semibold text-neutral-900 truncate">
+                    <h3 className="text-base font-semibold text-primary truncate">
                       {r.name}
                     </h3>
                     {!r.is_active && (
-                      <span className="inline-flex rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-500">
+                      <span className="inline-flex rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-semibold text-muted">
                         無効
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-600">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-secondary">
                     <span>
                       条件:{" "}
                       <span className="font-medium">
                         {CONDITION_TYPE_LABELS[r.condition_type] ?? r.condition_type}
                       </span>{" "}
-                      = <span className="font-mono text-neutral-800">{r.condition_value}</span>
+                      = <span className="font-mono text-primary">{r.condition_value}</span>
                     </span>
                     <span>
                       割り当て先:{" "}
@@ -381,7 +381,7 @@ export default function InsurerRulesPage() {
                   </button>
                   <button
                     onClick={() => startEdit(r)}
-                    className="rounded-xl border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+                    className="rounded-xl border border-border-default px-3 py-1.5 text-sm font-medium text-secondary hover:bg-inset"
                   >
                     編集
                   </button>

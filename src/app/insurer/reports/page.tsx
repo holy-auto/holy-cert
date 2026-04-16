@@ -87,26 +87,26 @@ export default function ReportsPage() {
     : 0;
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-6">
+    <main className="min-h-screen bg-inset p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
-            <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+            <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
               REPORTS
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+              <h1 className="text-3xl font-bold tracking-tight text-primary">
                 案件レポート
               </h1>
-              <p className="mt-2 text-sm text-neutral-600">
+              <p className="mt-2 text-sm text-secondary">
                 案件の推移・ステータス・カテゴリ・対応時間を分析します。
               </p>
             </div>
           </div>
           <Link
             href="/insurer"
-            className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            className="rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover"
           >
             ダッシュボードへ
           </Link>
@@ -119,7 +119,7 @@ export default function ReportsPage() {
             className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
               period === "monthly"
                 ? "bg-neutral-900 text-white"
-                : "border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100"
+                : "border border-border-default bg-surface text-secondary hover:bg-surface-hover"
             }`}
           >
             月次
@@ -129,7 +129,7 @@ export default function ReportsPage() {
             className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
               period === "weekly"
                 ? "bg-neutral-900 text-white"
-                : "border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100"
+                : "border border-border-default bg-surface text-secondary hover:bg-surface-hover"
             }`}
           >
             週次
@@ -137,7 +137,7 @@ export default function ReportsPage() {
         </div>
 
         {loading && (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
+          <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-muted">
             読み込み中...
           </div>
         )}
@@ -152,49 +152,49 @@ export default function ReportsPage() {
           <>
             {/* Summary cards */}
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+              <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                   TOTAL CASES
                 </div>
-                <div className="mt-2 text-3xl font-bold text-neutral-900">
+                <div className="mt-2 text-3xl font-bold text-primary">
                   {data.total_cases}
                 </div>
-                <div className="mt-1 text-sm text-neutral-500">
+                <div className="mt-1 text-sm text-muted">
                   {period === "monthly" ? "過去12ヶ月" : "過去12週"}
                 </div>
               </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+              <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                   RESOLVED
                 </div>
                 <div className="mt-2 text-3xl font-bold text-emerald-600">
                   {data.resolved_cases}
                 </div>
-                <div className="mt-1 text-sm text-neutral-500">解決済み件数</div>
+                <div className="mt-1 text-sm text-muted">解決済み件数</div>
               </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+              <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                   AVG RESOLUTION TIME
                 </div>
                 <div className="mt-2 text-3xl font-bold text-blue-600">
                   {formatHours(data.avg_resolution_hours)}
                 </div>
-                <div className="mt-1 text-sm text-neutral-500">平均対応時間</div>
+                <div className="mt-1 text-sm text-muted">平均対応時間</div>
               </div>
             </div>
 
             {/* Period trend bar chart */}
-            <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
               <div className="mb-4">
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                   CASE TREND
                 </div>
-                <div className="mt-1 text-lg font-semibold text-neutral-900">
+                <div className="mt-1 text-lg font-semibold text-primary">
                   案件件数推移
                 </div>
               </div>
               {data.period_trend.length === 0 ? (
-                <p className="text-sm text-neutral-500">データがありません。</p>
+                <p className="text-sm text-muted">データがありません。</p>
               ) : (
                 <>
                   <div className="flex items-end gap-1 h-40">
@@ -221,7 +221,7 @@ export default function ReportsPage() {
                       );
                     })}
                   </div>
-                  <div className="mt-2 flex justify-between text-[10px] text-neutral-400">
+                  <div className="mt-2 flex justify-between text-[10px] text-muted">
                     <span>{data.period_trend[0]?.label ?? ""}</span>
                     <span>
                       {data.period_trend[data.period_trend.length - 1]?.label ?? ""}
@@ -234,17 +234,17 @@ export default function ReportsPage() {
             {/* Two columns: status + category */}
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Status breakdown */}
-              <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
                 <div className="mb-4">
-                  <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+                  <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                     STATUS BREAKDOWN
                   </div>
-                  <div className="mt-1 text-lg font-semibold text-neutral-900">
+                  <div className="mt-1 text-lg font-semibold text-primary">
                     ステータス別内訳
                   </div>
                 </div>
                 {data.status_breakdown.length === 0 ? (
-                  <p className="text-sm text-neutral-500">データがありません。</p>
+                  <p className="text-sm text-muted">データがありません。</p>
                 ) : (
                   <div className="space-y-3">
                     {data.status_breakdown.map((s) => {
@@ -259,15 +259,15 @@ export default function ReportsPage() {
                               <div
                                 className={`h-3 w-3 rounded-full ${getStatusColor(s.status)}`}
                               />
-                              <span className="font-medium text-neutral-900">
+                              <span className="font-medium text-primary">
                                 {getStatusLabel(s.status)}
                               </span>
                             </div>
-                            <span className="text-neutral-500">
+                            <span className="text-muted">
                               {s.count}件 ({pct}%)
                             </span>
                           </div>
-                          <div className="mt-1 h-2 w-full rounded-full bg-neutral-100">
+                          <div className="mt-1 h-2 w-full rounded-full bg-surface-hover">
                             <div
                               className={`h-2 rounded-full ${getStatusColor(s.status)}`}
                               style={{ width: `${pct}%` }}
@@ -281,17 +281,17 @@ export default function ReportsPage() {
               </section>
 
               {/* Category breakdown */}
-              <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
                 <div className="mb-4">
-                  <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+                  <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                     CATEGORY BREAKDOWN
                   </div>
-                  <div className="mt-1 text-lg font-semibold text-neutral-900">
+                  <div className="mt-1 text-lg font-semibold text-primary">
                     カテゴリ別内訳
                   </div>
                 </div>
                 {data.category_breakdown.length === 0 ? (
-                  <p className="text-sm text-neutral-500">データがありません。</p>
+                  <p className="text-sm text-muted">データがありません。</p>
                 ) : (
                   <div className="space-y-3">
                     {data.category_breakdown.map((c) => {
@@ -302,14 +302,14 @@ export default function ReportsPage() {
                       return (
                         <div key={c.category}>
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium text-neutral-900">
+                            <span className="font-medium text-primary">
                               {c.category}
                             </span>
-                            <span className="text-neutral-500">
+                            <span className="text-muted">
                               {c.count}件 ({pct}%)
                             </span>
                           </div>
-                          <div className="mt-1 h-2 w-full rounded-full bg-neutral-100">
+                          <div className="mt-1 h-2 w-full rounded-full bg-surface-hover">
                             <div
                               className="h-2 rounded-full bg-purple-500"
                               style={{ width: `${pct}%` }}

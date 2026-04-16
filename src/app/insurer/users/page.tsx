@@ -155,15 +155,15 @@ export default function InsurerUsersPage() {
     return (
       <div className="mx-auto max-w-5xl space-y-6 p-6">
         <header className="space-y-3">
-          <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+          <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
             USERS
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-3xl font-bold tracking-tight text-primary">
             ユーザー管理
           </h1>
         </header>
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-sm text-neutral-500">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center shadow-sm">
+          <p className="text-sm text-muted">
             このページは管理者のみアクセスできます。
           </p>
         </div>
@@ -176,19 +176,19 @@ export default function InsurerUsersPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <header className="space-y-3">
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           USERS
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+        <h1 className="text-3xl font-bold tracking-tight text-primary">
           ユーザー管理
         </h1>
       </header>
 
       {/* Summary + Invite Button */}
-      <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-        <div className="text-sm text-neutral-600">
+      <div className="flex items-center justify-between rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+        <div className="text-sm text-secondary">
           現在{" "}
-          <span className="font-bold text-neutral-900">{activeCount}</span> /{" "}
+          <span className="font-bold text-primary">{activeCount}</span> /{" "}
           {maxUsers} ユーザー（有効）
         </div>
         <button
@@ -202,13 +202,13 @@ export default function InsurerUsersPage() {
 
       {/* Invite Form */}
       {showInvite && (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+        <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+          <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-muted">
             新規ユーザー招待
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 メールアドレス *
               </label>
               <input
@@ -216,11 +216,11 @@ export default function InsurerUsersPage() {
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="user@example.com"
-                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
+                className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 表示名
               </label>
               <input
@@ -228,17 +228,17 @@ export default function InsurerUsersPage() {
                 value={inviteName}
                 onChange={(e) => setInviteName(e.target.value)}
                 placeholder="山田 太郎"
-                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
+                className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 ロール *
               </label>
               <select
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
+                className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
               >
                 <option value="viewer">閲覧者</option>
                 <option value="auditor">監査者</option>
@@ -262,7 +262,7 @@ export default function InsurerUsersPage() {
                 setShowInvite(false);
                 setInviteError(null);
               }}
-              className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50"
+              className="rounded-xl border border-border-default px-4 py-2 text-sm font-medium text-secondary transition-colors hover:bg-inset"
             >
               キャンセル
             </button>
@@ -278,47 +278,47 @@ export default function InsurerUsersPage() {
       )}
 
       {/* Users Table */}
-      <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+      <div className="rounded-2xl border border-border-default bg-surface shadow-sm">
         <div className="p-5 pb-0">
-          <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+          <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-muted">
             USER LIST
           </div>
         </div>
         {loading ? (
-          <div className="p-5 text-sm text-neutral-500">読み込み中...</div>
+          <div className="p-5 text-sm text-muted">読み込み中...</div>
         ) : users.length === 0 ? (
-          <div className="p-5 text-sm text-neutral-500">
+          <div className="p-5 text-sm text-muted">
             ユーザーが登録されていません。
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-neutral-50">
+              <thead className="bg-inset">
                 <tr>
-                  <th className="p-3 text-left font-semibold text-neutral-600">
+                  <th className="p-3 text-left font-semibold text-secondary">
                     名前
                   </th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">
+                  <th className="p-3 text-left font-semibold text-secondary">
                     メール
                   </th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">
+                  <th className="p-3 text-left font-semibold text-secondary">
                     ロール
                   </th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">
+                  <th className="p-3 text-left font-semibold text-secondary">
                     ステータス
                   </th>
-                  <th className="p-3 text-left font-semibold text-neutral-600">
+                  <th className="p-3 text-left font-semibold text-secondary">
                     操作
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user) => (
-                  <tr key={user.id} className="border-t border-neutral-100">
-                    <td className="p-3 font-medium text-neutral-900">
+                  <tr key={user.id} className="border-t border-border-subtle">
+                    <td className="p-3 font-medium text-primary">
                       {user.display_name || "-"}
                     </td>
-                    <td className="p-3 text-neutral-600">
+                    <td className="p-3 text-secondary">
                       {user.email || "-"}
                     </td>
                     <td className="p-3">
@@ -329,14 +329,14 @@ export default function InsurerUsersPage() {
                             handleUpdateUser(user.id, { role: e.target.value })
                           }
                           disabled={saving}
-                          className="rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs focus:border-neutral-400 focus:outline-none"
+                          className="rounded-lg border border-border-default bg-inset px-2 py-1 text-xs focus:border-neutral-400 focus:outline-none"
                         >
                           <option value="admin">管理者</option>
                           <option value="viewer">閲覧者</option>
                           <option value="auditor">監査者</option>
                         </select>
                       ) : (
-                        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700">
+                        <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium text-secondary">
                           {ROLE_LABELS[user.role] ?? user.role}
                         </span>
                       )}
@@ -346,7 +346,7 @@ export default function InsurerUsersPage() {
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                           user.is_active
                             ? "bg-emerald-100 text-emerald-800"
-                            : "bg-neutral-100 text-neutral-500"
+                            : "bg-surface-hover text-muted"
                         }`}
                       >
                         {user.is_active ? "有効" : "無効"}
@@ -357,14 +357,14 @@ export default function InsurerUsersPage() {
                         {editingId === user.id ? (
                           <button
                             onClick={() => setEditingId(null)}
-                            className="text-xs text-neutral-500 hover:text-neutral-700"
+                            className="text-xs text-muted hover:text-secondary"
                           >
                             閉じる
                           </button>
                         ) : (
                           <button
                             onClick={() => setEditingId(user.id)}
-                            className="text-xs text-neutral-500 hover:text-neutral-700"
+                            className="text-xs text-muted hover:text-secondary"
                           >
                             編集
                           </button>

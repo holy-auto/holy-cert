@@ -82,39 +82,39 @@ export default function OnboardingWizard() {
 
       <div className="space-y-3">
         {/* Profile check */}
-        <div className={`flex items-center gap-3 rounded-xl p-3 ${checklist.profile_complete ? "bg-green-50 border border-green-200" : "bg-white border border-blue-100"}`}>
+        <div className={`flex items-center gap-3 rounded-xl p-3 ${checklist.profile_complete ? "bg-green-50 border border-green-200" : "bg-surface border border-blue-100"}`}>
           <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${checklist.profile_complete ? "bg-green-200 text-green-800" : "bg-blue-200 text-blue-800"}`}>
             {checklist.profile_complete ? "✓" : "1"}
           </div>
           <div className="flex-1">
-            <div className="text-sm font-medium text-neutral-900">プロフィール情報</div>
-            <div className="text-xs text-neutral-500">
+            <div className="text-sm font-medium text-primary">プロフィール情報</div>
+            <div className="text-xs text-muted">
               {checklist.profile_complete ? "完了" : "会社名・メールアドレスを確認してください"}
             </div>
           </div>
         </div>
 
         {/* Contact info */}
-        <div className={`flex items-center gap-3 rounded-xl p-3 ${checklist.contact_info ? "bg-green-50 border border-green-200" : "bg-white border border-blue-100"}`}>
+        <div className={`flex items-center gap-3 rounded-xl p-3 ${checklist.contact_info ? "bg-green-50 border border-green-200" : "bg-surface border border-blue-100"}`}>
           <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${checklist.contact_info ? "bg-green-200 text-green-800" : "bg-blue-200 text-blue-800"}`}>
             {checklist.contact_info ? "✓" : "2"}
           </div>
           <div className="flex-1">
-            <div className="text-sm font-medium text-neutral-900">連絡先情報</div>
-            <div className="text-xs text-neutral-500">
+            <div className="text-sm font-medium text-primary">連絡先情報</div>
+            <div className="text-xs text-muted">
               {checklist.contact_info ? "完了" : "電話番号を登録してください"}
             </div>
           </div>
         </div>
 
         {/* Plan selection */}
-        <div className={`flex items-center gap-3 rounded-xl p-3 ${checklist.plan_selected ? "bg-green-50 border border-green-200" : "bg-white border border-blue-100"}`}>
+        <div className={`flex items-center gap-3 rounded-xl p-3 ${checklist.plan_selected ? "bg-green-50 border border-green-200" : "bg-surface border border-blue-100"}`}>
           <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${checklist.plan_selected ? "bg-green-200 text-green-800" : "bg-blue-200 text-blue-800"}`}>
             {checklist.plan_selected ? "✓" : "3"}
           </div>
           <div className="flex-1">
-            <div className="text-sm font-medium text-neutral-900">プラン選択</div>
-            <div className="text-xs text-neutral-500">
+            <div className="text-sm font-medium text-primary">プラン選択</div>
+            <div className="text-xs text-muted">
               {checklist.plan_selected
                 ? `${insurer.plan_tier} プラン`
                 : "有料プランを選択すると、CSV/PDF出力やユーザー一括登録が利用可能になります"}

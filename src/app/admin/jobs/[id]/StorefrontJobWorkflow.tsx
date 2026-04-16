@@ -213,7 +213,7 @@ export default function StorefrontJobWorkflow({ reservation, customer, vehicle, 
               disabled={busy}
               className="flex w-full items-center gap-4 rounded-2xl border-2 border-accent bg-accent px-5 py-5 text-white shadow-sm transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface/20">
                 <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                 </svg>

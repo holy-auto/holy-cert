@@ -44,23 +44,23 @@ export default function InsurerAccountPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <header className="space-y-3">
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           ACCOUNT
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+        <h1 className="text-3xl font-bold tracking-tight text-primary">
           アカウント設定
         </h1>
       </header>
 
-      <div className="flex gap-1 rounded-xl bg-neutral-100 p-1">
+      <div className="flex gap-1 rounded-xl bg-surface-hover p-1">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               tab === t.key
-                ? "bg-white text-neutral-900 shadow-sm"
-                : "text-neutral-500 hover:text-neutral-700"
+                ? "bg-surface text-primary shadow-sm"
+                : "text-muted hover:text-secondary"
             }`}
           >
             {t.label}
@@ -78,8 +78,8 @@ export default function InsurerAccountPage() {
 
 function CompanyInfoTab({ insurer }: { insurer: any }) {
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+    <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+      <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-muted">
         COMPANY INFO
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -108,16 +108,16 @@ function UsersTab({
   userCount: number;
 }) {
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+    <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+      <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-muted">
         USERS
       </div>
-      <div className="text-sm text-neutral-600">
+      <div className="text-sm text-secondary">
         現在{" "}
-        <span className="font-bold text-neutral-900">{userCount}</span> /{" "}
+        <span className="font-bold text-primary">{userCount}</span> /{" "}
         {insurer?.max_users ?? "-"} ユーザー
       </div>
-      <p className="mt-4 text-sm text-neutral-500">
+      <p className="mt-4 text-sm text-muted">
         ユーザー管理は今後のアップデートで強化されます。現在はダッシュボードからユーザーの招待が可能です。
       </p>
     </section>
@@ -132,11 +132,11 @@ function PlanTab({ insurer }: { insurer: any }) {
   };
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+    <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+      <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-muted">
         PLAN
       </div>
-      <div className="text-lg font-bold text-neutral-900">
+      <div className="text-lg font-bold text-primary">
         {planLabels[insurer.plan_tier] ?? insurer.plan_tier}
       </div>
       <div className="mt-4 grid gap-3 text-sm">
@@ -148,7 +148,7 @@ function PlanTab({ insurer }: { insurer: any }) {
             className={
               insurer.plan_tier !== "basic"
                 ? "text-emerald-600"
-                : "text-neutral-300"
+                : "text-muted"
             }
           >
             {insurer.plan_tier !== "basic" ? "\u2713" : "\u2014"}
@@ -160,7 +160,7 @@ function PlanTab({ insurer }: { insurer: any }) {
             className={
               insurer.plan_tier === "enterprise"
                 ? "text-emerald-600"
-                : "text-neutral-300"
+                : "text-muted"
             }
           >
             {insurer.plan_tier === "enterprise" ? "\u2713" : "\u2014"}
@@ -202,31 +202,31 @@ function AuditTab() {
   };
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+    <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+      <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-muted">
         AUDIT LOG
       </div>
       {loading ? (
-        <div className="text-sm text-neutral-500">読み込み中...</div>
+        <div className="text-sm text-muted">読み込み中...</div>
       ) : logs.length === 0 ? (
-        <div className="text-sm text-neutral-500">
+        <div className="text-sm text-muted">
           監査ログがありません。
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-neutral-200">
+        <div className="overflow-x-auto rounded-xl border border-border-default">
           <table className="min-w-full text-sm">
-            <thead className="bg-neutral-50">
+            <thead className="bg-inset">
               <tr>
-                <th className="p-3 text-left font-semibold text-neutral-600">
+                <th className="p-3 text-left font-semibold text-secondary">
                   日時
                 </th>
-                <th className="p-3 text-left font-semibold text-neutral-600">
+                <th className="p-3 text-left font-semibold text-secondary">
                   操作
                 </th>
-                <th className="p-3 text-left font-semibold text-neutral-600">
+                <th className="p-3 text-left font-semibold text-secondary">
                   詳細
                 </th>
-                <th className="p-3 text-left font-semibold text-neutral-600">
+                <th className="p-3 text-left font-semibold text-secondary">
                   IP
                 </th>
               </tr>
@@ -234,18 +234,18 @@ function AuditTab() {
             <tbody>
               {logs.map((l: any) => (
                 <tr key={l.id} className="border-t">
-                  <td className="p-3 whitespace-nowrap text-neutral-600">
+                  <td className="p-3 whitespace-nowrap text-secondary">
                     {formatDateTime(l.created_at)}
                   </td>
                   <td className="p-3">
-                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700">
+                    <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium text-secondary">
                       {actionLabels[l.action] ?? l.action}
                     </span>
                   </td>
-                  <td className="max-w-xs truncate p-3 font-mono text-xs text-neutral-500">
+                  <td className="max-w-xs truncate p-3 font-mono text-xs text-muted">
                     {JSON.stringify(l.meta ?? {})}
                   </td>
-                  <td className="p-3 text-xs text-neutral-500">
+                  <td className="p-3 text-xs text-muted">
                     {l.ip ?? "-"}
                   </td>
                 </tr>
@@ -261,8 +261,8 @@ function AuditTab() {
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs font-medium text-neutral-500">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-neutral-900">
+      <div className="text-xs font-medium text-muted">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-primary">
         {value}
       </div>
     </div>

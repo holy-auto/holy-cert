@@ -129,7 +129,7 @@ export default function MarketClient({ vehicles }: { vehicles: MarketVehicle[] }
                 className="glass-card overflow-hidden hover:shadow-md transition-shadow"
               >
                 {/* Image */}
-                <div className="relative aspect-[16/10] bg-neutral-100 flex items-center justify-center text-muted">
+                <div className="relative aspect-[16/10] bg-surface-hover flex items-center justify-center text-muted">
                   {v.images && v.images.length > 0 ? (
                     <Image
                       src={v.images[0].storage_path}

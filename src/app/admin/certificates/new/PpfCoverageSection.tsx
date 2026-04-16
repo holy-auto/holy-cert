@@ -236,7 +236,7 @@ export default function PpfCoverageSection() {
       </button>
 
       {validRows.length > 0 && (
-        <div className="rounded-xl border border-border-default bg-neutral-50 p-2.5 text-xs text-muted">
+        <div className="rounded-xl border border-border-default bg-inset p-2.5 text-xs text-muted">
           {validRows.length} パネルを記録します
           （フル: {validRows.filter((r) => r.coverage === "full").length}、
           部分: {validRows.filter((r) => r.coverage === "partial").length}）

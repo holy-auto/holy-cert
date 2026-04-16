@@ -56,7 +56,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
     <main className="mx-auto max-w-6xl px-6 py-10">
       <header className="mb-8 flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600 mb-3">
+          <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary mb-3">
             MARKET
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-primary">BtoB中古車在庫共有</h1>

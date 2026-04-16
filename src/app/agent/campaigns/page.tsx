@@ -58,7 +58,7 @@ export default function AgentCampaignsPage() {
       : null;
 
     return (
-      <div key={c.id} className={`rounded-2xl border bg-white p-5 shadow-sm ${isActive ? "border-emerald-200" : "border-neutral-200"}`}>
+      <div key={c.id} className={`rounded-2xl border bg-surface p-5 shadow-sm ${isActive ? "border-emerald-200" : "border-border-default"}`}>
         {c.banner_text && isActive && (
           <div className="mb-3 rounded-xl bg-gradient-to-r from-emerald-50 to-blue-50 px-4 py-2 text-sm font-medium text-emerald-800">
             {c.banner_text}
@@ -67,11 +67,11 @@ export default function AgentCampaignsPage() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-neutral-900">{c.title}</h3>
+              <h3 className="font-semibold text-primary">{c.title}</h3>
               <Badge variant={tm.variant}>{tm.label}</Badge>
             </div>
-            {c.description && <p className="mt-1 text-sm text-neutral-500">{c.description}</p>}
-            <div className="mt-2 flex flex-wrap gap-3 text-xs text-neutral-400">
+            {c.description && <p className="mt-1 text-sm text-muted">{c.description}</p>}
+            <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted">
               <span>{formatDate(c.start_date)} 〜 {formatDate(c.end_date)}</span>
               {c.bonus_rate && <span className="font-semibold text-emerald-600">+{c.bonus_rate}%</span>}
               {c.bonus_fixed && <span className="font-semibold text-emerald-600">+{formatJpy(c.bonus_fixed)}</span>}
@@ -91,16 +91,16 @@ export default function AgentCampaignsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           CAMPAIGNS
         </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-neutral-900">キャンペーン</h1>
-        <p className="mt-1 text-sm text-neutral-500">現在開催中・今後のキャンペーン情報</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary">キャンペーン</h1>
+        <p className="mt-1 text-sm text-muted">現在開催中・今後のキャンペーン情報</p>
       </div>
 
       {loading ? (
         <div className="animate-pulse space-y-3">
-          {[1, 2].map((i) => <div key={i} className="h-24 rounded-2xl bg-neutral-100" />)}
+          {[1, 2].map((i) => <div key={i} className="h-24 rounded-2xl bg-surface-hover" />)}
         </div>
       ) : (
         <>
@@ -120,13 +120,13 @@ export default function AgentCampaignsPage() {
 
           {past.length > 0 && (
             <div className="space-y-2">
-              <h2 className="text-xs font-semibold tracking-[0.18em] text-neutral-500">PAST</h2>
+              <h2 className="text-xs font-semibold tracking-[0.18em] text-muted">PAST</h2>
               <div className="space-y-3 opacity-60">{past.map((c) => renderCampaign(c, false))}</div>
             </div>
           )}
 
           {active.length === 0 && upcoming.length === 0 && past.length === 0 && (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
+            <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-muted">
               キャンペーンはまだありません
             </div>
           )}

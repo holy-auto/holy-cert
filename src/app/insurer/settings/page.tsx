@@ -118,7 +118,7 @@ export default function InsurerSettingsNotificationsPage() {
   if (!ready) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-neutral-400">読み込み中...</div>
+        <div className="text-muted">読み込み中...</div>
       </div>
     );
   }
@@ -127,8 +127,8 @@ export default function InsurerSettingsNotificationsPage() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-neutral-900">通知設定</h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <h1 className="text-2xl font-bold text-primary">通知設定</h1>
+        <p className="mt-1 text-sm text-muted">
           メール通知の受信設定を管理します
         </p>
       </div>
@@ -150,18 +150,18 @@ export default function InsurerSettingsNotificationsPage() {
       {/* Loading */}
       {loading && (
         <div className="flex justify-center py-12">
-          <div className="text-neutral-400">読み込み中...</div>
+          <div className="text-muted">読み込み中...</div>
         </div>
       )}
 
       {/* Preference toggles */}
       {!loading && (
-        <div className="rounded-2xl border border-neutral-200 bg-white">
-          <div className="border-b border-neutral-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-neutral-800">
+        <div className="rounded-2xl border border-border-default bg-surface">
+          <div className="border-b border-border-subtle px-6 py-4">
+            <h2 className="text-base font-semibold text-primary">
               メール通知
             </h2>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-muted">
               各種イベントのメール通知のオン/オフを切り替えます
             </p>
           </div>
@@ -173,10 +173,10 @@ export default function InsurerSettingsNotificationsPage() {
                 className="flex items-center justify-between px-6 py-4"
               >
                 <div className="min-w-0 flex-1 pr-4">
-                  <div className="text-sm font-medium text-neutral-800">
+                  <div className="text-sm font-medium text-primary">
                     {item.label}
                   </div>
-                  <div className="mt-0.5 text-xs text-neutral-500">
+                  <div className="mt-0.5 text-xs text-muted">
                     {item.description}
                   </div>
                 </div>
@@ -192,7 +192,7 @@ export default function InsurerSettingsNotificationsPage() {
                   }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface shadow ring-0 transition duration-200 ${
                       prefs[item.key] ? "translate-x-5" : "translate-x-0"
                     }`}
                   />
@@ -202,7 +202,7 @@ export default function InsurerSettingsNotificationsPage() {
           </div>
 
           {/* Save button */}
-          <div className="border-t border-neutral-100 px-6 py-4">
+          <div className="border-t border-border-subtle px-6 py-4">
             <button
               onClick={handleSave}
               disabled={saving}

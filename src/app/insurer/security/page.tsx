@@ -147,15 +147,15 @@ export default function InsurerSecurityPage() {
     return (
       <div className="mx-auto max-w-5xl space-y-6 p-6">
         <header className="space-y-3">
-          <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+          <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
             SECURITY
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-3xl font-bold tracking-tight text-primary">
             セキュリティ設定
           </h1>
         </header>
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-sm text-neutral-500">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center shadow-sm">
+          <p className="text-sm text-muted">
             このページは管理者のみアクセスできます。
           </p>
         </div>
@@ -166,10 +166,10 @@ export default function InsurerSecurityPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <header className="space-y-3">
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           SECURITY
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+        <h1 className="text-3xl font-bold tracking-tight text-primary">
           セキュリティ設定
         </h1>
       </header>
@@ -188,17 +188,17 @@ export default function InsurerSecurityPage() {
       )}
 
       {loading ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-          <p className="text-sm text-neutral-500">読み込み中...</p>
+        <div className="rounded-2xl border border-border-default bg-surface p-8 shadow-sm">
+          <p className="text-sm text-muted">読み込み中...</p>
         </div>
       ) : (
         <>
           {/* Section 1: IP Whitelist */}
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+          <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+            <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-muted">
               IP ACCESS CONTROL
             </div>
-            <h2 className="mb-4 text-lg font-bold text-neutral-900">
+            <h2 className="mb-4 text-lg font-bold text-primary">
               IP許可リスト
             </h2>
 
@@ -214,14 +214,14 @@ export default function InsurerSecurityPage() {
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  className={`absolute top-0.5 block h-5 w-5 rounded-full bg-surface shadow transition-transform ${
                     settings.ip_whitelist_enabled
                       ? "translate-x-5"
                       : "translate-x-0.5"
                   }`}
                 />
               </button>
-              <span className="text-sm text-neutral-700">
+              <span className="text-sm text-secondary">
                 IP制限を有効にする
               </span>
               {settings.ip_whitelist_enabled && (
@@ -237,15 +237,15 @@ export default function InsurerSecurityPage() {
                 {settings.ip_whitelist.map((ip) => (
                   <div
                     key={ip}
-                    className="flex items-center justify-between rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-2"
+                    className="flex items-center justify-between rounded-xl border border-border-subtle bg-inset px-4 py-2"
                   >
-                    <span className="font-mono text-sm text-neutral-700">
+                    <span className="font-mono text-sm text-secondary">
                       {ip}
                     </span>
                     <button
                       onClick={() => handleRemoveIp(ip)}
                       disabled={saving}
-                      className="text-xs text-red-500 hover:text-red-700 disabled:text-neutral-300"
+                      className="text-xs text-red-500 hover:text-red-700 disabled:text-muted"
                     >
                       削除
                     </button>
@@ -253,7 +253,7 @@ export default function InsurerSecurityPage() {
                 ))}
               </div>
             ) : (
-              <p className="mb-4 text-sm text-neutral-500">
+              <p className="mb-4 text-sm text-muted">
                 許可IPアドレスが登録されていません。
               </p>
             )}
@@ -271,7 +271,7 @@ export default function InsurerSecurityPage() {
                   if (e.key === "Enter") handleAddIp();
                 }}
                 placeholder="192.168.1.0/24"
-                className="flex-1 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 font-mono text-sm focus:border-neutral-400 focus:outline-none"
+                className="flex-1 rounded-xl border border-border-default bg-inset px-3 py-2 font-mono text-sm focus:border-neutral-400 focus:outline-none"
               />
               <button
                 onClick={handleAddIp}
@@ -294,16 +294,16 @@ export default function InsurerSecurityPage() {
           </div>
 
           {/* Section 2: Session Settings */}
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+          <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+            <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-muted">
               SESSION SETTINGS
             </div>
-            <h2 className="mb-4 text-lg font-bold text-neutral-900">
+            <h2 className="mb-4 text-lg font-bold text-primary">
               セッション設定
             </h2>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-neutral-700">
+              <label className="mb-2 block text-sm font-medium text-secondary">
                 自動ログアウト時間
               </label>
               <div className="flex flex-wrap gap-2">
@@ -315,14 +315,14 @@ export default function InsurerSecurityPage() {
                     className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
                       settings.session_timeout_minutes === opt.value
                         ? "border-neutral-900 bg-neutral-900 text-white"
-                        : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:bg-neutral-100"
+                        : "border-border-default bg-inset text-secondary hover:bg-surface-hover"
                     } disabled:cursor-not-allowed`}
                   >
                     {opt.label}
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-neutral-500">
+              <p className="mt-2 text-xs text-muted">
                 設定した時間操作がない場合、自動的にログアウトされます。
               </p>
             </div>

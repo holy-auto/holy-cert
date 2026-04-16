@@ -79,33 +79,33 @@ export default function TenantsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-6">
+    <main className="min-h-screen bg-inset p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
-            <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+            <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
               TENANTS
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+              <h1 className="text-3xl font-bold tracking-tight text-primary">
                 テナント別統計
               </h1>
-              <p className="mt-2 text-sm text-neutral-600">
+              <p className="mt-2 text-sm text-secondary">
                 契約テナントごとの証明書数・案件数・最新アクセスを確認します。
               </p>
             </div>
           </div>
           <Link
             href="/insurer"
-            className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            className="rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover"
           >
             ダッシュボードへ
           </Link>
         </header>
 
         {loading && (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
+          <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-muted">
             読み込み中...
           </div>
         )}
@@ -117,19 +117,19 @@ export default function TenantsPage() {
         )}
 
         {!loading && !error && (
-          <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                   TENANT LIST
                 </div>
-                <div className="mt-1 text-lg font-semibold text-neutral-900">
+                <div className="mt-1 text-lg font-semibold text-primary">
                   契約テナント一覧
                 </div>
               </div>
               {tenants.length > 0 && (
-                <div className="text-sm text-neutral-500">
-                  <span className="font-semibold text-neutral-900">
+                <div className="text-sm text-muted">
+                  <span className="font-semibold text-primary">
                     {tenants.length}
                   </span>{" "}
                   テナント
@@ -137,30 +137,30 @@ export default function TenantsPage() {
               )}
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-neutral-200">
+            <div className="overflow-x-auto rounded-xl border border-border-default">
               <table className="min-w-full text-sm">
-                <thead className="bg-neutral-50">
+                <thead className="bg-inset">
                   <tr>
                     <th
-                      className="p-3 text-left font-semibold text-neutral-600 cursor-pointer select-none hover:text-neutral-900"
+                      className="p-3 text-left font-semibold text-secondary cursor-pointer select-none hover:text-primary"
                       onClick={() => toggleSort("name")}
                     >
                       テナント名{sortIcon("name")}
                     </th>
                     <th
-                      className="p-3 text-right font-semibold text-neutral-600 cursor-pointer select-none hover:text-neutral-900"
+                      className="p-3 text-right font-semibold text-secondary cursor-pointer select-none hover:text-primary"
                       onClick={() => toggleSort("certificate_count")}
                     >
                       証明書数{sortIcon("certificate_count")}
                     </th>
                     <th
-                      className="p-3 text-right font-semibold text-neutral-600 cursor-pointer select-none hover:text-neutral-900"
+                      className="p-3 text-right font-semibold text-secondary cursor-pointer select-none hover:text-primary"
                       onClick={() => toggleSort("case_count")}
                     >
                       案件数{sortIcon("case_count")}
                     </th>
                     <th
-                      className="p-3 text-left font-semibold text-neutral-600 cursor-pointer select-none hover:text-neutral-900"
+                      className="p-3 text-left font-semibold text-secondary cursor-pointer select-none hover:text-primary"
                       onClick={() => toggleSort("last_access")}
                     >
                       最新アクセス{sortIcon("last_access")}
@@ -171,18 +171,18 @@ export default function TenantsPage() {
                   {sorted.map((t) => (
                     <tr
                       key={t.tenant_id}
-                      className="border-t hover:bg-neutral-50"
+                      className="border-t hover:bg-inset"
                     >
-                      <td className="p-3 font-medium text-neutral-900">
+                      <td className="p-3 font-medium text-primary">
                         {t.name}
                       </td>
-                      <td className="p-3 text-right text-neutral-700">
+                      <td className="p-3 text-right text-secondary">
                         {t.certificate_count.toLocaleString()}
                       </td>
-                      <td className="p-3 text-right text-neutral-700">
+                      <td className="p-3 text-right text-secondary">
                         {t.case_count.toLocaleString()}
                       </td>
-                      <td className="p-3 text-neutral-600 whitespace-nowrap">
+                      <td className="p-3 text-secondary whitespace-nowrap">
                         {t.last_access ? formatDateTime(t.last_access) : "-"}
                       </td>
                     </tr>
@@ -191,7 +191,7 @@ export default function TenantsPage() {
                     <tr>
                       <td
                         colSpan={4}
-                        className="p-8 text-center text-sm text-neutral-500"
+                        className="p-8 text-center text-sm text-muted"
                       >
                         契約テナントがありません。
                       </td>

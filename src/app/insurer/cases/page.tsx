@@ -49,7 +49,7 @@ function statusClasses(status: string) {
     amber: "bg-amber-100 text-amber-800",
     purple: "bg-purple-100 text-purple-800",
     emerald: "bg-emerald-100 text-emerald-800",
-    neutral: "bg-neutral-100 text-neutral-600",
+    neutral: "bg-surface-hover text-secondary",
   };
   return map[c] ?? map.neutral;
 }
@@ -57,7 +57,7 @@ function statusClasses(status: string) {
 function priorityClasses(priority: string) {
   const c = PRIORITY_MAP[priority]?.color ?? "neutral";
   const map: Record<string, string> = {
-    neutral: "bg-neutral-100 text-neutral-600",
+    neutral: "bg-surface-hover text-secondary",
     blue: "bg-blue-100 text-blue-800",
     amber: "bg-amber-100 text-amber-800",
     red: "bg-red-100 text-red-800",
@@ -254,7 +254,7 @@ function InsurerCasesInner() {
   if (!ready) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-sm text-neutral-500">読み込み中…</p>
+        <p className="text-sm text-muted">読み込み中…</p>
       </div>
     );
   }
@@ -264,10 +264,10 @@ function InsurerCasesInner() {
       {/* header */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
-          <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-neutral-600">
+          <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-secondary">
             案件管理
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-3xl font-bold tracking-tight text-primary">
             案件管理
           </h1>
         </div>
@@ -283,20 +283,20 @@ function InsurerCasesInner() {
       {showForm && (
         <form
           onSubmit={handleCreate}
-          className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4"
+          className="rounded-2xl border border-border-default bg-surface p-6 space-y-4"
         >
-          <h2 className="text-lg font-bold text-neutral-900">新規案件作成</h2>
+          <h2 className="text-lg font-bold text-primary">新規案件作成</h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             {/* template selector */}
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 テンプレート
               </label>
               <select
                 value={formTemplate}
                 onChange={(e) => applyTemplate(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
               >
                 {CASE_TEMPLATES.map((t) => (
                   <option key={t.key} value={t.key}>{t.label}</option>
@@ -305,7 +305,7 @@ function InsurerCasesInner() {
             </div>
 
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 タイトル <span className="text-red-500">*</span>
               </label>
               <input
@@ -313,32 +313,32 @@ function InsurerCasesInner() {
                 required
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 placeholder="案件タイトルを入力"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 説明
               </label>
               <textarea
                 value={formDesc}
                 onChange={(e) => setFormDesc(e.target.value)}
                 rows={3}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 placeholder="案件の詳細を入力"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 優先度
               </label>
               <select
                 value={formPriority}
                 onChange={(e) => setFormPriority(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
               >
                 <option value="low">低</option>
                 <option value="normal">通常</option>
@@ -348,42 +348,42 @@ function InsurerCasesInner() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 カテゴリ
               </label>
               <input
                 type="text"
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 placeholder="カテゴリ"
               />
             </div>
 
             {formCertId && (
               <div>
-                <label className="mb-1 block text-sm font-medium text-neutral-700">
+                <label className="mb-1 block text-sm font-medium text-secondary">
                   証明書ID
                 </label>
                 <input
                   type="text"
                   value={formCertId}
                   readOnly
-                  className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-500"
+                  className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm text-muted"
                 />
               </div>
             )}
 
             {formVehicleId && (
               <div>
-                <label className="mb-1 block text-sm font-medium text-neutral-700">
+                <label className="mb-1 block text-sm font-medium text-secondary">
                   車両ID
                 </label>
                 <input
                   type="text"
                   value={formVehicleId}
                   readOnly
-                  className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-500"
+                  className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm text-muted"
                 />
               </div>
             )}
@@ -410,7 +410,7 @@ function InsurerCasesInner() {
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
               filter === tab.key
                 ? "bg-neutral-900 text-white"
-                : "bg-white text-neutral-600 border border-neutral-200 hover:bg-neutral-100"
+                : "bg-surface text-secondary border border-border-default hover:bg-surface-hover"
             }`}
           >
             {tab.label}
@@ -427,10 +427,10 @@ function InsurerCasesInner() {
 
       {/* advanced filters */}
       {showAdvanced && (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-3">
+        <div className="rounded-2xl border border-border-default bg-surface p-4 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 キーワード検索
               </label>
               <input
@@ -438,17 +438,17 @@ function InsurerCasesInner() {
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
                 placeholder="タイトル・案件番号・説明"
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 優先度
               </label>
               <select
                 value={filterPriority}
                 onChange={(e) => setFilterPriority(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
               >
                 <option value="">全て</option>
                 <option value="low">低</option>
@@ -458,29 +458,29 @@ function InsurerCasesInner() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 作成日（から）
               </label>
               <input
                 type="date"
                 value={filterDateFrom}
                 onChange={(e) => setFilterDateFrom(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 作成日（まで）
               </label>
               <input
                 type="date"
                 value={filterDateTo}
                 onChange={(e) => setFilterDateTo(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-500">
+              <label className="mb-1 block text-xs font-medium text-muted">
                 カテゴリ
               </label>
               <input
@@ -488,7 +488,7 @@ function InsurerCasesInner() {
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
                 placeholder="カテゴリで絞り込み"
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
               />
             </div>
           </div>
@@ -501,7 +501,7 @@ function InsurerCasesInner() {
                 setFilterDateTo("");
                 setFilterQuery("");
               }}
-              className="text-sm text-neutral-500 hover:text-neutral-700 hover:underline"
+              className="text-sm text-muted hover:text-secondary hover:underline"
             >
               フィルタをリセット
             </button>
@@ -539,7 +539,7 @@ function InsurerCasesInner() {
           </button>
           <button
             onClick={() => setSelectedIds(new Set())}
-            className="text-sm text-neutral-500 hover:text-neutral-700"
+            className="text-sm text-muted hover:text-secondary"
           >
             選択解除
           </button>
@@ -549,51 +549,51 @@ function InsurerCasesInner() {
       {/* table */}
       {busy ? (
         <div className="flex items-center justify-center py-20">
-          <p className="text-sm text-neutral-500">読み込み中…</p>
+          <p className="text-sm text-muted">読み込み中…</p>
         </div>
       ) : cases.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center">
-          <p className="text-neutral-500">案件がありません</p>
+        <div className="rounded-2xl border border-border-default bg-surface p-12 text-center">
+          <p className="text-muted">案件がありません</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-neutral-200 text-left">
+              <tr className="border-b border-border-default text-left">
                 <th className="px-3 py-3">
                   <input
                     type="checkbox"
                     checked={selectedIds.size === cases.length && cases.length > 0}
                     onChange={toggleAll}
-                    className="rounded border-neutral-300"
+                    className="rounded border-border-default"
                   />
                 </th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">案件番号</th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">タイトル</th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">ステータス</th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">優先度</th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">作成日</th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">操作</th>
+                <th className="px-4 py-3 font-semibold text-secondary">案件番号</th>
+                <th className="px-4 py-3 font-semibold text-secondary">タイトル</th>
+                <th className="px-4 py-3 font-semibold text-secondary">ステータス</th>
+                <th className="px-4 py-3 font-semibold text-secondary">優先度</th>
+                <th className="px-4 py-3 font-semibold text-secondary">作成日</th>
+                <th className="px-4 py-3 font-semibold text-secondary">操作</th>
               </tr>
             </thead>
             <tbody>
               {cases.map((c) => (
                 <tr
                   key={c.id}
-                  className={`border-b border-neutral-100 last:border-0 hover:bg-neutral-50 ${selectedIds.has(c.id) ? "bg-blue-50" : ""}`}
+                  className={`border-b border-border-subtle last:border-0 hover:bg-inset ${selectedIds.has(c.id) ? "bg-blue-50" : ""}`}
                 >
                   <td className="px-3 py-3">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(c.id)}
                       onChange={() => toggleSelect(c.id)}
-                      className="rounded border-neutral-300"
+                      className="rounded border-border-default"
                     />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-neutral-500">
+                  <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">
                     {c.case_number}
                   </td>
-                  <td className="px-4 py-3 font-medium text-neutral-900">
+                  <td className="px-4 py-3 font-medium text-primary">
                     {c.title}
                   </td>
                   <td className="px-4 py-3">
@@ -606,7 +606,7 @@ function InsurerCasesInner() {
                       {PRIORITY_MAP[c.priority]?.label ?? c.priority}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-neutral-500">
+                  <td className="whitespace-nowrap px-4 py-3 text-muted">
                     {formatDateTime(c.created_at)}
                   </td>
                   <td className="px-4 py-3">
@@ -629,7 +629,7 @@ function InsurerCasesInner() {
 
 export default function InsurerCasesPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><p className="text-sm text-neutral-500">読み込み中…</p></div>}>
+    <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><p className="text-sm text-muted">読み込み中…</p></div>}>
       <InsurerCasesInner />
     </Suspense>
   );

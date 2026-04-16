@@ -81,10 +81,10 @@ export default function AgentNotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           NOTIFICATIONS
         </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-neutral-900">
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary">
           通知センター
           {unreadCount > 0 && (
             <span className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs text-white">
@@ -105,7 +105,7 @@ export default function AgentNotificationsPage() {
               key={f.key}
               onClick={() => setFilter(f.key)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                filter === f.key ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                filter === f.key ? "bg-primary text-inverse" : "bg-surface-hover text-secondary hover:bg-surface-active"
               }`}
             >
               {f.label}
@@ -115,7 +115,7 @@ export default function AgentNotificationsPage() {
         {unreadCount > 0 && (
           <button
             onClick={markAllRead}
-            className="rounded-xl border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
+            className="rounded-xl border border-border-default bg-surface px-3 py-1.5 text-xs font-medium text-secondary hover:bg-inset"
           >
             すべて既読にする
           </button>
@@ -124,10 +124,10 @@ export default function AgentNotificationsPage() {
 
       {loading ? (
         <div className="animate-pulse space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-16 rounded-2xl bg-neutral-100" />)}
+          {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-16 rounded-2xl bg-surface-hover" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-muted">
           通知はありません
         </div>
       ) : (
@@ -141,8 +141,8 @@ export default function AgentNotificationsPage() {
                   if (!n.is_read) markRead(n.id);
                   if (n.link) window.location.href = n.link;
                 }}
-                className={`rounded-2xl border bg-white p-4 shadow-sm transition-colors cursor-pointer hover:bg-neutral-50 ${
-                  n.is_read ? "border-neutral-200" : "border-blue-200 bg-blue-50/30"
+                className={`rounded-2xl border bg-surface p-4 shadow-sm transition-colors cursor-pointer hover:bg-inset ${
+                  n.is_read ? "border-border-default" : "border-blue-200 bg-blue-50/30"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -153,12 +153,12 @@ export default function AgentNotificationsPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <Badge variant={tm.variant}>{tm.label}</Badge>
-                        <span className="text-sm font-semibold text-neutral-900">{n.title}</span>
+                        <span className="text-sm font-semibold text-primary">{n.title}</span>
                       </div>
-                      {n.body && <p className="mt-1 text-xs text-neutral-500">{n.body}</p>}
+                      {n.body && <p className="mt-1 text-xs text-muted">{n.body}</p>}
                     </div>
                   </div>
-                  <span className="shrink-0 text-[11px] text-neutral-400">{formatDateTime(n.created_at)}</span>
+                  <span className="shrink-0 text-[11px] text-muted">{formatDateTime(n.created_at)}</span>
                 </div>
               </div>
             );

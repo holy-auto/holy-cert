@@ -118,7 +118,7 @@ export default function InsurerWatchlistPage() {
   if (!ready) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-sm text-neutral-500">読み込み中…</p>
+        <p className="text-sm text-muted">読み込み中…</p>
       </div>
     );
   }
@@ -128,13 +128,13 @@ export default function InsurerWatchlistPage() {
       {/* header */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
-          <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-neutral-600">
+          <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-secondary">
             ウォッチリスト
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-3xl font-bold tracking-tight text-primary">
             ウォッチリスト
           </h1>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted">
             注目している証明書や車両をブックマークして追跡できます
           </p>
         </div>
@@ -150,25 +150,25 @@ export default function InsurerWatchlistPage() {
       {showForm && (
         <form
           onSubmit={handleAdd}
-          className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4"
+          className="rounded-2xl border border-border-default bg-surface p-6 space-y-4"
         >
-          <h2 className="text-lg font-bold text-neutral-900">ウォッチリストに追加</h2>
+          <h2 className="text-lg font-bold text-primary">ウォッチリストに追加</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 タイプ
               </label>
               <select
                 value={formType}
                 onChange={(e) => setFormType(e.target.value as "certificate" | "vehicle")}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
               >
                 <option value="certificate">証明書</option>
                 <option value="vehicle">車両</option>
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 対象ID <span className="text-red-500">*</span>
               </label>
               <input
@@ -176,7 +176,7 @@ export default function InsurerWatchlistPage() {
                 required
                 value={formTargetId}
                 onChange={(e) => setFormTargetId(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 placeholder={
                   formType === "certificate" ? "証明書のUUID" : "車両のUUID"
                 }
@@ -187,7 +187,7 @@ export default function InsurerWatchlistPage() {
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+              className="rounded-xl border border-border-default px-4 py-2 text-sm font-medium text-secondary hover:bg-inset"
             >
               キャンセル
             </button>
@@ -212,42 +212,42 @@ export default function InsurerWatchlistPage() {
       {/* watchlist items */}
       {busy ? (
         <div className="flex items-center justify-center py-20">
-          <p className="text-sm text-neutral-500">読み込み中…</p>
+          <p className="text-sm text-muted">読み込み中…</p>
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center">
-          <p className="text-neutral-500">ウォッチリストにアイテムがありません</p>
-          <p className="mt-1 text-sm text-neutral-400">
+        <div className="rounded-2xl border border-border-default bg-surface p-12 text-center">
+          <p className="text-muted">ウォッチリストにアイテムがありません</p>
+          <p className="mt-1 text-sm text-muted">
             証明書や車両の詳細ページから追加するか、「追加」ボタンから直接登録できます
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-2xl border border-border-default bg-surface">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-neutral-200 text-left">
-                <th className="px-4 py-3 font-semibold text-neutral-600">タイプ</th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">識別子</th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">ステータス</th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">最終更新</th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">登録日</th>
-                <th className="px-4 py-3 font-semibold text-neutral-600">操作</th>
+              <tr className="border-b border-border-default text-left">
+                <th className="px-4 py-3 font-semibold text-secondary">タイプ</th>
+                <th className="px-4 py-3 font-semibold text-secondary">識別子</th>
+                <th className="px-4 py-3 font-semibold text-secondary">ステータス</th>
+                <th className="px-4 py-3 font-semibold text-secondary">最終更新</th>
+                <th className="px-4 py-3 font-semibold text-secondary">登録日</th>
+                <th className="px-4 py-3 font-semibold text-secondary">操作</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50"
+                  className="border-b border-border-subtle last:border-0 hover:bg-inset"
                 >
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${TYPE_COLORS[item.target_type] ?? "bg-neutral-100 text-neutral-600"}`}
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${TYPE_COLORS[item.target_type] ?? "bg-surface-hover text-secondary"}`}
                     >
                       {TYPE_LABELS[item.target_type] ?? item.target_type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-medium text-neutral-900">
+                  <td className="px-4 py-3 font-medium text-primary">
                     {item.target_detail ? (
                       <Link
                         href={getDetailLink(item)}
@@ -256,20 +256,20 @@ export default function InsurerWatchlistPage() {
                         {item.target_detail.identifier}
                       </Link>
                     ) : (
-                      <span className="text-neutral-400 font-mono text-xs">
+                      <span className="text-muted font-mono text-xs">
                         {item.target_id.slice(0, 8)}…（削除済み）
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-neutral-600">
+                  <td className="px-4 py-3 text-secondary">
                     {item.target_detail?.status ?? "—"}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-neutral-500">
+                  <td className="whitespace-nowrap px-4 py-3 text-muted">
                     {item.target_detail?.updated_at
                       ? formatDateTime(item.target_detail.updated_at)
                       : "—"}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-neutral-500">
+                  <td className="whitespace-nowrap px-4 py-3 text-muted">
                     {formatDateTime(item.created_at)}
                   </td>
                   <td className="px-4 py-3">

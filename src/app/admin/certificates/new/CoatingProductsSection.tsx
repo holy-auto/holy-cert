@@ -287,13 +287,13 @@ export default function CoatingProductsSection({ serviceType }: Props) {
       <button
         type="button"
         onClick={addRow}
-        className="rounded-lg border border-dashed border-border-default px-4 py-2 text-sm text-muted hover:border-neutral-400 hover:text-primary"
+        className="rounded-lg border border-dashed border-border-default px-4 py-2 text-sm text-muted hover:border-border-strong hover:text-primary"
       >
         ＋ 部位を追加
       </button>
 
       {validRows.length > 0 && (
-        <div className="rounded-xl border border-border-default bg-neutral-50 p-2.5 text-xs text-muted">
+        <div className="rounded-xl border border-border-default bg-inset p-2.5 text-xs text-muted">
           {validRows.length} 部位を記録します
         </div>
       )}

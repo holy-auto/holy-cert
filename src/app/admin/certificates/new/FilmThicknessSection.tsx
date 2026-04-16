@@ -242,7 +242,7 @@ export default function FilmThicknessSection() {
       <button
         type="button"
         onClick={addRow}
-        className="rounded-lg border border-dashed border-border-default px-4 py-2 text-sm text-muted hover:border-neutral-400 hover:text-neutral-700"
+        className="rounded-lg border border-dashed border-border-default px-4 py-2 text-sm text-muted hover:border-border-strong hover:text-secondary"
       >
         ＋ 部位を追加
       </button>

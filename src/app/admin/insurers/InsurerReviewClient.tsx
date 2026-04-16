@@ -32,7 +32,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_LABELS[status] ?? { label: status, color: "bg-neutral-100 text-secondary" };
+  const s = STATUS_LABELS[status] ?? { label: status, color: "bg-surface-hover text-secondary" };
   return (
     <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.color}`}>
       {s.label}

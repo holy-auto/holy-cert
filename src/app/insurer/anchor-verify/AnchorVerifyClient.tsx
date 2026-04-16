@@ -44,9 +44,9 @@ function gradeLabel(g: AnchorVerifyResult["authenticity_grade"]): { label: strin
     case "basic":
       return { label: "基本", cls: "bg-amber-100 text-amber-800 border-amber-300" };
     case "unverified":
-      return { label: "未検証", cls: "bg-neutral-100 text-neutral-700 border-neutral-300" };
+      return { label: "未検証", cls: "bg-surface-hover text-secondary border-border-default" };
     default:
-      return { label: "不明", cls: "bg-neutral-100 text-neutral-600 border-neutral-300" };
+      return { label: "不明", cls: "bg-surface-hover text-secondary border-border-default" };
   }
 }
 
@@ -59,7 +59,7 @@ function statusLabel(s: string | null): { label: string; cls: string } {
     case "expired":
       return { label: "期限切れ", cls: "text-amber-700" };
     default:
-      return { label: s || "-", cls: "text-neutral-700" };
+      return { label: s || "-", cls: "text-secondary" };
   }
 }
 
@@ -152,12 +152,12 @@ export default function AnchorVerifyClient() {
 
   return (
     <>
-      <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
         <div className="mb-4">
-          <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">
             INPUT
           </div>
-          <div className="mt-1 text-lg font-semibold text-neutral-900">
+          <div className="mt-1 text-lg font-semibold text-primary">
             SHA-256 ハッシュを入力 / 画像をドロップ
           </div>
         </div>
@@ -166,7 +166,7 @@ export default function AnchorVerifyClient() {
           <div>
             <label
               htmlFor="sha256-input"
-              className="mb-1 block text-xs font-semibold text-neutral-600"
+              className="mb-1 block text-xs font-semibold text-secondary"
             >
               SHA-256 ハッシュ (64桁 hex, 0x プレフィックス可)
             </label>
@@ -179,7 +179,7 @@ export default function AnchorVerifyClient() {
                 placeholder="例: 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
                 spellCheck={false}
                 autoComplete="off"
-                className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-3 font-mono text-xs"
+                className="w-full rounded-xl border border-border-default bg-surface px-3 py-3 font-mono text-xs"
                 disabled={busy}
               />
               <button type="submit" className="btn-primary px-4 py-3" disabled={busy}>
@@ -192,8 +192,8 @@ export default function AnchorVerifyClient() {
             <div
               className={`rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors ${
                 dragOver
-                  ? "border-neutral-500 bg-neutral-100"
-                  : "border-neutral-300 bg-neutral-50"
+                  ? "border-neutral-500 bg-surface-hover"
+                  : "border-border-default bg-inset"
               }`}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -208,18 +208,18 @@ export default function AnchorVerifyClient() {
                 if (file) void handleFile(file);
               }}
             >
-              <div className="text-sm font-medium text-neutral-700">
+              <div className="text-sm font-medium text-secondary">
                 画像ファイルをドロップすると、ブラウザ内で SHA-256 を計算して
                 自動検証します。
               </div>
-              <div className="mt-1 text-xs text-neutral-500">
+              <div className="mt-1 text-xs text-muted">
                 画像データは Ledra サーバーには送信されません (ハッシュのみ送信)。
               </div>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={busy}
-                className="mt-3 rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
+                className="mt-3 rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover disabled:opacity-50"
               >
                 ファイルを選択
               </button>
@@ -239,7 +239,7 @@ export default function AnchorVerifyClient() {
         </form>
 
         {stage === "hashing" ? (
-          <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
+          <div className="mt-4 rounded-xl border border-border-default bg-inset p-3 text-sm text-secondary">
             ハッシュ計算中...
           </div>
         ) : null}
@@ -303,12 +303,12 @@ export default function AnchorVerifyClient() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
             <div className="mb-4">
-              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                 METADATA
               </div>
-              <div className="mt-1 text-lg font-semibold text-neutral-900">
+              <div className="mt-1 text-lg font-semibold text-primary">
                 画像メタデータ
               </div>
             </div>
@@ -335,7 +335,7 @@ export default function AnchorVerifyClient() {
                 {result.polygon_tx_hash ? (
                   <span className="font-mono text-xs break-all">{result.polygon_tx_hash}</span>
                 ) : (
-                  <span className="text-xs text-neutral-500">未アンカー</span>
+                  <span className="text-xs text-muted">未アンカー</span>
                 )}
               </Row>
 
@@ -354,7 +354,7 @@ export default function AnchorVerifyClient() {
                   className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
                     result.c2pa_verified
                       ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                      : "bg-neutral-100 text-neutral-700 border-neutral-300"
+                      : "bg-surface-hover text-secondary border-border-default"
                   }`}
                 >
                   {result.c2pa_verified ? "検証済み" : "未検証 / 非対応"}
@@ -382,7 +382,7 @@ export default function AnchorVerifyClient() {
                     {result.certificate_public_id}
                   </Link>
                 ) : (
-                  <span className="text-xs text-neutral-500">-</span>
+                  <span className="text-xs text-muted">-</span>
                 )}
               </Row>
 
@@ -402,11 +402,11 @@ export default function AnchorVerifyClient() {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-      <dt className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+    <div className="rounded-xl border border-border-default bg-inset p-3">
+      <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted">
         {label}
       </dt>
-      <dd className="mt-1 text-neutral-900">{children}</dd>
+      <dd className="mt-1 text-primary">{children}</dd>
     </div>
   );
 }

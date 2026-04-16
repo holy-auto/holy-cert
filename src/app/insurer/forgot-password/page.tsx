@@ -41,19 +41,19 @@ export default function InsurerForgotPasswordPage() {
     <main className="mx-auto max-w-md space-y-6 p-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">パスワード再設定</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted">
           初回設定もこの画面から進められます。
         </p>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-4 rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <form onSubmit={onSubmit} className="space-y-4 rounded-3xl border border-border-default bg-surface p-5 shadow-sm">
         <div className="space-y-2">
           <label className="text-sm font-medium">メールアドレス</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-2xl border border-neutral-300 px-4 py-3 outline-none transition focus:border-neutral-500"
+            className="w-full rounded-2xl border border-border-default px-4 py-3 outline-none transition focus:border-accent"
             placeholder="info@example.com"
           />
         </div>
@@ -72,7 +72,7 @@ export default function InsurerForgotPasswordPage() {
 
       <Link
         href="/insurer/login"
-        className="inline-flex rounded-2xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-900 transition hover:bg-neutral-50"
+        className="inline-flex rounded-2xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary transition hover:bg-inset"
       >
         ログインへ戻る
       </Link>

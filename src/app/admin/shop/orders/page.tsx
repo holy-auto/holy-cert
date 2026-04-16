@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<ShopOrderStatus, string> = {
   processing: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
   shipped: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
   completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-  cancelled: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  cancelled: "bg-surface-hover text-secondary dark:bg-gray-800 dark:text-muted",
 };
 
 type OrderWithItems = ShopOrderRow & { shop_order_items: ShopOrderItemRow[] };

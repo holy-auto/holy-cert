@@ -69,13 +69,13 @@ export default function WorkflowTemplateEditor({ steps, onChange }: Props) {
     <div className="space-y-3">
       {/* ステップ一覧 */}
       {steps.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-400">
+        <div className="rounded-xl border border-dashed border-border-default p-6 text-center text-sm text-muted">
           ステップを追加してください
         </div>
       ) : (
         <div className="space-y-2">
           {steps.map((step, i) => (
-            <div key={step.key} className="rounded-xl border border-neutral-200 bg-white p-3">
+            <div key={step.key} className="rounded-xl border border-border-default bg-surface p-3">
               <div className="flex items-start gap-2">
                 {/* 順序バッジ */}
                 <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-700">
@@ -88,13 +88,13 @@ export default function WorkflowTemplateEditor({ steps, onChange }: Props) {
                     type="text"
                     value={step.label}
                     onChange={(e) => updateStep(i, "label", e.target.value)}
-                    className="w-full rounded-lg border border-neutral-300 bg-neutral-50 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full rounded-lg border border-border-default bg-inset px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     placeholder="ステップ名"
                   />
 
                   <div className="flex flex-wrap items-center gap-3">
                     {/* 推定時間 */}
-                    <label className="flex items-center gap-1.5 text-xs text-neutral-600">
+                    <label className="flex items-center gap-1.5 text-xs text-secondary">
                       <span>目安</span>
                       <input
                         type="number"
@@ -102,18 +102,18 @@ export default function WorkflowTemplateEditor({ steps, onChange }: Props) {
                         max="999"
                         value={step.estimated_min}
                         onChange={(e) => updateStep(i, "estimated_min", parseInt(e.target.value, 10) || 0)}
-                        className="w-16 rounded-lg border border-neutral-300 bg-neutral-50 px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        className="w-16 rounded-lg border border-border-default bg-inset px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       />
                       <span>分</span>
                     </label>
 
                     {/* 顧客表示フラグ */}
-                    <label className="flex items-center gap-1.5 text-xs text-neutral-600 cursor-pointer">
+                    <label className="flex items-center gap-1.5 text-xs text-secondary cursor-pointer">
                       <input
                         type="checkbox"
                         checked={step.is_customer_visible}
                         onChange={(e) => updateStep(i, "is_customer_visible", e.target.checked)}
-                        className="rounded border-neutral-300 text-indigo-600 focus:ring-indigo-500"
+                        className="rounded border-border-default text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>📱 顧客に通知</span>
                     </label>
@@ -126,7 +126,7 @@ export default function WorkflowTemplateEditor({ steps, onChange }: Props) {
                     type="button"
                     onClick={() => moveUp(i)}
                     disabled={i === 0}
-                    className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-30"
+                    className="rounded p-1 text-muted hover:bg-surface-hover hover:text-secondary disabled:opacity-30"
                     title="上へ"
                   >
                     <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
@@ -141,7 +141,7 @@ export default function WorkflowTemplateEditor({ steps, onChange }: Props) {
                     type="button"
                     onClick={() => moveDown(i)}
                     disabled={i === steps.length - 1}
-                    className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-30"
+                    className="rounded p-1 text-muted hover:bg-surface-hover hover:text-secondary disabled:opacity-30"
                     title="下へ"
                   >
                     <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
@@ -155,7 +155,7 @@ export default function WorkflowTemplateEditor({ steps, onChange }: Props) {
                   <button
                     type="button"
                     onClick={() => removeStep(i)}
-                    className="rounded p-1 text-neutral-400 hover:bg-red-100 hover:text-red-600"
+                    className="rounded p-1 text-muted hover:bg-red-100 hover:text-red-600"
                     title="削除"
                   >
                     <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
@@ -180,7 +180,7 @@ export default function WorkflowTemplateEditor({ steps, onChange }: Props) {
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addStep())}
-          className="flex-1 rounded-xl border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="flex-1 rounded-xl border border-border-default px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           placeholder="新しいステップ名を入力..."
         />
         <button
@@ -195,7 +195,7 @@ export default function WorkflowTemplateEditor({ steps, onChange }: Props) {
 
       {/* 合計時間 */}
       {steps.length > 0 && (
-        <div className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
+        <div className="flex items-center justify-between rounded-lg bg-inset px-3 py-2 text-xs text-muted">
           <span>
             {steps.length}ステップ · 顧客通知 {steps.filter((s) => s.is_customer_visible).length}件
           </span>

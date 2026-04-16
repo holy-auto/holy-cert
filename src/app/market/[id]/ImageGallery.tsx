@@ -11,7 +11,7 @@ export default function ImageGallery({ images, alt }: { images: VehicleImage[]; 
   return (
     <div className="space-y-3">
       {/* Main image */}
-      <div className="relative aspect-[4/3] glass-card overflow-hidden flex items-center justify-center bg-neutral-100">
+      <div className="relative aspect-[4/3] glass-card overflow-hidden flex items-center justify-center bg-surface-hover">
         {images.length > 0 ? (
           <Image
             src={images[mainImage]?.storage_path}

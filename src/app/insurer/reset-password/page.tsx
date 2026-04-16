@@ -60,7 +60,7 @@ export default function InsurerResetPasswordPage() {
   if (!ready) {
     return (
       <main className="mx-auto max-w-md p-6">
-        <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="rounded-3xl border border-border-default bg-surface p-5 shadow-sm">
           セッションを確認しています...
         </div>
       </main>
@@ -71,19 +71,19 @@ export default function InsurerResetPasswordPage() {
     <main className="mx-auto max-w-md space-y-6 p-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">新しいパスワードを設定</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted">
           初回設定・再設定の両方で使います。
         </p>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-4 rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <form onSubmit={onSubmit} className="space-y-4 rounded-3xl border border-border-default bg-surface p-5 shadow-sm">
         <div className="space-y-2">
           <label className="text-sm font-medium">新しいパスワード</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-2xl border border-neutral-300 px-4 py-3 outline-none transition focus:border-neutral-500"
+            className="w-full rounded-2xl border border-border-default px-4 py-3 outline-none transition focus:border-neutral-500"
           />
         </div>
 
@@ -93,7 +93,7 @@ export default function InsurerResetPasswordPage() {
             type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className="w-full rounded-2xl border border-neutral-300 px-4 py-3 outline-none transition focus:border-neutral-500"
+            className="w-full rounded-2xl border border-border-default px-4 py-3 outline-none transition focus:border-neutral-500"
           />
         </div>
 

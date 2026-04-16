@@ -63,11 +63,11 @@ export default function AgentReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           REPORTS
         </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-neutral-900">レポート・分析</h1>
-        <p className="mt-1 text-sm text-neutral-500">紹介実績・コミッション収益の詳細分析</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary">レポート・分析</h1>
+        <p className="mt-1 text-sm text-muted">紹介実績・コミッション収益の詳細分析</p>
       </div>
 
       {/* Period selector */}
@@ -77,7 +77,7 @@ export default function AgentReportsPage() {
             key={m}
             onClick={() => setMonths(m)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              months === m ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              months === m ? "bg-primary text-inverse" : "bg-surface-hover text-secondary hover:bg-surface-active"
             }`}
           >
             {m}ヶ月
@@ -87,8 +87,8 @@ export default function AgentReportsPage() {
 
       {loading ? (
         <div className="animate-pulse space-y-4">
-          <div className="h-24 rounded-2xl bg-neutral-100" />
-          <div className="h-64 rounded-2xl bg-neutral-100" />
+          <div className="h-24 rounded-2xl bg-surface-hover" />
+          <div className="h-64 rounded-2xl bg-surface-hover" />
         </div>
       ) : data ? (
         <>
@@ -101,31 +101,31 @@ export default function AgentReportsPage() {
           </div>
 
           {/* Monthly chart (bar representation) */}
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-neutral-900">月別推移</h2>
+          <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold text-primary">月別推移</h2>
             <div className="space-y-2">
               {data.monthly.map((m) => {
                 const maxRef = Math.max(...data.monthly.map((r) => r.referrals), 1);
                 const maxComm = Math.max(...data.monthly.map((r) => r.commission_earned), 1);
                 return (
                   <div key={m.month} className="grid grid-cols-[80px_1fr_1fr_100px] items-center gap-3 text-xs">
-                    <span className="font-mono text-neutral-500">{m.month}</span>
+                    <span className="font-mono text-muted">{m.month}</span>
                     <div className="flex items-center gap-2">
                       <div className="h-4 rounded bg-neutral-800" style={{ width: `${(m.referrals / maxRef) * 100}%`, minWidth: m.referrals > 0 ? 4 : 0 }} />
-                      <span className="text-neutral-600">{m.referrals}件</span>
+                      <span className="text-secondary">{m.referrals}件</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="h-4 rounded bg-emerald-500" style={{ width: `${(m.commission_earned / maxComm) * 100}%`, minWidth: m.commission_earned > 0 ? 4 : 0 }} />
-                      <span className="text-neutral-600">{formatJpy(m.commission_earned)}</span>
+                      <span className="text-secondary">{formatJpy(m.commission_earned)}</span>
                     </div>
-                    <div className="text-right text-neutral-400">
+                    <div className="text-right text-muted">
                       契約 {m.contracted}件
                     </div>
                   </div>
                 );
               })}
             </div>
-            <div className="mt-3 flex gap-4 text-[11px] text-neutral-400">
+            <div className="mt-3 flex gap-4 text-[11px] text-muted">
               <span className="flex items-center gap-1">
                 <span className="inline-block h-2.5 w-2.5 rounded bg-neutral-800" /> 紹介数
               </span>
@@ -136,13 +136,13 @@ export default function AgentReportsPage() {
           </div>
 
           {/* Status breakdown */}
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-neutral-900">ステータス内訳</h2>
+          <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold text-primary">ステータス内訳</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {Object.entries(data.status_breakdown).map(([status, count]) => (
-                <div key={status} className="rounded-xl bg-neutral-50 p-3 text-center">
-                  <div className="text-lg font-bold text-neutral-900">{count}</div>
-                  <div className="text-xs text-neutral-500">{STATUS_LABELS[status] ?? status}</div>
+                <div key={status} className="rounded-xl bg-inset p-3 text-center">
+                  <div className="text-lg font-bold text-primary">{count}</div>
+                  <div className="text-xs text-muted">{STATUS_LABELS[status] ?? status}</div>
                 </div>
               ))}
             </div>
@@ -162,14 +162,14 @@ export default function AgentReportsPage() {
                 a.download = `agent-report-${months}m.csv`;
                 a.click();
               }}
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+              className="rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-inset"
             >
               CSVエクスポート
             </button>
           </div>
         </>
       ) : (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-muted">
           データを取得できませんでした
         </div>
       )}
@@ -179,9 +179,9 @@ export default function AgentReportsPage() {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-      <div className="text-xs text-neutral-500">{label}</div>
-      <div className="mt-1 text-xl font-bold text-neutral-900">{value}</div>
+    <div className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm">
+      <div className="text-xs text-muted">{label}</div>
+      <div className="mt-1 text-xl font-bold text-primary">{value}</div>
     </div>
   );
 }

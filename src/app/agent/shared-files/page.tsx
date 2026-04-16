@@ -40,7 +40,7 @@ function getFileColor(fileType: string): string {
   if (fileType.includes("word") || fileType.includes("document")) return "bg-blue-100 text-blue-700";
   if (fileType.includes("sheet") || fileType.includes("excel")) return "bg-emerald-100 text-emerald-700";
   if (fileType.includes("image")) return "bg-violet-100 text-violet-700";
-  return "bg-neutral-100 text-neutral-700";
+  return "bg-surface-hover text-secondary";
 }
 
 export default function AgentSharedFilesPage() {
@@ -174,7 +174,7 @@ export default function AgentSharedFilesPage() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === tab.key
                 ? "bg-accent text-white"
-                : "bg-inset text-secondary hover:bg-neutral-200"
+                : "bg-inset text-secondary hover:bg-surface-active"
             }`}
           >
             {tab.label}

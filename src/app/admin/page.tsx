@@ -38,8 +38,8 @@ const PARTNER_RANKS: PartnerRank[] = [
   {
     key: "silver",
     label: "シルバー",
-    color: "text-gray-500 dark:text-gray-400",
-    bgColor: "bg-gray-100 dark:bg-gray-800/60",
+    color: "text-muted",
+    bgColor: "bg-surface-hover",
     minCompleted: 5,
     minRating: null,
   },

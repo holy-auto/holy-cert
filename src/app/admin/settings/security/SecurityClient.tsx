@@ -262,7 +262,7 @@ export default function SecurityClient({ initialTotpFactors }: Props) {
           </div>
           <div className="flex flex-col lg:flex-row gap-4 items-start">
             <div
-              className="rounded-lg bg-white p-3 shrink-0"
+              className="rounded-lg bg-surface p-3 shrink-0"
               aria-label="TOTP QR Code"
               dangerouslySetInnerHTML={{ __html: enroll.qrSvg }}
             />

@@ -230,7 +230,7 @@ export default function AdminAnnouncementsClient() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-border-default bg-white p-6 shadow-sm space-y-4"
+          className="rounded-2xl border border-border-default bg-surface p-6 shadow-sm space-y-4"
         >
           <h3 className="text-base font-semibold text-primary">
             {editingId ? "お知らせ編集" : "新規お知らせ"}
@@ -245,7 +245,7 @@ export default function AdminAnnouncementsClient() {
               type="text"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="お知らせタイトル"
             />
           </div>
@@ -257,7 +257,7 @@ export default function AdminAnnouncementsClient() {
               value={form.body}
               onChange={(e) => setForm({ ...form, body: e.target.value })}
               rows={5}
-              className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+              className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
               placeholder="お知らせ本文"
             />
           </div>
@@ -269,7 +269,7 @@ export default function AdminAnnouncementsClient() {
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               >
                 {CATEGORY_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -284,7 +284,7 @@ export default function AdminAnnouncementsClient() {
                 type="datetime-local"
                 value={form.published_at}
                 onChange={(e) => setForm({ ...form, published_at: e.target.value })}
-                className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
@@ -328,7 +328,7 @@ export default function AdminAnnouncementsClient() {
           ))}
         </div>
       ) : announcements.length === 0 ? (
-        <div className="rounded-2xl border border-border-default bg-white p-8 text-center text-sm text-secondary">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-secondary">
           お知らせはまだありません
         </div>
       ) : (
@@ -338,7 +338,7 @@ export default function AdminAnnouncementsClient() {
             return (
               <div
                 key={a.id}
-                className="rounded-2xl border border-border-default bg-white p-4 shadow-sm"
+                className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   {/* Left */}

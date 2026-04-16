@@ -113,38 +113,38 @@ export default function AgentTrainingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           TRAINING
         </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-neutral-900">研修・eラーニング</h1>
-        <p className="mt-1 text-sm text-neutral-500">研修コンテンツの受講と進捗管理</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary">研修・eラーニング</h1>
+        <p className="mt-1 text-sm text-muted">研修コンテンツの受講と進捗管理</p>
       </div>
 
       {/* Progress overview */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-          <div className="text-xs text-neutral-500">全体進捗</div>
-          <div className="mt-1 text-xl font-bold text-neutral-900">{completionPct}%</div>
-          <div className="mt-1 h-1.5 w-full rounded-full bg-neutral-100">
+        <div className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm">
+          <div className="text-xs text-muted">全体進捗</div>
+          <div className="mt-1 text-xl font-bold text-primary">{completionPct}%</div>
+          <div className="mt-1 h-1.5 w-full rounded-full bg-surface-hover">
             <div className="h-1.5 rounded-full bg-emerald-500 transition-all" style={{ width: `${completionPct}%` }} />
           </div>
         </div>
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-          <div className="text-xs text-neutral-500">必修進捗</div>
-          <div className="mt-1 text-xl font-bold text-neutral-900">{requiredPct}%</div>
-          <div className="mt-1 h-1.5 w-full rounded-full bg-neutral-100">
+        <div className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm">
+          <div className="text-xs text-muted">必修進捗</div>
+          <div className="mt-1 text-xl font-bold text-primary">{requiredPct}%</div>
+          <div className="mt-1 h-1.5 w-full rounded-full bg-surface-hover">
             <div className="h-1.5 rounded-full bg-amber-500 transition-all" style={{ width: `${requiredPct}%` }} />
           </div>
         </div>
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-          <div className="text-xs text-neutral-500">完了</div>
-          <div className="mt-1 text-xl font-bold text-neutral-900">
+        <div className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm">
+          <div className="text-xs text-muted">完了</div>
+          <div className="mt-1 text-xl font-bold text-primary">
             {stats.completed}/{stats.total}
           </div>
         </div>
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-          <div className="text-xs text-neutral-500">必修完了</div>
-          <div className="mt-1 text-xl font-bold text-neutral-900">
+        <div className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm">
+          <div className="text-xs text-muted">必修完了</div>
+          <div className="mt-1 text-xl font-bold text-primary">
             {stats.required_completed}/{stats.required}
           </div>
         </div>
@@ -156,8 +156,8 @@ export default function AgentTrainingPage() {
           onClick={() => setActiveCategory("all")}
           className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
             activeCategory === "all"
-              ? "bg-neutral-900 text-white"
-              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              ? "bg-primary text-inverse"
+              : "bg-surface-hover text-secondary hover:bg-surface-active"
           }`}
         >
           すべて
@@ -168,8 +168,8 @@ export default function AgentTrainingPage() {
             onClick={() => setActiveCategory(key)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               activeCategory === key
-                ? "bg-neutral-900 text-white"
-                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                ? "bg-primary text-inverse"
+                : "bg-surface-hover text-secondary hover:bg-surface-active"
             }`}
           >
             {val.label}
@@ -180,11 +180,11 @@ export default function AgentTrainingPage() {
       {loading ? (
         <div className="animate-pulse space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 rounded-2xl bg-neutral-100" />
+            <div key={i} className="h-24 rounded-2xl bg-surface-hover" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-muted">
           研修コンテンツはまだありません
         </div>
       ) : (
@@ -198,20 +198,20 @@ export default function AgentTrainingPage() {
             return (
               <div
                 key={course.id}
-                className={`rounded-2xl border shadow-sm overflow-hidden ${hasContent ? "border-neutral-200 bg-white" : "border-neutral-200 bg-neutral-50 opacity-80"}`}
+                className={`rounded-2xl border shadow-sm overflow-hidden ${hasContent ? "border-border-default bg-surface" : "border-border-default bg-inset opacity-80"}`}
               >
                 {/* Thumbnail */}
                 <div
-                  className={`h-32 flex items-center justify-center ${hasContent ? "bg-gradient-to-br from-neutral-100 to-neutral-200" : "bg-gradient-to-br from-neutral-100 to-neutral-150"}`}
+                  className={`h-32 flex items-center justify-center ${hasContent ? "bg-gradient-to-br from-surface-hover to-surface-active" : "bg-gradient-to-br from-surface-hover to-surface-active"}`}
                 >
                   {hasContent ? (
-                    <span className="text-2xl font-bold text-neutral-300">
+                    <span className="text-2xl font-bold text-muted">
                       {CONTENT_TYPE_ICONS[course.content_type] ?? "DOC"}
                     </span>
                   ) : (
                     <div className="text-center">
                       <div className="text-2xl">🔒</div>
-                      <div className="mt-1 text-[11px] font-medium text-neutral-400">準備中</div>
+                      <div className="mt-1 text-[11px] font-medium text-muted">準備中</div>
                     </div>
                   )}
                 </div>
@@ -227,22 +227,22 @@ export default function AgentTrainingPage() {
                       </span>
                     )}
                   </div>
-                  <h3 className="mt-2 text-sm font-semibold text-neutral-900">{course.title}</h3>
+                  <h3 className="mt-2 text-sm font-semibold text-primary">{course.title}</h3>
                   {course.description && (
-                    <p className="mt-1 text-xs text-neutral-500 line-clamp-2">{course.description}</p>
+                    <p className="mt-1 text-xs text-muted line-clamp-2">{course.description}</p>
                   )}
                   {course.duration_min && (
-                    <div className="mt-1 text-[11px] text-neutral-400">約 {course.duration_min}分</div>
+                    <div className="mt-1 text-[11px] text-muted">約 {course.duration_min}分</div>
                   )}
 
                   {/* Progress bar */}
                   {status !== "not_started" && hasContent && (
                     <div className="mt-3">
-                      <div className="flex items-center justify-between text-[11px] text-neutral-500">
+                      <div className="flex items-center justify-between text-[11px] text-muted">
                         <span>進捗</span>
                         <span>{pct}%</span>
                       </div>
-                      <div className="mt-1 h-1.5 w-full rounded-full bg-neutral-100">
+                      <div className="mt-1 h-1.5 w-full rounded-full bg-surface-hover">
                         <div
                           className={`h-1.5 rounded-full transition-all ${status === "completed" ? "bg-emerald-500" : "bg-blue-500"}`}
                           style={{ width: `${pct}%` }}
@@ -253,14 +253,14 @@ export default function AgentTrainingPage() {
 
                   <div className="mt-3 flex gap-2">
                     {!hasContent ? (
-                      <div className="flex-1 rounded-xl bg-neutral-100 px-3 py-2 text-center text-xs font-medium text-neutral-400 cursor-not-allowed">
+                      <div className="flex-1 rounded-xl bg-surface-hover px-3 py-2 text-center text-xs font-medium text-muted cursor-not-allowed">
                         コンテンツ準備中
                       </div>
                     ) : status !== "completed" ? (
                       <>
                         <button
                           onClick={() => startCourse(course)}
-                          className="flex-1 rounded-xl bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800"
+                          className="flex-1 rounded-xl bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:opacity-90"
                         >
                           {status === "not_started" ? "受講開始" : "続きから"}
                         </button>
@@ -277,7 +277,7 @@ export default function AgentTrainingPage() {
                     ) : (
                       <button
                         onClick={() => startCourse(course)}
-                        className="flex-1 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
+                        className="flex-1 rounded-xl border border-border-default bg-surface px-3 py-2 text-xs font-medium text-secondary hover:bg-inset"
                       >
                         もう一度見る
                       </button>

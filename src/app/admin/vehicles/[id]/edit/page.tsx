@@ -239,7 +239,7 @@ export default function AdminVehicleEditPage() {
                   className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                     sizeClass === s
                       ? "border-accent bg-accent text-white"
-                      : "border-neutral-200 bg-surface text-secondary hover:bg-surface-hover"
+                      : "border-border-default bg-surface text-secondary hover:bg-surface-hover"
                   }`}
                 >
                   {s}
@@ -287,7 +287,7 @@ export default function AdminVehicleEditPage() {
                         className="w-full px-4 py-2.5 text-left text-sm hover:bg-surface-hover"
                       >
                         <span className="font-medium text-primary">{c.name}</span>
-                        {c.phone && <span className="ml-2 text-xs text-neutral-500">{c.phone}</span>}
+                        {c.phone && <span className="ml-2 text-xs text-muted">{c.phone}</span>}
                       </button>
                     </li>
                   ))}

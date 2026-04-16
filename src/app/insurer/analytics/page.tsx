@@ -68,33 +68,33 @@ export default function AnalyticsPage() {
     : 0;
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-6">
+    <main className="min-h-screen bg-inset p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
-            <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+            <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
               ANALYTICS
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+              <h1 className="text-3xl font-bold tracking-tight text-primary">
                 検索分析ダッシュボード
               </h1>
-              <p className="mt-2 text-sm text-neutral-600">
+              <p className="mt-2 text-sm text-secondary">
                 過去30日間の検索・閲覧・エクスポート状況を分析します。
               </p>
             </div>
           </div>
           <Link
             href="/insurer"
-            className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            className="rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover"
           >
             ダッシュボードへ
           </Link>
         </header>
 
         {loading && (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
+          <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-muted">
             読み込み中...
           </div>
         )}
@@ -108,12 +108,12 @@ export default function AnalyticsPage() {
         {data && (
           <>
             {/* Daily counts bar chart */}
-            <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
               <div className="mb-4">
-                <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                   DAILY SEARCH VOLUME
                 </div>
-                <div className="mt-1 text-lg font-semibold text-neutral-900">
+                <div className="mt-1 text-lg font-semibold text-primary">
                   検索回数推移（過去30日）
                 </div>
               </div>
@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
                   );
                 })}
               </div>
-              <div className="mt-2 flex justify-between text-[10px] text-neutral-400">
+              <div className="mt-2 flex justify-between text-[10px] text-muted">
                 <span>{data.daily_counts[0]?.date.slice(5) ?? ""}</span>
                 <span>
                   {data.daily_counts[data.daily_counts.length - 1]?.date.slice(5) ?? ""}
@@ -151,17 +151,17 @@ export default function AnalyticsPage() {
             {/* Two columns: keywords + action breakdown */}
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Top keywords */}
-              <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
                 <div className="mb-4">
-                  <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+                  <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                     TOP KEYWORDS
                   </div>
-                  <div className="mt-1 text-lg font-semibold text-neutral-900">
+                  <div className="mt-1 text-lg font-semibold text-primary">
                     よく検索されるキーワード TOP10
                   </div>
                 </div>
                 {data.top_keywords.length === 0 ? (
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-muted">
                     検索データがありません。
                   </p>
                 ) : (
@@ -171,19 +171,19 @@ export default function AnalyticsPage() {
                       const pct = (kw.count / maxKw) * 100;
                       return (
                         <div key={kw.keyword} className="flex items-center gap-3">
-                          <span className="w-5 text-right text-xs font-semibold text-neutral-400">
+                          <span className="w-5 text-right text-xs font-semibold text-muted">
                             {i + 1}
                           </span>
                           <div className="flex-1">
                             <div className="flex items-center justify-between text-sm">
-                              <span className="font-medium text-neutral-900">
+                              <span className="font-medium text-primary">
                                 {kw.keyword}
                               </span>
-                              <span className="text-neutral-500">
+                              <span className="text-muted">
                                 {kw.count}回
                               </span>
                             </div>
-                            <div className="mt-1 h-1.5 w-full rounded-full bg-neutral-100">
+                            <div className="mt-1 h-1.5 w-full rounded-full bg-surface-hover">
                               <div
                                 className="h-1.5 rounded-full bg-blue-500"
                                 style={{ width: `${pct}%` }}
@@ -198,17 +198,17 @@ export default function AnalyticsPage() {
               </section>
 
               {/* Action breakdown */}
-              <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
                 <div className="mb-4">
-                  <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+                  <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                     ACTION BREAKDOWN
                   </div>
-                  <div className="mt-1 text-lg font-semibold text-neutral-900">
+                  <div className="mt-1 text-lg font-semibold text-primary">
                     アクション別内訳
                   </div>
                 </div>
                 {data.action_breakdown.length === 0 ? (
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-muted">
                     アクションデータがありません。
                   </p>
                 ) : (
@@ -225,15 +225,15 @@ export default function AnalyticsPage() {
                               <div
                                 className={`h-3 w-3 rounded-full ${getActionColor(a.action)}`}
                               />
-                              <span className="font-medium text-neutral-900">
+                              <span className="font-medium text-primary">
                                 {getActionLabel(a.action)}
                               </span>
                             </div>
-                            <span className="text-neutral-500">
+                            <span className="text-muted">
                               {a.count}回 ({pct}%)
                             </span>
                           </div>
-                          <div className="mt-1 h-2 w-full rounded-full bg-neutral-100">
+                          <div className="mt-1 h-2 w-full rounded-full bg-surface-hover">
                             <div
                               className={`h-2 rounded-full ${getActionColor(a.action)}`}
                               style={{ width: `${pct}%` }}
@@ -242,7 +242,7 @@ export default function AnalyticsPage() {
                         </div>
                       );
                     })}
-                    <div className="pt-2 border-t border-neutral-100 text-sm text-neutral-500">
+                    <div className="pt-2 border-t border-border-subtle text-sm text-muted">
                       合計: {totalActions}件
                     </div>
                   </div>

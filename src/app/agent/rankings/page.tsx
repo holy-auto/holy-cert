@@ -51,11 +51,11 @@ export default function AgentRankingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           RANKINGS
         </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-neutral-900">ランキング</h1>
-        <p className="mt-1 text-sm text-neutral-500">代理店パートナーの実績ランキング（匿名）</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary">ランキング</h1>
+        <p className="mt-1 text-sm text-muted">代理店パートナーの実績ランキング（匿名）</p>
       </div>
 
       {/* Period tabs */}
@@ -65,7 +65,7 @@ export default function AgentRankingsPage() {
             key={key}
             onClick={() => setPeriod(key)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              period === key ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              period === key ? "bg-primary text-inverse" : "bg-surface-hover text-secondary hover:bg-surface-active"
             }`}
           >
             {label}
@@ -81,7 +81,7 @@ export default function AgentRankingsPage() {
               {selfRank.rank}
             </div>
             <div>
-              <div className="text-sm font-semibold text-neutral-900">あなたの順位</div>
+              <div className="text-sm font-semibold text-primary">あなたの順位</div>
               <div className="mt-1 flex flex-wrap gap-4 text-sm">
                 <span>紹介 <strong>{selfRank.referral_count}</strong>件</span>
                 <span>契約 <strong>{selfRank.contracted_count}</strong>件</span>
@@ -97,29 +97,29 @@ export default function AgentRankingsPage() {
 
       {loading ? (
         <div className="animate-pulse space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-14 rounded-2xl bg-neutral-100" />)}
+          {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-14 rounded-2xl bg-surface-hover" />)}
         </div>
       ) : rankings.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-muted">
           まだランキングデータがありません
         </div>
       ) : (
-        <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-border-default bg-surface shadow-sm overflow-hidden">
           <table className="min-w-full text-sm">
-            <thead className="bg-neutral-50">
+            <thead className="bg-inset">
               <tr>
-                <th className="p-3 text-center font-semibold text-neutral-500 w-16">順位</th>
-                <th className="p-3 text-left font-semibold text-neutral-500">代理店</th>
-                <th className="p-3 text-right font-semibold text-neutral-500">紹介数</th>
-                <th className="p-3 text-right font-semibold text-neutral-500">契約数</th>
-                <th className="p-3 text-right font-semibold text-neutral-500">成約率</th>
+                <th className="p-3 text-center font-semibold text-muted w-16">順位</th>
+                <th className="p-3 text-left font-semibold text-muted">代理店</th>
+                <th className="p-3 text-right font-semibold text-muted">紹介数</th>
+                <th className="p-3 text-right font-semibold text-muted">契約数</th>
+                <th className="p-3 text-right font-semibold text-muted">成約率</th>
               </tr>
             </thead>
             <tbody>
               {rankings.map((r) => (
                 <tr
                   key={r.rank}
-                  className={`border-t border-neutral-100 ${r.is_self ? "bg-amber-50/50 font-semibold" : "hover:bg-neutral-50"}`}
+                  className={`border-t border-border-subtle ${r.is_self ? "bg-amber-50/50 font-semibold" : "hover:bg-inset"}`}
                 >
                   <td className="p-3 text-center">
                     {r.rank <= 3 ? (
@@ -129,18 +129,18 @@ export default function AgentRankingsPage() {
                         {r.rank}
                       </span>
                     ) : (
-                      <span className="text-neutral-500">{r.rank}</span>
+                      <span className="text-muted">{r.rank}</span>
                     )}
                   </td>
                   <td className="p-3">
-                    <span className={r.is_self ? "text-amber-700" : "text-neutral-900"}>
+                    <span className={r.is_self ? "text-amber-700" : "text-primary"}>
                       {r.agent_name}
                       {r.is_self && " (あなた)"}
                     </span>
                   </td>
-                  <td className="p-3 text-right font-mono text-neutral-700">{r.referral_count}</td>
-                  <td className="p-3 text-right font-mono text-neutral-700">{r.contracted_count}</td>
-                  <td className="p-3 text-right font-mono text-neutral-700">{r.conversion_rate}%</td>
+                  <td className="p-3 text-right font-mono text-secondary">{r.referral_count}</td>
+                  <td className="p-3 text-right font-mono text-secondary">{r.contracted_count}</td>
+                  <td className="p-3 text-right font-mono text-secondary">{r.conversion_rate}%</td>
                 </tr>
               ))}
             </tbody>

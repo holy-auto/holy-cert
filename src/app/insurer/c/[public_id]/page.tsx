@@ -151,30 +151,30 @@ export default function InsurerCertificatePage() {
       {/* Header */}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-3">
-          <Link href="/insurer/search" className="text-sm text-neutral-500 hover:text-neutral-700">
+          <Link href="/insurer/search" className="text-sm text-muted hover:text-secondary">
             ← 検索へ戻る
           </Link>
-          <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+          <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
             CERTIFICATE DETAIL
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">証明書詳細</h1>
-          <div className="text-sm text-neutral-500">
-            public_id: <span className="font-mono font-bold text-neutral-700">{publicId}</span>
+          <h1 className="text-3xl font-bold tracking-tight text-primary">証明書詳細</h1>
+          <div className="text-sm text-muted">
+            public_id: <span className="font-mono font-bold text-secondary">{publicId}</span>
           </div>
         </div>
         <div className="flex gap-2">
           {cert && (
             <Link
               href={`/insurer/cases?create=true&certificate_id=${cert.id}`}
-              className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              className="rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover"
             >
               案件作成
             </Link>
           )}
-          <a href={pdfOneUrl} className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100">
+          <a href={pdfOneUrl} className="rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover">
             PDF
           </a>
-          <a href={csvOneUrl} className="rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100">
+          <a href={csvOneUrl} className="rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover">
             CSV
           </a>
         </div>
@@ -211,7 +211,7 @@ export default function InsurerCertificatePage() {
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                           disclosureStatus.tenant_consented
                             ? "bg-emerald-100 text-emerald-700"
-                            : "bg-neutral-100 text-neutral-500"
+                            : "bg-surface-hover text-muted"
                         }`}>
                           施工店側: {disclosureStatus.tenant_consented ? "承認済み" : "未承認"}
                         </span>
@@ -232,65 +232,65 @@ export default function InsurerCertificatePage() {
           )}
 
           {/* Summary */}
-          <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500 mb-4">SUMMARY</div>
+          <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-4">SUMMARY</div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div>
-                <div className="text-xs font-medium text-neutral-500">ステータス</div>
+                <div className="text-xs font-medium text-muted">ステータス</div>
                 <div className={`mt-1 text-sm font-bold ${cert.status === "void" ? "text-red-600" : "text-emerald-600"}`}>
                   {cert.status === "active" ? "有効" : cert.status === "void" ? "無効" : cert.status}
                 </div>
               </div>
               <div>
-                <div className="text-xs font-medium text-neutral-500">顧客名</div>
-                <div className="mt-1 text-sm font-semibold text-neutral-900">{cert.customer_name ?? "-"}</div>
+                <div className="text-xs font-medium text-muted">顧客名</div>
+                <div className="mt-1 text-sm font-semibold text-primary">{cert.customer_name ?? "-"}</div>
               </div>
               {(vehicleModel || vehiclePlate) && (
                 <div>
-                  <div className="text-xs font-medium text-neutral-500">車両</div>
-                  <div className="mt-1 text-sm font-semibold text-neutral-900">
+                  <div className="text-xs font-medium text-muted">車両</div>
+                  <div className="mt-1 text-sm font-semibold text-primary">
                     {[vehicleModel, vehiclePlate].filter(Boolean).join(" / ")}
                   </div>
                 </div>
               )}
               {vehicleVin && (
                 <div>
-                  <div className="text-xs font-medium text-neutral-500">車台番号</div>
-                  <div className="mt-1 text-sm font-mono font-semibold text-neutral-900">{vehicleVin}</div>
+                  <div className="text-xs font-medium text-muted">車台番号</div>
+                  <div className="mt-1 text-sm font-mono font-semibold text-primary">{vehicleVin}</div>
                 </div>
               )}
               <div>
-                <div className="text-xs font-medium text-neutral-500">施工種別</div>
-                <div className="mt-1 text-sm font-semibold text-neutral-900">{cert.service_type ?? "-"}</div>
+                <div className="text-xs font-medium text-muted">施工種別</div>
+                <div className="mt-1 text-sm font-semibold text-primary">{cert.service_type ?? "-"}</div>
               </div>
               <div>
-                <div className="text-xs font-medium text-neutral-500">有効期限</div>
-                <div className="mt-1 text-sm font-semibold text-neutral-900">
+                <div className="text-xs font-medium text-muted">有効期限</div>
+                <div className="mt-1 text-sm font-semibold text-primary">
                   {[cert.expiry_type, cert.expiry_value].filter(Boolean).join(" / ") || "-"}
                 </div>
               </div>
               {cert.warranty_period_end && (
                 <div>
-                  <div className="text-xs font-medium text-neutral-500">保証期限</div>
-                  <div className="mt-1 text-sm font-semibold text-neutral-900">{formatDate(cert.warranty_period_end)}</div>
+                  <div className="text-xs font-medium text-muted">保証期限</div>
+                  <div className="mt-1 text-sm font-semibold text-primary">{formatDate(cert.warranty_period_end)}</div>
                 </div>
               )}
               <div>
-                <div className="text-xs font-medium text-neutral-500">施工店</div>
-                <div className="mt-1 text-sm font-semibold text-neutral-900">{cert.tenant_name ?? "-"}</div>
+                <div className="text-xs font-medium text-muted">施工店</div>
+                <div className="mt-1 text-sm font-semibold text-primary">{cert.tenant_name ?? "-"}</div>
               </div>
               <div>
-                <div className="text-xs font-medium text-neutral-500">作成日</div>
-                <div className="mt-1 text-sm text-neutral-600">{formatDateTime(cert.created_at)}</div>
+                <div className="text-xs font-medium text-muted">作成日</div>
+                <div className="mt-1 text-sm text-secondary">{formatDateTime(cert.created_at)}</div>
               </div>
             </div>
 
             {/* Vehicle link */}
             {cert.vehicle_id && (
-              <div className="mt-4 border-t border-neutral-100 pt-4">
+              <div className="mt-4 border-t border-border-subtle pt-4">
                 <Link
                   href={`/insurer/vehicles/${cert.vehicle_id}`}
-                  className="inline-flex items-center gap-1 rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                  className="inline-flex items-center gap-1 rounded-xl border border-border-default bg-surface px-4 py-2 text-sm font-medium text-secondary hover:bg-surface-hover"
                 >
                   この車両の全証明書を見る →
                 </Link>
@@ -300,11 +300,11 @@ export default function InsurerCertificatePage() {
 
           {/* Template fields */}
           {sections.length > 0 && (
-            <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500 mb-4">施工内容</div>
+            <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-4">施工内容</div>
               {sections.map((sec, i) => (
-                <div key={i} className={i > 0 ? "mt-6 border-t border-neutral-100 pt-6" : ""}>
-                  <div className="text-sm font-bold text-neutral-800 mb-3">
+                <div key={i} className={i > 0 ? "mt-6 border-t border-border-subtle pt-6" : ""}>
+                  <div className="text-sm font-bold text-primary mb-3">
                     {sec.title ?? `セクション${i + 1}`}
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -315,10 +315,10 @@ export default function InsurerCertificatePage() {
                       if (val === "") return null;
                       return (
                         <div key={f.key}>
-                          <div className="text-xs font-medium text-neutral-500">
-                            {label} <span className="text-neutral-400">({f.type})</span>
+                          <div className="text-xs font-medium text-muted">
+                            {label} <span className="text-muted">({f.type})</span>
                           </div>
-                          <div className="mt-1 text-sm font-semibold text-neutral-900 whitespace-pre-wrap">{val}</div>
+                          <div className="mt-1 text-sm font-semibold text-primary whitespace-pre-wrap">{val}</div>
                         </div>
                       );
                     })}
@@ -330,22 +330,22 @@ export default function InsurerCertificatePage() {
 
           {/* Free text */}
           {cert.content_free_text && (
-            <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500 mb-4">施工内容（自由記述）</div>
-              <div className="text-sm text-neutral-700 whitespace-pre-wrap">{cert.content_free_text}</div>
+            <section className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-4">施工内容（自由記述）</div>
+              <div className="text-sm text-secondary whitespace-pre-wrap">{cert.content_free_text}</div>
             </section>
           )}
 
           {/* Related cases */}
           {relatedCases.length > 0 && (
-            <section className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-3">
-              <h2 className="text-lg font-bold text-neutral-900">関連案件 ({relatedCases.length})</h2>
+            <section className="rounded-2xl border border-border-default bg-surface p-6 space-y-3">
+              <h2 className="text-lg font-bold text-primary">関連案件 ({relatedCases.length})</h2>
               <div className="space-y-2">
                 {relatedCases.map((c) => (
-                  <Link key={c.id} href={`/insurer/cases/${c.id}`} className="flex items-center justify-between rounded-xl border border-neutral-100 px-4 py-3 hover:bg-neutral-50">
+                  <Link key={c.id} href={`/insurer/cases/${c.id}`} className="flex items-center justify-between rounded-xl border border-border-subtle px-4 py-3 hover:bg-inset">
                     <div>
-                      <span className="font-mono text-xs text-neutral-500">{c.case_number}</span>
-                      <span className="ml-2 text-sm font-medium text-neutral-900">{c.title}</span>
+                      <span className="font-mono text-xs text-muted">{c.case_number}</span>
+                      <span className="ml-2 text-sm font-medium text-primary">{c.title}</span>
                     </div>
                     <span className="text-xs text-blue-600">詳細 →</span>
                   </Link>

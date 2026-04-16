@@ -21,7 +21,7 @@ const PRIORITY_LABELS: Record<string, string> = {
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  low: "bg-neutral-100 text-neutral-600",
+  low: "bg-surface-hover text-secondary",
   normal: "bg-blue-100 text-blue-800",
   high: "bg-amber-100 text-amber-800",
   urgent: "bg-red-100 text-red-800",
@@ -140,7 +140,7 @@ export default function InsurerTemplatesPage() {
   if (!ready) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-sm text-neutral-500">読み込み中…</p>
+        <p className="text-sm text-muted">読み込み中…</p>
       </div>
     );
   }
@@ -150,13 +150,13 @@ export default function InsurerTemplatesPage() {
       {/* header */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
-          <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-neutral-600">
+          <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-secondary">
             テンプレート管理
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-3xl font-bold tracking-tight text-primary">
             カスタム案件テンプレート
           </h1>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted">
             よく使う案件パターンをテンプレートとして保存できます
           </p>
         </div>
@@ -175,15 +175,15 @@ export default function InsurerTemplatesPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4"
+          className="rounded-2xl border border-border-default bg-surface p-6 space-y-4"
         >
-          <h2 className="text-lg font-bold text-neutral-900">
+          <h2 className="text-lg font-bold text-primary">
             {editingId ? "テンプレート編集" : "新規テンプレート作成"}
           </h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 テンプレート名 <span className="text-red-500">*</span>
               </label>
               <input
@@ -191,13 +191,13 @@ export default function InsurerTemplatesPage() {
                 required
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 placeholder="例: 施工確認依頼"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 タイトルテンプレート <span className="text-red-500">*</span>
               </label>
               <input
@@ -205,32 +205,32 @@ export default function InsurerTemplatesPage() {
                 required
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 placeholder="案件のタイトルテンプレート"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 カテゴリ
               </label>
               <input
                 type="text"
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 placeholder="カテゴリ"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 デフォルト優先度
               </label>
               <select
                 value={formPriority}
                 onChange={(e) => setFormPriority(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
               >
                 <option value="low">低</option>
                 <option value="normal">通常</option>
@@ -240,14 +240,14 @@ export default function InsurerTemplatesPage() {
             </div>
 
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-neutral-700">
+              <label className="mb-1 block text-sm font-medium text-secondary">
                 説明テンプレート
               </label>
               <textarea
                 value={formDesc}
                 onChange={(e) => setFormDesc(e.target.value)}
                 rows={3}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="w-full rounded-xl border border-border-default px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
                 placeholder="案件の説明テンプレート"
               />
             </div>
@@ -257,7 +257,7 @@ export default function InsurerTemplatesPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+              className="rounded-xl border border-border-default px-4 py-2 text-sm font-medium text-secondary hover:bg-inset"
             >
               キャンセル
             </button>
@@ -282,12 +282,12 @@ export default function InsurerTemplatesPage() {
       {/* template list */}
       {busy ? (
         <div className="flex items-center justify-center py-20">
-          <p className="text-sm text-neutral-500">読み込み中…</p>
+          <p className="text-sm text-muted">読み込み中…</p>
         </div>
       ) : templates.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center">
-          <p className="text-neutral-500">カスタムテンプレートがありません</p>
-          <p className="mt-1 text-sm text-neutral-400">
+        <div className="rounded-2xl border border-border-default bg-surface p-12 text-center">
+          <p className="text-muted">カスタムテンプレートがありません</p>
+          <p className="mt-1 text-sm text-muted">
             「新規テンプレート作成」ボタンから作成できます
           </p>
         </div>
@@ -296,12 +296,12 @@ export default function InsurerTemplatesPage() {
           {templates.map((t) => (
             <div
               key={t.id}
-              className="rounded-2xl border border-neutral-200 bg-white p-5 hover:border-neutral-300 transition"
+              className="rounded-2xl border border-border-default bg-surface p-5 hover:border-border-default transition"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-base font-semibold text-neutral-900 truncate">
+                    <h3 className="text-base font-semibold text-primary truncate">
                       {t.name}
                     </h3>
                     <span
@@ -310,16 +310,16 @@ export default function InsurerTemplatesPage() {
                       {PRIORITY_LABELS[t.default_priority] ?? t.default_priority}
                     </span>
                   </div>
-                  <p className="text-sm text-neutral-600 truncate">
+                  <p className="text-sm text-secondary truncate">
                     タイトル: {t.title_template}
                   </p>
                   {t.category && (
-                    <p className="text-sm text-neutral-500 mt-0.5">
+                    <p className="text-sm text-muted mt-0.5">
                       カテゴリ: {t.category}
                     </p>
                   )}
                   {t.description_template && (
-                    <p className="text-sm text-neutral-400 mt-1 line-clamp-2">
+                    <p className="text-sm text-muted mt-1 line-clamp-2">
                       {t.description_template}
                     </p>
                   )}
@@ -327,7 +327,7 @@ export default function InsurerTemplatesPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => startEdit(t)}
-                    className="rounded-xl border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+                    className="rounded-xl border border-border-default px-3 py-1.5 text-sm font-medium text-secondary hover:bg-inset"
                   >
                     編集
                   </button>

@@ -137,7 +137,7 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-primary">{brand.name}</span>
                       {!isOwn && (
-                        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] text-muted">共通</span>
+                        <span className="rounded-full bg-surface-hover px-2 py-0.5 text-[11px] text-muted">共通</span>
                       )}
                     </div>
                     {brand.description && (
@@ -223,7 +223,7 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
                       <button
                         type="button"
                         onClick={() => { setAddingProductFor(brand.id); setProductErr(null); }}
-                        className="rounded-lg border border-dashed border-border-default px-4 py-2 text-xs text-muted hover:border-neutral-400 hover:text-primary"
+                        className="rounded-lg border border-dashed border-border-default px-4 py-2 text-xs text-muted hover:border-border-strong hover:text-primary"
                       >
                         ＋ 製品を追加
                       </button>
@@ -255,7 +255,7 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
         <button
           type="button"
           onClick={() => setShowNewBrand(true)}
-          className="rounded-xl border border-dashed border-border-default w-full py-3 text-sm text-muted hover:border-neutral-400 hover:text-primary"
+          className="rounded-xl border border-dashed border-border-default w-full py-3 text-sm text-muted hover:border-border-strong hover:text-primary"
         >
           ＋ ブランドを追加
         </button>

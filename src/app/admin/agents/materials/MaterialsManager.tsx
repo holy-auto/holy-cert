@@ -341,7 +341,7 @@ export default function MaterialsManager() {
                         <button
                           onClick={() => togglePin(m.id, m.is_pinned)}
                           disabled={actionBusy === m.id}
-                          className="rounded-lg border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-100 disabled:opacity-40"
+                          className="rounded-lg border border-border-default bg-surface px-2 py-1 text-xs text-secondary hover:bg-surface-hover disabled:opacity-40"
                           title={m.is_pinned ? "ピン解除" : "ピン留め"}
                         >
                           {m.is_pinned ? "★" : "☆"}

@@ -147,7 +147,7 @@ export default function NewReferralPage() {
           >
             {saving ? "登録中…" : "登録する"}
           </button>
-          <Link href="/agent/referrals" className="btn-secondary rounded-xl border bg-white">
+          <Link href="/agent/referrals" className="btn-secondary rounded-xl border bg-surface">
             キャンセル
           </Link>
         </div>

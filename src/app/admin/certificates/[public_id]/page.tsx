@@ -355,7 +355,7 @@ export default async function Page({ params }: PageProps) {
                         ? "bg-emerald-500/10 text-emerald-400"
                         : img.authenticity_grade === "basic"
                           ? "bg-sky-500/10 text-sky-400"
-                          : "bg-neutral-500/10 text-neutral-400";
+                          : "bg-neutral-500/10 text-muted";
 
                   return (
                     <div key={img.id} className="rounded-2xl border border-border-default bg-base p-3 space-y-3">

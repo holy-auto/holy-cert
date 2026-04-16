@@ -133,15 +133,15 @@ export default function InsurerAuditPage() {
     return (
       <div className="mx-auto max-w-5xl space-y-6 p-6">
         <header className="space-y-3">
-          <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+          <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
             AUDIT LOG
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-3xl font-bold tracking-tight text-primary">
             操作ログ
           </h1>
         </header>
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-sm text-neutral-500">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center shadow-sm">
+          <p className="text-sm text-muted">
             このページは管理者または監査者のみアクセスできます。
           </p>
         </div>
@@ -152,28 +152,28 @@ export default function InsurerAuditPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <header className="space-y-3">
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           AUDIT LOG
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+        <h1 className="text-3xl font-bold tracking-tight text-primary">
           操作ログ
         </h1>
       </header>
 
       {/* Filters */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-        <div className="mb-3 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+      <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
+        <div className="mb-3 text-xs font-semibold tracking-[0.18em] text-muted">
           FILTERS
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-500">
+            <label className="mb-1 block text-xs font-medium text-muted">
               操作種別
             </label>
             <select
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
-              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
+              className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
             >
               {ACTION_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -183,13 +183,13 @@ export default function InsurerAuditPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-500">
+            <label className="mb-1 block text-xs font-medium text-muted">
               ユーザー
             </label>
             <select
               value={filterUser}
               onChange={(e) => setFilterUser(e.target.value)}
-              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
+              className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
             >
               <option value="">全て</option>
               {userOptions.map((u) => (
@@ -200,62 +200,62 @@ export default function InsurerAuditPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-500">
+            <label className="mb-1 block text-xs font-medium text-muted">
               開始日
             </label>
             <input
               type="date"
               value={filterDateFrom}
               onChange={(e) => setFilterDateFrom(e.target.value)}
-              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
+              className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-500">
+            <label className="mb-1 block text-xs font-medium text-muted">
               終了日
             </label>
             <input
               type="date"
               value={filterDateTo}
               onChange={(e) => setFilterDateTo(e.target.value)}
-              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
+              className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm focus:border-neutral-400 focus:outline-none"
             />
           </div>
         </div>
       </div>
 
       {/* Log Table */}
-      <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+      <div className="rounded-2xl border border-border-default bg-surface shadow-sm">
         <div className="p-5 pb-0">
-          <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-neutral-500">
+          <div className="mb-4 text-xs font-semibold tracking-[0.18em] text-muted">
             LOG ENTRIES
           </div>
         </div>
         {loading && logs.length === 0 ? (
-          <div className="p-5 text-sm text-neutral-500">読み込み中...</div>
+          <div className="p-5 text-sm text-muted">読み込み中...</div>
         ) : logs.length === 0 ? (
-          <div className="p-5 text-sm text-neutral-500">
+          <div className="p-5 text-sm text-muted">
             該当する操作ログがありません。
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-neutral-50">
+                <thead className="bg-inset">
                   <tr>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       日時
                     </th>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       ユーザー
                     </th>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       操作
                     </th>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       詳細
                     </th>
-                    <th className="p-3 text-left font-semibold text-neutral-600">
+                    <th className="p-3 text-left font-semibold text-secondary">
                       IP
                     </th>
                   </tr>
@@ -264,23 +264,23 @@ export default function InsurerAuditPage() {
                   {logs.map((log) => (
                     <tr
                       key={log.id}
-                      className="border-t border-neutral-100"
+                      className="border-t border-border-subtle"
                     >
-                      <td className="whitespace-nowrap p-3 text-neutral-600">
+                      <td className="whitespace-nowrap p-3 text-secondary">
                         {formatDateTime(log.created_at)}
                       </td>
-                      <td className="p-3 text-neutral-700">
+                      <td className="p-3 text-secondary">
                         {log.user_display_name || "-"}
                       </td>
                       <td className="p-3">
-                        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700">
+                        <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-medium text-secondary">
                           {ACTION_LABELS[log.action] ?? log.action}
                         </span>
                       </td>
-                      <td className="max-w-xs truncate p-3 font-mono text-xs text-neutral-500">
+                      <td className="max-w-xs truncate p-3 font-mono text-xs text-muted">
                         {log.meta ? formatMeta(log.meta) : "-"}
                       </td>
-                      <td className="p-3 text-xs text-neutral-500">
+                      <td className="p-3 text-xs text-muted">
                         {log.ip ?? "-"}
                       </td>
                     </tr>
@@ -289,11 +289,11 @@ export default function InsurerAuditPage() {
               </table>
             </div>
             {hasMore && (
-              <div className="border-t border-neutral-100 p-4 text-center">
+              <div className="border-t border-border-subtle p-4 text-center">
                 <button
                   onClick={handleLoadMore}
                   disabled={loading}
-                  className="rounded-xl border border-neutral-200 px-6 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:text-neutral-300"
+                  className="rounded-xl border border-border-default px-6 py-2 text-sm font-medium text-secondary transition-colors hover:bg-inset disabled:cursor-not-allowed disabled:text-muted"
                 >
                   {loading ? "読み込み中..." : "さらに読み込む"}
                 </button>

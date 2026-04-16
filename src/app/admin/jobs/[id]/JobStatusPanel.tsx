@@ -111,7 +111,7 @@ export default function JobStatusPanel({ reservation, customerId, vehicleId }: P
                         : "border-border-default bg-inset text-secondary"
                   }`}
                 >
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/60 text-[11px] font-bold">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface/60 text-[11px] font-bold">
                     {done ? "✓" : i + 1}
                   </span>
                   {STATUS_LABEL[s]}

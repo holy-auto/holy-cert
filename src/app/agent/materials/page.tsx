@@ -54,7 +54,7 @@ function getFileColor(fileType: string): string {
   if (fileType.includes("presentation") || fileType.includes("powerpoint")) return "bg-amber-100 text-amber-700";
   if (fileType.includes("image")) return "bg-violet-100 text-violet-700";
   if (fileType.includes("video")) return "bg-pink-100 text-pink-700";
-  return "bg-neutral-100 text-neutral-700";
+  return "bg-surface-hover text-secondary";
 }
 
 export default function AgentMaterialsPage() {
@@ -137,32 +137,32 @@ export default function AgentMaterialsPage() {
       )}
       {/* Header */}
       <div>
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           MATERIALS
         </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-neutral-900">
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary">
           営業資料
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted">
           本部から共有されたパンフレット・契約書・マニュアル等の資料をダウンロードできます。
         </p>
       </div>
 
       {/* Search + Category filters */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
+      <div className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm space-y-3">
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="資料名・ファイル名で検索..."
-          className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-400"
+          className="w-full rounded-xl border border-border-default bg-inset px-4 py-2.5 text-sm focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-strong"
         />
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setActiveCategory("all")}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               activeCategory === "all"
-                ? "bg-neutral-900 text-white"
-                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                ? "bg-primary text-inverse"
+                : "bg-surface-hover text-secondary hover:bg-surface-active"
             }`}
           >
             すべて
@@ -176,8 +176,8 @@ export default function AgentMaterialsPage() {
                 onClick={() => setActiveCategory(cat.id)}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                   activeCategory === cat.id
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    ? "bg-primary text-inverse"
+                    : "bg-surface-hover text-secondary hover:bg-surface-active"
                 }`}
               >
                 {cat.name}
@@ -191,18 +191,18 @@ export default function AgentMaterialsPage() {
       {loading ? (
         <div className="animate-pulse space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 rounded-2xl bg-neutral-100" />
+            <div key={i} className="h-20 rounded-2xl bg-surface-hover" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center shadow-sm">
-          <div className="text-4xl mb-3 text-neutral-300">
+        <div className="rounded-2xl border border-border-default bg-surface p-12 text-center shadow-sm">
+          <div className="text-4xl mb-3 text-muted">
             <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} className="mx-auto">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
           </div>
-          <div className="text-sm font-medium text-neutral-600">資料がありません</div>
-          <p className="mt-1 text-xs text-neutral-400">
+          <div className="text-sm font-medium text-secondary">資料がありません</div>
+          <p className="mt-1 text-xs text-muted">
             {searchQuery ? `「${searchQuery}」に一致する資料が見つかりません。` : "本部が資料をアップロードするまでお待ちください。"}
           </p>
         </div>
@@ -211,7 +211,7 @@ export default function AgentMaterialsPage() {
           {/* Pinned materials */}
           {pinned.length > 0 && (
             <div className="space-y-2">
-              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                 PINNED
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -231,7 +231,7 @@ export default function AgentMaterialsPage() {
           {/* Regular materials */}
           <div className="space-y-2">
             {pinned.length > 0 && (
-              <div className="text-xs font-semibold tracking-[0.18em] text-neutral-500">
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">
                 ALL FILES
               </div>
             )}
@@ -251,7 +251,7 @@ export default function AgentMaterialsPage() {
 
       {/* Stats footer */}
       {!loading && filtered.length > 0 && (
-        <div className="text-center text-xs text-neutral-400">
+        <div className="text-center text-xs text-muted">
           {filtered.length} 件の資料
           {activeCategory !== "all" && ` — ${categories.find((c) => c.id === activeCategory)?.name ?? ""}`}
         </div>
@@ -278,8 +278,8 @@ function MaterialCard({
 
   return (
     <div
-      className={`group rounded-2xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
-        pinned ? "border-amber-200 bg-amber-50/30" : "border-neutral-200"
+      className={`group rounded-2xl border bg-surface p-4 shadow-sm transition-shadow hover:shadow-md ${
+        pinned ? "border-amber-200 bg-amber-50/30" : "border-border-default"
       }`}
     >
       <div className="flex gap-3">
@@ -292,7 +292,7 @@ function MaterialCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold text-neutral-900">
+              <h3 className="truncate text-sm font-semibold text-primary">
                 {pinned && (
                   <span className="mr-1 text-amber-500">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="inline -mt-0.5">
@@ -303,31 +303,31 @@ function MaterialCard({
                 {material.title}
               </h3>
               {material.description && (
-                <p className="mt-0.5 truncate text-xs text-neutral-500">{material.description}</p>
+                <p className="mt-0.5 truncate text-xs text-muted">{material.description}</p>
               )}
             </div>
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-neutral-400">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
             <span>{formatFileSize(material.file_size)}</span>
-            <span className="text-neutral-200">|</span>
+            <span className="text-muted">|</span>
             <span>{material.file_name}</span>
             {material.version && (
               <>
-                <span className="text-neutral-200">|</span>
+                <span className="text-muted">|</span>
                 <Badge variant="default">{material.version}</Badge>
               </>
             )}
           </div>
 
           <div className="mt-2 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[11px] text-neutral-400">
-              <span className="font-medium text-neutral-500">{material.category_name}</span>
-              <span className="text-neutral-200">|</span>
+            <div className="flex items-center gap-2 text-[11px] text-muted">
+              <span className="font-medium text-muted">{material.category_name}</span>
+              <span className="text-muted">|</span>
               <span>{formatDateTime(material.created_at)}</span>
               {material.download_count > 0 && (
                 <>
-                  <span className="text-neutral-200">|</span>
+                  <span className="text-muted">|</span>
                   <span>{material.download_count} DL</span>
                 </>
               )}
@@ -336,7 +336,7 @@ function MaterialCard({
             <button
               onClick={() => onDownload(material)}
               disabled={downloading}
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100 disabled:opacity-40"
+              className="rounded-lg border border-border-default bg-surface px-3 py-1 text-xs font-medium text-secondary hover:bg-surface-hover disabled:opacity-40"
             >
               {downloading ? (
                 <span className="flex items-center gap-1">

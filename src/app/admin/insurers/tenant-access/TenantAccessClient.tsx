@@ -165,7 +165,7 @@ export default function TenantAccessClient() {
             type="checkbox"
             checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)}
-            className="rounded border-neutral-300"
+            className="rounded border-border-default"
           />
           取り消し済みも表示
         </label>

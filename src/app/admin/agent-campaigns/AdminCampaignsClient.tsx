@@ -261,7 +261,7 @@ export default function AdminCampaignsClient() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-border-default bg-white p-6 shadow-sm space-y-4"
+          className="rounded-2xl border border-border-default bg-surface p-6 shadow-sm space-y-4"
         >
           <h3 className="text-base font-semibold text-primary">
             {editingId ? "キャンペーン編集" : "新規キャンペーン"}
@@ -276,7 +276,7 @@ export default function AdminCampaignsClient() {
               type="text"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="キャンペーンタイトル"
             />
           </div>
@@ -288,7 +288,7 @@ export default function AdminCampaignsClient() {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={4}
-              className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+              className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
               placeholder="キャンペーンの説明"
             />
           </div>
@@ -300,7 +300,7 @@ export default function AdminCampaignsClient() {
               <select
                 value={form.campaign_type}
                 onChange={(e) => setForm({ ...form, campaign_type: e.target.value })}
-                className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               >
                 {CAMPAIGN_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -314,7 +314,7 @@ export default function AdminCampaignsClient() {
               <select
                 value={form.target_agents}
                 onChange={(e) => setForm({ ...form, target_agents: e.target.value })}
-                className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               >
                 {TARGET_AGENTS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -335,7 +335,7 @@ export default function AdminCampaignsClient() {
                 min="0"
                 value={form.bonus_rate}
                 onChange={(e) => setForm({ ...form, bonus_rate: e.target.value })}
-                className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 placeholder="例: 5.00"
               />
             </div>
@@ -347,7 +347,7 @@ export default function AdminCampaignsClient() {
                 min="0"
                 value={form.bonus_fixed}
                 onChange={(e) => setForm({ ...form, bonus_fixed: e.target.value })}
-                className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 placeholder="例: 10000"
               />
             </div>
@@ -361,7 +361,7 @@ export default function AdminCampaignsClient() {
                 type="date"
                 value={form.start_date}
                 onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
             <div>
@@ -370,7 +370,7 @@ export default function AdminCampaignsClient() {
                 type="date"
                 value={form.end_date}
                 onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
@@ -382,7 +382,7 @@ export default function AdminCampaignsClient() {
               type="text"
               value={form.banner_text}
               onChange={(e) => setForm({ ...form, banner_text: e.target.value })}
-              className="w-full rounded-xl border border-border-default bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              className="w-full rounded-xl border border-border-default bg-surface px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="代理店画面に表示するバナーテキスト"
             />
           </div>
@@ -426,7 +426,7 @@ export default function AdminCampaignsClient() {
           ))}
         </div>
       ) : campaigns.length === 0 ? (
-        <div className="rounded-2xl border border-border-default bg-white p-8 text-center text-sm text-secondary">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-secondary">
           キャンペーンはまだありません
         </div>
       ) : (
@@ -436,7 +436,7 @@ export default function AdminCampaignsClient() {
             return (
               <div
                 key={c.id}
-                className="rounded-2xl border border-border-default bg-white p-4 shadow-sm"
+                className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   {/* Left */}

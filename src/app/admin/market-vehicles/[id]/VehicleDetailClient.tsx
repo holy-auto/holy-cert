@@ -417,7 +417,7 @@ export default function VehicleDetailClient({ vehicleId }: { vehicleId: string }
           {/* Images */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <div className="relative aspect-[4/3] glass-card overflow-hidden flex items-center justify-center bg-neutral-100">
+              <div className="relative aspect-[4/3] glass-card overflow-hidden flex items-center justify-center bg-surface-hover">
                 {images.length > 0 ? (
                   <Image src={images[mainIdx]?.storage_path} alt={`${vehicle.maker} ${vehicle.model}`} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" priority />
                 ) : (

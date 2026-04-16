@@ -133,7 +133,7 @@ export default function InsurerHomePage() {
           <p className="text-sm text-red-700 mb-4">
             このアカウントは現在停止されています。詳細は管理者にお問い合わせください。
           </p>
-          <button onClick={onLogout} className="rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
+          <button onClick={onLogout} className="rounded-xl border border-red-300 bg-surface px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
             ログアウト
           </button>
         </div>

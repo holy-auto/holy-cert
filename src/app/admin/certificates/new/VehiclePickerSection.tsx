@@ -225,7 +225,7 @@ export default function VehiclePickerSection({
                       >
                         <span className="font-medium text-primary">{vehicleLabel(v)}</span>
                         {v.customer && <span className="ml-2 text-xs text-emerald-600">{v.customer.name}</span>}
-                        {v.vin_code && <span className="ml-2 text-xs text-neutral-400 font-mono">{v.vin_code}</span>}
+                        {v.vin_code && <span className="ml-2 text-xs text-muted font-mono">{v.vin_code}</span>}
                       </button>
                     </li>
                   ))}

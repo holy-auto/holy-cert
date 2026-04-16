@@ -268,7 +268,7 @@ export default function InsurerRegisterPage() {
             <div
               key={s}
               className={`h-1 flex-1 rounded-full transition-colors ${
-                s <= step ? "bg-accent" : "bg-neutral-200"
+                s <= step ? "bg-accent" : "bg-surface-active"
               }`}
             />
           ))}
@@ -346,7 +346,7 @@ export default function InsurerRegisterPage() {
                       className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-colors text-sm ${
                         businessType === opt.value
                           ? "border-accent bg-accent/5 font-semibold text-primary"
-                          : "border-neutral-200 hover:border-neutral-300 text-secondary"
+                          : "border-border-default hover:border-border-strong text-secondary"
                       }`}
                     >
                       <input
@@ -551,7 +551,7 @@ export default function InsurerRegisterPage() {
                     className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
                       requestedPlan === plan.value
                         ? "border-accent bg-accent/5"
-                        : "border-neutral-200 hover:border-neutral-300"
+                        : "border-border-default hover:border-border-strong"
                     }`}
                   >
                     <input

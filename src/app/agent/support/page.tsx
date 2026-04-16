@@ -124,15 +124,15 @@ export default function AgentSupportPage() {
     const st = STATUS_MAP[selectedTicket.status] ?? STATUS_MAP.open;
     return (
       <div className="space-y-4">
-        <button onClick={() => setSelectedTicket(null)} className="text-sm text-neutral-500 hover:text-neutral-700">
+        <button onClick={() => setSelectedTicket(null)} className="text-sm text-muted hover:text-secondary">
           &larr; チケット一覧に戻る
         </button>
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-bold text-neutral-900">{selectedTicket.subject}</h2>
+            <h2 className="text-lg font-bold text-primary">{selectedTicket.subject}</h2>
             <Badge variant={st.variant}>{st.label}</Badge>
           </div>
-          <div className="mt-1 text-xs text-neutral-400">
+          <div className="mt-1 text-xs text-muted">
             {CATEGORY_MAP[selectedTicket.category]} | {formatDateTime(selectedTicket.created_at)}
           </div>
         </div>
@@ -141,18 +141,18 @@ export default function AgentSupportPage() {
         <div className="space-y-3">
           {msgLoading ? (
             <div className="animate-pulse space-y-3">
-              {[1, 2].map((i) => <div key={i} className="h-16 rounded-2xl bg-neutral-100" />)}
+              {[1, 2].map((i) => <div key={i} className="h-16 rounded-2xl bg-surface-hover" />)}
             </div>
           ) : (
             messages.map((msg) => (
-              <div key={msg.id} className={`rounded-2xl border p-4 shadow-sm ${msg.is_admin ? "border-blue-200 bg-blue-50/30" : "border-neutral-200 bg-white"}`}>
+              <div key={msg.id} className={`rounded-2xl border p-4 shadow-sm ${msg.is_admin ? "border-blue-200 bg-blue-50/30" : "border-border-default bg-surface"}`}>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-xs font-semibold ${msg.is_admin ? "text-blue-600" : "text-neutral-600"}`}>
+                  <span className={`text-xs font-semibold ${msg.is_admin ? "text-blue-600" : "text-secondary"}`}>
                     {msg.is_admin ? "サポート担当" : "あなた"}
                   </span>
-                  <span className="text-[11px] text-neutral-400">{formatDateTime(msg.created_at)}</span>
+                  <span className="text-[11px] text-muted">{formatDateTime(msg.created_at)}</span>
                 </div>
-                <p className="text-sm text-neutral-700 whitespace-pre-wrap">{msg.body}</p>
+                <p className="text-sm text-secondary whitespace-pre-wrap">{msg.body}</p>
               </div>
             ))
           )}
@@ -160,19 +160,19 @@ export default function AgentSupportPage() {
 
         {/* Reply */}
         {selectedTicket.status !== "closed" && selectedTicket.status !== "resolved" && (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm">
             <textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               placeholder="返信を入力..."
               rows={3}
-              className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-400"
+              className="w-full rounded-xl border border-border-default bg-inset px-4 py-2.5 text-sm focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-strong"
             />
             <div className="mt-2 flex justify-end">
               <button
                 onClick={sendReply}
                 disabled={sending || !replyText.trim()}
-                className="rounded-xl bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+                className="rounded-xl bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
               >
                 {sending ? "送信中..." : "返信する"}
               </button>
@@ -186,56 +186,56 @@ export default function AgentSupportPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="inline-flex rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-neutral-600">
+        <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           SUPPORT
         </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-neutral-900">サポート</h1>
-        <p className="mt-1 text-sm text-neutral-500">本部への質問・相談はこちらから</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary">サポート</h1>
+        <p className="mt-1 text-sm text-muted">本部への質問・相談はこちらから</p>
       </div>
 
       <div className="flex justify-end">
-        <button onClick={() => setShowNew(!showNew)} className="rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800">
+        <button onClick={() => setShowNew(!showNew)} className="rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:opacity-90">
           {showNew ? "閉じる" : "新規チケット"}
         </button>
       </div>
 
       {showNew && (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
+        <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-600">件名 *</label>
-              <input value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-400" />
+              <label className="mb-1 block text-xs font-medium text-secondary">件名 *</label>
+              <input value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-strong" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-600">カテゴリ</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm">
+              <label className="mb-1 block text-xs font-medium text-secondary">カテゴリ</label>
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm">
                 {Object.entries(CATEGORY_MAP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-600">優先度</label>
-              <select value={priority} onChange={(e) => setPriority(e.target.value)} className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm">
+              <label className="mb-1 block text-xs font-medium text-secondary">優先度</label>
+              <select value={priority} onChange={(e) => setPriority(e.target.value)} className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm">
                 {Object.entries(PRIORITY_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-600">内容 *</label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} className="w-full rounded-xl border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-400" />
+            <label className="mb-1 block text-xs font-medium text-secondary">内容 *</label>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} className="w-full rounded-xl border border-border-default bg-inset px-3 py-2 text-sm focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-strong" />
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setShowNew(false)} className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50">キャンセル</button>
-            <button onClick={createTicket} disabled={creating} className="rounded-xl bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50">{creating ? "作成中..." : "送信"}</button>
+            <button onClick={() => setShowNew(false)} className="rounded-xl border border-border-default px-4 py-2 text-sm font-medium text-secondary hover:bg-inset">キャンセル</button>
+            <button onClick={createTicket} disabled={creating} className="rounded-xl bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">{creating ? "作成中..." : "送信"}</button>
           </div>
         </div>
       )}
 
       {loading ? (
         <div className="animate-pulse space-y-3">
-          {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-2xl bg-neutral-100" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-2xl bg-surface-hover" />)}
         </div>
       ) : tickets.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
+        <div className="rounded-2xl border border-border-default bg-surface p-8 text-center text-sm text-muted">
           チケットはまだありません
         </div>
       ) : (
@@ -247,20 +247,20 @@ export default function AgentSupportPage() {
               <button
                 key={t.id}
                 onClick={() => openTicket(t)}
-                className="w-full rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm text-left hover:bg-neutral-50 transition-colors"
+                className="w-full rounded-2xl border border-border-default bg-surface p-4 shadow-sm text-left hover:bg-inset transition-colors"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-neutral-900">{t.subject}</span>
+                      <span className="text-sm font-semibold text-primary">{t.subject}</span>
                       <Badge variant={st.variant}>{st.label}</Badge>
                       <Badge variant={pr.variant}>{pr.label}</Badge>
                     </div>
-                    <div className="mt-1 text-[11px] text-neutral-400">
+                    <div className="mt-1 text-[11px] text-muted">
                       {CATEGORY_MAP[t.category]} | 作成: {formatDateTime(t.created_at)} | 更新: {formatDateTime(t.updated_at)}
                     </div>
                   </div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="text-neutral-400">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="text-muted">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                   </svg>
                 </div>
