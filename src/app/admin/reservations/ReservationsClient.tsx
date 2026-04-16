@@ -652,7 +652,7 @@ export default function ReservationsClient() {
           onClick={() => setShowGcalPanel(!showGcalPanel)}
           className={`${!tenantSlug ? "ml-auto " : ""}flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors shadow-sm ${
             gcalConnected
-              ? "border-blue-200 bg-accent-dim text-accent-text"
+              ? "border-accent/30 bg-accent-dim text-accent-text"
               : "border-border-subtle bg-surface text-secondary hover:bg-surface-hover"
           }`}
         >

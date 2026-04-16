@@ -116,12 +116,12 @@ export default function FollowUpSettings() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 disabled:opacity-50"
         >
           {saving ? "保存中…" : "保存"}
         </button>
         {msg && (
-          <span className={`text-sm ${msg.ok ? "text-emerald-600" : "text-red-500"}`}>
+          <span className={`text-sm ${msg.ok ? "text-success" : "text-red-500"}`}>
             {msg.text}
           </span>
         )}
