@@ -8,6 +8,10 @@ import {
   apiValidationError,
   apiInternalError,
 } from "@/lib/api/response";
+import {
+  listReservationsQuerySchema,
+  createReservationInputSchema,
+} from "@ledra/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +23,15 @@ export async function GET(request: NextRequest) {
     if (!hasPermission(caller.role, "reservations:view")) return apiForbidden();
 
     const url = request.nextUrl;
-    const storeId = url.searchParams.get("store_id");
-    const date = url.searchParams.get("date");
-    const status = url.searchParams.get("status");
+    const qResult = listReservationsQuerySchema.safeParse({
+      store_id: url.searchParams.get("store_id") ?? undefined,
+      date: url.searchParams.get("date") ?? undefined,
+      status: url.searchParams.get("status") ?? undefined,
+    });
+    if (!qResult.success) {
+      return apiValidationError(qResult.error.issues[0].message);
+    }
+    const q = qResult.data;
 
     let query = caller.supabase
       .from("reservations")
@@ -34,9 +44,9 @@ export async function GET(request: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .order("scheduled_date", { ascending: true });
 
-    if (storeId) query = query.eq("store_id", storeId);
-    if (date) query = query.eq("scheduled_date", date);
-    if (status) query = query.eq("status", status);
+    if (q.store_id) query = query.eq("store_id", q.store_id);
+    if (q.date) query = query.eq("scheduled_date", q.date);
+    if (q.status) query = query.eq("status", q.status);
 
     const { data, error } = await query;
     if (error) return apiInternalError(error, "reservations.list");
@@ -54,12 +64,14 @@ export async function POST(request: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!hasPermission(caller.role, "reservations:create")) return apiForbidden();
 
-    const body = await request.json().catch(() => null);
-    if (!body) return apiValidationError("Invalid request body");
+    const raw = await request.json().catch(() => null);
+    if (!raw) return apiValidationError("Invalid request body");
 
-    const { scheduled_date, customer_id } = body;
-    if (!scheduled_date) return apiValidationError("scheduled_date is required");
-    if (!customer_id) return apiValidationError("customer_id is required");
+    const result = createReservationInputSchema.safeParse(raw);
+    if (!result.success) {
+      return apiValidationError(result.error.issues[0].message);
+    }
+    const body = result.data;
 
     const storeId =
       body.store_id ??
@@ -70,8 +82,8 @@ export async function POST(request: NextRequest) {
       .from("reservations")
       .insert({
         tenant_id: caller.tenantId,
-        scheduled_date,
-        customer_id,
+        scheduled_date: body.scheduled_date,
+        customer_id: body.customer_id,
         vehicle_id: body.vehicle_id ?? null,
         title: body.title ?? null,
         menu_items_json: body.menu_items_json ?? null,

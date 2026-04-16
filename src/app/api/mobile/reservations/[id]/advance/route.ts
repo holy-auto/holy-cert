@@ -10,6 +10,7 @@ import {
   apiInternalError,
 } from "@/lib/api/response";
 import { sendProgressUpdate } from "@/lib/line/client";
+import { advanceReservationInputSchema } from "@ledra/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -42,8 +43,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!hasPermission(caller.role, "reservations:edit")) return apiForbidden();
 
     const { id } = await params;
-    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
-    const note = body.note ? String(body.note) : null;
+    const raw = await request.json().catch(() => ({}));
+    const { data: body } = advanceReservationInputSchema.safeParse(raw);
+    const note = body?.note ?? null;
 
     // ─── 予約取得 ───
     const { data: reservation } = await caller.supabase

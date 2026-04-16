@@ -6,8 +6,10 @@ import {
   apiUnauthorized,
   apiForbidden,
   apiNotFound,
+  apiValidationError,
   apiInternalError,
 } from "@/lib/api/response";
+import { updateReservationInputSchema } from "@ledra/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -54,29 +56,18 @@ export async function PUT(
     if (!hasPermission(caller.role, "reservations:edit")) return apiForbidden();
 
     const { id } = await params;
-    const body = await request.json().catch(() => null);
-    if (!body) return apiNotFound();
+    const raw = await request.json().catch(() => null);
+    if (!raw) return apiValidationError("Invalid request body");
 
-    // Only allow safe fields to be updated
-    const allowedFields = [
-      "title",
-      "scheduled_date",
-      "start_time",
-      "end_time",
-      "customer_id",
-      "vehicle_id",
-      "menu_items_json",
-      "note",
-      "assigned_user_id",
-      "store_id",
-      "estimated_amount",
-      "sub_status",
-      "progress_note",
-    ];
+    const result = updateReservationInputSchema.safeParse(raw);
+    if (!result.success) {
+      return apiValidationError(result.error.issues[0].message);
+    }
 
+    // Strip undefined keys so Supabase only updates provided fields
     const updates: Record<string, unknown> = {};
-    for (const key of allowedFields) {
-      if (key in body) updates[key] = body[key];
+    for (const [key, value] of Object.entries(result.data)) {
+      if (value !== undefined) updates[key] = value;
     }
 
     const { data, error } = await caller.supabase

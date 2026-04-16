@@ -7,9 +7,11 @@ import { apiOkSchema } from "./envelope";
 
 export const reservationStatusSchema = z.enum([
   "confirmed",
+  "arrived",
   "in_progress",
   "completed",
   "canceled",
+  "cancelled",
 ]);
 export type ReservationStatus = z.infer<typeof reservationStatusSchema>;
 
@@ -93,4 +95,32 @@ export const createReservationResponseSchema = apiOkSchema({
 });
 export type CreateReservationResponse = z.infer<
   typeof createReservationResponseSchema
+>;
+
+// PUT /api/mobile/reservations/[id]
+export const updateReservationInputSchema = z.object({
+  title: z.string().nullable().optional(),
+  scheduled_date: z.string().optional(),
+  start_time: z.string().nullable().optional(),
+  end_time: z.string().nullable().optional(),
+  customer_id: z.string().optional(),
+  vehicle_id: z.string().nullable().optional(),
+  menu_items_json: z.unknown().nullable().optional(),
+  note: z.string().nullable().optional(),
+  assigned_user_id: z.string().nullable().optional(),
+  store_id: z.string().nullable().optional(),
+  estimated_amount: z.number().nullable().optional(),
+  sub_status: z.string().nullable().optional(),
+  progress_note: z.string().nullable().optional(),
+});
+export type UpdateReservationInput = z.infer<
+  typeof updateReservationInputSchema
+>;
+
+// POST /api/mobile/reservations/[id]/advance
+export const advanceReservationInputSchema = z.object({
+  note: z.string().nullable().optional(),
+});
+export type AdvanceReservationInput = z.infer<
+  typeof advanceReservationInputSchema
 >;
