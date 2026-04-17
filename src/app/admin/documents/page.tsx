@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 
 export const dynamic = "force-dynamic";
 
-const DocumentsClient = dynamic(() => import("./DocumentsClient"), {
+const DocumentsClient = nextDynamic(() => import("./DocumentsClient"), {
   loading: () => (
     <div className="flex items-center justify-center py-20">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />

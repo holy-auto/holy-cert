@@ -1,10 +1,10 @@
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-const InventoryModeSwitch = dynamic(() => import("./InventoryModeSwitch"), {
+const InventoryModeSwitch = nextDynamic(() => import("./InventoryModeSwitch"), {
   loading: () => (
     <div className="flex items-center justify-center py-20">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
