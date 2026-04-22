@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 type Reservation = {
   id: string;
@@ -65,7 +65,7 @@ function getMonthDays(year: number, month: number) {
   return cells;
 }
 
-export default function CalendarView({ reservations, onDateClick }: CalendarViewProps) {
+const CalendarView = memo(function CalendarView({ reservations, onDateClick }: CalendarViewProps) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -282,4 +282,6 @@ export default function CalendarView({ reservations, onDateClick }: CalendarView
       </div>
     </div>
   );
-}
+});
+
+export default CalendarView;

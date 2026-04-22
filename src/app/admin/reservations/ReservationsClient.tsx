@@ -1,12 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import CalendarView from "./CalendarView";
+import dynamic from "next/dynamic";
+
+const CalendarView = dynamic(() => import("./CalendarView"), {
+  ssr: false,
+  loading: () => (
+    <div className="glass-card h-96 animate-pulse bg-surface-hover rounded-2xl" />
+  ),
+});
 import { formatDate, formatJpy } from "@/lib/format";
 import { fetcher } from "@/lib/swr";
 import WorkflowStepper from "@/components/workflow/WorkflowStepper";
@@ -146,6 +153,10 @@ export default function ReservationsClient() {
   const [mutationErr, setMutationErr] = useState<string | null>(null);
   const err = swrError ? (swrError.message ?? "読み込みに失敗しました") : mutationErr;
 
+  // Transitions — defers heavy re-renders so button presses feel instant
+  const [, startFilterTransition] = useTransition();
+  const [, startFormTransition] = useTransition();
+
   // View
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
@@ -205,9 +216,9 @@ export default function ReservationsClient() {
   const fetchMasterData = useCallback(async () => {
     try {
       const [custRes, menuRes, tenantRes] = await Promise.all([
-        fetch("/api/admin/customers", { cache: "no-store" }),
-        fetch("/api/admin/menu-items", { cache: "no-store" }),
-        fetch("/api/admin/tenants", { cache: "no-store" }),
+        fetch("/api/admin/customers"),
+        fetch("/api/admin/menu-items"),
+        fetch("/api/admin/tenants"),
       ]);
       const tenantJ = await tenantRes.json().catch(() => null);
       if (tenantRes.ok && tenantJ?.tenants) {
@@ -221,7 +232,7 @@ export default function ReservationsClient() {
         setMenuItems(menuJ.items.map((m: any) => ({ id: m.id, name: m.name, unit_price: m.unit_price })));
 
       try {
-        const gcRes = await fetch("/api/admin/gcal", { cache: "no-store" });
+        const gcRes = await fetch("/api/admin/gcal");
         const gcJ = await gcRes.json().catch(() => null);
         if (gcRes.ok && gcJ?.connected) {
           setGcalConnected(true);
@@ -246,7 +257,7 @@ export default function ReservationsClient() {
       const url = customerId
         ? `/api/admin/customers?action=vehicles&customer_id=${encodeURIComponent(customerId)}`
         : "/api/admin/customers?action=vehicles";
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch(url);
       const j = await res.json().catch(() => null);
       if (res.ok && j?.vehicles) setVehicles(j.vehicles);
     } catch {
@@ -259,7 +270,7 @@ export default function ReservationsClient() {
     if (r.workflow_template_id) {
       try {
         const [tplRes, logsRes] = await Promise.all([
-          fetch(`/api/admin/workflow-templates`, { cache: "no-store" }),
+          fetch(`/api/admin/workflow-templates`),
           fetch(`/api/admin/reservations/${r.id}/step-logs`, { cache: "no-store" }),
         ]);
         const tplJ = await tplRes.json().catch(() => null);
@@ -276,7 +287,7 @@ export default function ReservationsClient() {
       setDetailStepLogs([]);
       try {
         setDetailTemplateLoading(true);
-        const res = await fetch("/api/admin/workflow-templates", { cache: "no-store" });
+        const res = await fetch("/api/admin/workflow-templates");
         const j = await res.json().catch(() => null);
         setDetailTemplates(j?.templates ?? []);
       } catch {
@@ -334,17 +345,19 @@ export default function ReservationsClient() {
   // ─── Filter handlers ──────────────────────────────────────
 
   const handleFilterChange = (val: string) => {
-    setStatusFilter(val);
-    setActiveStatusFilter(val);
+    setStatusFilter(val); // urgent: reflect selection immediately
+    startFilterTransition(() => setActiveStatusFilter(val)); // deferred: triggers SWR refetch
   };
   const handleDateChange = (val: string) => {
-    setDateFilter(val);
-    setActiveDateFilter(val);
+    setDateFilter(val); // urgent
+    startFilterTransition(() => setActiveDateFilter(val)); // deferred
   };
   const handleCalendarDateClick = (date: string) => {
-    setDateFilter(date);
-    setActiveDateFilter(date);
-    setViewMode("list");
+    startFilterTransition(() => {
+      setDateFilter(date);
+      setActiveDateFilter(date);
+      setViewMode("list");
+    });
   };
 
   // ─── Form handlers ────────────────────────────────────────
@@ -365,25 +378,29 @@ export default function ReservationsClient() {
   };
 
   const openCreateForm = () => {
-    resetForm();
-    setShowForm(true);
+    startFormTransition(() => {
+      resetForm();
+      setShowForm(true);
+    });
     fetchVehicles();
   };
 
   const openEditForm = (r: Reservation) => {
-    setEditingId(r.id);
-    setFormTitle(r.title);
-    setFormCustomerId(r.customer_id ?? "");
-    setFormVehicleId(r.vehicle_id ?? "");
-    setFormDate(r.scheduled_date);
-    setFormStartTime(r.start_time?.slice(0, 5) ?? "");
-    setFormEndTime(r.end_time?.slice(0, 5) ?? "");
-    setFormNote(r.note ?? "");
-    setFormMenuItems(r.menu_items_json ?? []);
-    setFormAmount(r.estimated_amount ?? 0);
-    setSaveMsg(null);
-    setFormStep(1);
-    setShowForm(true);
+    startFormTransition(() => {
+      setEditingId(r.id);
+      setFormTitle(r.title);
+      setFormCustomerId(r.customer_id ?? "");
+      setFormVehicleId(r.vehicle_id ?? "");
+      setFormDate(r.scheduled_date);
+      setFormStartTime(r.start_time?.slice(0, 5) ?? "");
+      setFormEndTime(r.end_time?.slice(0, 5) ?? "");
+      setFormNote(r.note ?? "");
+      setFormMenuItems(r.menu_items_json ?? []);
+      setFormAmount(r.estimated_amount ?? 0);
+      setSaveMsg(null);
+      setFormStep(1);
+      setShowForm(true);
+    });
     if (r.customer_id) fetchVehicles(r.customer_id);
     else fetchVehicles();
   };
@@ -481,12 +498,16 @@ export default function ReservationsClient() {
 
   // ─── Group reservations by date ──────────────────────────
 
-  const grouped = reservations.reduce<Record<string, Reservation[]>>((acc, r) => {
-    if (!acc[r.scheduled_date]) acc[r.scheduled_date] = [];
-    acc[r.scheduled_date].push(r);
-    return acc;
-  }, {});
-  const sortedDates = Object.keys(grouped).sort();
+  const grouped = useMemo(
+    () =>
+      reservations.reduce<Record<string, Reservation[]>>((acc, r) => {
+        if (!acc[r.scheduled_date]) acc[r.scheduled_date] = [];
+        acc[r.scheduled_date].push(r);
+        return acc;
+      }, {}),
+    [reservations],
+  );
+  const sortedDates = useMemo(() => Object.keys(grouped).sort(), [grouped]);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -583,7 +604,7 @@ export default function ReservationsClient() {
           {(["list", "calendar"] as const).map((m) => (
             <button
               key={m}
-              onClick={() => setViewMode(m)}
+              onClick={() => startFilterTransition(() => setViewMode(m))}
               className={`px-3.5 py-2 text-xs font-semibold transition-colors ${
                 viewMode === m ? "bg-accent text-white" : "bg-surface text-secondary hover:bg-surface-hover"
               }`}
