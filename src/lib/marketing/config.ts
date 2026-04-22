@@ -31,6 +31,7 @@ export const siteConfig = {
 
 /** ヘッダー・フッターで使うナビゲーションリンク */
 export const marketingNav = [
+  { label: "機能", href: "/features" },
   { label: "施工店の方へ", href: "/for-shops" },
   { label: "保険会社の方へ", href: "/for-insurers" },
   { label: "料金", href: "/pricing" },
@@ -43,15 +44,32 @@ export const footerNavGroups = [
   {
     heading: "サービス",
     links: [
+      { label: "機能一覧", href: "/features" },
       { label: "施工店の方へ", href: "/for-shops" },
+      { label: "代理店の方へ", href: "/for-agents" },
       { label: "保険会社の方へ", href: "/for-insurers" },
       { label: "料金", href: "/pricing" },
-      { label: "FAQ", href: "/faq" },
+    ],
+  },
+  {
+    heading: "リソース",
+    links: [
+      { label: "資料ダウンロード", href: "/resources" },
+      { label: "ROIシミュレーター", href: "/roi" },
+      { label: "事例", href: "/cases" },
+      { label: "お知らせ", href: "/news" },
+      { label: "ブログ", href: "/blog" },
+      { label: "イベント", href: "/events" },
     ],
   },
   {
     heading: "サポート",
-    links: [{ label: "お問い合わせ", href: "/contact" }],
+    links: [
+      { label: "導入支援・サポート", href: "/support" },
+      { label: "セキュリティ", href: "/security" },
+      { label: "FAQ", href: "/faq" },
+      { label: "お問い合わせ", href: "/contact" },
+    ],
   },
   {
     heading: "法的情報",

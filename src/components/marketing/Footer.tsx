@@ -1,56 +1,45 @@
 import Link from "next/link";
 import { Container } from "./Container";
+import { NewsletterForm } from "./NewsletterForm";
+import { footerNavGroups } from "@/lib/marketing/config";
 
-const footerLinks = [
-  {
-    title: "ポータル",
-    links: [
-      { label: "施工店ログイン", href: "/login" },
-      { label: "代理店ポータル", href: "/agent/login" },
-      { label: "保険会社ポータル", href: "/insurer/login" },
-      { label: "新規登録（施工店）", href: "/signup" },
-      { label: "新規登録（保険会社）", href: "/join" },
-    ],
-  },
-  {
-    title: "サービス",
-    links: [
-      { label: "機能一覧", href: "/#features" },
-      { label: "料金プラン", href: "/#pricing" },
-      { label: "お問い合わせ", href: "/contact" },
-    ],
-  },
-  {
-    title: "法的情報",
-    links: [
-      { label: "利用規約", href: "/terms" },
-      { label: "プライバシーポリシー", href: "/privacy" },
-      { label: "特定商取引法に基づく表記", href: "/law" },
-    ],
-  },
-];
+const portalLinks = {
+  heading: "ポータル",
+  links: [
+    { label: "施工店ログイン", href: "/login" },
+    { label: "代理店ポータル", href: "/agent/login" },
+    { label: "保険会社ポータル", href: "/insurer/login" },
+    { label: "新規登録（施工店）", href: "/signup" },
+    { label: "新規登録（保険会社）", href: "/join" },
+  ],
+};
+
+const footerGroups = [portalLinks, ...footerNavGroups];
 
 export function Footer() {
   return (
     <footer className="bg-[#0f1117] text-white">
       <Container>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 py-20 md:py-24">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-10 md:gap-12 py-20 md:py-24">
           {/* Brand column */}
-          <div className="col-span-2 md:col-span-1">
+          <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <Link href="/" className="text-lg font-bold tracking-tight">
               Ledra
             </Link>
-            <p className="mt-4 text-sm text-white/40 leading-relaxed max-w-[200px]">
-              施工証明をデジタルで。
+            <p className="mt-4 text-sm text-white/40 leading-relaxed max-w-[240px]">
+              記録を、業界の共通言語にする。
               <br />
-              信頼を、かんたんに。
+              WEB施工証明書SaaS — Ledra。
             </p>
+            <div className="mt-8 max-w-[280px]">
+              <NewsletterForm />
+            </div>
           </div>
 
           {/* Link columns */}
-          {footerLinks.map((group) => (
-            <div key={group.title}>
-              <h3 className="text-xs font-medium text-white/40 uppercase tracking-widest mb-5">{group.title}</h3>
+          {footerGroups.map((group) => (
+            <div key={group.heading}>
+              <h3 className="text-xs font-medium text-white/40 uppercase tracking-widest mb-5">{group.heading}</h3>
               <ul className="space-y-3.5">
                 {group.links.map((link) => (
                   <li key={link.href}>

@@ -29,7 +29,7 @@ function Ul({ children }: { children: ReactNode }) {
 }
 
 export default function PrivacyPage() {
-  const updated = "2026年4月1日";
+  const updated = "2026年4月22日";
 
   return (
     <Article>
@@ -52,6 +52,10 @@ export default function PrivacyPage() {
         <li>施工内容・施工日時</li>
         <li>ログイン情報・利用履歴・IPアドレス・Cookieなどの技術情報</li>
         <li>お問い合わせ時にご提供いただいた情報</li>
+        <li>
+          資料請求・デモ依頼・ROIシミュレーター・メルマガ登録など、マーケティングサイト上のフォームにご入力いただいた情報
+          （業態、拠点数、検討時期、リファラ、UTMパラメータを含みます）
+        </li>
       </Ul>
 
       <H2>2. 利用目的</H2>
@@ -60,8 +64,9 @@ export default function PrivacyPage() {
         <li>サービスの提供・運営・改善</li>
         <li>施工証明書の発行・管理・共有</li>
         <li>保険会社への証明書情報の提供（ユーザーが許可した場合）</li>
-        <li>お問い合わせへの対応</li>
+        <li>お問い合わせ・資料請求・デモ依頼への対応</li>
         <li>サービスに関するご案内・メールマガジンの配信</li>
+        <li>マーケティングサイトの改善・アクセス解析</li>
         <li>利用規約違反・不正行為への対応</li>
         <li>法令に基づく対応</li>
       </Ul>
@@ -82,9 +87,9 @@ export default function PrivacyPage() {
 
       <H2>4. Cookieの利用</H2>
       <P>
-        当社のウェブサイトはCookieを使用しています。Cookieはブラウザの設定で無効化できますが、
-        一部の機能が利用できなくなる場合があります。
-        アクセス解析にはGoogle Analyticsを利用しており、収集データはGoogleのプライバシーポリシーに従って管理されます。
+        当社のウェブサイトはCookieを使用しています。必須のCookie以外は、サイト訪問時にお示しするバナーでの同意後にのみ設定されます。
+        アクセス解析には PostHog を利用しており、収集データは同社のプライバシーポリシーに従って管理されます。
+        Cookieはブラウザの設定で無効化でき、バナーで選択した同意状態もブラウザCookie（365日）として保持されます。
       </P>
 
       <H2>5. 安全管理措置</H2>

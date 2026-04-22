@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 export function FAQItem({
   question,
   answer,
 }: {
   question: string;
-  answer: string;
+  answer: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -35,9 +35,9 @@ export function FAQItem({
         className={`grid transition-[grid-template-rows] duration-200 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
       >
         <div className="overflow-hidden">
-          <p className="pb-6 text-[0.938rem] leading-[1.75] text-white/45">
+          <div className="pb-6 text-[0.938rem] leading-[1.75] text-white/45">
             {answer}
-          </p>
+          </div>
         </div>
       </div>
     </div>

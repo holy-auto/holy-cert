@@ -21,6 +21,27 @@ function formatCount(n: number): string {
 
 const fallback: MarketingStats = { shopCount: "—", certificateCount: "—" };
 
+/**
+ * Thresholds below which a stat is treated as "not worth showing yet".
+ *
+ * Early-stage numbers (3社, 47件) hurt trust more than they help. We keep the
+ * section hidden until the metric crosses a threshold that reads as signal
+ * rather than noise.
+ *
+ * Override for marketing campaigns via `NEXT_PUBLIC_MARKETING_STATS_MIN_*`
+ * (parsed at render time so a Vercel env change is enough to flip).
+ */
+const STATS_THRESHOLDS = {
+  shop: Number(process.env.NEXT_PUBLIC_MARKETING_STATS_MIN_SHOP ?? 10),
+  cert: Number(process.env.NEXT_PUBLIC_MARKETING_STATS_MIN_CERT ?? 1000),
+} as const;
+
+function displayOrHide(count: number | null | undefined, threshold: number): string {
+  if (count == null) return "—";
+  if (count < threshold) return "—";
+  return formatCount(count);
+}
+
 const fetchMarketingStats = unstable_cache(
   async (): Promise<MarketingStats> => {
     try {
@@ -37,8 +58,8 @@ const fetchMarketingStats = unstable_cache(
       ]);
 
       return {
-        shopCount: tenants.count != null ? formatCount(tenants.count) : fallback.shopCount,
-        certificateCount: certs.count != null ? formatCount(certs.count) : fallback.certificateCount,
+        shopCount: displayOrHide(tenants.count, STATS_THRESHOLDS.shop),
+        certificateCount: displayOrHide(certs.count, STATS_THRESHOLDS.cert),
       };
     } catch {
       return fallback;

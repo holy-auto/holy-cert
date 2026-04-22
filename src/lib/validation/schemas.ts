@@ -63,6 +63,40 @@ export const contactSchema = z.object({
   message: z.string().trim().min(1, "お問い合わせ内容は必須です"),
 });
 
+/** Marketing lead (資料DL・デモ・お問い合わせ・ROI・メルマガ等の統合受信) */
+export const marketingLeadSchema = z.object({
+  source: z.enum([
+    "document_dl",
+    "document_shop",
+    "document_agent",
+    "document_insurer",
+    "demo",
+    "contact",
+    "newsletter",
+    "roi",
+    "pilot",
+    "other",
+  ]),
+  resource_key: z.string().trim().max(120).optional(),
+  name: z.string().trim().max(120).optional(),
+  company: z.string().trim().max(200).optional(),
+  role: z.string().trim().max(120).optional(),
+  email: emailSchema,
+  phone: z.string().trim().max(40).optional(),
+  industry: z.string().trim().max(120).optional(),
+  locations: z.string().trim().max(40).optional(),
+  timing: z.string().trim().max(40).optional(),
+  message: z.string().trim().max(4000).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
+  consent: z.literal(true, { error: "同意が必要です" }),
+  referrer: z.string().trim().max(500).optional(),
+  utm_source: z.string().trim().max(120).optional(),
+  utm_medium: z.string().trim().max(120).optional(),
+  utm_campaign: z.string().trim().max(120).optional(),
+  utm_term: z.string().trim().max(120).optional(),
+  utm_content: z.string().trim().max(120).optional(),
+});
+
 export const customerSchema = z.object({
   name: z.string().trim().min(1, "顧客名は必須です"),
   name_kana: z.string().trim().optional().default(""),

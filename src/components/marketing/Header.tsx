@@ -7,11 +7,11 @@ import { Container } from "./Container";
 import { MobileMenu } from "./MobileMenu";
 
 const navItems: { label: string; href: string }[] = [
-  { label: "機能", href: "/#features" },
-  { label: "活用シーン", href: "/#usecases" },
-  { label: "比較", href: "/#compare" },
-  { label: "料金", href: "/#pricing" },
-  { label: "FAQ", href: "/#faq" },
+  { label: "機能", href: "/features" },
+  { label: "料金", href: "/pricing" },
+  { label: "セキュリティ", href: "/security" },
+  { label: "サポート", href: "/support" },
+  { label: "FAQ", href: "/faq" },
 ];
 
 const portalItems = [

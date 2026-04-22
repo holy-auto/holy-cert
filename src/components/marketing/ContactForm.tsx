@@ -1,130 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { LeadForm } from "./LeadForm";
 
-const inputClass =
-  "w-full px-4 py-3 rounded-lg border border-white/[0.08] bg-white/[0.05] text-white text-sm placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/40 transition-colors";
-
+/**
+ * Public contact form.
+ *
+ * Thin wrapper over `LeadForm` with `source="contact"` and a required
+ * message. All leads are persisted via `/api/marketing/leads` →
+ * `marketing_leads` + Slack + auto-reply.
+ */
 export function ContactForm() {
-  const [submitted, setSubmitted] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState("");
-
-  if (submitted) {
-    return (
-      <div className="text-center py-16 px-8 rounded-xl bg-white/[0.04] border border-white/[0.07]">
-        <div className="w-16 h-16 mx-auto bg-blue-500/[0.1] rounded-full flex items-center justify-center">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8 text-blue-400">
-            <path d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h3 className="mt-6 text-xl font-bold text-white">送信完了</h3>
-        <p className="mt-3 text-white/50">
-          お問い合わせいただきありがとうございます。
-          <br />
-          1営業日以内にご返信いたします。
-        </p>
-      </div>
-    );
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError("");
-    setSending(true);
-
-    const fd = new FormData(e.currentTarget);
-    const body = {
-      name: fd.get("name") as string,
-      email: fd.get("email") as string,
-      company: (fd.get("company") as string) || undefined,
-      category: fd.get("category") as string,
-      message: fd.get("message") as string,
-    };
-
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "送信に失敗しました。");
-      }
-
-      setSubmitted(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "送信に失敗しました。しばらくしてから再度お試しください。");
-    } finally {
-      setSending(false);
-    }
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="contact-name" className="block text-sm font-medium text-white/80 mb-2">
-            お名前 <span className="text-red-400">*</span>
-          </label>
-          <input id="contact-name" type="text" name="name" required className={inputClass} placeholder="山田 太郎" />
-        </div>
-        <div>
-          <label htmlFor="contact-company" className="block text-sm font-medium text-white/80 mb-2">
-            会社名
-          </label>
-          <input id="contact-company" type="text" name="company" className={inputClass} placeholder="株式会社〇〇" />
-        </div>
-      </div>
-      <div>
-        <label htmlFor="contact-email" className="block text-sm font-medium text-white/80 mb-2">
-          メールアドレス <span className="text-red-400">*</span>
-        </label>
-        <input
-          id="contact-email"
-          type="email"
-          name="email"
-          required
-          className={inputClass}
-          placeholder="example@company.com"
-        />
-      </div>
-      <div>
-        <label htmlFor="contact-category" className="block text-sm font-medium text-white/80 mb-2">
-          お問い合わせ種別 <span className="text-red-400">*</span>
-        </label>
-        <select id="contact-category" name="category" required className={inputClass}>
-          <option value="">選択してください</option>
-          <option value="demo">デモのご依頼</option>
-          <option value="document">資料請求</option>
-          <option value="pricing">料金のご相談</option>
-          <option value="support">技術的なご質問</option>
-          <option value="other">その他</option>
-        </select>
-      </div>
-      <div>
-        <label htmlFor="contact-message" className="block text-sm font-medium text-white/80 mb-2">
-          お問い合わせ内容 <span className="text-red-400">*</span>
-        </label>
-        <textarea
-          id="contact-message"
-          name="message"
-          required
-          rows={5}
-          className={`${inputClass} resize-none`}
-          placeholder="お問い合わせ内容をご記入ください"
-        />
-      </div>
-      {error && <p className="text-red-400 text-sm">{error}</p>}
-      <button
-        type="submit"
-        disabled={sending}
-        className="w-full sm:w-auto inline-flex items-center justify-center font-medium rounded-lg text-[0.938rem] px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 shadow-[0_1px_12px_rgba(59,130,246,0.3)] hover:shadow-[0_2px_20px_rgba(59,130,246,0.45)] hover:-translate-y-[0.5px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {sending ? "送信中..." : "送信する"}
-      </button>
-    </form>
+    <LeadForm
+      source="contact"
+      fields={{
+        phone: true,
+        message: {
+          required: true,
+          label: "お問い合わせ内容",
+          placeholder: "お問い合わせ内容をご記入ください",
+          rows: 5,
+        },
+      }}
+      success={{
+        title: "送信完了",
+        body: "お問い合わせいただきありがとうございます。\n1営業日以内にご返信いたします。",
+      }}
+    />
   );
 }

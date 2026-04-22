@@ -5,11 +5,17 @@ export function CTAButton({
   href,
   children,
   className = "",
+  trackLocation,
+  trackLabel,
 }: {
   variant?: "primary" | "outline" | "white" | "white-outline";
   href: string;
   children: React.ReactNode;
   className?: string;
+  /** Analytics: where on the page this CTA lives (e.g. "hero", "footer-cta") */
+  trackLocation?: string;
+  /** Analytics: short label for the CTA (e.g. "start-free"). Falls back to children when string. */
+  trackLabel?: string;
 }) {
   const base =
     "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 text-[0.938rem] px-8 py-3.5";
@@ -25,8 +31,15 @@ export function CTAButton({
       "border border-white/30 text-white hover:bg-white/10 backdrop-blur-sm",
   };
 
+  const resolvedLabel = trackLabel ?? (typeof children === "string" ? children : undefined);
+
   return (
-    <Link href={href} className={`${base} ${variants[variant]} ${className}`}>
+    <Link
+      href={href}
+      className={`${base} ${variants[variant]} ${className}`}
+      data-cta-location={trackLocation}
+      data-cta-label={resolvedLabel}
+    >
       {children}
     </Link>
   );
