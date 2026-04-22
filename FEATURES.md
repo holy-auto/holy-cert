@@ -756,6 +756,7 @@ KPI 中心の現ダッシュボードに以下のウィジェットを追加:
 - ◎ **メンテナンスリマインダー自動配信** — `follow-up` cron を拡張 (施工後 6/12 ヶ月)
 - ○ **顧客レビュー／NPS 収集** — 施工完了後に自動送信
 - ○ **顧客マイページ機能強化** — 次回予約・メンテ履歴・リピート特典
+- △ **スマホウォレット連携 (Apple Wallet / Google Wallet)** — 施工証明書を `.pkpass` (Apple) または JWT パス (Google) として発行し、顧客がホーム画面から即閲覧できるようにする。既存 QR コードをパスに埋め込むだけなので追加コストは軽微。保険会社がバーコードスキャンで即照合できるメリットもあり。実装箇所: `/c/[public_id]` に「Wallet に追加」ボタン + `/api/certificates/[id]/apple-pass`・`/api/certificates/[id]/google-pass` エンドポイント。必要物: Apple Developer の Pass Type ID 証明書 / Google Cloud の Wallet API 有効化。
 
 #### 業務効率化 (現場DX)
 - ◎ **音声入力 + LLM 整形** で施工記録作成
