@@ -146,10 +146,14 @@ export default function CertImageUpload({ publicId, remaining, maxPhotos }: Prop
 
           if (!res.ok) {
             setMessage(null);
-            const msg =
-              res.status === 413
-                ? "ファイルが大きすぎます。写真を選び直してください。"
-                : (json?.message as string) ?? (json?.error as string) ?? "アップロードに失敗しました。";
+            let msg: string;
+            if (res.status === 413) {
+              msg = "ファイルが大きすぎます。写真を選び直してください。";
+            } else if (res.status === 504) {
+              msg = "サーバーの処理に時間がかかっています。しばらく経ってから再度お試しください。";
+            } else {
+              msg = (json?.message as string) ?? (json?.error as string) ?? `アップロードに失敗しました（HTTP ${res.status}）。`;
+            }
             setError(msg);
             return;
           }
