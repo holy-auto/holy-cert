@@ -20,7 +20,6 @@ const INTEGRATIONS: Integration[] = [
   { name: "Polygon", note: "証明書アンカリング" },
   { name: "Resend", note: "トランザクションメール" },
   { name: "C2PA", note: "写真コンテンツクレデンシャル" },
-  { name: "CloudSign", note: "電子契約・NDA締結" },
   { name: "Google Cloud Vision", note: "車検証OCR" },
   { name: "Claude", note: "OCR検証・エージェント" },
   { name: "Upstash", note: "分散レート制限・キャッシュ" },
