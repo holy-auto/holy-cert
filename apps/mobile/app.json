@@ -64,7 +64,8 @@
         {
           "photosPermission": "Ledraは施工写真の選択に使用します"
         }
-      ]
+      ],
+      "./plugins/withRemoveTapToPayEntitlement"
     ]
   }
 }
