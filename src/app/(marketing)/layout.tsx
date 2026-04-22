@@ -2,6 +2,8 @@ import { Noto_Sans_JP } from "next/font/google";
 import { Header } from "@/components/marketing/Header";
 import { Footer } from "@/components/marketing/Footer";
 import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/marketing/JsonLd";
+import { CookieConsent } from "@/components/marketing/CookieConsent";
+import { PostHogProvider } from "@/components/marketing/PostHogProvider";
 import MarketingThemeWrapper from "./MarketingThemeWrapper";
 
 const notoSansJP = Noto_Sans_JP({
@@ -38,9 +40,11 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
     >
       <WebSiteJsonLd />
       <OrganizationJsonLd />
+      <PostHogProvider />
       <Header />
       <main>{children}</main>
       <Footer />
+      <CookieConsent />
     </MarketingThemeWrapper>
   );
 }
