@@ -12,6 +12,9 @@ import { FAQItem } from "@/components/marketing/FAQItem";
 import { CTABanner } from "@/components/marketing/CTABanner";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { Container } from "@/components/marketing/Container";
+import { IntegrationLogoWall } from "@/components/marketing/IntegrationLogoWall";
+import { MobileAppSection } from "@/components/marketing/MobileAppSection";
+import { NewsTeaser } from "@/components/marketing/NewsTeaser";
 import { getMarketingStats } from "@/lib/marketing/stats";
 import { PLANS } from "@/lib/marketing/pricing";
 import Link from "next/link";
@@ -479,6 +482,12 @@ export default async function HomePage() {
         </ScrollReveal>
       </Section>
 
+      {/* 連携パートナー — 既存の道具と無理なくつながる */}
+      <IntegrationLogoWall />
+
+      {/* モバイル訴求 — 現場の速度で */}
+      <MobileAppSection />
+
       {/* ユースケース */}
       <Section bg="alt" id="compare">
         <SectionHeading title="ご利用シーン" subtitle="さまざまな場面でLedraをご活用いただけます" />
@@ -574,6 +583,11 @@ export default async function HomePage() {
         </ScrollReveal>
       </Section>
 
+      {/* お知らせ — 最新3件（空時は非表示） */}
+      <Suspense>
+        <NewsTeaser />
+      </Suspense>
+
       {/* FAQ抜粋 */}
       <Section id="faq">
         <SectionHeading title="よくあるご質問" />
@@ -604,10 +618,17 @@ export default async function HomePage() {
         </ScrollReveal>
       </Section>
 
-      {/* 最終CTA */}
+      {/* 最終CTA — 3本足 */}
       <CTABanner
         title="記録を、業界の共通言語にする。"
-        subtitle="Ledraで、現場の技術を可視化し、業界全体に信頼と価値を届けましょう。"
+        subtitle="まずは無料で、現場の技術を可視化してみてください。"
+        primaryLabel="無料で試す"
+        primaryHref="/signup"
+        secondaryLabel="資料ダウンロード"
+        secondaryHref="/resources"
+        tertiaryLabel="デモを見る"
+        tertiaryHref="/contact"
+        trackLocation="home-final"
       />
     </>
   );

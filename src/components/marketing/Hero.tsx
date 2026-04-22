@@ -61,7 +61,7 @@ export function Hero() {
         <div className="animate-[hero-fade-in_0.7s_ease-out_0.15s_both]">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium text-blue-300 bg-blue-500/10 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
             <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-[pulse-soft_2s_ease-in-out_infinite]" />
-            施工証明プラットフォーム
+            WEB施工証明書SaaS
           </div>
         </div>
 
@@ -80,12 +80,19 @@ export function Hero() {
           現場の技術を可視化し、業界全体に信頼と価値を届けるプラットフォームです。
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12 animate-[hero-fade-up_0.8s_ease-out_0.9s_both]">
-          <CTAButton variant="white" href="/pricing">
-            プランを見る
+        <p className="mt-4 text-xs md:text-sm font-medium tracking-wide text-white/35 animate-[hero-fade-up_0.8s_ease-out_0.8s_both]">
+          施工記録を、改ざん不可能なデジタル証明書に。Polygon anchoring × C2PA × 4ポータル設計
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mt-12 animate-[hero-fade-up_0.8s_ease-out_0.9s_both]">
+          <CTAButton variant="white" href="/signup" trackLocation="hero">
+            無料で試す
           </CTAButton>
-          <CTAButton variant="white-outline" href="/contact">
-            Ledraを知る
+          <CTAButton variant="white-outline" href="/resources" trackLocation="hero">
+            資料ダウンロード
+          </CTAButton>
+          <CTAButton variant="white-outline" href="/contact" trackLocation="hero">
+            デモを見る
           </CTAButton>
         </div>
 

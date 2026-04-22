@@ -11,6 +11,9 @@ export function CTABanner({
   primaryHref = "/pricing",
   secondaryLabel = "お問い合わせ",
   secondaryHref = "/contact",
+  tertiaryLabel,
+  tertiaryHref,
+  trackLocation,
 }: {
   title?: string;
   subtitle?: string;
@@ -18,6 +21,9 @@ export function CTABanner({
   primaryHref?: string;
   secondaryLabel?: string;
   secondaryHref?: string;
+  tertiaryLabel?: string;
+  tertiaryHref?: string;
+  trackLocation?: string;
 }) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-[#0a0f1a] via-[#1e293b] to-[#0a0f1a]">
@@ -47,13 +53,18 @@ export function CTABanner({
           <p className="mt-5 text-base text-white/60 max-w-lg mx-auto">{subtitle}</p>
         </ScrollReveal>
         <ScrollReveal variant="fade-up" delay={200}>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
-            <CTAButton variant="white" href={primaryHref}>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-12">
+            <CTAButton variant="white" href={primaryHref} trackLocation={trackLocation}>
               {primaryLabel}
             </CTAButton>
-            <CTAButton variant="white-outline" href={secondaryHref}>
+            <CTAButton variant="white-outline" href={secondaryHref} trackLocation={trackLocation}>
               {secondaryLabel}
             </CTAButton>
+            {tertiaryLabel && tertiaryHref && (
+              <CTAButton variant="white-outline" href={tertiaryHref} trackLocation={trackLocation}>
+                {tertiaryLabel}
+              </CTAButton>
+            )}
           </div>
         </ScrollReveal>
       </Container>
