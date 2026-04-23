@@ -251,21 +251,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
-  // QR (top-right corner)
-  qrCorner: {
-    position: "absolute",
-    top: 44,
-    right: 44,
-    alignItems: "center",
-  },
+  // QR (inside Customer · Vehicle card)
   qrInner: {
     padding: 6,
     borderRadius: 6,
     backgroundColor: "#ffffff",
   },
   qr: {
-    width: 72,
-    height: 72,
+    width: 84,
+    height: 84,
   },
   qrCaption: {
     fontSize: 7,
@@ -513,7 +507,7 @@ export async function renderCertificatePdf(
     <Document>
       {/* ── ページ1: 証明書本体 ── */}
       <Page size="A4" style={styles.page}>
-        {/* Top row: brand (QR is pinned absolute, see below) */}
+        {/* Top row: brand + badge */}
         <View style={styles.topRow}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             {logoUrl ? <Image src={logoUrl} style={{ height: 22, width: 96 }} /> : null}
@@ -522,6 +516,7 @@ export async function renderCertificatePdf(
               <Text style={styles.brandSub}>Construction Record · Verified</Text>
             </View>
           </View>
+          <Text style={styles.badge}>CERTIFICATE · {(row.current_version ?? 1) > 1 ? `v${row.current_version}` : "v1"}</Text>
         </View>
 
         {/* Hero */}
@@ -545,45 +540,47 @@ export async function renderCertificatePdf(
           </View>
         </View>
 
-        {/* QR pinned to top-right corner */}
-        <View style={styles.qrCorner}>
-          <View style={styles.qrInner}>
-            <Image src={qrDataUrl} style={styles.qr} />
-          </View>
-          <Text style={styles.qrCaption}>Scan to verify</Text>
-        </View>
-
         {/* Declaration */}
         <View style={styles.card}>
           <Text style={styles.cardEyebrow}>Declaration</Text>
           <Text style={styles.cardBody}>{serviceStatement}</Text>
         </View>
 
-        {/* Customer + Vehicle */}
+        {/* Customer + Vehicle (QR on the right) */}
         <View style={styles.card}>
           <Text style={styles.cardEyebrow}>Customer · Vehicle</Text>
-          <View style={[styles.row, styles.rowFirst]}>
-            <Text style={styles.rowLabel}>お客様名</Text>
-            <Text style={styles.rowValue}>{row.customer_name}</Text>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 16 }}>
+            <View style={{ flex: 1 }}>
+              <View style={[styles.row, styles.rowFirst]}>
+                <Text style={styles.rowLabel}>お客様名</Text>
+                <Text style={styles.rowValue}>{row.customer_name}</Text>
+              </View>
+              {model ? (
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>車種</Text>
+                  <Text style={styles.rowValue}>{model}</Text>
+                </View>
+              ) : null}
+              {plate ? (
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>ナンバー</Text>
+                  <Text style={styles.rowValue}>{plate}</Text>
+                </View>
+              ) : null}
+              {color ? (
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>ボディカラー</Text>
+                  <Text style={styles.rowValue}>{color}</Text>
+                </View>
+              ) : null}
+            </View>
+            <View style={{ alignItems: "center", paddingTop: 4 }}>
+              <View style={styles.qrInner}>
+                <Image src={qrDataUrl} style={styles.qr} />
+              </View>
+              <Text style={styles.qrCaption}>Scan to verify</Text>
+            </View>
           </View>
-          {model ? (
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>車種</Text>
-              <Text style={styles.rowValue}>{model}</Text>
-            </View>
-          ) : null}
-          {plate ? (
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>ナンバー</Text>
-              <Text style={styles.rowValue}>{plate}</Text>
-            </View>
-          ) : null}
-          {color ? (
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>ボディカラー</Text>
-              <Text style={styles.rowValue}>{color}</Text>
-            </View>
-          ) : null}
         </View>
 
         {/* 使用フィルム / コーティング剤 */}
