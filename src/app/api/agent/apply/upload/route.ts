@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import crypto from "crypto";
 
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const supabase = createAdminClient();
+  const supabase = createServiceRoleAdmin("agent apply flow — pre-tenant registration");
   const uploaded: { name: string; storage_path: string; content_type: string; file_size: number }[] = [];
 
   for (let i = 0; i < files.length; i++) {

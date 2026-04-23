@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { sha256Hex } from "@/lib/customerPortalServer";
 import { apiValidationError } from "@/lib/api/response";
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     return apiValidationError("メールアドレスと確認コードを入力してください");
   }
 
-  const supabase = createAdminClient();
+  const supabase = createServiceRoleAdmin("join flow — pre-auth invitation / verification");
 
   // Find the latest unverified code for this email
   const { data: record, error: fetchErr } = await supabase

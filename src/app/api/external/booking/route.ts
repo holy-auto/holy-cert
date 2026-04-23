@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getAdminClient } from "@/lib/api/auth";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiOk, apiInternalError, apiValidationError, apiError } from "@/lib/api/response";
 import { checkOverlap } from "@/lib/reservations/overlap";
 import { syncCreateEvent } from "@/lib/gcal/client";
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       return apiValidationError("start_time / end_time は HH:MM 形式です");
     }
 
-    const admin = getAdminClient();
+    const admin = createServiceRoleAdmin("public booking — looks up tenant from slug, no caller context");
 
     // テナント解決 + API キー検証（同時に行いタイミング攻撃を防ぐ）
     const { data: tenant } = await admin
@@ -297,7 +297,7 @@ export async function GET(req: NextRequest) {
       return apiValidationError("date は YYYY-MM-DD 形式です");
     }
 
-    const admin = getAdminClient();
+    const admin = createServiceRoleAdmin("public booking — looks up tenant from slug, no caller context");
 
     const { data: tenant } = await admin
       .from("tenants")
@@ -358,7 +358,13 @@ export async function GET(req: NextRequest) {
       .order("start_time");
 
     if (!slots || slots.length === 0) {
-      return apiOk({ date, slots: [], closed: false, message: "この日の予約枠は設定されていません", tenant_name: tenantName });
+      return apiOk({
+        date,
+        slots: [],
+        closed: false,
+        message: "この日の予約枠は設定されていません",
+        tenant_name: tenantName,
+      });
     }
 
     // ── 既存予約を取得 ──────────────────────────────────────

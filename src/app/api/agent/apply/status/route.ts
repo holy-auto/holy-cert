@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     return apiValidationError("申請番号とメールアドレスを入力してください");
   }
 
-  const supabase = createAdminClient();
+  const supabase = createServiceRoleAdmin("agent apply flow — pre-tenant registration");
   const { data, error } = await supabase
     .from("agent_applications")
     .select("status, created_at, updated_at, rejection_reason")

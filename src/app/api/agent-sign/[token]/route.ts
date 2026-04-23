@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createSign } from "crypto";
-import { getAdminClient } from "@/lib/api/auth";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiInternalError } from "@/lib/api/response";
 import { getPrivateKey, getActiveKeyInfo } from "@/lib/signature/crypto";
 
@@ -58,21 +58,16 @@ function signPayload(payload: string, privateKey: string): string {
 export async function GET(_req: NextRequest, ctx: RouteCtx) {
   try {
     const { token } = await ctx.params;
-    const admin = getAdminClient();
+    const admin = createServiceRoleAdmin("agent flow — agent-scoped / token-based, not tenant-scoped");
 
     const { data: record, error } = await admin
       .from("agent_signing_requests")
-      .select(
-        "id, template_type, title, status, signer_name, signer_email, sign_expires_at",
-      )
+      .select("id, template_type, title, status, signer_name, signer_email, sign_expires_at")
       .eq("sign_token", token)
       .single();
 
     if (error || !record) {
-      return NextResponse.json(
-        { status: "not_found", message: "署名リンクが見つかりません" },
-        { status: 404 },
-      );
+      return NextResponse.json({ status: "not_found", message: "署名リンクが見つかりません" }, { status: 404 });
     }
 
     // 期限チェック
@@ -122,13 +117,10 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       return NextResponse.json({ message: "内容に同意してください" }, { status: 400 });
     }
     if (!signer_email?.includes("@") || signer_email.length > 254) {
-      return NextResponse.json(
-        { message: "有効なメールアドレスを入力してください" },
-        { status: 400 },
-      );
+      return NextResponse.json({ message: "有効なメールアドレスを入力してください" }, { status: 400 });
     }
 
-    const admin = getAdminClient();
+    const admin = createServiceRoleAdmin("agent flow — agent-scoped / token-based, not tenant-scoped");
 
     // トークンで記録を取得
     const { data: record, error: fetchErr } = await admin
@@ -138,10 +130,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       .single();
 
     if (fetchErr || !record) {
-      return NextResponse.json(
-        { message: "署名リンクが見つかりません" },
-        { status: 404 },
-      );
+      return NextResponse.json({ message: "署名リンクが見つかりません" }, { status: 404 });
     }
 
     if (record.sign_expires_at && new Date(record.sign_expires_at) < new Date()) {
@@ -160,12 +149,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     const normalizedEmail = signer_email.toLowerCase().trim();
 
     // 署名ペイロードと ECDSA P-256 署名
-    const payload = buildAgentContractPayload(
-      record.id,
-      record.template_type,
-      signedAt,
-      normalizedEmail,
-    );
+    const payload = buildAgentContractPayload(record.id, record.template_type, signedAt, normalizedEmail);
 
     let signature: string;
     let keyInfo: { version: string; fingerprint: string };
@@ -190,11 +174,11 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
         signing_payload: payload,
         public_key_fingerprint: keyInfo.fingerprint,
         key_version: keyInfo.version,
-        sign_token: null,  // トークン無効化（再利用防止）
+        sign_token: null, // トークン無効化（再利用防止）
         updated_at: signedAt,
       })
       .eq("id", record.id)
-      .in("status", ["sent", "viewed"]);  // 二重署名防止
+      .in("status", ["sent", "viewed"]); // 二重署名防止
 
     if (updateErr) {
       console.error("[agent-sign] DB update failed:", updateErr);

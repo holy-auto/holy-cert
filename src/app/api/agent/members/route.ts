@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export async function GET() {
     }
 
     // Enrich with email from auth.users via admin client
-    const admin = createAdminClient();
+    const admin = createServiceRoleAdmin("agent flow — agent-scoped, not tenant-scoped");
     const enriched = await Promise.all(
       (members ?? []).map(async (m) => {
         let email: string | null = null;

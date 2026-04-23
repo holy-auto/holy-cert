@@ -1,5 +1,5 @@
 ﻿import crypto from "crypto";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 
 const PEPPER = process.env.CUSTOMER_AUTH_PEPPER!;
 
@@ -9,7 +9,7 @@ export const SESSION_TTL_DAYS = 30;
 
 function assertEnv() {
   if (!PEPPER) throw new Error("Missing CUSTOMER_AUTH_PEPPER");
-  // getSupabaseAdmin() will throw if Supabase credentials are missing
+  // createServiceRoleAdmin() will throw if Supabase credentials are missing
 }
 
 export function sha256Hex(s: string) {
@@ -47,10 +47,12 @@ export function sessionHash(token: string) {
   return sha256Hex(`sess|v1|${token}|${PEPPER}`);
 }
 
-/** Get the shared admin Supabase client (singleton) */
+/** Get the shared admin Supabase client (singleton) — used for customer portal lookups that span tenant boundaries (slug → tenant_id) and inner queries that already pass tenant_id explicitly. */
 function admin() {
   assertEnv();
-  return getSupabaseAdmin();
+  return createServiceRoleAdmin(
+    "customer portal server — tenant slug lookup + helpers that thread tenant_id explicitly",
+  );
 }
 
 export async function getTenantIdBySlug(slug: string): Promise<string | null> {

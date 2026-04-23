@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiForbidden, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -10,10 +10,7 @@ export const dynamic = "force-dynamic";
  * 代理店契約書の自前電子署名 URL を返す。
  * 署名待ち（sent / viewed）の契約にのみアクセス可能。
  */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -26,7 +23,7 @@ export async function GET(
     if (!agentRow?.agent_id) return apiForbidden("not_agent");
 
     // admin client で sign_token を含む完全なレコードを取得（RLS バイパス）
-    const admin = getAdminClient();
+    const admin = createServiceRoleAdmin("agent flow — agent-scoped / token-based, not tenant-scoped");
     const { data: contract, error } = await admin
       .from("agent_signing_requests")
       .select("id, agent_id, status, sign_token, sign_expires_at, title")
@@ -37,17 +34,11 @@ export async function GET(
     if (error || !contract) return apiNotFound("contract");
 
     if (!["sent", "viewed"].includes(contract.status)) {
-      return NextResponse.json(
-        { error: "署名待ちの契約書ではありません" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "署名待ちの契約書ではありません" }, { status: 400 });
     }
 
     if (!contract.sign_token) {
-      return NextResponse.json(
-        { error: "署名リンクが発行されていません" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "署名リンクが発行されていません" }, { status: 400 });
     }
 
     // トークン有効期限チェック

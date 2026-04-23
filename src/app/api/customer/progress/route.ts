@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminClient } from "@/lib/api/auth";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       return apiValidationError("missing_params");
     }
 
-    const supabase = getAdminClient();
+    const supabase = createServiceRoleAdmin("public booking — looks up tenant from slug, no caller context");
 
     // テナント取得
     const { data: tenant } = await supabase.from("tenants").select("id").eq("slug", tenantSlug).single();

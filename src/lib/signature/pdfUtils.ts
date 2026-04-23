@@ -5,7 +5,7 @@
  * 署名情報が埋め込まれた PDF の再生成を担当する。
  */
 
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { renderCertificatePdf, type CertRow } from "@/lib/pdfCertificate";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.APP_URL ?? "https://ledra.jp";
@@ -32,7 +32,7 @@ export interface PdfSignatureInfo {
  * @throws 証明書が見つからない場合、PDF 生成失敗時
  */
 export async function generateCertificatePdfBytes(certificateId: string): Promise<Uint8Array> {
-  const supabase = getSupabaseAdmin();
+  const supabase = createServiceRoleAdmin("signature PDF — generated for unauthenticated customer via signing flow");
 
   const { data: cert, error } = await supabase
     .from("certificates")
@@ -115,7 +115,7 @@ export async function regenerateSignedPdf(certificateId: string, signatureInfo: 
   try {
     const pdfBytes = await generateCertificatePdfBytes(certificateId);
 
-    const supabase = getSupabaseAdmin();
+    const supabase = createServiceRoleAdmin("signature PDF — generated for unauthenticated customer via signing flow");
     const storagePath = `certificates/${certificateId}/signed_certificate.pdf`;
 
     const { error: uploadError } = await supabase.storage.from("assets").upload(storagePath, pdfBytes, {

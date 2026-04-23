@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomInt } from "crypto";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { emailSchema } from "@/lib/validation/schemas";
 import { sha256Hex } from "@/lib/customerPortalServer";
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const supabase = createAdminClient();
+  const supabase = createServiceRoleAdmin("join flow — pre-auth invitation / verification");
 
   // Check if email is already registered via security-definer RPC
   // (listUsers API only returns page 1, so we use a direct auth.users query)

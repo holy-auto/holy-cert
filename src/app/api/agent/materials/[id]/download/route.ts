@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiForbidden, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -45,7 +45,7 @@ export async function POST(_request: NextRequest, ctx: RouteContext) {
     }
 
     // Record download
-    const admin = getAdminClient();
+    const admin = createServiceRoleAdmin("agent flow — agent-scoped / token-based, not tenant-scoped");
     await Promise.all([
       admin.from("agent_material_downloads").insert({
         material_id: id,

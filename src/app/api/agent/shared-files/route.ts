@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminClient } from "@/lib/api/auth";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       return apiValidationError(`許可されていないファイル形式です: ${contentType}`);
     }
 
-    const admin = getAdminClient();
+    const admin = createServiceRoleAdmin("agent flow — agent-scoped / token-based, not tenant-scoped");
     const uuid = crypto.randomUUID();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const storagePath = `${agentRow.agent_id}/to_hq/${uuid}_${safeName}`;

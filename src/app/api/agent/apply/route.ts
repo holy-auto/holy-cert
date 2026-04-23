@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit as checkUpstashRateLimit } from "@/lib/api/rateLimit";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     return apiValidationError("利用規約への同意が必要です");
   }
 
-  const adminClient = createAdminClient();
+  const adminClient = createServiceRoleAdmin("agent apply flow — pre-tenant registration / agent-scoped data");
 
   // -----------------------------------------------------------------------
   // Step 1: ログイン済みユーザーかどうかを確認
@@ -77,8 +77,7 @@ export async function POST(req: NextRequest) {
   if (!currentUserId) {
     const { data: existingUsers } = await adminClient.auth.admin.listUsers();
     const matchedUser = existingUsers?.users?.find(
-      (u: { id: string; email?: string }) =>
-        u.email?.toLowerCase() === data.email.toLowerCase(),
+      (u: { id: string; email?: string }) => u.email?.toLowerCase() === data.email.toLowerCase(),
     );
     if (matchedUser) {
       currentUserId = matchedUser.id;

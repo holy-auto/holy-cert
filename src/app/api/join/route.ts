@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit as checkUpstashRateLimit } from "@/lib/api/rateLimit";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { joinSchemaV2, parseBody } from "@/lib/validation/schemas";
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     return apiValidationError("利用規約への同意が必要です");
   }
 
-  const supabase = createAdminClient();
+  const supabase = createServiceRoleAdmin("join flow — pre-auth invitation / verification");
 
   // Verify that email was confirmed via OTP
   const { data: verification } = await supabase
