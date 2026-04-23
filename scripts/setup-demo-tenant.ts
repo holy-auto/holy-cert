@@ -282,13 +282,73 @@ async function main(): Promise<void> {
   await upsert("certificates", certRows, "id");
   console.log(`  ✓ ${certRows.length} 枚（public_id: LEDRA-DEMO-0001 〜 ${String(certRows.length).padStart(4, "0")}）`);
 
-  // 5) Report
+  // 5) Certificate images (metadata only — 実ファイルはストレージにアップロード不要。
+  //    HeroCard の施工記録数カウンタと、公開証明書ページのギャラリー件数を成立させるために投入。
+  //    実画像を表示したい場合は、Supabase ストレージ `certificate-images` バケットの
+  //    `demo/placeholder-XX.jpg` に placeholder 画像を 1 枚だけ置けば、全ての seed
+  //    画像が同じ見た目で表示されるようにパスを共有している)
+  console.log("─ Certificate images");
+  const imageRows = certRows.flatMap((cert, certIdx) => {
+    // 1 枚の証明書につき 3〜5 枚の施工写真メタデータを作る
+    const count = 3 + (certIdx % 3);
+    return Array.from({ length: count }).map((_, i) => ({
+      id: uuid("cf01", certIdx * 10 + i + 1),
+      certificate_id: cert.id,
+      storage_path: `demo/placeholder-${((certIdx * 10 + i) % 5) + 1}.jpg`,
+      file_name: `${cert.public_id}-${String(i + 1).padStart(2, "0")}.jpg`,
+      content_type: "image/jpeg",
+      file_size: 320000 + i * 12000,
+      sort_order: i,
+    }));
+  });
+  await upsert("certificate_images", imageRows, "id");
+  console.log(`  ✓ ${imageRows.length} 件（※実ファイルは別途 demo/placeholder-1..5.jpg をストレージに配置）`);
+
+  // 6) Vehicle histories (車両ページ・公開証明書ページの「履歴」セクション用)
+  console.log("─ Vehicle histories");
+  const historyRows: Record<string, unknown>[] = [];
+  let histCounter = 0;
+  for (const cert of CERTS) {
+    histCounter += 1;
+    historyRows.push({
+      id: uuid("a501", histCounter),
+      tenant_id: TENANT_ID,
+      vehicle_id: uuid("v001", cert.vehicleIdn),
+      certificate_id: uuid("ce01", cert.idn),
+      type: "certificate_issued",
+      title: `${cert.preset_title} 施工`,
+      description: (cert.preset_products ?? []).join(" / ") || "施工完了",
+      performed_at: dateDaysAgo(cert.daysAgo),
+    });
+  }
+  // 車両ごとの「来店」「作業完了」イベントも足して時系列を豊かに
+  for (const v of VEHICLES) {
+    // 1 回だけ「初回来店」イベント（最古施工の前日）
+    const firstCert = CERTS.filter((c) => c.vehicleIdn === v.idn).sort((a, b) => b.daysAgo - a.daysAgo)[0];
+    if (!firstCert) continue;
+    histCounter += 1;
+    historyRows.push({
+      id: uuid("a501", histCounter),
+      tenant_id: TENANT_ID,
+      vehicle_id: uuid("v001", v.idn),
+      type: "visit",
+      title: "初回来店・施工相談",
+      description: `${v.maker} ${v.model} のご相談。`,
+      performed_at: dateDaysAgo(firstCert.daysAgo + 1),
+    });
+  }
+  await upsert("vehicle_histories", historyRows, "id");
+  console.log(`  ✓ ${historyRows.length} 件`);
+
+  // 7) Report
   console.log("\n🎉 セットアップ完了\n");
   console.log("  Tenant ID :", TENANT_ID);
   console.log("  Tenant slug:", TENANT_SLUG);
   console.log("  Customers :", customerRows.length);
   console.log("  Vehicles  :", vehicleRows.length);
   console.log("  Certificates:", certRows.length);
+  console.log("  Images    :", imageRows.length);
+  console.log("  Histories :", historyRows.length);
   console.log("\n  公開証明書の例:");
   CERTS.slice(0, 3).forEach((c) => {
     console.log(`    https://app.ledra.co.jp/c/${c.public_id}`);
