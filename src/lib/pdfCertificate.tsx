@@ -251,27 +251,22 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
-  // QR
-  qrWrap: {
-    alignItems: "center",
-    paddingTop: 10,
-    paddingBottom: 4,
-  },
+  // QR (inside Customer · Vehicle card)
   qrInner: {
-    padding: 10,
-    borderRadius: 8,
+    padding: 6,
+    borderRadius: 6,
     backgroundColor: "#ffffff",
   },
   qr: {
-    width: 110,
-    height: 110,
+    width: 84,
+    height: 84,
   },
   qrCaption: {
-    fontSize: 8,
+    fontSize: 7,
     color: colors.dim,
-    letterSpacing: 3,
+    letterSpacing: 2,
     textTransform: "uppercase",
-    marginTop: 8,
+    marginTop: 4,
   },
   // Anchor QR
   anchorBlock: {
@@ -380,7 +375,7 @@ function buildExplorerUrl(txHash: string, network: "polygon" | "amoy"): string {
  */
 async function buildAnchorQrs(
   anchors: AnchorInfo[] | undefined,
-): Promise<Array<{ qrDataUrl: string; txHash: string; network: "polygon" | "amoy"; shaPrefix: string | null }>> {
+): Promise<Array<{ qrDataUrl: string; txHash: string; network: "polygon" | "amoy"; sha256: string | null }>> {
   if (!anchors || anchors.length === 0) return [];
   const valid = anchors.filter(
     (a): a is AnchorInfo & { polygon_tx_hash: string; polygon_network: "polygon" | "amoy" } =>
@@ -401,7 +396,7 @@ async function buildAnchorQrs(
         qrDataUrl,
         txHash: a.polygon_tx_hash,
         network: a.polygon_network,
-        shaPrefix: a.sha256 ? a.sha256.slice(0, 12) : null,
+        sha256: a.sha256 ?? null,
       };
     }),
   );
@@ -557,32 +552,77 @@ export async function renderCertificatePdf(
           <Text style={styles.cardBody}>{serviceStatement}</Text>
         </View>
 
-        {/* Customer + Vehicle */}
+        {/* Customer + Vehicle (QR on the right) */}
         <View style={styles.card}>
           <Text style={styles.cardEyebrow}>Customer · Vehicle</Text>
-          <View style={[styles.row, styles.rowFirst]}>
-            <Text style={styles.rowLabel}>お客様名</Text>
-            <Text style={styles.rowValue}>{row.customer_name}</Text>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 16 }}>
+            <View style={{ flex: 1 }}>
+              <View style={[styles.row, styles.rowFirst]}>
+                <Text style={styles.rowLabel}>お客様名</Text>
+                <Text style={styles.rowValue}>{row.customer_name}</Text>
+              </View>
+              {model ? (
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>車種</Text>
+                  <Text style={styles.rowValue}>{model}</Text>
+                </View>
+              ) : null}
+              {plate ? (
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>ナンバー</Text>
+                  <Text style={styles.rowValue}>{plate}</Text>
+                </View>
+              ) : null}
+              {color ? (
+                <View style={styles.row}>
+                  <Text style={styles.rowLabel}>ボディカラー</Text>
+                  <Text style={styles.rowValue}>{color}</Text>
+                </View>
+              ) : null}
+            </View>
+            <View style={{ alignItems: "center", paddingTop: 4 }}>
+              <View style={styles.qrInner}>
+                <Image src={qrDataUrl} style={styles.qr} />
+              </View>
+              <Text style={styles.qrCaption}>Scan to verify</Text>
+            </View>
           </View>
-          {model ? (
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>車種</Text>
-              <Text style={styles.rowValue}>{model}</Text>
-            </View>
-          ) : null}
-          {plate ? (
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>ナンバー</Text>
-              <Text style={styles.rowValue}>{plate}</Text>
-            </View>
-          ) : null}
-          {color ? (
-            <View style={styles.row}>
-              <Text style={styles.rowLabel}>ボディカラー</Text>
-              <Text style={styles.rowValue}>{color}</Text>
-            </View>
-          ) : null}
         </View>
+
+        {/* Tamper Proof · Polygon Anchoring — 改ざん防止の根拠（前面に配置） */}
+        {anchorQrs.length > 0 && (
+          <View style={styles.cardTall} wrap={false}>
+            <Text style={styles.cardEyebrow}>Tamper Proof · Polygon Anchoring</Text>
+            <Text style={[styles.cardBody, { marginBottom: 10 }]}>
+              施工画像の SHA-256 ハッシュを Polygon ブロックチェーンに刻印しています。
+              各 QR を読み取ると Polygonscan 上で改ざん防止の証跡を独立して検証できます。
+            </Text>
+            {anchorQrs.map((a, idx) => (
+              <View key={idx} style={styles.anchorBlock}>
+                <View style={styles.anchorQrOuter}>
+                  <Image src={a.qrDataUrl} style={styles.anchorQr} />
+                </View>
+                <View style={styles.anchorMeta}>
+                  <Text style={{ fontSize: 9.5, color: colors.text, fontWeight: 700 }}>
+                    画像 #{idx + 1}
+                  </Text>
+                  <Text style={{ fontSize: 8.5, color: colors.dim, marginTop: 2 }}>
+                    {networkLabel(a.network)}
+                  </Text>
+                  {a.sha256 ? (
+                    <Text style={styles.hashText}>SHA-256: {a.sha256}</Text>
+                  ) : null}
+                  <Text style={[styles.hashText, { color: colors.blue }]}>TX: {a.txHash}</Text>
+                </View>
+              </View>
+            ))}
+            {moreAnchorCount > 0 ? (
+              <Text style={[styles.cardBody, { marginTop: 8, fontSize: 9, color: colors.dim }]}>
+                ほか {moreAnchorCount} 枚もオンチェーン記録済み（全 {totalAnchored} 枚）
+              </Text>
+            ) : null}
+          </View>
+        )}
 
         {/* 使用フィルム / コーティング剤 */}
         {Array.isArray(row.coating_products_json) && row.coating_products_json.length > 0 ? (
@@ -756,49 +796,12 @@ export async function renderCertificatePdf(
         </View>
       </Page>
 
-      {/* ── ページ2: 改ざん防止・保証・注意事項（該当条件のいずれかで表示） ── */}
-      {(anchorQrs.length > 0 || isPpf || isMaintenance || isBodyRepair) && (
+      {/* ── ページ2: 保証・注意事項（サービス別の情報がある場合のみ表示） ── */}
+      {(isPpf || isMaintenance || isBodyRepair) && (
         <Page size="A4" style={styles.page}>
           <Text style={styles.page2Eyebrow}>Certificate No. {row.public_id}</Text>
           <Text style={styles.page2Title}>{certTitle}</Text>
-          <Text style={styles.page2Sub}>Technical Record · Warranty · Notice</Text>
-
-          {/* Polygon anchoring — 改ざん防止の根拠 */}
-          {anchorQrs.length > 0 && (
-            <View style={styles.cardTall} wrap={false}>
-              <Text style={styles.cardEyebrow}>Tamper Proof · Polygon Anchoring</Text>
-              <Text style={[styles.cardBody, { marginBottom: 10 }]}>
-                施工画像の SHA-256 ハッシュを Polygon ブロックチェーンに刻印しています。
-                各 QR を読み取ると Polygonscan 上で改ざん防止の証跡を独立して検証できます。
-              </Text>
-              {anchorQrs.map((a, idx) => (
-                <View key={idx} style={styles.anchorBlock}>
-                  <View style={styles.anchorQrOuter}>
-                    <Image src={a.qrDataUrl} style={styles.anchorQr} />
-                  </View>
-                  <View style={styles.anchorMeta}>
-                    <Text style={{ fontSize: 9.5, color: colors.text, fontWeight: 700 }}>
-                      画像 #{idx + 1}
-                    </Text>
-                    <Text style={{ fontSize: 8.5, color: colors.dim, marginTop: 2 }}>
-                      {networkLabel(a.network)}
-                    </Text>
-                    {a.shaPrefix ? (
-                      <Text style={styles.hashText}>SHA-256: {a.shaPrefix}…</Text>
-                    ) : null}
-                    <Text style={[styles.hashText, { color: colors.blue }]}>
-                      TX: {a.txHash.slice(0, 16)}…{a.txHash.slice(-8)}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-              {moreAnchorCount > 0 ? (
-                <Text style={[styles.cardBody, { marginTop: 8, fontSize: 9, color: colors.dim }]}>
-                  ほか {moreAnchorCount} 枚もオンチェーン記録済み（全 {totalAnchored} 枚）
-                </Text>
-              ) : null}
-            </View>
-          )}
+          <Text style={styles.page2Sub}>Warranty · Aftercare · Notice</Text>
 
           {/* 保証情報 */}
           {row.warranty_period_end && (
