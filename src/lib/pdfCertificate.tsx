@@ -2,10 +2,8 @@
 import { Document, Page, Text, View, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import { renderToBuffer } from "@react-pdf/renderer";
 
-const NOTO_SANS_JP =
-  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
-const NOTO_SANS_JP_BOLD =
-  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
+const NOTO_SANS_JP = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
+const NOTO_SANS_JP_BOLD = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
 
 Font.register({
   family: "NotoSansJP",
@@ -18,7 +16,12 @@ import { createSignedAssetUrl } from "@/lib/signedUrl";
 import QRCode from "qrcode";
 import { getPanelLabel, getCoverageLabel, getFilmTypeLabel } from "@/lib/ppf/constants";
 import { getWorkTypeLabel } from "@/lib/maintenance/constants";
-import { getRepairTypeLabel, getRepairPanelLabel, getPaintTypeLabel, getRepairMethodLabel } from "@/lib/bodyRepair/constants";
+import {
+  getRepairTypeLabel,
+  getRepairPanelLabel,
+  getPaintTypeLabel,
+  getRepairMethodLabel,
+} from "@/lib/bodyRepair/constants";
 
 type FieldType = "text" | "textarea" | "number" | "date" | "select" | "multiselect" | "checkbox";
 
@@ -66,25 +69,307 @@ export type AnchorInfo = {
 /** PDF 本体に QR を載せる最大枚数。これ以上は "+N more" 表記にする */
 const MAX_ANCHOR_QR = 4;
 
+const colors = {
+  bg: "#060a12",
+  bgCard: "#0b111c",
+  bgCardAlt: "#0d0b1e",
+  bgHash: "#140b2a",
+  border: "#1a2233",
+  borderStrong: "#2a3451",
+  text: "#ffffff",
+  muted: "#c8cfdd",
+  dim: "#8e99b0",
+  faint: "#5f6a81",
+  blue: "#60a5fa",
+  violet: "#a78bfa",
+  success: "#10b981",
+  danger: "#f87171",
+} as const;
+
 const styles = StyleSheet.create({
-  page: { padding: 28, fontSize: 10, fontFamily: "NotoSansJP" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  title: { fontSize: 18 },
-  meta: { color: "#666", marginTop: 4 },
-  box: { borderWidth: 1, borderColor: "#ddd", padding: 10, borderRadius: 6, marginTop: 10 },
-  label: { color: "#666", fontSize: 9 },
-  value: { fontSize: 12, marginTop: 2 },
-  footer: { marginTop: 16, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#ddd", color: "#666" },
-  qr: { width: 90, height: 90, borderWidth: 1, borderColor: "#ddd", borderRadius: 4 },
-  anchorQr: { width: 70, height: 70, borderWidth: 1, borderColor: "#ddd", borderRadius: 4 },
-  anchorItem: { flexDirection: "row", gap: 10, marginTop: 8, alignItems: "flex-start" },
-  anchorText: { flex: 1 },
-  small: { fontSize: 8, color: "#666" },
-  sectionTitle: { fontSize: 11, marginBottom: 6 },
-  itemRow: { flexDirection: "row", gap: 10, marginTop: 3 },
-  itemLabel: { width: 140, color: "#666" },
-  itemValue: { flex: 1 },
+  page: {
+    backgroundColor: colors.bg,
+    color: colors.text,
+    fontSize: 10,
+    fontFamily: "NotoSansJP",
+    padding: 44,
+    paddingBottom: 72,
+  },
+  // Top row with brand + badge
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 28,
+  },
+  brand: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: colors.text,
+    letterSpacing: 1,
+  },
+  brandSub: {
+    fontSize: 7,
+    color: colors.faint,
+    letterSpacing: 2,
+    marginTop: 2,
+    textTransform: "uppercase",
+  },
+  badge: {
+    borderWidth: 1,
+    borderColor: "#2f5a8f",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    fontSize: 8,
+    color: colors.blue,
+    letterSpacing: 2,
+    backgroundColor: "#0d1a2a",
+  },
+  // Hero
+  heroBar: {
+    width: 54,
+    height: 3,
+    backgroundColor: colors.blue,
+    marginBottom: 12,
+  },
+  heroEyebrow: {
+    fontSize: 8,
+    color: colors.dim,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+    marginBottom: 10,
+  },
+  heroTitle: {
+    fontSize: 30,
+    fontWeight: 700,
+    color: colors.text,
+    lineHeight: 1.15,
+    letterSpacing: -0.5,
+    marginBottom: 10,
+  },
+  heroSub: {
+    fontSize: 9,
+    color: colors.faint,
+    letterSpacing: 4,
+    textTransform: "uppercase",
+    marginBottom: 24,
+  },
+  // Cert number block
+  certMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginBottom: 16,
+  },
+  certNumberLabel: {
+    fontSize: 8,
+    color: colors.faint,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  certNumber: {
+    fontSize: 24,
+    fontWeight: 700,
+    color: colors.violet,
+    letterSpacing: 1,
+    marginTop: 4,
+  },
+  certDateLabel: {
+    fontSize: 8,
+    color: colors.faint,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  certDate: {
+    fontSize: 12,
+    color: colors.text,
+    fontWeight: 700,
+    marginTop: 4,
+  },
+  // Card
+  card: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: colors.bgCard,
+  },
+  cardTall: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 18,
+    marginBottom: 12,
+    backgroundColor: colors.bgCard,
+  },
+  cardEyebrow: {
+    fontSize: 7.5,
+    color: colors.dim,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+    marginBottom: 6,
+  },
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: colors.text,
+    marginBottom: 8,
+  },
+  cardBody: {
+    fontSize: 10,
+    color: colors.muted,
+    lineHeight: 1.7,
+  },
+  // Label/value row (within card)
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderTopWidth: 0.5,
+    borderTopColor: "#141d2e",
+  },
+  rowFirst: { borderTopWidth: 0 },
+  rowLabel: {
+    fontSize: 9.5,
+    color: colors.dim,
+    width: 120,
+  },
+  rowValue: {
+    flex: 1,
+    fontSize: 10.5,
+    color: colors.text,
+    fontWeight: 700,
+  },
+  // Section
+  sectionLabel: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: colors.blue,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  // QR
+  qrWrap: {
+    alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  qrInner: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#ffffff",
+  },
+  qr: {
+    width: 110,
+    height: 110,
+  },
+  qrCaption: {
+    fontSize: 8,
+    color: colors.dim,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+    marginTop: 8,
+  },
+  // Anchor QR
+  anchorBlock: {
+    flexDirection: "row",
+    gap: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderTopWidth: 0.5,
+    borderTopColor: "#141d2e",
+  },
+  anchorQrOuter: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: "#ffffff",
+  },
+  anchorQr: {
+    width: 64,
+    height: 64,
+  },
+  anchorMeta: {
+    flex: 1,
+  },
+  hashText: {
+    fontSize: 8.5,
+    color: colors.violet,
+    letterSpacing: 0.3,
+    marginTop: 2,
+  },
+  // Tagline
+  tagline: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: colors.violet,
+    letterSpacing: 1,
+    textAlign: "center",
+    marginTop: 24,
+  },
+  // Footer
+  footer: {
+    position: "absolute",
+    bottom: 28,
+    left: 44,
+    right: 44,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 10,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.border,
+  },
+  footerLeft: {
+    fontSize: 7.5,
+    color: colors.faint,
+    letterSpacing: 1,
+  },
+  footerRight: {
+    fontSize: 7.5,
+    color: colors.dim,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  // Reissue warning
+  reissue: {
+    fontSize: 8,
+    color: colors.danger,
+    marginTop: 4,
+    letterSpacing: 1,
+  },
+  // Bullet list
+  bullet: {
+    fontSize: 9.5,
+    color: colors.muted,
+    lineHeight: 1.75,
+    marginBottom: 3,
+  },
+  // Page 2 title
+  page2Eyebrow: {
+    fontSize: 8,
+    color: colors.dim,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  page2Title: {
+    fontSize: 20,
+    fontWeight: 700,
+    color: colors.text,
+    marginBottom: 6,
+  },
+  page2Sub: {
+    fontSize: 9,
+    color: colors.faint,
+    letterSpacing: 2,
+    marginBottom: 24,
+  },
 });
 
 function buildExplorerUrl(txHash: string, network: "polygon" | "amoy"): string {
@@ -128,7 +413,11 @@ async function buildAnchorQrs(
 function normValue(v: unknown): string | null {
   if (v === undefined || v === null) return null;
   if (Array.isArray(v)) {
-    const s = v.map((x) => String(x)).map((s) => s.trim()).filter(Boolean).join(", ");
+    const s = v
+      .map((x) => String(x))
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(", ");
     return s || null;
   }
   const s = String(v).trim();
@@ -168,11 +457,7 @@ function buildPresetLines(schema: TemplateSchema | null, values: Record<string, 
   return lines;
 }
 
-export async function renderCertificatePdf(
-  row: CertRow,
-  publicUrl: string,
-  anchors?: AnchorInfo[],
-) {
+export async function renderCertificatePdf(row: CertRow, publicUrl: string, anchors?: AnchorInfo[]) {
   const preset = row.content_preset_json ?? {};
   const schema: TemplateSchema | null = (preset.schema_snapshot as any) ?? null;
   const values: Record<string, any> | null = (preset.values as any) ?? null;
@@ -185,8 +470,10 @@ export async function renderCertificatePdf(
   const isMaintenance = row.service_type === "maintenance";
   const isBodyRepair = row.service_type === "body_repair";
   const ppfCoverage: Record<string, any>[] = Array.isArray(row.ppf_coverage_json) ? row.ppf_coverage_json : [];
-  const maintenanceData: Record<string, any> = (typeof row.maintenance_json === "object" && row.maintenance_json) ? row.maintenance_json : {};
-  const bodyRepairData: Record<string, any> = (typeof row.body_repair_json === "object" && row.body_repair_json) ? row.body_repair_json : {};
+  const maintenanceData: Record<string, any> =
+    typeof row.maintenance_json === "object" && row.maintenance_json ? row.maintenance_json : {};
+  const bodyRepairData: Record<string, any> =
+    typeof row.body_repair_json === "object" && row.body_repair_json ? row.body_repair_json : {};
 
   const presetLines = buildPresetLines(schema, values);
 
@@ -203,95 +490,113 @@ export async function renderCertificatePdf(
     (a) => typeof a.polygon_tx_hash === "string" && a.polygon_tx_hash.length > 0,
   ).length;
   const moreAnchorCount = Math.max(0, totalAnchored - anchorQrs.length);
-  const certTitle = isPpf ? "PPF施工証明書"
-    : isMaintenance ? "整備証明書"
-    : isBodyRepair ? "鈑金塗装証明書"
-    : "施工証明書";
+  const certTitle = isPpf
+    ? "PPF施工証明書"
+    : isMaintenance
+      ? "整備証明書"
+      : isBodyRepair
+        ? "鈑金塗装証明書"
+        : "施工証明書";
   const productsTitle = isPpf ? "使用フィルム" : "コーティング剤";
+
+  const issueDate = new Date(row.created_at).toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const serviceStatement = isPpf
+    ? "本証明書は、下記車両に対してペイントプロテクションフィルム (PPF) の施工が完了した事実を、Polygon ブロックチェーンに刻印された改ざん不可能な記録として証明するものです。"
+    : isMaintenance
+      ? "本証明書は、下記車両に対して整備作業が実施された事実を、Polygon ブロックチェーンに刻印された改ざん不可能な記録として証明するものです。"
+      : isBodyRepair
+        ? "本証明書は、下記車両に対して鈑金塗装作業が実施された事実を、Polygon ブロックチェーンに刻印された改ざん不可能な記録として証明するものです。"
+        : "本証明書は、下記車両に対して施工作業が完了した事実を、Polygon ブロックチェーンに刻印された改ざん不可能な記録として証明するものです。";
+
+  const networkLabel = (network: "polygon" | "amoy") =>
+    network === "amoy" ? "Polygon Amoy testnet" : "Polygon mainnet";
 
   const doc = (
     <Document>
       {/* ── ページ1: 証明書本体 ── */}
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <View>
-            <View style={styles.titleRow}>
-              {logoUrl ? <Image src={logoUrl} style={{ height: 26, width: 120 }} /> : null}
-              <Text style={styles.title}>{certTitle}</Text>
+        {/* Top row: brand + badge */}
+        <View style={styles.topRow}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            {logoUrl ? <Image src={logoUrl} style={{ height: 22, width: 96 }} /> : null}
+            <View>
+              <Text style={styles.brand}>Ledra</Text>
+              <Text style={styles.brandSub}>Construction Record · Verified</Text>
             </View>
-            <Text style={styles.meta}>証明書番号: {row.public_id}</Text>
-            <Text style={styles.meta}>発行日: {new Date(row.created_at).toLocaleDateString("ja-JP")}</Text>
-            {(row.current_version ?? 1) > 1 && (
-              <Text style={[styles.meta, { color: "#c00" }]}>再発行版（第{row.current_version}版）</Text>
-            )}
           </View>
+          <Text style={styles.badge}>
+            CERTIFICATE · {(row.current_version ?? 1) > 1 ? `v${row.current_version}` : "v1"}
+          </Text>
+        </View>
+
+        {/* Hero */}
+        <View style={styles.heroBar} />
+        <Text style={styles.heroEyebrow}>{certTitle.toUpperCase()}</Text>
+        <Text style={styles.heroTitle}>{certTitle}</Text>
+        <Text style={styles.heroSub}>Certificate of Construction Record</Text>
+
+        {/* Cert metadata */}
+        <View style={styles.certMeta}>
           <View>
-            <Image src={qrDataUrl} style={styles.qr} />
-            <Text style={styles.small}>QRで確認</Text>
+            <Text style={styles.certNumberLabel}>Certificate No.</Text>
+            <Text style={styles.certNumber}>{row.public_id}</Text>
+            {(row.current_version ?? 1) > 1 && <Text style={styles.reissue}>再発行版 (第{row.current_version}版)</Text>}
+          </View>
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={styles.certDateLabel}>Issued</Text>
+            <Text style={styles.certDate}>{issueDate}</Text>
           </View>
         </View>
 
-        {/* 証明文 */}
-        {isPpf && (
-          <View style={{ marginTop: 10 }}>
-            <Text style={{ fontSize: 9, color: "#444", lineHeight: 1.6 }}>
-              本証明書は、下記車両に対してペイントプロテクションフィルム（PPF）の施工が完了した事実を証明するものです。
-            </Text>
-          </View>
-        )}
-        {isMaintenance && (
-          <View style={{ marginTop: 10 }}>
-            <Text style={{ fontSize: 9, color: "#444", lineHeight: 1.6 }}>
-              本証明書は、下記車両に対して整備作業が実施された事実を証明するものです。
-            </Text>
-          </View>
-        )}
-        {isBodyRepair && (
-          <View style={{ marginTop: 10 }}>
-            <Text style={{ fontSize: 9, color: "#444", lineHeight: 1.6 }}>
-              本証明書は、下記車両に対して鈑金塗装作業が実施された事実を証明するものです。
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.box}>
-          <Text style={styles.label}>お客様名</Text>
-          <Text style={styles.value}>{row.customer_name}</Text>
+        {/* Declaration */}
+        <View style={styles.card}>
+          <Text style={styles.cardEyebrow}>Declaration</Text>
+          <Text style={styles.cardBody}>{serviceStatement}</Text>
         </View>
 
-        {(model || plate) ? (
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>車両情報</Text>
-            {model ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>車種</Text>
-                <Text style={styles.itemValue}>{model}</Text>
-              </View>
-            ) : null}
-            {plate ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>ナンバー</Text>
-                <Text style={styles.itemValue}>{plate}</Text>
-              </View>
-            ) : null}
-            {color ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>ボディカラー</Text>
-                <Text style={styles.itemValue}>{color}</Text>
-              </View>
-            ) : null}
+        {/* Customer + Vehicle */}
+        <View style={styles.card}>
+          <Text style={styles.cardEyebrow}>Customer · Vehicle</Text>
+          <View style={[styles.row, styles.rowFirst]}>
+            <Text style={styles.rowLabel}>お客様名</Text>
+            <Text style={styles.rowValue}>{row.customer_name}</Text>
           </View>
-        ) : null}
+          {model ? (
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>車種</Text>
+              <Text style={styles.rowValue}>{model}</Text>
+            </View>
+          ) : null}
+          {plate ? (
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>ナンバー</Text>
+              <Text style={styles.rowValue}>{plate}</Text>
+            </View>
+          ) : null}
+          {color ? (
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>ボディカラー</Text>
+              <Text style={styles.rowValue}>{color}</Text>
+            </View>
+          ) : null}
+        </View>
 
         {/* 使用フィルム / コーティング剤 */}
         {Array.isArray(row.coating_products_json) && row.coating_products_json.length > 0 ? (
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>{productsTitle}</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardEyebrow}>{productsTitle}</Text>
             {row.coating_products_json.map((cp: Record<string, any>, idx: number) => (
-              <View key={idx} style={styles.itemRow}>
-                <Text style={styles.itemLabel}>{cp.location || "-"}</Text>
-                <Text style={styles.itemValue}>
-                  {[cp.brand_name, cp.product_name, cp.film_type ? getFilmTypeLabel(cp.film_type) : null].filter(Boolean).join(" / ") || "-"}
+              <View key={idx} style={[styles.row, idx === 0 && styles.rowFirst]}>
+                <Text style={styles.rowLabel}>{cp.location || "-"}</Text>
+                <Text style={styles.rowValue}>
+                  {[cp.brand_name, cp.product_name, cp.film_type ? getFilmTypeLabel(cp.film_type) : null]
+                    .filter(Boolean)
+                    .join(" / ") || "-"}
                 </Text>
               </View>
             ))}
@@ -300,12 +605,12 @@ export async function renderCertificatePdf(
 
         {/* PPF施工範囲 */}
         {isPpf && ppfCoverage.length > 0 ? (
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>施工範囲</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardEyebrow}>施工範囲 · PPF Coverage</Text>
             {ppfCoverage.map((entry: Record<string, any>, idx: number) => (
-              <View key={idx} style={styles.itemRow}>
-                <Text style={styles.itemLabel}>{getPanelLabel(entry.panel)}</Text>
-                <Text style={styles.itemValue}>
+              <View key={idx} style={[styles.row, idx === 0 && styles.rowFirst]}>
+                <Text style={styles.rowLabel}>{getPanelLabel(entry.panel)}</Text>
+                <Text style={styles.rowValue}>
                   {getCoverageLabel(entry.coverage)}
                   {entry.partial_note ? ` — ${entry.partial_note}` : ""}
                 </Text>
@@ -316,44 +621,44 @@ export async function renderCertificatePdf(
 
         {/* 整備内容 */}
         {isMaintenance && Object.keys(maintenanceData).length > 0 ? (
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>整備内容</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardEyebrow}>整備内容 · Maintenance</Text>
             {Array.isArray(maintenanceData.work_types) && maintenanceData.work_types.length > 0 ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>作業種別</Text>
-                <Text style={styles.itemValue}>
+              <View style={[styles.row, styles.rowFirst]}>
+                <Text style={styles.rowLabel}>作業種別</Text>
+                <Text style={styles.rowValue}>
                   {maintenanceData.work_types.map((wt: string) => getWorkTypeLabel(wt)).join("、")}
                 </Text>
               </View>
             ) : null}
             {maintenanceData.mileage ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>走行距離</Text>
-                <Text style={styles.itemValue}>{maintenanceData.mileage} km</Text>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>走行距離</Text>
+                <Text style={styles.rowValue}>{maintenanceData.mileage} km</Text>
               </View>
             ) : null}
             {maintenanceData.parts_replaced ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>交換部品</Text>
-                <Text style={styles.itemValue}>{maintenanceData.parts_replaced}</Text>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>交換部品</Text>
+                <Text style={styles.rowValue}>{maintenanceData.parts_replaced}</Text>
               </View>
             ) : null}
             {maintenanceData.next_service_date ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>次回点検日</Text>
-                <Text style={styles.itemValue}>{maintenanceData.next_service_date}</Text>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>次回点検日</Text>
+                <Text style={styles.rowValue}>{maintenanceData.next_service_date}</Text>
               </View>
             ) : null}
             {maintenanceData.findings ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>点検結果・所見</Text>
-                <Text style={styles.itemValue}>{maintenanceData.findings}</Text>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>点検結果・所見</Text>
+                <Text style={styles.rowValue}>{maintenanceData.findings}</Text>
               </View>
             ) : null}
             {maintenanceData.mechanic_name ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>担当整備士</Text>
-                <Text style={styles.itemValue}>{maintenanceData.mechanic_name}</Text>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>担当整備士</Text>
+                <Text style={styles.rowValue}>{maintenanceData.mechanic_name}</Text>
               </View>
             ) : null}
           </View>
@@ -361,346 +666,281 @@ export async function renderCertificatePdf(
 
         {/* 鈑金塗装内容 */}
         {isBodyRepair && Object.keys(bodyRepairData).length > 0 ? (
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>鈑金塗装内容</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardEyebrow}>鈑金塗装内容 · Body Repair</Text>
             {bodyRepairData.repair_type ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>修理種別</Text>
-                <Text style={styles.itemValue}>{getRepairTypeLabel(bodyRepairData.repair_type)}</Text>
+              <View style={[styles.row, styles.rowFirst]}>
+                <Text style={styles.rowLabel}>修理種別</Text>
+                <Text style={styles.rowValue}>{getRepairTypeLabel(bodyRepairData.repair_type)}</Text>
               </View>
             ) : null}
             {Array.isArray(bodyRepairData.affected_panels) && bodyRepairData.affected_panels.length > 0 ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>修理箇所</Text>
-                <Text style={styles.itemValue}>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>修理箇所</Text>
+                <Text style={styles.rowValue}>
                   {bodyRepairData.affected_panels.map((p: string) => getRepairPanelLabel(p)).join("、")}
                 </Text>
               </View>
             ) : null}
             {bodyRepairData.paint_color_code ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>塗装色・カラーコード</Text>
-                <Text style={styles.itemValue}>{bodyRepairData.paint_color_code}</Text>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>塗装色・カラーコード</Text>
+                <Text style={styles.rowValue}>{bodyRepairData.paint_color_code}</Text>
               </View>
             ) : null}
             {bodyRepairData.paint_type ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>塗装タイプ</Text>
-                <Text style={styles.itemValue}>{getPaintTypeLabel(bodyRepairData.paint_type)}</Text>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>塗装タイプ</Text>
+                <Text style={styles.rowValue}>{getPaintTypeLabel(bodyRepairData.paint_type)}</Text>
               </View>
             ) : null}
             {Array.isArray(bodyRepairData.repair_methods) && bodyRepairData.repair_methods.length > 0 ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>修理方法</Text>
-                <Text style={styles.itemValue}>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>修理方法</Text>
+                <Text style={styles.rowValue}>
                   {bodyRepairData.repair_methods.map((m: string) => getRepairMethodLabel(m)).join("、")}
                 </Text>
               </View>
             ) : null}
             {bodyRepairData.before_notes ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>修理前の状態</Text>
-                <Text style={styles.itemValue}>{bodyRepairData.before_notes}</Text>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>修理前の状態</Text>
+                <Text style={styles.rowValue}>{bodyRepairData.before_notes}</Text>
               </View>
             ) : null}
             {bodyRepairData.after_notes ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>修理後の状態</Text>
-                <Text style={styles.itemValue}>{bodyRepairData.after_notes}</Text>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>修理後の状態</Text>
+                <Text style={styles.rowValue}>{bodyRepairData.after_notes}</Text>
               </View>
             ) : null}
             {bodyRepairData.warranty_info ? (
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>修理保証</Text>
-                <Text style={styles.itemValue}>{bodyRepairData.warranty_info}</Text>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>修理保証</Text>
+                <Text style={styles.rowValue}>{bodyRepairData.warranty_info}</Text>
               </View>
             ) : null}
           </View>
         ) : null}
 
+        {/* Preset (generic schema) */}
         {presetLines.length > 0 ? (
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>施工内容</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardEyebrow}>施工内容 · Service Details</Text>
             {presetLines.map((it, idx) => (
-              <View key={idx} style={styles.itemRow}>
-                <Text style={styles.itemLabel}>[{it.section}] {it.label}</Text>
-                <Text style={styles.itemValue}>{it.value}</Text>
+              <View key={idx} style={[styles.row, idx === 0 && styles.rowFirst]}>
+                <Text style={styles.rowLabel}>
+                  [{it.section}] {it.label}
+                </Text>
+                <Text style={styles.rowValue}>{it.value}</Text>
               </View>
             ))}
           </View>
         ) : null}
 
+        {/* Free-text */}
         {row.content_free_text ? (
-          <View style={styles.box}>
-            <Text style={styles.label}>施工内容（自由記述）</Text>
-            <Text>{row.content_free_text}</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardEyebrow}>施工内容（自由記述）</Text>
+            <Text style={styles.cardBody}>{row.content_free_text}</Text>
           </View>
         ) : null}
 
-        <View style={styles.box}>
-          <Text style={styles.label}>有効条件</Text>
-          <Text>{row.expiry_type ?? ""}: {row.expiry_value ?? ""}</Text>
+        {/* Validity */}
+        <View style={styles.card}>
+          <Text style={styles.cardEyebrow}>有効条件 · Validity</Text>
+          <Text style={styles.cardBody}>{[row.expiry_type, row.expiry_value].filter(Boolean).join(": ") || "—"}</Text>
         </View>
 
-        {/* ブロックチェーン認証 — Polygon に記録された施工画像があるときだけ表示 */}
-        {anchorQrs.length > 0 ? (
-          <View style={styles.box} wrap={false}>
-            <Text style={styles.sectionTitle}>ブロックチェーン認証 (Polygon)</Text>
-            <Text style={{ fontSize: 8, color: "#444", lineHeight: 1.6 }}>
-              施工画像の SHA-256 ハッシュを Polygon ブロックチェーンに記録しています。
-              各 QR を読み取ると Polygonscan 上で改ざん防止の証跡を独立検証できます。
-            </Text>
-            {anchorQrs.map((a, idx) => (
-              <View key={idx} style={styles.anchorItem}>
-                <Image src={a.qrDataUrl} style={styles.anchorQr} />
-                <View style={styles.anchorText}>
-                  <Text style={{ fontSize: 9 }}>
-                    画像 #{idx + 1} / {a.network === "amoy" ? "Polygon Amoy testnet" : "Polygon mainnet"}
-                  </Text>
-                  {a.shaPrefix ? (
-                    <Text style={{ fontSize: 8, color: "#666", marginTop: 2 }}>
-                      SHA-256: {a.shaPrefix}…
-                    </Text>
-                  ) : null}
-                  <Text style={{ fontSize: 7, color: "#666", marginTop: 2 }}>
-                    TX: {a.txHash.slice(0, 18)}…{a.txHash.slice(-8)}
-                  </Text>
-                </View>
-              </View>
-            ))}
-            {moreAnchorCount > 0 ? (
-              <Text style={{ fontSize: 8, color: "#666", marginTop: 6 }}>
-                ほか {moreAnchorCount} 枚もオンチェーン記録済み (全 {totalAnchored} 枚)
-              </Text>
-            ) : null}
+        {/* QR to verify */}
+        <View style={styles.qrWrap}>
+          <View style={styles.qrInner}>
+            <Image src={qrDataUrl} style={styles.qr} />
           </View>
-        ) : null}
+          <Text style={styles.qrCaption}>Scan to verify · 本証明書を確認</Text>
+        </View>
 
-        <View style={styles.footer}>
-          <Text>証明書URL: {publicUrl}</Text>
-          <Text style={{ fontSize: 7, color: "#999", marginTop: 2 }}>Powered by Ledra</Text>
+        <Text style={styles.tagline}>記録を、業界の共通言語にする。</Text>
+
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerLeft}>{publicUrl}</Text>
+          <Text style={styles.footerRight}>Powered by Ledra</Text>
         </View>
       </Page>
 
-      {/* ── ページ2: 保証・注意事項（PPFの場合のみ） ── */}
-      {isPpf && (
+      {/* ── ページ2: 改ざん防止・保証・注意事項（該当条件のいずれかで表示） ── */}
+      {(anchorQrs.length > 0 || isPpf || isMaintenance || isBodyRepair) && (
         <Page size="A4" style={styles.page}>
-          <View>
-            <Text style={styles.title}>{certTitle} — 保証・注意事項</Text>
-            <Text style={styles.meta}>証明書番号: {row.public_id}</Text>
-          </View>
+          <Text style={styles.page2Eyebrow}>Certificate No. {row.public_id}</Text>
+          <Text style={styles.page2Title}>{certTitle}</Text>
+          <Text style={styles.page2Sub}>Technical Record · Warranty · Notice</Text>
+
+          {/* Polygon anchoring — 改ざん防止の根拠 */}
+          {anchorQrs.length > 0 && (
+            <View style={styles.cardTall} wrap={false}>
+              <Text style={styles.cardEyebrow}>Tamper Proof · Polygon Anchoring</Text>
+              <Text style={[styles.cardBody, { marginBottom: 10 }]}>
+                施工画像の SHA-256 ハッシュを Polygon ブロックチェーンに刻印しています。 各 QR を読み取ると Polygonscan
+                上で改ざん防止の証跡を独立して検証できます。
+              </Text>
+              {anchorQrs.map((a, idx) => (
+                <View key={idx} style={styles.anchorBlock}>
+                  <View style={styles.anchorQrOuter}>
+                    <Image src={a.qrDataUrl} style={styles.anchorQr} />
+                  </View>
+                  <View style={styles.anchorMeta}>
+                    <Text style={{ fontSize: 9.5, color: colors.text, fontWeight: 700 }}>画像 #{idx + 1}</Text>
+                    <Text style={{ fontSize: 8.5, color: colors.dim, marginTop: 2 }}>{networkLabel(a.network)}</Text>
+                    {a.shaPrefix ? <Text style={styles.hashText}>SHA-256: {a.shaPrefix}…</Text> : null}
+                    <Text style={[styles.hashText, { color: colors.blue }]}>
+                      TX: {a.txHash.slice(0, 16)}…{a.txHash.slice(-8)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+              {moreAnchorCount > 0 ? (
+                <Text style={[styles.cardBody, { marginTop: 8, fontSize: 9, color: colors.dim }]}>
+                  ほか {moreAnchorCount} 枚もオンチェーン記録済み（全 {totalAnchored} 枚）
+                </Text>
+              ) : null}
+            </View>
+          )}
 
           {/* 保証情報 */}
           {row.warranty_period_end && (
-            <View style={styles.box}>
-              <Text style={styles.sectionTitle}>保証情報</Text>
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>保証期間終了日</Text>
-                <Text style={styles.itemValue}>{row.warranty_period_end}</Text>
+            <View style={styles.card}>
+              <Text style={styles.cardEyebrow}>保証情報 · Warranty</Text>
+              <View style={[styles.row, styles.rowFirst]}>
+                <Text style={styles.rowLabel}>保証期間終了日</Text>
+                <Text style={styles.rowValue}>{row.warranty_period_end}</Text>
               </View>
             </View>
           )}
 
-          {/* 保証対象外事項 */}
+          {/* 鈑金塗装の修理保証内容 */}
+          {isBodyRepair && bodyRepairData.warranty_info && (
+            <View style={styles.card}>
+              <Text style={styles.cardEyebrow}>修理保証内容 · Repair Warranty</Text>
+              <Text style={styles.cardBody}>{bodyRepairData.warranty_info}</Text>
+            </View>
+          )}
+
+          {/* 保証対象外 */}
           {row.warranty_exclusions && (
-            <View style={styles.box}>
-              <Text style={styles.sectionTitle}>保証対象外事項</Text>
-              <Text style={{ fontSize: 9, lineHeight: 1.6 }}>{row.warranty_exclusions}</Text>
+            <View style={styles.card}>
+              <Text style={styles.cardEyebrow}>保証対象外事項 · Exclusions</Text>
+              <Text style={styles.cardBody}>{row.warranty_exclusions}</Text>
             </View>
           )}
 
-          {/* 注意事項 */}
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>フィルムのお取り扱いについて</Text>
-            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+          {/* サービス別 注意事項 */}
+          {isPpf && (
+            <View style={styles.card}>
+              <Text style={styles.cardEyebrow}>フィルムのお取り扱い · Care</Text>
               {[
-                "・施工後48時間は洗車およびフィルム端部への接触をお控えください。",
-                "・洗車は中性洗剤を使用した手洗いを推奨します。",
-                "・高圧洗浄機をご使用の際は、フィルム端部から30cm以上離してください。",
-                "・ワックスやコンパウンドをフィルム面に使用しないでください。",
-                "・フィルムの端部が浮いた場合は、ご自身で処置せず施工店にご連絡ください。",
-              ].join("\n")}
-            </Text>
-          </View>
-
-          {/* 免責事項 */}
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>免責事項</Text>
-            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
-              {[
-                "本証明書は施工事実を証明するものであり、車両の状態や性能を保証するものではありません。",
-                "以下の事項については保証の対象外となります。",
-                "",
-                "・飛び石、事故その他の外的要因による物理的損傷",
-                "・不適切なメンテナンスに起因する劣化・損傷",
-                "・お客様ご自身による剥離、補修、改変",
-                "・当店以外での施工、修理、改造後に生じた不具合",
-                "・自然災害（台風、雹、洪水等）による損傷",
-                "・フィルムの経年による通常の劣化",
-                "・車両の製造上の塗装不良に起因する問題",
-                "",
-                "保証の適用にあたっては、施工店による現車確認が必要となる場合があります。",
-              ].join("\n")}
-            </Text>
-          </View>
-
-          {/* QR照会案内 */}
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>オンライン照会について</Text>
-            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
-              本証明書に記載のQRコードをスマートフォンで読み取ると、Ledra認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
-            </Text>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={{ fontSize: 7, color: "#999" }}>Powered by Ledra</Text>
-          </View>
-        </Page>
-      )}
-
-      {/* ── ページ2: 注意事項（整備の場合） ── */}
-      {isMaintenance && (
-        <Page size="A4" style={styles.page}>
-          <View>
-            <Text style={styles.title}>{certTitle} — 注意事項</Text>
-            <Text style={styles.meta}>証明書番号: {row.public_id}</Text>
-          </View>
-
-          {row.warranty_period_end && (
-            <View style={styles.box}>
-              <Text style={styles.sectionTitle}>保証情報</Text>
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>保証期間終了日</Text>
-                <Text style={styles.itemValue}>{row.warranty_period_end}</Text>
-              </View>
+                "施工後 48 時間は洗車およびフィルム端部への接触をお控えください。",
+                "洗車は中性洗剤を使用した手洗いを推奨します。",
+                "高圧洗浄機をご使用の際は、フィルム端部から 30cm 以上離してください。",
+                "ワックスやコンパウンドをフィルム面に使用しないでください。",
+                "フィルムの端部が浮いた場合は、ご自身で処置せず施工店にご連絡ください。",
+              ].map((line, i) => (
+                <Text key={i} style={styles.bullet}>
+                  ・{line}
+                </Text>
+              ))}
             </View>
           )}
 
-          {row.warranty_exclusions && (
-            <View style={styles.box}>
-              <Text style={styles.sectionTitle}>保証対象外事項</Text>
-              <Text style={{ fontSize: 9, lineHeight: 1.6 }}>{row.warranty_exclusions}</Text>
+          {isMaintenance && (
+            <View style={styles.card}>
+              <Text style={styles.cardEyebrow}>整備後のご注意 · Aftercare</Text>
+              {[
+                "整備後は慣らし運転を推奨します。急加速・急ブレーキはお控えください。",
+                "オイル交換後は 100km 走行後にオイル量を再確認してください。",
+                "異音、振動、警告灯の点灯等の異常が発生した場合は速やかにご連絡ください。",
+                "定期的な点検・メンテナンスが車両の長寿命化につながります。",
+                "次回点検日が記載されている場合は、期日までの点検をお勧めします。",
+              ].map((line, i) => (
+                <Text key={i} style={styles.bullet}>
+                  ・{line}
+                </Text>
+              ))}
             </View>
           )}
 
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>整備後のご注意</Text>
-            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
+          {isBodyRepair && (
+            <View style={styles.card}>
+              <Text style={styles.cardEyebrow}>塗装後のご注意 · Aftercare</Text>
               {[
-                "・整備後は慣らし運転を推奨します。急加速・急ブレーキはお控えください。",
-                "・オイル交換後は100km走行後にオイル量を再確認してください。",
-                "・異音、振動、警告灯の点灯等の異常が発生した場合は速やかにご連絡ください。",
-                "・定期的な点検・メンテナンスが車両の長寿命化につながります。",
-                "・次回点検日が記載されている場合は、期日までの点検をお勧めします。",
-              ].join("\n")}
-            </Text>
-          </View>
-
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>免責事項</Text>
-            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
-              {[
-                "本証明書は整備作業が実施された事実を証明するものであり、車両の状態や性能を保証するものではありません。",
-                "以下の事項については保証の対象外となります。",
-                "",
-                "・整備箇所以外の部品・装置の不具合",
-                "・お客様の使用方法に起因する故障・損傷",
-                "・事故、災害等の外的要因による損傷",
-                "・当店以外での整備・修理・改造後に生じた不具合",
-                "・消耗品の通常摩耗",
-                "",
-                "保証の適用にあたっては、当店による現車確認が必要となる場合があります。",
-              ].join("\n")}
-            </Text>
-          </View>
-
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>オンライン照会について</Text>
-            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
-              本証明書に記載のQRコードをスマートフォンで読み取ると、Ledra認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
-            </Text>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={{ fontSize: 7, color: "#999" }}>Powered by Ledra</Text>
-          </View>
-        </Page>
-      )}
-
-      {/* ── ページ2: 保証・注意事項（鈑金塗装の場合） ── */}
-      {isBodyRepair && (
-        <Page size="A4" style={styles.page}>
-          <View>
-            <Text style={styles.title}>{certTitle} — 保証・注意事項</Text>
-            <Text style={styles.meta}>証明書番号: {row.public_id}</Text>
-          </View>
-
-          {row.warranty_period_end && (
-            <View style={styles.box}>
-              <Text style={styles.sectionTitle}>保証情報</Text>
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>保証期間終了日</Text>
-                <Text style={styles.itemValue}>{row.warranty_period_end}</Text>
-              </View>
+                "塗装後 1 週間は洗車をお控えください。",
+                "塗装後 1 ヶ月間はワックスがけをお控えください。",
+                "高圧洗浄機のご使用は塗装面から 30cm 以上離してください。",
+                "鳥の糞、樹液等の付着物は速やかに除去してください。",
+                "塗装面の異常（剥がれ、膨れ、変色等）を発見した場合は速やかにご連絡ください。",
+                "研磨剤入りのワックスやコンパウンドの使用はお控えください。",
+              ].map((line, i) => (
+                <Text key={i} style={styles.bullet}>
+                  ・{line}
+                </Text>
+              ))}
             </View>
           )}
 
-          {bodyRepairData.warranty_info && (
-            <View style={styles.box}>
-              <Text style={styles.sectionTitle}>修理保証内容</Text>
-              <Text style={{ fontSize: 9, lineHeight: 1.6 }}>{bodyRepairData.warranty_info}</Text>
+          {/* 免責事項 — 共通 */}
+          {(isPpf || isMaintenance || isBodyRepair) && (
+            <View style={styles.card}>
+              <Text style={styles.cardEyebrow}>免責事項 · Disclaimer</Text>
+              <Text style={[styles.cardBody, { marginBottom: 6 }]}>
+                本証明書は作業が実施された事実を証明するものであり、車両の状態や性能を保証するものではありません。
+                保証の適用にあたっては、当店による現車確認が必要となる場合があります。
+              </Text>
+              <Text style={[styles.cardBody, { marginBottom: 4, color: colors.dim }]}>
+                以下の事項は保証の対象外となります:
+              </Text>
+              {(isPpf
+                ? [
+                    "飛び石、事故その他の外的要因による物理的損傷",
+                    "不適切なメンテナンスに起因する劣化・損傷",
+                    "お客様ご自身による剥離、補修、改変",
+                    "当店以外での施工、修理、改造後に生じた不具合",
+                    "自然災害（台風、雹、洪水等）による損傷",
+                    "フィルムの経年による通常の劣化",
+                  ]
+                : isMaintenance
+                  ? [
+                      "整備箇所以外の部品・装置の不具合",
+                      "お客様の使用方法に起因する故障・損傷",
+                      "事故、災害等の外的要因による損傷",
+                      "当店以外での整備・修理・改造後に生じた不具合",
+                      "消耗品の通常摩耗",
+                    ]
+                  : [
+                      "飛び石、事故その他の外的要因による損傷",
+                      "不適切なメンテナンスに起因する劣化・損傷",
+                      "当店以外での施工、修理、改造後に生じた不具合",
+                      "自然災害（台風、雹、洪水等）による損傷",
+                      "経年による通常の劣化・退色",
+                    ]
+              ).map((line, i) => (
+                <Text key={i} style={styles.bullet}>
+                  ・{line}
+                </Text>
+              ))}
             </View>
           )}
 
-          {row.warranty_exclusions && (
-            <View style={styles.box}>
-              <Text style={styles.sectionTitle}>保証対象外事項</Text>
-              <Text style={{ fontSize: 9, lineHeight: 1.6 }}>{row.warranty_exclusions}</Text>
-            </View>
-          )}
-
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>塗装後のご注意</Text>
-            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
-              {[
-                "・塗装後1週間は洗車をお控えください。",
-                "・塗装後1ヶ月間はワックスがけをお控えください。",
-                "・高圧洗浄機のご使用は塗装面から30cm以上離してください。",
-                "・鳥の糞、樹液等の付着物は速やかに除去してください。",
-                "・塗装面の異常（剥がれ、膨れ、変色等）を発見した場合は速やかにご連絡ください。",
-                "・研磨剤入りのワックスやコンパウンドの使用はお控えください。",
-              ].join("\n")}
+          {/* オンライン照会 */}
+          <View style={styles.card}>
+            <Text style={styles.cardEyebrow}>オンライン照会 · Verify Online</Text>
+            <Text style={styles.cardBody}>
+              本証明書に記載の QR コードをスマートフォンで読み取ると、 Ledra
+              認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
             </Text>
           </View>
 
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>免責事項</Text>
-            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
-              {[
-                "本証明書は鈑金塗装作業が実施された事実を証明するものであり、車両の状態や性能を保証するものではありません。",
-                "以下の事項については保証の対象外となります。",
-                "",
-                "・飛び石、事故その他の外的要因による損傷",
-                "・不適切なメンテナンスに起因する劣化・損傷",
-                "・当店以外での施工、修理、改造後に生じた不具合",
-                "・自然災害（台風、雹、洪水等）による損傷",
-                "・経年による通常の劣化・退色",
-                "・車両の製造上の塗装不良に起因する問題",
-                "",
-                "保証の適用にあたっては、当店による現車確認が必要となる場合があります。",
-              ].join("\n")}
-            </Text>
-          </View>
-
-          <View style={styles.box}>
-            <Text style={styles.sectionTitle}>オンライン照会について</Text>
-            <Text style={{ fontSize: 8, lineHeight: 1.7, color: "#444" }}>
-              本証明書に記載のQRコードをスマートフォンで読み取ると、Ledra認証プラットフォーム上で本証明書の最新情報をリアルタイムに確認できます。
-            </Text>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={{ fontSize: 7, color: "#999" }}>Powered by Ledra</Text>
+          <View style={styles.footer} fixed>
+            <Text style={styles.footerLeft}>{publicUrl}</Text>
+            <Text style={styles.footerRight}>Powered by Ledra</Text>
           </View>
         </Page>
       )}
