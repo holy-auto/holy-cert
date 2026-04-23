@@ -20,9 +20,7 @@ const INTEGRATIONS: Integration[] = [
   { name: "Polygon", note: "証明書アンカリング" },
   { name: "Resend", note: "トランザクションメール" },
   { name: "C2PA", note: "写真コンテンツクレデンシャル" },
-  { name: "CloudSign", note: "電子契約・NDA締結" },
-  { name: "Google Cloud Vision", note: "車検証OCR" },
-  { name: "Claude", note: "OCR検証・エージェント" },
+  { name: "Claude", note: "車検証OCR・写真品質検証・エージェント" },
   { name: "Upstash", note: "分散レート制限・キャッシュ" },
   { name: "Supabase", note: "RLS付きデータ基盤" },
 ];
@@ -38,14 +36,8 @@ export function IntegrationLogoWall() {
         {INTEGRATIONS.map((item, i) => (
           <ScrollReveal key={item.name} variant="fade-up" delay={Math.floor(i / 4) * 60}>
             <div className="group h-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-6 text-center hover:bg-white/[0.06] hover:border-white/[0.14] transition-colors">
-              <p className="text-sm md:text-base font-semibold text-white tracking-tight">
-                {item.name}
-              </p>
-              {item.note && (
-                <p className="mt-1.5 text-[0.688rem] leading-relaxed text-white/40">
-                  {item.note}
-                </p>
-              )}
+              <p className="text-sm md:text-base font-semibold text-white tracking-tight">{item.name}</p>
+              {item.note && <p className="mt-1.5 text-[0.688rem] leading-relaxed text-white/40">{item.note}</p>}
             </div>
           </ScrollReveal>
         ))}
