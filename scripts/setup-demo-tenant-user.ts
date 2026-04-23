@@ -101,8 +101,25 @@ async function findOrCreateAuthUser(): Promise<string> {
  * tenant_memberships への upsert。
  * 事前の setup-demo-tenant.ts と同じ schema-tolerance 処理で、知らないカラムは
  * 自動スキップしつつリトライする。
+ *
+ * 同じユーザーが他テナントにもメンバーシップを持っていると、
+ * resolveCallerWithRole（ダッシュボード側の解決）が oldest を拾って
+ * 別テナントを表示してしまう。本 demo ユーザーは demo 専用の設計なので、
+ * demo 以外のメンバーシップがあれば事前に削除する。
  */
 async function upsertMembership(userId: string): Promise<void> {
+  // 既存の他テナント紐付けを削除（このユーザーは demo 専用の想定）
+  const { error: delErr } = await admin
+    .from("tenant_memberships")
+    .delete()
+    .eq("user_id", userId)
+    .neq("tenant_id", TENANT_ID);
+  if (delErr && !delErr.message.includes("not exist")) {
+    console.error("⚠️ 他テナント tenant_memberships の掃除に失敗:", delErr.message);
+  } else {
+    console.log("✅ 他テナントへの memberships を掃除");
+  }
+
   let payload: Record<string, unknown> = {
     tenant_id: TENANT_ID,
     user_id: userId,
