@@ -342,9 +342,10 @@ async function main(): Promise<void> {
       performed_at: dateDaysAgo(cert.daysAgo),
     });
   }
-  // 車両ごとの「来店」「作業完了」イベントも足して時系列を豊かに
+  // 車両ごとに「車両を登録」イベントを足してタイムラインの起点を作る
+  // (type は src/lib/audit/certificateLog.ts の AuditEventType 仕様に合わせる)
   for (const v of VEHICLES) {
-    // 1 回だけ「初回来店」イベント（最古施工の前日）
+    // 最古施工の前日を登録日とみなす（複数施工されていれば全てより前の時点）
     const firstCert = CERTS.filter((c) => c.vehicleIdn === v.idn).sort((a, b) => b.daysAgo - a.daysAgo)[0];
     if (!firstCert) continue;
     histCounter += 1;
@@ -352,9 +353,9 @@ async function main(): Promise<void> {
       id: uuid("a501", histCounter),
       tenant_id: TENANT_ID,
       vehicle_id: uuid("v001", v.idn),
-      type: "visit",
-      title: "初回来店・施工相談",
-      description: `${v.maker} ${v.model} のご相談。`,
+      type: "vehicle_registered",
+      title: "車両を登録",
+      description: `${v.maker} ${v.model} (${v.plate_display}) を登録`,
       performed_at: dateDaysAgo(firstCert.daysAgo + 1),
     });
   }
