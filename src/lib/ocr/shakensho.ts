@@ -27,6 +27,30 @@ export interface ShakenshoData {
   displacement_cc?: number;
   /** ナンバー表示 (例: 品川 300 あ 12-34) — 個人情報のため任意 */
   plate_display?: string;
+
+  // ─── 二次元コード由来の追加フィールド（電子車検証 仕様書 2023.1版） ───
+
+  /** 型式指定番号・類別区分番号（車両スペックDB検索の主キー） */
+  model_code?: string;
+  /** 自動車検査証の有効期間の満了する日 (YYYY-MM-DD) */
+  expiry_date?: string;
+  /** 原動機型式（エンジン型式） */
+  engine_model?: string;
+  /** 燃料の種類（例: "ガソリン", "軽油", "電気", "ガソリン・電気"） */
+  fuel_type?: string;
+  /** 車台番号打刻位置コード */
+  chassis_punch_position?: string;
+  /** 軸重 kg（前前・前後・後前・後後、各 10kg 単位を kg 換算） */
+  axle_weights_kg?: {
+    front_front?: number;
+    front_rear?: number;
+    rear_front?: number;
+    rear_rear?: number;
+  };
+  /** 駆動方式（"全輪駆動" / "その他" / "一般車" / "設定値無し"） */
+  drive_type?: string;
+  /** 保安基準適用年月日 (YYYY-MM-DD) */
+  safety_standard_date?: string;
 }
 
 /**
@@ -80,32 +104,154 @@ const SYSTEM_PROMPT = `あなたは日本の自動車車検証（自動車検査
 {
   "maker": "車名（例: トヨタ）| null",
   "model": "型式（例: 6AA-MXPH15）| null",
+  "model_code": "型式指定番号・類別区分番号（例: 12345-0234）| null",
   "first_registration": "初度登録年月（例: 令和4年3月 もしくは 2022年3月）| null",
+  "expiry_date": "自動車検査証の有効期間の満了する日（YYYY-MM-DD 形式）| null",
   "vin": "車台番号 | null",
   "length_mm": 長さのミリメートル数値 | null,
   "width_mm": 幅のミリメートル数値 | null,
   "height_mm": 高さのミリメートル数値 | null,
   "weight_kg": 車両重量のキログラム数値 | null,
   "displacement_cc": 総排気量のcc数値 | null,
+  "fuel_type": "燃料の種類（例: ガソリン、軽油、電気、ガソリン・電気）| null",
   "plate_display": "自動車登録番号・車両番号（例: 品川 300 あ 12-34）| null"
 }
 
 注意:
 - 寸法・重量・排気量は整数で返す（車検証の値をそのまま）
 - 長さ・幅・高さはミリメートル、重量はキログラム、排気量はcc
+- 有効期間満了日は西暦 YYYY-MM-DD 形式（和暦は西暦に変換）
 - 車検証以外の画像や、読み取り不能な場合は全項目 null で返す`;
 
 interface RawResponse {
   maker: string | null;
   model: string | null;
+  model_code: string | null;
   first_registration: string | null;
+  expiry_date: string | null;
   vin: string | null;
   length_mm: number | null;
   width_mm: number | null;
   height_mm: number | null;
   weight_kg: number | null;
   displacement_cc: number | null;
+  fuel_type: string | null;
   plate_display: string | null;
+}
+
+/**
+ * 初度登録年月文字列から西暦年を抽出する。
+ * - "2023-01", "2022年3月", "令和4年3月" など複数フォーマットに対応
+ * - 抽出できない場合は null
+ */
+export function extractFirstRegistrationYear(
+  firstRegistration: string | undefined,
+): number | null {
+  if (!firstRegistration) return null;
+
+  const westernMatch = firstRegistration.match(/^(\d{4})/);
+  if (westernMatch) {
+    const y = parseInt(westernMatch[1], 10);
+    if (y > 1900 && y < 2100) return y;
+  }
+
+  const eraPatterns: [RegExp, number][] = [
+    [/令和\s*(\d+)/, 2018],
+    [/平成\s*(\d+)/, 1988],
+    [/昭和\s*(\d+)/, 1925],
+    [/大正\s*(\d+)/, 1911],
+  ];
+
+  for (const [re, base] of eraPatterns) {
+    const m = firstRegistration.match(re);
+    if (m) return base + parseInt(m[1], 10);
+  }
+
+  return null;
+}
+
+/**
+ * 解析ソース:
+ * - "qr": 2Dコードのみで必須フィールドを満たした
+ * - "ocr": QR が読めず Claude Vision OCR のみを使用
+ * - "hybrid": QR + OCR の両方を使い結果をマージ（QR 優先）
+ */
+export type ShakenshoSource = "qr" | "ocr" | "hybrid";
+
+export interface ShakenshoParseResult {
+  data: ShakenshoData;
+  source: ShakenshoSource;
+}
+
+export interface ParseShakenshoOptions {
+  /**
+   * 呼び出し側が必要とする必須フィールド。
+   *
+   * QR コードからこれら全てが取得できた場合のみ QR 単独で短絡する。
+   * 欠落がある場合は Claude Vision OCR を併用し、QR を優先しつつ OCR で
+   * 欠落を埋める（source='hybrid'）。
+   *
+   * 注意: QR は `maker` や寸法（length/width/height）を含まないため、
+   * それらを必須にすると事実上常に OCR も走ることになる。
+   */
+  requireFields?: (keyof ShakenshoData)[];
+}
+
+function hasAllFields(
+  data: Partial<ShakenshoData> | null | undefined,
+  required: readonly (keyof ShakenshoData)[],
+): boolean {
+  if (!data) return false;
+  return required.every((k) => {
+    const v = data[k];
+    return v !== undefined && v !== null && v !== "";
+  });
+}
+
+/**
+ * 車検証画像を解析する。
+ *
+ * 動作:
+ * 1. 画像内の全 2D コード（QR2+QR3 等）を `decode2DCodes` で読み、
+ *    `parseShakenshoCode` で結合パースする。
+ * 2. `requireFields` が全て揃っていれば QR 単独の結果を返す（source='qr'）。
+ * 3. 欠落がある、または QR が読めなかった場合は Claude Vision OCR を実行し、
+ *    QR を優先しながらマージする（source='hybrid' または 'ocr'）。
+ *
+ * これにより QR にない `maker` や寸法などを OCR で補完でき、QR が半端に
+ * 読めた場合でも呼び出し側のフィールドが null に退行しない。
+ */
+export async function parseShakenshoAuto(
+  imageBuffer: Buffer,
+  options: ParseShakenshoOptions = {},
+): Promise<ShakenshoParseResult> {
+  const { decode2DCodes, parseShakenshoCode } = await import("./shakensho-qr");
+
+  const qrTexts = await decode2DCodes(imageBuffer);
+  const qrData =
+    qrTexts.length > 0 ? parseShakenshoCode(qrTexts.join("\n")) : null;
+
+  const required = options.requireFields ?? [];
+  if (qrData && hasAllFields(qrData, required)) {
+    return { data: qrData, source: "qr" };
+  }
+
+  // QR が不足 or 読めず → OCR で補完
+  const ocrData = await parseShakensho(imageBuffer);
+  if (!qrData) {
+    return { data: ocrData, source: "ocr" };
+  }
+
+  // QR は MLIT 公式データなので共有フィールドは QR 優先でマージ
+  const merged: ShakenshoData = { ...ocrData };
+  for (const [key, value] of Object.entries(qrData) as Array<
+    [keyof ShakenshoData, ShakenshoData[keyof ShakenshoData]]
+  >) {
+    if (value !== undefined && value !== null) {
+      (merged as Record<string, unknown>)[key] = value;
+    }
+  }
+  return { data: merged, source: "hybrid" };
 }
 
 /**
@@ -146,7 +292,9 @@ export async function parseShakensho(imageBuffer: Buffer): Promise<ShakenshoData
   const data: ShakenshoData = {};
   if (raw.maker) data.maker = raw.maker;
   if (raw.model) data.model = raw.model;
+  if (raw.model_code) data.model_code = raw.model_code;
   if (raw.first_registration) data.first_registration = raw.first_registration;
+  if (raw.expiry_date) data.expiry_date = raw.expiry_date;
   if (raw.vin) data.vin = raw.vin;
   if (typeof raw.length_mm === "number" && raw.length_mm > 0) data.length_mm = raw.length_mm;
   if (typeof raw.width_mm === "number" && raw.width_mm > 0) data.width_mm = raw.width_mm;
@@ -155,6 +303,7 @@ export async function parseShakensho(imageBuffer: Buffer): Promise<ShakenshoData
   if (typeof raw.displacement_cc === "number" && raw.displacement_cc > 0) {
     data.displacement_cc = raw.displacement_cc;
   }
+  if (raw.fuel_type) data.fuel_type = raw.fuel_type;
   if (raw.plate_display) data.plate_display = raw.plate_display;
 
   return data;
