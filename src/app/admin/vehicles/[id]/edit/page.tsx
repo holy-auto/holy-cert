@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Button from "@/components/ui/Button";
+import ShakenshoScanner from "@/components/vehicles/ShakenshoScanner";
 
 type Customer = { id: string; name: string; phone: string | null };
 
@@ -26,8 +27,23 @@ export default function AdminVehicleEditPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const ocrInputRef = useRef<HTMLInputElement>(null);
+
+  function applyExtracted(x: {
+    maker?: string | null;
+    model?: string | null;
+    year?: number | null;
+    vin_code?: string | null;
+    plate_display?: string | null;
+  }) {
+    if (x.maker) setMaker(x.maker);
+    if (x.model) setModel(x.model);
+    if (x.year) setYear(String(x.year));
+    if (x.vin_code) setVinCode(x.vin_code);
+    if (x.plate_display) setPlateDisplay(x.plate_display);
+  }
 
   useEffect(() => {
     if (!customerSearch.trim()) { setCustomerResults([]); return; }
@@ -116,17 +132,35 @@ export default function AdminVehicleEditPage() {
         setErr(j?.message || "車検証の読み取りに失敗しました。");
         return;
       }
-      const x = j.extracted;
-      if (x.maker) setMaker(x.maker);
-      if (x.model) setModel(x.model);
-      if (x.year) setYear(String(x.year));
-      if (x.vin_code) setVinCode(x.vin_code);
-      if (x.plate_display) setPlateDisplay(x.plate_display);
+      applyExtracted(j.extracted);
     } catch (e: any) {
       setErr(String(e?.message || e));
     } finally {
       setOcrBusy(false);
       if (ocrInputRef.current) ocrInputRef.current.value = "";
+    }
+  }
+
+  async function onScanResult(raw: string) {
+    setScannerOpen(false);
+    setOcrBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/vehicles/parse-shakken-qr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        setErr(j?.message || "二次元コードの解析に失敗しました。画像アップロードをお試しください。");
+        return;
+      }
+      applyExtracted(j.extracted);
+    } catch (e: any) {
+      setErr(String(e?.message || e));
+    } finally {
+      setOcrBusy(false);
     }
   }
 
@@ -152,7 +186,7 @@ export default function AdminVehicleEditPage() {
         <div className="glass-card p-5">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-1">車検証から自動入力</div>
           <p className="text-sm text-secondary mb-3">
-            車検証を撮影 / アップロードするとメーカー・車種・年式・車体番号・ナンバーを自動入力します。
+            電子車検証の二次元コードをカメラで直接読むか、画像をアップロードするとメーカー・車種・年式・車体番号・ナンバーを自動入力します。
           </p>
           <input
             ref={ocrInputRef}
@@ -162,15 +196,31 @@ export default function AdminVehicleEditPage() {
             className="hidden"
             onChange={onOcrFileChange}
           />
-          <Button
-            type="button"
-            variant="secondary"
-            loading={ocrBusy}
-            onClick={() => ocrInputRef.current?.click()}
-          >
-            {ocrBusy ? "読み取り中..." : "車検証から読み取る"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="primary"
+              disabled={ocrBusy}
+              onClick={() => setScannerOpen(true)}
+            >
+              カメラでスキャン
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              loading={ocrBusy}
+              onClick={() => ocrInputRef.current?.click()}
+            >
+              {ocrBusy ? "読み取り中..." : "画像をアップロード"}
+            </Button>
+          </div>
         </div>
+
+        <ShakenshoScanner
+          open={scannerOpen}
+          onResult={onScanResult}
+          onClose={() => setScannerOpen(false)}
+        />
 
         <form onSubmit={onSubmit} className="space-y-6 glass-card p-6">
           <div className="grid gap-4 md:grid-cols-2">

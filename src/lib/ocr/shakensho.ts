@@ -143,6 +143,37 @@ interface RawResponse {
   plate_display: string | null;
 }
 
+/**
+ * 初度登録年月文字列から西暦年を抽出する。
+ * - "2023-01", "2022年3月", "令和4年3月" など複数フォーマットに対応
+ * - 抽出できない場合は null
+ */
+export function extractFirstRegistrationYear(
+  firstRegistration: string | undefined,
+): number | null {
+  if (!firstRegistration) return null;
+
+  const westernMatch = firstRegistration.match(/^(\d{4})/);
+  if (westernMatch) {
+    const y = parseInt(westernMatch[1], 10);
+    if (y > 1900 && y < 2100) return y;
+  }
+
+  const eraPatterns: [RegExp, number][] = [
+    [/令和\s*(\d+)/, 2018],
+    [/平成\s*(\d+)/, 1988],
+    [/昭和\s*(\d+)/, 1925],
+    [/大正\s*(\d+)/, 1911],
+  ];
+
+  for (const [re, base] of eraPatterns) {
+    const m = firstRegistration.match(re);
+    if (m) return base + parseInt(m[1], 10);
+  }
+
+  return null;
+}
+
 export type ShakenshoSource = "qr" | "ocr";
 
 export interface ShakenshoParseResult {
