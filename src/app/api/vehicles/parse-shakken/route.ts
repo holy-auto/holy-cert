@@ -26,7 +26,11 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const imageBuffer = Buffer.from(arrayBuffer);
 
-    const { data: parsed, source } = await parseShakenshoAuto(imageBuffer);
+    // maker は QR コードには含まれない（OCR 必須）ので requireFields に指定。
+    // QR だけでは不足と判定され OCR を併用してマージされる。
+    const { data: parsed, source } = await parseShakenshoAuto(imageBuffer, {
+      requireFields: ["maker"],
+    });
 
     return Response.json({
       ok: true,

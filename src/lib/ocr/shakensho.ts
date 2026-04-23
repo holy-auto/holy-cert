@@ -174,33 +174,88 @@ export function extractFirstRegistrationYear(
   return null;
 }
 
-export type ShakenshoSource = "qr" | "ocr";
+/**
+ * 解析ソース:
+ * - "qr": 2Dコードのみで必須フィールドを満たした
+ * - "ocr": QR が読めず Claude Vision OCR のみを使用
+ * - "hybrid": QR + OCR の両方を使い結果をマージ（QR 優先）
+ */
+export type ShakenshoSource = "qr" | "ocr" | "hybrid";
 
 export interface ShakenshoParseResult {
   data: ShakenshoData;
   source: ShakenshoSource;
 }
 
+export interface ParseShakenshoOptions {
+  /**
+   * 呼び出し側が必要とする必須フィールド。
+   *
+   * QR コードからこれら全てが取得できた場合のみ QR 単独で短絡する。
+   * 欠落がある場合は Claude Vision OCR を併用し、QR を優先しつつ OCR で
+   * 欠落を埋める（source='hybrid'）。
+   *
+   * 注意: QR は `maker` や寸法（length/width/height）を含まないため、
+   * それらを必須にすると事実上常に OCR も走ることになる。
+   */
+  requireFields?: (keyof ShakenshoData)[];
+}
+
+function hasAllFields(
+  data: Partial<ShakenshoData> | null | undefined,
+  required: readonly (keyof ShakenshoData)[],
+): boolean {
+  if (!data) return false;
+  return required.every((k) => {
+    const v = data[k];
+    return v !== undefined && v !== null && v !== "";
+  });
+}
+
 /**
- * 車検証画像を「2Dコード→失敗時はClaude Vision OCR」の順で解析する。
+ * 車検証画像を解析する。
  *
- * 2Dコードが取れた場合でもフィールドは限定的な場合があるので、
- * 呼び出し側は result.source を記録しておくと将来のデータ品質追跡に使える。
+ * 動作:
+ * 1. 画像内の全 2D コード（QR2+QR3 等）を `decode2DCodes` で読み、
+ *    `parseShakenshoCode` で結合パースする。
+ * 2. `requireFields` が全て揃っていれば QR 単独の結果を返す（source='qr'）。
+ * 3. 欠落がある、または QR が読めなかった場合は Claude Vision OCR を実行し、
+ *    QR を優先しながらマージする（source='hybrid' または 'ocr'）。
+ *
+ * これにより QR にない `maker` や寸法などを OCR で補完でき、QR が半端に
+ * 読めた場合でも呼び出し側のフィールドが null に退行しない。
  */
-export async function parseShakenshoAuto(imageBuffer: Buffer): Promise<ShakenshoParseResult> {
-  // QR/DataMatrix が読めれば高精度・低コスト
-  const { decode2DCode, parseShakenshoCode } = await import("./shakensho-qr");
-  const raw = await decode2DCode(imageBuffer);
-  if (raw) {
-    const parsed = parseShakenshoCode(raw);
-    if (parsed && Object.keys(parsed).length > 0) {
-      return { data: parsed, source: "qr" };
-    }
+export async function parseShakenshoAuto(
+  imageBuffer: Buffer,
+  options: ParseShakenshoOptions = {},
+): Promise<ShakenshoParseResult> {
+  const { decode2DCodes, parseShakenshoCode } = await import("./shakensho-qr");
+
+  const qrTexts = await decode2DCodes(imageBuffer);
+  const qrData =
+    qrTexts.length > 0 ? parseShakenshoCode(qrTexts.join("\n")) : null;
+
+  const required = options.requireFields ?? [];
+  if (qrData && hasAllFields(qrData, required)) {
+    return { data: qrData, source: "qr" };
   }
 
-  // フォールバック: Claude Vision OCR
-  const data = await parseShakensho(imageBuffer);
-  return { data, source: "ocr" };
+  // QR が不足 or 読めず → OCR で補完
+  const ocrData = await parseShakensho(imageBuffer);
+  if (!qrData) {
+    return { data: ocrData, source: "ocr" };
+  }
+
+  // QR は MLIT 公式データなので共有フィールドは QR 優先でマージ
+  const merged: ShakenshoData = { ...ocrData };
+  for (const [key, value] of Object.entries(qrData) as Array<
+    [keyof ShakenshoData, ShakenshoData[keyof ShakenshoData]]
+  >) {
+    if (value !== undefined && value !== null) {
+      (merged as Record<string, unknown>)[key] = value;
+    }
+  }
+  return { data: merged, source: "hybrid" };
 }
 
 /**

@@ -44,7 +44,11 @@ export async function POST(req: NextRequest) {
     const imageBuffer = Buffer.from(arrayBuffer);
 
     // --- 2D code → OCR フォールバック ---
-    const { data: parsed, source } = await parseShakenshoAuto(imageBuffer);
+    // このルートはサイズクラス判定で寸法（長さ・幅・高さ・重量）が必須。
+    // QR には寸法が含まれないため、QR のみでは必ず OCR 併用になる。
+    const { data: parsed, source } = await parseShakenshoAuto(imageBuffer, {
+      requireFields: ["maker", "length_mm", "width_mm", "height_mm", "weight_kg"],
+    });
 
     // --- Calculate size_class from dimensions if available ---
     let size_class: string | null = null;

@@ -14,6 +14,7 @@
  * @see https://www.denshishakensho-portal.mlit.go.jp/
  */
 import sharp from "sharp";
+import type { Region } from "sharp";
 import {
   MultiFormatReader,
   BarcodeFormat,
@@ -29,18 +30,27 @@ import type { ShakenshoData } from "./shakensho";
 // 画像デコード
 // ─────────────────────────────────────────────
 
-/**
- * 画像から 2D コード（QR / DataMatrix / Aztec / PDF417）をデコード。
- * 見つからなければ null。
- *
- * TODO: 電子車検証はコード分割（Structured Append）で 2〜3 個の QR を使う。
- *       1 枚の画像に複数 QR が写っている場合、GenericMultipleBarcodeReader 等で
- *       全て読み取り、改行連結して parseShakenshoCode に渡す拡張を検討。
- */
-export async function decode2DCode(imageBuffer: Buffer): Promise<string | null> {
+function buildHints(): Map<DecodeHintType, unknown> {
+  const hints = new Map<DecodeHintType, unknown>();
+  hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+    BarcodeFormat.QR_CODE,
+    BarcodeFormat.DATA_MATRIX,
+    BarcodeFormat.AZTEC,
+    BarcodeFormat.PDF_417,
+  ]);
+  hints.set(DecodeHintType.TRY_HARDER, true);
+  return hints;
+}
+
+/** 指定領域（または画像全体）から単一の 2D コードをデコード */
+async function tryDecodeRegion(
+  imageBuffer: Buffer,
+  region?: Region,
+): Promise<string | null> {
   try {
-    const { data, info } = await sharp(imageBuffer)
-      .rotate() // EXIF に従って自動回転
+    let pipeline = sharp(imageBuffer).rotate(); // EXIF 回転を先に反映
+    if (region) pipeline = pipeline.extract(region);
+    const { data, info } = await pipeline
       .grayscale()
       .raw()
       .toBuffer({ resolveWithObject: true });
@@ -50,23 +60,68 @@ export async function decode2DCode(imageBuffer: Buffer): Promise<string | null> 
     const bitmap = new BinaryBitmap(new HybridBinarizer(source));
 
     const reader = new MultiFormatReader();
-    const hints = new Map<DecodeHintType, unknown>();
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-      BarcodeFormat.QR_CODE,
-      BarcodeFormat.DATA_MATRIX,
-      BarcodeFormat.AZTEC,
-      BarcodeFormat.PDF_417,
-    ]);
-    hints.set(DecodeHintType.TRY_HARDER, true);
-    reader.setHints(hints);
-
-    const result = reader.decode(bitmap);
-    return result.getText();
+    reader.setHints(buildHints());
+    return reader.decode(bitmap).getText();
   } catch (err) {
     if (err instanceof NotFoundException) return null;
-    console.warn("[shakensho-qr] decode failed:", err);
     return null;
   }
+}
+
+/**
+ * 画像から**全ての** 2D コードをデコードして配列で返す。
+ *
+ * 電子車検証は二次元コード2（QR2）と二次元コード3（QR3）が同一画像に並んで
+ * 印字されるため、両方を読まないと情報が欠落する。`@zxing/library` v0.21 の
+ * 公開 API には複数検出リーダが無いので、画像を「全体 → 左右半分 → 上下半分」と
+ * 複数領域に分けて個別デコードし、結果を重複除去して返す。1 件も見つからなければ
+ * 空配列。
+ */
+export async function decode2DCodes(imageBuffer: Buffer): Promise<string[]> {
+  const results = new Set<string>();
+
+  // 1. 画像全体
+  const whole = await tryDecodeRegion(imageBuffer);
+  if (whole) results.add(whole);
+
+  // 2. 既に 2 件以上検出できていれば（QR2+QR3 の想定）これ以上のリージョン試行は不要
+  if (results.size >= 2) return Array.from(results);
+
+  // 3. 画像サイズを取得して左右・上下の半分ずつ試す
+  try {
+    const meta = await sharp(imageBuffer).rotate().metadata();
+    const w = meta.width ?? 0;
+    const h = meta.height ?? 0;
+    if (w >= 40 && h >= 40) {
+      const halfW = Math.floor(w / 2);
+      const halfH = Math.floor(h / 2);
+      const regions: Region[] = [
+        { left: 0, top: 0, width: halfW, height: h }, // 左半分
+        { left: halfW, top: 0, width: w - halfW, height: h }, // 右半分
+        { left: 0, top: 0, width: w, height: halfH }, // 上半分
+        { left: 0, top: halfH, width: w, height: h - halfH }, // 下半分
+      ];
+      for (const region of regions) {
+        const r = await tryDecodeRegion(imageBuffer, region);
+        if (r) results.add(r);
+        if (results.size >= 2) break; // QR2+QR3 揃った時点で打ち切り
+      }
+    }
+  } catch (err) {
+    console.warn("[shakensho-qr] region metadata failed:", err);
+  }
+
+  return Array.from(results);
+}
+
+/**
+ * 画像から単一の 2D コードをデコード。複数コードが写っている場合は
+ * `decode2DCodes` を使うこと。
+ *
+ * @deprecated 電子車検証のユースケースでは `decode2DCodes` を使う。
+ */
+export async function decode2DCode(imageBuffer: Buffer): Promise<string | null> {
+  return tryDecodeRegion(imageBuffer);
 }
 
 // ─────────────────────────────────────────────
