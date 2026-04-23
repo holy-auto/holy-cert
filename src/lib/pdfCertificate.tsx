@@ -251,27 +251,28 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
-  // QR
-  qrWrap: {
+  // QR (top-right corner)
+  qrCorner: {
+    position: "absolute",
+    top: 44,
+    right: 44,
     alignItems: "center",
-    paddingTop: 10,
-    paddingBottom: 4,
   },
   qrInner: {
-    padding: 10,
-    borderRadius: 8,
+    padding: 6,
+    borderRadius: 6,
     backgroundColor: "#ffffff",
   },
   qr: {
-    width: 110,
-    height: 110,
+    width: 72,
+    height: 72,
   },
   qrCaption: {
-    fontSize: 8,
+    fontSize: 7,
     color: colors.dim,
-    letterSpacing: 3,
+    letterSpacing: 2,
     textTransform: "uppercase",
-    marginTop: 8,
+    marginTop: 4,
   },
   // Anchor QR
   anchorBlock: {
@@ -512,7 +513,7 @@ export async function renderCertificatePdf(
     <Document>
       {/* ── ページ1: 証明書本体 ── */}
       <Page size="A4" style={styles.page}>
-        {/* Top row: brand + badge */}
+        {/* Top row: brand (QR is pinned absolute, see below) */}
         <View style={styles.topRow}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             {logoUrl ? <Image src={logoUrl} style={{ height: 22, width: 96 }} /> : null}
@@ -521,7 +522,6 @@ export async function renderCertificatePdf(
               <Text style={styles.brandSub}>Construction Record · Verified</Text>
             </View>
           </View>
-          <Text style={styles.badge}>CERTIFICATE · {(row.current_version ?? 1) > 1 ? `v${row.current_version}` : "v1"}</Text>
         </View>
 
         {/* Hero */}
@@ -530,7 +530,7 @@ export async function renderCertificatePdf(
         <Text style={styles.heroTitle}>{certTitle}</Text>
         <Text style={styles.heroSub}>Certificate of Construction Record</Text>
 
-        {/* Cert metadata + QR */}
+        {/* Cert metadata */}
         <View style={styles.certMeta}>
           <View>
             <Text style={styles.certNumberLabel}>Certificate No.</Text>
@@ -539,16 +539,18 @@ export async function renderCertificatePdf(
               <Text style={styles.reissue}>再発行版 (第{row.current_version}版)</Text>
             )}
           </View>
-          <View style={{ alignItems: "center" }}>
-            <View style={styles.qrInner}>
-              <Image src={qrDataUrl} style={{ width: 80, height: 80 }} />
-            </View>
-            <Text style={styles.qrCaption}>Scan to verify</Text>
-          </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={styles.certDateLabel}>Issued</Text>
             <Text style={styles.certDate}>{issueDate}</Text>
           </View>
+        </View>
+
+        {/* QR pinned to top-right corner */}
+        <View style={styles.qrCorner}>
+          <View style={styles.qrInner}>
+            <Image src={qrDataUrl} style={styles.qr} />
+          </View>
+          <Text style={styles.qrCaption}>Scan to verify</Text>
         </View>
 
         {/* Declaration */}
