@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import styles from "./motion-demo.module.css";
+import { AdvancedSections } from "./AdvancedSections";
 
 type SectionProps = {
   id: string;
@@ -591,6 +592,11 @@ export function MotionDemoClient() {
           </div>
         ))}
       </div>
+
+      {/* ═══════════════════════════════════════════════
+          Advanced sections (07–15)
+          ═══════════════════════════════════════════════ */}
+      <AdvancedSections />
 
       {/* FOOTER */}
       <footer className={styles.footer}>
