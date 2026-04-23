@@ -149,27 +149,45 @@ async function upsert<T extends Record<string, unknown>>(
   table: string,
   rows: T[],
   onConflict: string,
+  opts: { typeColumn?: string } = {},
 ): Promise<void> {
   // Schema drift is common across Supabase projects (columns added / removed
-  // by later migrations). If the upsert fails because a column doesn't exist
-  // in the target schema, strip that column and retry — up to 6 times.
+  // by later migrations, or CHECK constraints narrower than the TS union).
+  // Strategies, tried in order, up to 8 attempts:
+  //   1) Strip columns the schema cache reports as missing (PGRST204)
+  //   2) If a CHECK constraint fails and we know the type column, drop
+  //      every row whose type value was implicated
   let current = rows as Record<string, unknown>[];
-  const dropped = new Set<string>();
+  const droppedCols = new Set<string>();
+  const droppedTypes = new Set<string>();
 
-  for (let attempt = 0; attempt < 6; attempt++) {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    if (current.length === 0) {
+      if (droppedCols.size > 0) {
+        console.log(`  ℹ️ schema に無いカラムをスキップ: ${[...droppedCols].join(", ")}`);
+      }
+      if (droppedTypes.size > 0) {
+        console.log(`  ℹ️ check 制約で許可されない type をスキップ: ${[...droppedTypes].join(", ")}`);
+      }
+      console.log(`  (全行がスキップされました)`);
+      return;
+    }
     const { error } = await admin.from(table).upsert(current, { onConflict });
     if (!error) {
-      if (dropped.size > 0) {
-        console.log(`  ℹ️ schema に無いカラムをスキップ: ${[...dropped].join(", ")}`);
+      if (droppedCols.size > 0) {
+        console.log(`  ℹ️ schema に無いカラムをスキップ: ${[...droppedCols].join(", ")}`);
+      }
+      if (droppedTypes.size > 0) {
+        console.log(`  ℹ️ check 制約で許可されない type をスキップ: ${[...droppedTypes].join(", ")}`);
       }
       return;
     }
 
-    // PGRST204: "Could not find the 'X' column of 'Y' in the schema cache"
+    // 1) Missing column: PGRST204
     const missingColumn = error.message.match(/Could not find the '([^']+)' column/);
-    if (missingColumn && !dropped.has(missingColumn[1])) {
+    if (missingColumn && !droppedCols.has(missingColumn[1])) {
       const col = missingColumn[1];
-      dropped.add(col);
+      droppedCols.add(col);
       current = current.map((row) => {
         const copy = { ...row };
         delete copy[col];
@@ -178,10 +196,42 @@ async function upsert<T extends Record<string, unknown>>(
       continue;
     }
 
+    // 2) CHECK violation on the type column
+    if (opts.typeColumn && /check constraint/i.test(error.message)) {
+      // Extract the offending row's type from the `details` field when
+      // available (PostgREST passes it through as JSON in error.details
+      // OR concatenated into error.message as "Failing row contains (...)")
+      const typeVal = extractFailingTypeValue(error, opts.typeColumn, current);
+      if (typeVal && !droppedTypes.has(typeVal)) {
+        droppedTypes.add(typeVal);
+        current = current.filter((r) => r[opts.typeColumn!] !== typeVal);
+        continue;
+      }
+    }
+
     console.error(`❌ ${table} upsert failed:`, error.message);
     throw error;
   }
   throw new Error(`${table} upsert: too many schema mismatches`);
+}
+
+function extractFailingTypeValue(
+  error: { message: string; details?: string | null },
+  typeColumn: string,
+  rows: Record<string, unknown>[],
+): string | null {
+  // Prefer the "Failing row contains (...)" tail, which lists column values
+  // in declaration order. We don't know the precise position of the type
+  // column here, so fall back to matching against the known set of types in
+  // `rows` — whichever value appears in the failing row is the offender.
+  const text = `${error.message} ${error.details ?? ""}`;
+  const candidates = new Set<string>(rows.map((r) => String(r[typeColumn] ?? "")));
+  for (const candidate of candidates) {
+    if (candidate && text.includes(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
 }
 
 async function reset(): Promise<void> {
@@ -359,8 +409,8 @@ async function main(): Promise<void> {
       performed_at: dateDaysAgo(firstCert.daysAgo + 1),
     });
   }
-  await upsert("vehicle_histories", historyRows, "id");
-  console.log(`  ✓ ${historyRows.length} 件`);
+  await upsert("vehicle_histories", historyRows, "id", { typeColumn: "type" });
+  console.log(`  ✓ 投入完了（不許可の type は自動スキップ済み）`);
 
   // 7) Report
   console.log("\n🎉 セットアップ完了\n");
