@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { CUSTOMER_COOKIE, getTenantIdBySlug, validateSession, getCustomerProfile } from "@/lib/customerPortalServer";
 import { GLOBAL_PORTAL_COOKIE, resolvePortalTenantAccessByGlobalToken } from "@/lib/customerPortalGlobal";
@@ -46,7 +46,8 @@ export async function GET(req: Request) {
     const sess = await resolveSession(tenantSlug);
     if (!sess) return apiUnauthorized();
 
-    const { data, error } = await getSupabaseAdmin()
+    const { admin } = createTenantScopedAdmin(sess.tenantId);
+    const { data, error } = await admin
       .from("customer_inquiries")
       .select("id, subject, message, status, admin_reply, replied_at, created_at")
       .eq("tenant_id", sess.tenantId)
@@ -83,7 +84,8 @@ export async function POST(req: Request) {
     );
     const customerName = profile?.name ?? null;
 
-    const { data, error } = await getSupabaseAdmin()
+    const { admin } = createTenantScopedAdmin(sess.tenantId);
+    const { data, error } = await admin
       .from("customer_inquiries")
       .insert({
         tenant_id: sess.tenantId,

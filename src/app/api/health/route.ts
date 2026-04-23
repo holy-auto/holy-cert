@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function GET() {
   // Check Supabase DB connectivity
   const dbStart = Date.now();
   try {
-    const supabase = getSupabaseAdmin();
+    const supabase = createServiceRoleAdmin("health check — probes DB connectivity, not tenant-scoped");
     const { error } = await supabase.from("tenants").select("id").limit(1);
     checks.database = {
       ok: !error,

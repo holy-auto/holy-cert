@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const supabase = createAdminClient();
+    const supabase = createServiceRoleAdmin("cron:cleanup-insurer-logs — platform-wide retention sweep");
     const results: Record<string, number | string> = {};
 
     // Cleanup insurer_access_logs (90 days)

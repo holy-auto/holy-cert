@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
 import { apiUnauthorized, apiValidationError } from "@/lib/api/response";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const certificateId = req.nextUrl.searchParams.get("certificate_id");
   if (!certificateId) return apiValidationError("Missing certificate_id");
 
-  const admin = createAdminClient();
+  const { admin } = createInsurerScopedAdmin(caller.insurerId);
   const { data, error } = await admin
     .from("pii_disclosure_consents")
     .select(
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const { certificate_id, reason } = body as { certificate_id?: string; reason?: string };
   if (!certificate_id) return apiValidationError("Missing certificate_id");
 
-  const admin = createAdminClient();
+  const { admin } = createInsurerScopedAdmin(caller.insurerId);
 
   const { data, error } = await admin
     .from("pii_disclosure_consents")

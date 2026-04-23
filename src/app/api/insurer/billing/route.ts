@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
 import { insurerPlanTierToPriceId } from "@/lib/stripe/insurerPlan";
 import { apiUnauthorized, apiValidationError, apiInternalError, apiForbidden } from "@/lib/api/response";
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     const stripe = getStripe();
-    const admin = createAdminClient();
+    const { admin } = createInsurerScopedAdmin(caller.insurerId);
 
     // Get insurer record
     const { data: insurer } = await admin
@@ -129,7 +129,7 @@ export async function GET() {
     const caller = await resolveInsurerCaller();
     if (!caller) return apiUnauthorized();
 
-    const admin = createAdminClient();
+    const { admin } = createInsurerScopedAdmin(caller.insurerId);
     const { data: insurer } = await admin
       .from("insurers")
       .select("plan_tier, is_active, stripe_customer_id, stripe_subscription_id")

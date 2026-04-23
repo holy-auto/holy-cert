@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
 import { apiUnauthorized, apiValidationError, apiForbidden } from "@/lib/api/response";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -9,7 +9,7 @@ export async function GET(_req: NextRequest) {
   const caller = await resolveInsurerCaller();
   if (!caller) return apiUnauthorized();
 
-  const admin = createAdminClient();
+  const { admin } = createInsurerScopedAdmin(caller.insurerId);
   const { data: insurer, error } = await admin
     .from("insurers")
     .select("id, name, slug, plan_tier, status, contact_email, contact_phone, address, max_users, created_at")
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest) {
 
   if (Object.keys(update).length === 0) return apiValidationError("No valid fields to update");
 
-  const admin = createAdminClient();
+  const { admin } = createInsurerScopedAdmin(caller.insurerId);
   const { data, error } = await admin
     .from("insurers")
     .update(update)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiValidationError, apiInternalError } from "@/lib/api/response";
 import { escapeHtml } from "@/lib/sanitize";
 
@@ -66,7 +66,7 @@ function getStripe(): Stripe {
 
 // ── connected account ID → tenant / agent を逆引き ──
 async function resolveReceiver(
-  supabase: ReturnType<typeof getSupabaseAdmin>,
+  supabase: ReturnType<typeof createServiceRoleAdmin>,
   accountId: string,
 ): Promise<{ tenantId: string | null; agentId: string | null }> {
   const [tenantResult, agentResult] = await Promise.all([
@@ -81,7 +81,9 @@ async function resolveReceiver(
 
 export async function POST(req: NextRequest) {
   const stripe = getStripe();
-  const supabase = getSupabaseAdmin();
+  const supabase = createServiceRoleAdmin(
+    "stripe connect webhook — events route to any tenant/agent by connected account id",
+  );
 
   const sig = req.headers.get("stripe-signature");
   const whsec = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;

@@ -3,7 +3,7 @@ import Parser from "rss-parser";
 import * as cheerio from "cheerio";
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
 // ── 業界キーワード（これにマッチする記事だけ保存）──
@@ -454,7 +454,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const supabase = getSupabaseAdmin();
+    const supabase = createServiceRoleAdmin("cron:news — aggregates industry news for all tenants");
 
     let totalFetched = 0;
     let totalSaved = 0;

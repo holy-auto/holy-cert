@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { getAdminClient } from "@/lib/api/auth";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
@@ -126,7 +126,9 @@ async function processEvent(type: string, merchantId: string, data: SquareWebhoo
  * Look up the tenant by square_merchant_id from square_connections.
  */
 async function resolveTenant(merchantId: string) {
-  const admin = getAdminClient();
+  const admin = createServiceRoleAdmin(
+    "square webhook — resolves tenant from merchant_id then scopes writes by tenant_id",
+  );
   const { data: conn, error } = await admin
     .from("square_connections")
     .select("tenant_id, square_access_token, square_location_ids")
@@ -163,7 +165,9 @@ async function handleOrderUpdated(merchantId: string, data: SquareWebhookEvent["
     return;
   }
 
-  const admin = getAdminClient();
+  const admin = createServiceRoleAdmin(
+    "square webhook — resolves tenant from merchant_id then scopes writes by tenant_id",
+  );
   const tenantId = conn.tenant_id as string;
 
   // Fetch the full order from Square API
@@ -195,7 +199,9 @@ async function handlePaymentCompleted(merchantId: string, data: SquareWebhookEve
     return;
   }
 
-  const admin = getAdminClient();
+  const admin = createServiceRoleAdmin(
+    "square webhook — resolves tenant from merchant_id then scopes writes by tenant_id",
+  );
   const tenantId = conn.tenant_id as string;
   const accessToken = conn.square_access_token as string;
 
@@ -237,7 +243,11 @@ async function fetchSquareOrder(accessToken: string, orderId: string): Promise<R
 /**
  * Upsert an order into square_orders (matching pattern from sync endpoint).
  */
-async function upsertOrder(admin: ReturnType<typeof getAdminClient>, tenantId: string, order: Record<string, unknown>) {
+async function upsertOrder(
+  admin: ReturnType<typeof createServiceRoleAdmin>,
+  tenantId: string,
+  order: Record<string, unknown>,
+) {
   const orderId = order.id as string;
   const totalMoney = (order.total_money as any)?.amount ?? 0;
   const taxMoney = (order.total_tax_money as any)?.amount ?? 0;

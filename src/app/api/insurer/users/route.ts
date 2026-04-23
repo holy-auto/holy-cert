@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError, apiNotFound } from "@/lib/api/response";
 
@@ -16,7 +16,7 @@ export async function GET() {
     if (!caller) return apiUnauthorized();
     if (caller.role !== "admin") return apiForbidden("管理者のみユーザー一覧を表示できます。");
 
-    const admin = createAdminClient();
+    const { admin } = createInsurerScopedAdmin(caller.insurerId);
 
     const { data, error } = await admin
       .from("insurer_users")
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
       return apiValidationError("ロールは admin / viewer / auditor のいずれかを指定してください。");
     }
 
-    const admin = createAdminClient();
+    const { admin } = createInsurerScopedAdmin(caller.insurerId);
 
     // Check max_users limit
     const { data: insurer } = await admin.from("insurers").select("max_users").eq("id", caller.insurerId).maybeSingle();
@@ -111,8 +111,7 @@ export async function POST(req: Request) {
     // First, find auth user by email
     const { data: authData } = await admin.auth.admin.listUsers();
     const existingAuthUser = authData?.users?.find(
-      (u: { id: string; email?: string }) =>
-        u.email?.toLowerCase() === email.toLowerCase(),
+      (u: { id: string; email?: string }) => u.email?.toLowerCase() === email.toLowerCase(),
     );
 
     let authUserId: string;
@@ -211,7 +210,7 @@ export async function PATCH(req: Request) {
       return apiValidationError("insurer_user_id is required");
     }
 
-    const admin = createAdminClient();
+    const { admin } = createInsurerScopedAdmin(caller.insurerId);
 
     // Verify target user belongs to same insurer
     const { data: target } = await admin
@@ -288,7 +287,7 @@ export async function DELETE(req: Request) {
       return apiValidationError("insurer_user_id is required");
     }
 
-    const admin = createAdminClient();
+    const { admin } = createInsurerScopedAdmin(caller.insurerId);
 
     // Verify target user belongs to same insurer
     const { data: target } = await admin

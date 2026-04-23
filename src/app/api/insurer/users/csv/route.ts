@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { resolveInsurerCaller, enforceInsurerPlan } from "@/lib/api/insurerAuth";
 import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
     const planDeny = enforceInsurerPlan(caller, "pro");
     if (planDeny) return planDeny;
 
-    const adminSb = createAdminClient();
+    const { admin: adminSb } = createInsurerScopedAdmin(caller.insurerId);
 
     // Check max_users limit before processing
     const { INSURER_PLAN_FEATURES } = await import("@/types/insurer");

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -32,7 +32,7 @@ export async function GET() {
   if (caller.role !== "admin") return apiForbidden("管理者のみセキュリティ設定を表示できます。");
 
   try {
-    const admin = createAdminClient();
+    const { admin } = createInsurerScopedAdmin(caller.insurerId);
 
     const { data, error } = await admin
       .from("insurer_security_settings")
@@ -101,7 +101,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const admin = createAdminClient();
+    const { admin } = createInsurerScopedAdmin(caller.insurerId);
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),

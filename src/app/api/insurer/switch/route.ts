@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { apiUnauthorized, apiValidationError, apiForbidden } from "@/lib/api/response";
 
@@ -18,7 +18,9 @@ export async function GET() {
     return apiUnauthorized();
   }
 
-  const admin = createAdminClient();
+  const admin = createServiceRoleAdmin(
+    "insurer switch GET — lists every insurer the authenticated user belongs to, pre-resolution",
+  );
   const { data: memberships } = await admin
     .from("insurer_users")
     .select("insurer_id, role, is_active")
@@ -76,8 +78,8 @@ export async function POST(req: NextRequest) {
     return apiValidationError("insurer_id is required");
   }
 
-  // Verify user belongs to this insurer
-  const admin = createAdminClient();
+  // Verify user belongs to this insurer — pre-resolution, so cannot use insurer-scoped wrapper here
+  const admin = createServiceRoleAdmin("insurer switch POST — verifies membership before switching active_insurer_id");
   const { data: membership } = await admin
     .from("insurer_users")
     .select("id")

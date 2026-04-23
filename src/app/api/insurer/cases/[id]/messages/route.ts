@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveInsurerCaller } from "@/lib/api/insurerAuth";
 import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { sendCaseMessageNotification } from "@/lib/insurer/notifications";
 
 export const runtime = "nodejs";
@@ -13,7 +13,11 @@ export const runtime = "nodejs";
  * The insurer_id filter is baked into the query itself (not a post-hoc check)
  * so this function never returns a case that belongs to a different insurer.
  */
-async function verifyCase(admin: ReturnType<typeof createAdminClient>, caseId: string, insurerId: string) {
+async function verifyCase(
+  admin: ReturnType<typeof createInsurerScopedAdmin>["admin"],
+  caseId: string,
+  insurerId: string,
+) {
   const { data, error } = await admin
     .from("insurer_cases")
     .select("id, insurer_id")
@@ -38,7 +42,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (!caller) return apiUnauthorized();
 
   const { id } = await ctx.params;
-  const admin = createAdminClient();
+  const { admin } = createInsurerScopedAdmin(caller.insurerId);
 
   try {
     const caseOrErr = await verifyCase(admin, id, caller.insurerId);
@@ -106,7 +110,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     return apiValidationError("content is required.");
   }
 
-  const admin = createAdminClient();
+  const { admin } = createInsurerScopedAdmin(caller.insurerId);
 
   try {
     const caseOrErr = await verifyCase(admin, id, caller.insurerId);
