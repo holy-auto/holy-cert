@@ -18,9 +18,7 @@ import {
   LAUNCH_CAMPAIGN,
   FEATURE_COMPARISON,
 } from "@/lib/marketing/pricing";
-
-const NOTO = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
-const NOTO_BOLD = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
+import { notoSansJpDataUrl } from "@/lib/marketing/pdfFonts";
 
 let fontsRegistered = false;
 function ensureFonts() {
@@ -28,8 +26,8 @@ function ensureFonts() {
   Font.register({
     family: "NotoSansJP",
     fonts: [
-      { src: NOTO, fontWeight: 400 },
-      { src: NOTO_BOLD, fontWeight: 700 },
+      { src: notoSansJpDataUrl(400), fontWeight: 400 },
+      { src: notoSansJpDataUrl(700), fontWeight: 700 },
     ],
   });
   fontsRegistered = true;
