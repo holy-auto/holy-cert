@@ -52,6 +52,14 @@ CREATE INDEX IF NOT EXISTS idx_site_content_posts_event_start
 -- RLS
 ALTER TABLE site_content_posts ENABLE ROW LEVEL SECURITY;
 
+-- 再実行可能にするため先に削除
+DROP POLICY IF EXISTS "site_content_posts_select_published" ON site_content_posts;
+DROP POLICY IF EXISTS "site_content_posts_select_own_tenant" ON site_content_posts;
+DROP POLICY IF EXISTS "site_content_posts_insert_own_tenant" ON site_content_posts;
+DROP POLICY IF EXISTS "site_content_posts_update_own_tenant" ON site_content_posts;
+DROP POLICY IF EXISTS "site_content_posts_delete_own_tenant" ON site_content_posts;
+
+
 -- 公開済みは誰でも閲覧可能（HP表示用）
 CREATE POLICY "site_content_posts_select_published" ON site_content_posts
   FOR SELECT

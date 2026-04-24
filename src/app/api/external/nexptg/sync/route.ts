@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getAdminClient } from "@/lib/api/auth";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiOk, apiInternalError, apiValidationError, apiError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 
@@ -107,11 +107,7 @@ function toNumericUm(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function flattenMeasurements(
-  report: NexPtgReport,
-  tenantId: string,
-  reportId: string,
-): Array<Record<string, unknown>> {
+function flattenMeasurements(report: NexPtgReport, tenantId: string, reportId: string): Array<Record<string, unknown>> {
   const rows: Array<Record<string, unknown>> = [];
 
   const emit = (places: NexPtgPlace[] | undefined, isInside: boolean) => {
@@ -166,7 +162,9 @@ export async function POST(req: NextRequest) {
       return apiValidationError("Invalid payload: expected { data: { history, reports } }");
     }
 
-    const admin = getAdminClient();
+    const admin = createServiceRoleAdmin(
+      "nexptg webhook — tenant resolved from external_api_key then queries continue with same admin",
+    );
 
     // テナント解決（API キーの一致のみで特定する）
     const { data: tenant, error: tenantErr } = await admin
@@ -301,12 +299,10 @@ export async function POST(req: NextRequest) {
         measured_at: toTimestamp(item?.date),
       }));
 
-      const { error: hErr } = await admin
-        .from("thickness_history_items")
-        .upsert(rows, {
-          onConflict: "tenant_id,external_group_id,measured_at,raw_value",
-          ignoreDuplicates: true,
-        });
+      const { error: hErr } = await admin.from("thickness_history_items").upsert(rows, {
+        onConflict: "tenant_id,external_group_id,measured_at,raw_value",
+        ignoreDuplicates: true,
+      });
       if (hErr) return apiInternalError(hErr, "nexptg history upsert");
       historyInserted += rows.length;
     }
