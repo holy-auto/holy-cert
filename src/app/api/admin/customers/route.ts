@@ -51,8 +51,8 @@ export async function GET(req: NextRequest) {
 
     // 各顧客の証明書数・請求書数を並列で取得（customer_idのみselectしてカウント）
     const customerIds = (customers ?? []).map((c) => c.id);
-    let certCounts: Record<string, number> = {};
-    let invoiceCounts: Record<string, number> = {};
+    const certCounts: Record<string, number> = {};
+    const invoiceCounts: Record<string, number> = {};
 
     if (customerIds.length > 0) {
       const [{ data: certs }, { data: invs }] = await Promise.all([

@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
 
     // 顧客名を取得
     const customerIds = [...new Set((docs ?? []).map((i) => i.customer_id).filter(Boolean))];
-    let customerNames: Record<string, string> = {};
+    const customerNames: Record<string, string> = {};
     if (customerIds.length > 0) {
       const { data: customers } = await supabase.from("customers").select("id, name").in("id", customerIds);
       (customers ?? []).forEach((c) => {

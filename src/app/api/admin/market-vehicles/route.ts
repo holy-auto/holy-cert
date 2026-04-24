@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch images for all vehicles
     const vehicleIds = (vehicles ?? []).map((v) => v.id);
-    let imagesMap: Record<string, any[]> = {};
+    const imagesMap: Record<string, any[]> = {};
 
     if (vehicleIds.length > 0) {
       const { data: images } = await supabase
