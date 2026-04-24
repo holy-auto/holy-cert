@@ -5,7 +5,6 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/lib/theme/ThemeContext";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
-import { cookies } from "next/headers";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -44,19 +43,16 @@ export const metadata = {
   },
 };
 
-/** Inline script to prevent flash of wrong theme on load */
+// Inline script sets data-theme before first paint. Reading cookies() on the
+// server would opt the root layout (and thus every route) into dynamic
+// rendering, breaking generateStaticParams for SSG routes like /blog/[slug].
 const THEME_INIT_SCRIPT = `(function(){try{var c=document.cookie.match(/__theme=(light|dark)/);if(c)document.documentElement.setAttribute('data-theme',c[1]);else{var d=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',d)}}catch(e){}})()`;
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies();
-  const themeCookie = cookieStore.get("__theme")?.value;
-  const initialTheme = themeCookie === "dark" ? "dark" : undefined;
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="ja"
       className={`${geistMono.variable} ${notoSansJP.variable}`}
-      data-theme={initialTheme}
       suppressHydrationWarning
     >
       <head>
