@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "staff")) return apiForbidden();
 
-    const deny = await enforceBilling(req as any, { minPlan: "free", action: "create", tenantId: caller.tenantId });
-    if (deny) return deny as any;
+    const deny = await enforceBilling(req, { minPlan: "free", action: "create", tenantId: caller.tenantId });
+    if (deny) return deny;
 
     const body = await req.json().catch(() => ({}) as any);
     const sourcePublicId = (body?.source_public_id ?? "").trim();

@@ -174,8 +174,8 @@ export async function GET(req: Request) {
     );
   }
 
-  const deny = await enforceBilling(req as any, { minPlan: "free", action: "public_pdf" });
-  if (deny) return deny as any;
+  const deny = await enforceBilling(req, { minPlan: "free", action: "public_pdf" });
+  if (deny) return deny;
   const { searchParams } = new URL(req.url);
   const pid = (searchParams.get("pid") ?? "").trim();
 

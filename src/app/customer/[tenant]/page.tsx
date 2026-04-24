@@ -114,7 +114,7 @@ function buildVehicleSummary(info: VehicleInfo) {
 
 export default function CustomerListPage() {
   const router = useRouter();
-  const params = useParams() as any;
+  const params = useParams<{ tenant: string }>();
   const tenant = useMemo(() => (params?.tenant ?? "").toString(), [params]);
 
   const [rows, setRows] = useState<Row[]>([]);
