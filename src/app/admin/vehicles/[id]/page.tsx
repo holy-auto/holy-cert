@@ -310,6 +310,7 @@ export default async function AdminVehicleDetailPage({
       title: (report as any).name ? `膜厚測定（NexPTG）: ${(report as any).name}` : "膜厚測定（NexPTG）",
       description,
       occurredAt,
+      href: `/admin/vehicles/${id}/thickness/${(report as any).id}`,
     });
   }
 
