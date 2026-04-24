@@ -6,8 +6,7 @@ import { ResourceCard, type Resource } from "@/components/marketing/ResourceCard
 
 export const metadata = {
   title: "資料ダウンロード",
-  description:
-    "Ledra のサービス概要・機能紹介・技術ホワイトペーパー・導入事例集を、まとめてダウンロードいただけます。",
+  description: "Ledra のサービス概要・機能紹介・技術ホワイトペーパー・導入事例集を、まとめてダウンロードいただけます。",
   alternates: { canonical: "/resources" },
 };
 
@@ -54,6 +53,8 @@ const resources: Resource[] = [
     title: "料金プラン詳細資料",
     description:
       "各プランに含まれる機能・対応件数・サポート範囲・オプション料金まで、見積提示に必要な情報をまとめた資料です。",
+    pageCount: 5,
+    downloadUrl: "/api/marketing/resources/pricing-overview/pdf",
   },
 ];
 
@@ -77,8 +78,7 @@ export default function ResourcesPage() {
           ))}
         </div>
         <p className="mt-12 text-center text-xs text-white/40">
-          ご入力いただいた情報は、資料送付およびご案内のみに使用いたします。
-          詳しくは{" "}
+          ご入力いただいた情報は、資料送付およびご案内のみに使用いたします。 詳しくは{" "}
           <a href="/privacy" className="underline hover:text-white/60">
             プライバシーポリシー
           </a>
