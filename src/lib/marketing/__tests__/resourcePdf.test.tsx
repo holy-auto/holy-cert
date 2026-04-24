@@ -16,10 +16,10 @@ describe("RESOURCE_PDFS", () => {
     );
   });
 
-  it("every entry has a .pdf filename and a valid React Document factory", () => {
+  it("every entry has a .pdf filename and a valid React Document factory", async () => {
     for (const [key, entry] of Object.entries(RESOURCE_PDFS)) {
       expect(entry.filename, `${key}.filename`).toMatch(/\.pdf$/);
-      const doc = entry.doc();
+      const doc = await entry.doc();
       expect(isValidElement(doc), `${key}.doc() returns a React element`).toBe(true);
     }
   });

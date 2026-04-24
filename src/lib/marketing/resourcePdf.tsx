@@ -19,6 +19,7 @@ import {
   FEATURE_COMPARISON,
 } from "@/lib/marketing/pricing";
 import { FEATURE_GROUPS, type FeatureGroup } from "@/lib/marketing/features";
+import { listContent, type ContentEntry } from "@/lib/marketing/content";
 import { notoSansJpDataUrl } from "@/lib/marketing/pdfFonts";
 
 let fontsRegistered = false;
@@ -1295,9 +1296,18 @@ export function SecurityWhitepaperPdf() {
  * Case Studies — 導入事例集（パイロット版）
  * ══════════════════════════════════════════════════════════════════ */
 
-const CASES_PAGE_TOTAL = 8;
+/**
+ * Page total for the case-studies PDF is dynamic because the "Published
+ * cases" page only appears when there is at least one live MDX entry.
+ *
+ * Static layout (no published cases): 2 framing + 5 industry patterns
+ * + pilot program + closing = 9.
+ */
+function casesPageTotal(publishedCount: number): number {
+  return 9 + (publishedCount > 0 ? 1 : 0);
+}
 
-function CasesCover() {
+function CasesCover({ pageTotal }: { pageTotal: number }) {
   return (
     <Page size="A4" style={styles.page}>
       <Text style={styles.pageTitle}>CASE STUDIES</Text>
@@ -1324,12 +1334,12 @@ function CasesCover() {
       </View>
 
       <Text style={styles.tagline}>あなたの1社目が、業界の記録文化を作る。</Text>
-      <Footer pageLabel={`1 / ${CASES_PAGE_TOTAL}`} />
+      <Footer pageLabel={`1 / ${pageTotal}`} />
     </Page>
   );
 }
 
-function CasesMetrics() {
+function CasesMetrics({ pageTotal }: { pageTotal: number }) {
   return (
     <Page size="A4" style={styles.page}>
       <Text style={styles.pageTitle}>01 METRICS</Text>
@@ -1376,7 +1386,7 @@ function CasesMetrics() {
       <Text style={styles.bullet}>• 新規顧客からの信頼獲得エピソード（QR/NFC 体験）</Text>
       <Text style={styles.bullet}>• 保険会社・代理店との連携における摩擦の減り方</Text>
 
-      <Footer pageLabel={`2 / ${CASES_PAGE_TOTAL}`} />
+      <Footer pageLabel={`2 / ${pageTotal}`} />
     </Page>
   );
 }
@@ -1461,7 +1471,15 @@ const INDUSTRY_PATTERNS: IndustryPattern[] = [
   },
 ];
 
-function CasesIndustryPatternPage({ pattern, index }: { pattern: IndustryPattern; index: number }) {
+function CasesIndustryPatternPage({
+  pattern,
+  index,
+  pageTotal,
+}: {
+  pattern: IndustryPattern;
+  index: number;
+  pageTotal: number;
+}) {
   return (
     <Page size="A4" style={styles.page}>
       <Text style={styles.pageTitle}>{String(index + 2).padStart(2, "0")} INDUSTRY PATTERN</Text>
@@ -1492,15 +1510,15 @@ function CasesIndustryPatternPage({ pattern, index }: { pattern: IndustryPattern
         ※ 上記はパイロット設計段階での想定パターンです。実数値は実施企業様ごとに異なります。
       </Text>
 
-      <Footer pageLabel={`${index + 3} / ${CASES_PAGE_TOTAL}`} />
+      <Footer pageLabel={`${index + 3} / ${pageTotal}`} />
     </Page>
   );
 }
 
-function CasesPilotProgram() {
+function CasesPilotProgram({ pageNumber, pageTotal }: { pageNumber: number; pageTotal: number }) {
   return (
     <Page size="A4" style={styles.page}>
-      <Text style={styles.pageTitle}>07 PILOT PROGRAM</Text>
+      <Text style={styles.pageTitle}>{String(pageNumber).padStart(2, "0")} PILOT PROGRAM</Text>
       <View style={styles.gradientBar} />
       <Text style={styles.h1}>パイロット参加の流れ</Text>
       <Text style={[styles.lead, { marginBottom: 10 }]}>
@@ -1538,15 +1556,15 @@ function CasesPilotProgram() {
       <Text style={styles.bullet}>• 優先機能リクエスト受付（ロードマップ反映）</Text>
       <Text style={styles.bullet}>• Ledra 公式イベント・ウェビナーでの登壇機会</Text>
 
-      <Footer pageLabel={`7 / ${CASES_PAGE_TOTAL}`} />
+      <Footer pageLabel={`${pageNumber} / ${pageTotal}`} />
     </Page>
   );
 }
 
-function CasesClosing() {
+function CasesClosing({ pageTotal }: { pageTotal: number }) {
   return (
     <Page size="A4" style={styles.page}>
-      <Text style={styles.pageTitle}>08 NEXT STEPS</Text>
+      <Text style={styles.pageTitle}>{String(pageTotal).padStart(2, "0")} NEXT STEPS</Text>
       <View style={styles.gradientBar} />
       <Text style={styles.h1}>次のステップ</Text>
 
@@ -1578,13 +1596,70 @@ function CasesClosing() {
 
       <Text style={[styles.tagline, { marginTop: 30 }]}>記録を、業界の共通言語にする。</Text>
 
-      <Footer pageLabel={`${CASES_PAGE_TOTAL} / ${CASES_PAGE_TOTAL}`} />
+      <Footer pageLabel={`${pageTotal} / ${pageTotal}`} />
     </Page>
   );
 }
 
-export function CaseStudiesPdf() {
+function CasesPublishedPage({
+  cases,
+  pageNumber,
+  pageTotal,
+}: {
+  cases: ContentEntry[];
+  pageNumber: number;
+  pageTotal: number;
+}) {
+  return (
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>{String(pageNumber).padStart(2, "0")} PUBLISHED CASES</Text>
+      <View style={styles.gradientBar} />
+      <Text style={styles.h1}>公開済みの導入事例</Text>
+      <Text style={[styles.lead, { marginBottom: 10 }]}>
+        パイロット企業様の許諾のもと、/cases ページに公開しているケーススタディの一覧です。最新の全文は Web
+        でお読みください。
+      </Text>
+
+      {cases.map((c) => (
+        <View key={c.frontmatter.slug} style={styles.card}>
+          <Text style={styles.cardTitle}>{c.frontmatter.title}</Text>
+          <Text style={[styles.cardDesc, { marginBottom: 4 }]}>
+            {[c.frontmatter.industry, c.frontmatter.company].filter(Boolean).join(" · ")}
+            {c.frontmatter.publishedAt ? `  |  公開 ${c.frontmatter.publishedAt}` : ""}
+          </Text>
+          {c.frontmatter.excerpt && <Text style={styles.cardDesc}>{c.frontmatter.excerpt}</Text>}
+          <Text style={[styles.cardDesc, { marginTop: 4, color: colors.accent }]}>
+            https://ledra.co.jp/cases/{c.frontmatter.slug}
+          </Text>
+        </View>
+      ))}
+
+      <Text style={[styles.cardDesc, { marginTop: 14 }]}>
+        最終更新は各記事のページにてご確認ください。本資料の PDF 版は、記事の追加に合わせて順次差し替えます。
+      </Text>
+      <Footer pageLabel={`${pageNumber} / ${pageTotal}`} />
+    </Page>
+  );
+}
+
+export async function CaseStudiesPdf(): Promise<React.ReactElement> {
   ensureFonts();
+  // Pull any published case-study MDX so the PDF reflects the live /cases
+  // index instead of going stale every time a new entry lands.
+  let cases: ContentEntry[] = [];
+  try {
+    cases = await listContent("cases");
+  } catch (err) {
+    console.error("[resource pdf] listContent(cases) failed:", err);
+  }
+
+  const hasPublished = cases.length > 0;
+  const pageTotal = casesPageTotal(cases.length);
+  // Fixed layout: cover(1), metrics(2), 5 industry patterns(3-7),
+  // optional published(8), pilot(8 or 9), closing(9 or 10).
+  const publishedNo = hasPublished ? 8 : null;
+  const pilotNo = hasPublished ? 9 : 8;
+
   return (
     <Document
       title="Ledra 導入事例集（パイロット版）"
@@ -1593,13 +1668,16 @@ export function CaseStudiesPdf() {
       creator="Ledra"
       producer="Ledra"
     >
-      {CasesCover()}
-      {CasesMetrics()}
+      {CasesCover({ pageTotal })}
+      {CasesMetrics({ pageTotal })}
       {INDUSTRY_PATTERNS.map((p, i) => (
-        <React.Fragment key={p.industry}>{CasesIndustryPatternPage({ pattern: p, index: i })}</React.Fragment>
+        <React.Fragment key={p.industry}>
+          {CasesIndustryPatternPage({ pattern: p, index: i, pageTotal })}
+        </React.Fragment>
       ))}
-      {CasesPilotProgram()}
-      {CasesClosing()}
+      {hasPublished && publishedNo !== null ? CasesPublishedPage({ cases, pageNumber: publishedNo, pageTotal }) : null}
+      {CasesPilotProgram({ pageNumber: pilotNo, pageTotal })}
+      {CasesClosing({ pageTotal })}
     </Document>
   );
 }
@@ -2004,7 +2082,17 @@ export function RoiTemplatePdf() {
  * downloadable resources; the API route `/api/marketing/resources/[key]/pdf`
  * reads from this map.
  */
-export const RESOURCE_PDFS: Record<string, { filename: string; doc: () => React.ReactElement }> = {
+export type ResourcePdfEntry = {
+  filename: string;
+  /**
+   * Factory for the Document react element. May be async — case-studies
+   * loads MDX content at render time. The API route awaits before handing
+   * to renderToBuffer.
+   */
+  doc: () => React.ReactElement | Promise<React.ReactElement>;
+};
+
+export const RESOURCE_PDFS: Record<string, ResourcePdfEntry> = {
   "service-overview": {
     filename: "Ledra_Service_Overview.pdf",
     doc: () => <ServiceOverviewPdf />,
@@ -2023,7 +2111,7 @@ export const RESOURCE_PDFS: Record<string, { filename: string; doc: () => React.
   },
   "case-studies": {
     filename: "Ledra_Case_Studies.pdf",
-    doc: () => <CaseStudiesPdf />,
+    doc: () => CaseStudiesPdf(),
   },
   "roi-template": {
     filename: "Ledra_ROI_Template.pdf",

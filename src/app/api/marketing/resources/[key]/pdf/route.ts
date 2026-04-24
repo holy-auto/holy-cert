@@ -47,7 +47,9 @@ export async function GET(request: Request, ctx: { params: Promise<{ key: string
   }
 
   try {
-    const buffer = await renderToBuffer(entry.doc());
+    // `entry.doc` may be async (e.g. case-studies loads MDX entries).
+    const docElement = await entry.doc();
+    const buffer = await renderToBuffer(docElement);
 
     // Optional `?lead=<uuid>` lets the card pair a download with the lead
     // it came from, giving us the actual completion rate in the DB.

@@ -41,9 +41,9 @@ const resources: Resource[] = [
     key: "case-studies",
     title: "導入事例集",
     description:
-      "先行導入いただいているパイロット企業様の導入背景・運用の変化・成果を業種別にまとめた事例集。現時点ではパイロット版として、計測フレームと業界別の変化パターンをまとめています。随時アップデートしてお届けします。",
+      "先行導入いただいているパイロット企業様の導入背景・運用の変化・成果を業種別にまとめた事例集。現時点ではパイロット版として、計測フレームと業界別の変化パターンをまとめています。記事が公開されるたびに PDF にも順次反映します。",
     badge: "随時更新",
-    pageCount: 8,
+    pageCount: 9,
     downloadUrl: "/api/marketing/resources/case-studies/pdf",
   },
   {
