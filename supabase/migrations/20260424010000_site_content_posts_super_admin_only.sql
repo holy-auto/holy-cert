@@ -3,11 +3,15 @@
 -- 加盟店（owner/admin/staff/viewer）はDB直接操作でも変更不可
 -- ============================================================
 
--- 既存ポリシーを削除
+-- 既存ポリシーを削除（冪等性のため新ポリシーも一旦削除）
 DROP POLICY IF EXISTS "site_content_posts_select_own_tenant" ON site_content_posts;
 DROP POLICY IF EXISTS "site_content_posts_insert_own_tenant" ON site_content_posts;
 DROP POLICY IF EXISTS "site_content_posts_update_own_tenant" ON site_content_posts;
 DROP POLICY IF EXISTS "site_content_posts_delete_own_tenant" ON site_content_posts;
+DROP POLICY IF EXISTS "site_content_posts_select_super_admin" ON site_content_posts;
+DROP POLICY IF EXISTS "site_content_posts_insert_super_admin" ON site_content_posts;
+DROP POLICY IF EXISTS "site_content_posts_update_super_admin" ON site_content_posts;
+DROP POLICY IF EXISTS "site_content_posts_delete_super_admin" ON site_content_posts;
 
 -- super_admin 判定ヘルパー
 CREATE OR REPLACE FUNCTION is_super_admin_user()
