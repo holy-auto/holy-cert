@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError, apiValidationError } from "@/lib/api/response";
 
 const followUpSettingsSchema = z.object({
   reminder_days_before: z.array(z.coerce.number().int().positive()).max(10).default([30, 7, 1]),
@@ -25,7 +25,7 @@ export async function GET() {
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
-    return NextResponse.json({
+    return apiJson({
       settings: data ?? {
         reminder_days_before: [30, 7, 1],
         follow_up_days_after: [90, 180],
@@ -68,7 +68,7 @@ export async function PUT(req: NextRequest) {
       await supabase.from("follow_up_settings").insert({ ...row, id: crypto.randomUUID() });
     }
 
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e: unknown) {
     return apiInternalError(e, "follow-up-settings");
   }

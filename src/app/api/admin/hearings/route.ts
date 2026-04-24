@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { hearingCreateSchema, hearingUpdateSchema } from "@/lib/validations/hearing";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query.limit(200);
     if (error) return apiInternalError(error, "hearings GET");
 
-    return NextResponse.json({ hearings: data ?? [] });
+    return apiJson({ hearings: data ?? [] });
   } catch (e: unknown) {
     console.error("[hearings] GET failed:", e);
     return apiInternalError(e, "hearings");
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     if (error) return apiInternalError(error, "hearings POST");
 
-    return NextResponse.json({ ok: true, id: data.id });
+    return apiJson({ ok: true, id: data.id });
   } catch (e: unknown) {
     console.error("[hearings] POST failed:", e);
     return apiInternalError(e, "hearings");
@@ -159,7 +159,7 @@ export async function PUT(req: NextRequest) {
         })
         .eq("id", id);
 
-      return NextResponse.json({
+      return apiJson({
         ok: true,
         customer_id: customer.id,
         vehicle_id: vehicleId,
@@ -179,7 +179,7 @@ export async function PUT(req: NextRequest) {
       .eq("tenant_id", caller.tenantId);
 
     if (error) return apiInternalError(error, "hearings PUT");
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e: unknown) {
     console.error("[hearings] PUT failed:", e);
     return apiInternalError(e, "hearings");

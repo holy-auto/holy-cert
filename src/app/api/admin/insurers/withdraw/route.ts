@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getClientIp } from "@/lib/rateLimit";
-import { apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiForbidden, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 
 export const runtime = "nodejs";
 
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   }
   const { insurer_id } = parsed.data;
 
-  const admin = createAdminClient();
+  const { admin } = createTenantScopedAdmin(caller.tenantId);
 
   // Verify insurer exists
   const { data: insurer } = await admin
@@ -73,5 +73,5 @@ export async function POST(req: Request) {
     user_agent: req.headers.get("user-agent") ?? null,
   });
 
-  return NextResponse.json({ ok: true, ...result });
+  return apiJson({ ok: true, ...result });
 }

@@ -1,10 +1,17 @@
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { getAdminClient } from "@/lib/api/auth";
 import { enforceBilling } from "@/lib/billing/guard";
-import { apiUnauthorized, apiForbidden, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiForbidden,
+  apiNotFound,
+  apiValidationError,
+  apiInternalError,
+} from "@/lib/api/response";
 
 const certDuplicateSchema = z.object({
   source_public_id: z.string().trim().min(1, "source_public_id は必須です。").max(128),
@@ -29,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
     const { source_public_id: sourcePublicId } = parsed.data;
 
-    const admin = getAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // ── 元の証明書を取得 ──
     const { data: source, error: fetchErr } = await admin
@@ -85,7 +92,7 @@ export async function POST(req: NextRequest) {
       return apiInternalError(insertErr, "certificates/duplicate");
     }
 
-    return NextResponse.json({
+    return apiJson({
       ok: true,
       public_id: newCert.public_id,
     });

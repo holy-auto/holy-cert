@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import {
@@ -59,7 +59,7 @@ export async function PUT(req: Request) {
       return apiForbidden("この操作を行う権限がありません。");
     }
 
-    const admin = createAdminClient();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     // Fetch current certificate (scoped to caller's tenant)
     const { data: cert, error: fetchErr } = await admin

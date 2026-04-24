@@ -7,7 +7,7 @@ import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiOk, apiUnauthorized, apiInternalError, apiValidationError, apiNotFound } from "@/lib/api/response";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { generateAcademyCaseSummary } from "@/lib/ai/academyFeedback";
 
 const academyCaseActionSchema = z.object({
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get("category");
     const type = searchParams.get("type"); // "published" | "candidates"
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     let query = admin
       .from("academy_cases")
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
     const { case_id, action } = parsed.data;
 
-    const admin = getSupabaseAdmin();
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const { data: existingCase } = await admin
       .from("academy_cases")

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { faqCreateSchema, faqDeleteSchema } from "@/lib/validations/faq";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export async function GET() {
 
     if (error) {
       // テーブル未作成時は空を返す
-      return NextResponse.json({ items: [] });
+      return apiJson({ items: [] });
     }
 
     const items = (data ?? []).map((r) => ({
@@ -32,9 +32,9 @@ export async function GET() {
       a: r.answer,
     }));
 
-    return NextResponse.json({ items });
+    return apiJson({ items });
   } catch {
-    return NextResponse.json({ items: [] });
+    return apiJson({ items: [] });
   }
 }
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) return apiInternalError(error, "faq POST");
-    return NextResponse.json({ ok: true, item: data });
+    return apiJson({ ok: true, item: data });
   } catch (e) {
     return apiInternalError(e, "faq POST");
   }
@@ -80,7 +80,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     await supabase.from("support_faq").delete().eq("id", parsed.data.id);
-    return NextResponse.json({ ok: true });
+    return apiJson({ ok: true });
   } catch (e) {
     return apiInternalError(e, "faq DELETE");
   }

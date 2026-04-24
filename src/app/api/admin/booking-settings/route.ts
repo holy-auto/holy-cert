@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { apiUnauthorized, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError, apiValidationError } from "@/lib/api/response";
 import { bookingSettingsPutSchema } from "@/lib/validations/booking-settings";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export async function GET(_req: NextRequest) {
       return apiInternalError(closedRes.error, "booking-settings");
     }
 
-    return NextResponse.json({
+    return apiJson({
       slots: slotsRes.data ?? [],
       closed_days: closedRes.data ?? [],
     });
@@ -176,7 +176,7 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true });
+    return apiJson({ success: true });
   } catch (e) {
     return apiInternalError(e, "booking-settings");
   }
