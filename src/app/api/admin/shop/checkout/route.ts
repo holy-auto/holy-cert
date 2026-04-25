@@ -20,19 +20,6 @@ const shopCheckoutSchema = z.object({
   note: z.string().trim().max(2000).optional(),
 });
 
-const shopCheckoutSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        product_id: z.string().uuid(),
-        quantity: z.coerce.number().int().min(1).max(9999),
-      }),
-    )
-    .min(1, "商品を1つ以上選択してください。")
-    .max(100),
-  note: z.string().trim().max(2000).optional(),
-});
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
