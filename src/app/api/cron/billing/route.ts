@@ -4,6 +4,7 @@ import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { withCronLock } from "@/lib/cron/lock";
+import { escapeHtml } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -140,22 +141,30 @@ async function runBillingCron(supabase: ReturnType<typeof createServiceRoleAdmin
         if (!customer?.email) continue;
 
         const shopName = tenantMap.get(inv.tenant_id)?.name ?? "施工店";
+        // 顧客名 / 店舗名 / 請求番号は DB 由来。HTML 文脈に埋め込む前にエスケープ。
+        const safeCustomerName = escapeHtml(customer.name ?? "");
+        const safeShopName = escapeHtml(shopName);
+        const safeDocNumber = escapeHtml(inv.doc_number ?? "");
+        const safeDueDate = escapeHtml(inv.due_date ?? "");
         const html = wrapEmail(
           "お支払いのお願い",
           `
             <p style="color: #1d1d1f; font-size: 14px;">
-              ${customer.name} 様<br><br>
-              ${shopName}より、請求書 <strong>${inv.doc_number}</strong> のお支払い期限が過ぎております。
+              ${safeCustomerName} 様<br><br>
+              ${safeShopName}より、請求書 <strong>${safeDocNumber}</strong> のお支払い期限が過ぎております。
             </p>
             <div style="background: #fff3cd; border-radius: 8px; padding: 12px; margin: 16px 0; font-size: 14px; color: #856404;">
               請求額: <strong>¥${(inv.total ?? 0).toLocaleString("ja-JP")}</strong><br>
-              お支払期限: <strong>${inv.due_date}</strong>
+              お支払期限: <strong>${safeDueDate}</strong>
             </div>
-            <p style="font-size: 13px; color: #86868b;">お心当たりがない場合は、お手数ですが ${shopName} までお問い合わせください。</p>
+            <p style="font-size: 13px; color: #86868b;">お心当たりがない場合は、お手数ですが ${safeShopName} までお問い合わせください。</p>
           `,
         );
 
-        const sent = await sendReminderEmail(customer.email, `[${shopName}] お支払いのお願い: ${inv.doc_number}`, html);
+        // Subject 行への CRLF 注入を避けるため、shopName / doc_number は改行を除去。
+        const subjectShop = String(shopName).replace(/[\r\n]/g, " ");
+        const subjectDoc = String(inv.doc_number ?? "").replace(/[\r\n]/g, " ");
+        const sent = await sendReminderEmail(customer.email, `[${subjectShop}] お支払いのお願い: ${subjectDoc}`, html);
 
         // Log notification
         await supabase.from("notification_logs").insert({
@@ -212,23 +221,29 @@ async function runBillingCron(supabase: ReturnType<typeof createServiceRoleAdmin
         if (!customer?.email) continue;
 
         const shopName = tenantMap.get(inv.tenant_id)?.name ?? "施工店";
+        const safeCustomerName = escapeHtml(customer.name ?? "");
+        const safeShopName = escapeHtml(shopName);
+        const safeDocNumber = escapeHtml(inv.doc_number ?? "");
+        const safeDueDate = escapeHtml(inv.due_date ?? "");
         const html = wrapEmail(
           "お支払期限のご案内",
           `
             <p style="color: #1d1d1f; font-size: 14px;">
-              ${customer.name} 様<br><br>
-              ${shopName}より、請求書 <strong>${inv.doc_number}</strong> のお支払期限が近づいております。
+              ${safeCustomerName} 様<br><br>
+              ${safeShopName}より、請求書 <strong>${safeDocNumber}</strong> のお支払期限が近づいております。
             </p>
             <div style="background: #f5f5f7; border-radius: 8px; padding: 12px; margin: 16px 0; font-size: 14px; color: #1d1d1f;">
               請求額: <strong>¥${(inv.total ?? 0).toLocaleString("ja-JP")}</strong><br>
-              お支払期限: <strong>${inv.due_date}</strong>
+              お支払期限: <strong>${safeDueDate}</strong>
             </div>
           `,
         );
 
+        const subjectShop = String(shopName).replace(/[\r\n]/g, " ");
+        const subjectDoc = String(inv.doc_number ?? "").replace(/[\r\n]/g, " ");
         const sent = await sendReminderEmail(
           customer.email,
-          `[${shopName}] お支払期限のご案内: ${inv.doc_number}`,
+          `[${subjectShop}] お支払期限のご案内: ${subjectDoc}`,
           html,
         );
 
