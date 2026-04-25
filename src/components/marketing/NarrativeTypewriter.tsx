@@ -46,41 +46,80 @@ const LINES: LineDef[] = [
   },
 ];
 
+function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
 function TypeLine({ def, active, onComplete }: { def: LineDef; active: boolean; onComplete: () => void }) {
-  const [shown, setShown] = useState("");
-  const [done, setDone] = useState(false);
+  // DOM を直接更新して React の再レンダリングを最小化
+  const visibleRef = useRef<HTMLSpanElement | null>(null);
+  const hiddenRef = useRef<HTMLSpanElement | null>(null);
+  const caretRef = useRef<HTMLSpanElement | null>(null);
   const onCompleteRef = useRef(onComplete);
+  const completedRef = useRef(false);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
   useEffect(() => {
-    if (!active || done) return;
-    let i = 0;
-    const id = window.setInterval(() => {
-      i += 1;
-      setShown(def.text.slice(0, i));
-      if (i >= def.text.length) {
-        window.clearInterval(id);
-        setDone(true);
-        onCompleteRef.current();
+    if (!active || completedRef.current) return;
+
+    // reduced-motion ユーザーには即時表示
+    if (prefersReducedMotion()) {
+      if (visibleRef.current) visibleRef.current.textContent = def.text;
+      if (hiddenRef.current) hiddenRef.current.textContent = "";
+      if (caretRef.current) caretRef.current.style.display = "none";
+      completedRef.current = true;
+      onCompleteRef.current();
+      return;
+    }
+
+    let raf = 0;
+    let startTs = 0;
+    let lastLen = -1;
+    const total = def.text.length;
+    const speed = def.speed;
+
+    const step = (now: number) => {
+      if (!startTs) startTs = now;
+      const elapsed = now - startTs;
+      const i = Math.min(total, Math.floor(elapsed / speed));
+      if (i !== lastLen) {
+        lastLen = i;
+        // 直接 DOM を書き換え（React 再レンダーをスキップ）
+        if (visibleRef.current) visibleRef.current.textContent = def.text.slice(0, i);
+        if (hiddenRef.current) hiddenRef.current.textContent = def.text.slice(i);
       }
-    }, def.speed);
-    return () => window.clearInterval(id);
-  }, [active, done, def.text, def.speed]);
+      if (i >= total) {
+        if (caretRef.current) caretRef.current.style.display = "none";
+        completedRef.current = true;
+        onCompleteRef.current();
+        return;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [active, def.text, def.speed]);
 
   return (
     <>
-      <span>{shown}</span>
-      <span aria-hidden className="invisible">
-        {def.text.slice(shown.length)}
+      <span ref={visibleRef} />
+      <span ref={hiddenRef} aria-hidden className="invisible">
+        {def.text}
       </span>
-      {def.caret && active && !done && (
+      {def.caret && (
         <span
+          ref={caretRef}
           aria-hidden
           className={`ml-[2px] inline-block h-[0.95em] w-[2px] translate-y-[2px] ${def.caretClassName ?? "bg-blue-400"}`}
-          style={{ animation: "caret-blink 900ms steps(2) infinite" }}
+          style={{
+            animation: "caret-blink 900ms steps(2) infinite",
+            display: active ? "inline-block" : "none",
+            willChange: "opacity",
+          }}
         />
       )}
     </>
@@ -94,6 +133,14 @@ export function NarrativeTypewriter() {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+
+    // reduced-motion 環境では一気に全行を完了状態に
+    if (prefersReducedMotion()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveIdx(LINES.length);
+      return;
+    }
+
     const obs = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
