@@ -4,12 +4,19 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 import { posTerminalCaptureSchema } from "@/lib/validations/pos-capture";
 
 export const dynamic = "force-dynamic";
 
 // ─── POST: Stripe Terminal 決済確認 + POS会計記録（Connect対応） ───
 export async function POST(req: NextRequest) {
+  // Each call retrieves a Stripe PaymentIntent and writes to pos_checkout.
+  // mobile_pos preset (10/min/IP) matches the equivalent mobile route and
+  // bounds replay if a session leaks.
+  const limited = await checkRateLimit(req, "mobile_pos");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);

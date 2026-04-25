@@ -18,6 +18,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiOk, apiError, apiUnauthorized, apiValidationError } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createSignatureSession, getExistingPendingSession } from "@/lib/signature/session";
 import { generateCertificatePdfBytes } from "@/lib/signature/pdfUtils";
 import { escapeHtml } from "@/lib/sanitize";
@@ -94,6 +95,13 @@ export const dynamic = "force-dynamic";
 const SIGN_BASE_URL = process.env.NEXT_PUBLIC_SIGN_BASE_URL ?? "/sign";
 
 export async function POST(req: NextRequest) {
+  // Tighter limit than middleware (300/min). Each call generates a PDF
+  // (CPU + memory) and sends an email via Resend (cost). 10/min per IP is
+  // generous for normal staff workflow but bounds blast radius if a session
+  // cookie leaks.
+  const limited = await checkRateLimit(req, "auth");
+  if (limited) return limited;
+
   // 1. 認証チェック
   const supabase = await createClient();
   const caller = await resolveCallerWithRole(supabase);

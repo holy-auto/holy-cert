@@ -13,6 +13,7 @@ import {
   apiForbidden,
   apiInternalError,
 } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 import { enqueueBatchPdf } from "@/lib/qstash/publish";
 
 export const runtime = "nodejs";
@@ -67,6 +68,12 @@ export async function GET(req: NextRequest) {
  * 進捗は GET エンドポイントをポーリングして確認。
  */
 export async function POST(req: NextRequest) {
+  // Each call enqueues up to 100 PDF renders + Storage uploads via QStash.
+  // The auth preset (10/min/IP) bounds blast radius if a session leaks while
+  // still allowing legitimate batch operations.
+  const limited = await checkRateLimit(req, "auth");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);

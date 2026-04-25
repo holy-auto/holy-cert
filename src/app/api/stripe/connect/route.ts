@@ -5,6 +5,7 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiUnauthorized, apiNotFound, apiInternalError, apiValidationError } from "@/lib/api/response";
 import { stripeConnectCreateSchema } from "@/lib/validations/stripe";
+import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,11 @@ function safeUrl(candidate?: string | null, fallback?: string): string {
 
 // ─── POST: Create Connect account + onboarding link ───
 export async function POST(req: NextRequest) {
+  // Creates Stripe accounts + onboarding links. Bound abuse if a session
+  // cookie leaks; auth preset (10/min/IP) is comfortable for normal flow.
+  const limited = await checkRateLimit(req, "auth");
+  if (limited) return limited;
+
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
