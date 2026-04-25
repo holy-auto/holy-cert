@@ -142,6 +142,17 @@ function toNumericUm(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * NexPTGの interpretation は仕様上1-5だが、実機からは範囲外の値（0等）が
+ * 来ることがあるためDB制約 (CHECK 1-5) に違反する。範囲外なら null にする。
+ */
+function toInterpretation(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const n = Math.trunc(value);
+  if (n < 1 || n > 5) return null;
+  return n;
+}
+
 function flattenMeasurements(report: NexPtgReport, tenantId: string, reportId: string): Array<Record<string, unknown>> {
   const rows: Array<Record<string, unknown>> = [];
 
@@ -167,7 +178,7 @@ function flattenMeasurements(report: NexPtgReport, tenantId: string, reportId: s
             position: typeof v?.position === "number" ? v.position : null,
             value_um: toNumericUm(v?.value),
             raw_value: v?.value !== undefined && v?.value !== null ? String(v.value) : null,
-            interpretation: typeof v?.interpretation === "number" ? v.interpretation : null,
+            interpretation: toInterpretation(v?.interpretation),
             material: v?.type ?? null,
             measured_at: toTimestamp(v?.timestamp),
           });
@@ -350,7 +361,7 @@ export async function POST(req: NextRequest) {
         group_name: group.name ?? null,
         value_um: toNumericUm(item?.value),
         raw_value: item?.value !== undefined && item?.value !== null ? String(item.value) : null,
-        interpretation: typeof item?.interpretation === "number" ? item.interpretation : null,
+        interpretation: toInterpretation(item?.interpretation),
         material: item?.type ?? null,
         measured_at: toTimestamp(item?.date),
       }));
