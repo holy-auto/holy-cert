@@ -1,4 +1,5 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
+import { readSecret } from "@/lib/crypto/tenantSecrets";
 
 /**
  * LINE Messaging API クライアント
@@ -19,16 +20,32 @@ async function getLineConfig(tenantId: string): Promise<LineConfig | null> {
   const { admin } = createTenantScopedAdmin(tenantId);
   const { data: tenant } = await admin
     .from("tenants")
-    .select("line_channel_id, line_channel_secret, line_channel_access_token, line_liff_id, line_enabled")
+    .select(
+      "line_channel_id, line_channel_secret, line_channel_secret_ciphertext, line_channel_access_token, line_channel_access_token_ciphertext, line_liff_id, line_enabled",
+    )
     .eq("id", tenantId)
     .single();
 
-  if (!tenant?.line_enabled || !tenant.line_channel_access_token) return null;
+  if (!tenant?.line_enabled) return null;
+
+  // dual-read: ciphertext 優先 / 平文 fallback
+  const channelSecret = await readSecret(
+    tenant.line_channel_secret_ciphertext,
+    tenant.line_channel_secret,
+    "tenants.line_channel_secret",
+  );
+  const channelAccessToken = await readSecret(
+    tenant.line_channel_access_token_ciphertext,
+    tenant.line_channel_access_token,
+    "tenants.line_channel_access_token",
+  );
+
+  if (!channelAccessToken || !channelSecret) return null;
 
   return {
     channelId: tenant.line_channel_id,
-    channelSecret: tenant.line_channel_secret,
-    channelAccessToken: tenant.line_channel_access_token,
+    channelSecret,
+    channelAccessToken,
     liffId: tenant.line_liff_id || null,
   };
 }

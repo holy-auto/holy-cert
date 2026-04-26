@@ -3,6 +3,7 @@ import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiOk, apiUnauthorized, apiInternalError, apiError } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
+import { buildSecretWrite, readSecret } from "@/lib/crypto/tenantSecrets";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -37,11 +38,16 @@ async function refreshSquareToken(
     const admin = createServiceRoleAdmin(
       "cron:square-sync — fans out Square OAuth refresh across every connected tenant",
     );
+    // dual-write: 平文 + ciphertext
+    const accessTokenPayload = await buildSecretWrite(data.access_token);
+    const refreshTokenPayload = await buildSecretWrite(data.refresh_token);
     await admin
       .from("square_connections")
       .update({
-        square_access_token: data.access_token,
-        square_refresh_token: data.refresh_token,
+        square_access_token: accessTokenPayload.plain,
+        square_access_token_ciphertext: accessTokenPayload.ciphertext,
+        square_refresh_token: refreshTokenPayload.plain,
+        square_refresh_token_ciphertext: refreshTokenPayload.ciphertext,
         square_token_expires_at: data.expires_at,
       })
       .eq("id", connectionId);
@@ -141,11 +147,11 @@ export async function GET(req: NextRequest) {
       "cron:square-sync — fans out Square OAuth refresh across every connected tenant",
     );
 
-    // Fetch all active square connections
+    // Fetch all active square connections (dual-read: ciphertext 列も取得)
     const { data: connections, error: connErr } = await admin
       .from("square_connections")
       .select(
-        "id, tenant_id, square_access_token, square_refresh_token, square_token_expires_at, square_location_ids, status",
+        "id, tenant_id, square_access_token, square_access_token_ciphertext, square_refresh_token, square_refresh_token_ciphertext, square_token_expires_at, square_location_ids, status",
       )
       .eq("status", "active");
 
@@ -182,12 +188,23 @@ export async function GET(req: NextRequest) {
       const connectionId = conn.id as string;
 
       try {
-        // Token expiry check & refresh
-        let accessToken = conn.square_access_token as string;
+        // Token expiry check & refresh (dual-read: ciphertext 優先 / 平文 fallback)
+        let accessToken =
+          (await readSecret(
+            conn.square_access_token_ciphertext as string | null,
+            conn.square_access_token as string | null,
+            "square_connections.square_access_token",
+          )) ?? "";
+        const refreshToken =
+          (await readSecret(
+            conn.square_refresh_token_ciphertext as string | null,
+            conn.square_refresh_token as string | null,
+            "square_connections.square_refresh_token",
+          )) ?? "";
         const expiresAt = new Date(conn.square_token_expires_at as string);
 
         if (expiresAt <= now) {
-          const refreshed = await refreshSquareToken(connectionId, conn.square_refresh_token as string);
+          const refreshed = await refreshSquareToken(connectionId, refreshToken);
           if (!refreshed) {
             console.warn(`[square cron] tenant=${tenantId} token refresh failed, skipping`);
             results.push({ tenantId, status: "skipped", error: "token_refresh_failed" });

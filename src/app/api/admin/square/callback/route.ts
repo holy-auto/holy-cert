@@ -1,6 +1,7 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { buildSecretWrite } from "@/lib/crypto/tenantSecrets";
 
 export const dynamic = "force-dynamic";
 
@@ -97,12 +98,17 @@ export async function GET(req: NextRequest) {
       // 場所の取得失敗は致命的でないので続行
     }
 
-    // 3. Upsert into square_connections
+    // 3. Upsert into square_connections (dual-write: 平文 + ciphertext)
+    const accessTokenPayload = await buildSecretWrite(access_token);
+    const refreshTokenPayload = await buildSecretWrite(refresh_token);
+
     const { error: dbError } = await admin.from("square_connections").upsert(
       {
         tenant_id: tenantId,
-        square_access_token: access_token,
-        square_refresh_token: refresh_token,
+        square_access_token: accessTokenPayload.plain,
+        square_access_token_ciphertext: accessTokenPayload.ciphertext,
+        square_refresh_token: refreshTokenPayload.plain,
+        square_refresh_token_ciphertext: refreshTokenPayload.ciphertext,
         square_token_expires_at: expires_at,
         square_merchant_id: merchant_id ?? null,
         square_location_ids: locationIds,

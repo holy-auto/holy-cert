@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { readSecret } from "@/lib/crypto/tenantSecrets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -161,7 +162,7 @@ async function resolveTenant(merchantId: string) {
   );
   const { data: conn, error } = await admin
     .from("square_connections")
-    .select("tenant_id, square_access_token, square_location_ids")
+    .select("tenant_id, square_access_token, square_access_token_ciphertext, square_location_ids")
     .eq("square_merchant_id", merchantId)
     .eq("status", "active")
     .maybeSingle();
@@ -170,7 +171,20 @@ async function resolveTenant(merchantId: string) {
     console.error("[square-webhook] tenant lookup error:", error.message);
     return null;
   }
-  return conn;
+  if (!conn) return null;
+
+  // dual-read: ciphertext 優先 / 平文 fallback
+  const accessToken = await readSecret(
+    conn.square_access_token_ciphertext as string | null,
+    conn.square_access_token as string | null,
+    "square_connections.square_access_token",
+  );
+
+  return {
+    tenant_id: conn.tenant_id,
+    square_access_token: accessToken,
+    square_location_ids: conn.square_location_ids,
+  };
 }
 
 /**
@@ -201,7 +215,11 @@ async function handleOrderUpdated(merchantId: string, data: SquareWebhookEvent["
   const tenantId = conn.tenant_id as string;
 
   // Fetch the full order from Square API
-  const accessToken = conn.square_access_token as string;
+  const accessToken = conn.square_access_token;
+  if (!accessToken) {
+    console.warn(`[square-webhook] No access token for tenant ${tenantId} — skipping`);
+    return;
+  }
   const fullOrder = await fetchSquareOrder(accessToken, orderId);
   if (!fullOrder) {
     console.warn(`[square-webhook] Could not fetch order ${orderId} from Square API`);
@@ -233,7 +251,11 @@ async function handlePaymentCompleted(merchantId: string, data: SquareWebhookEve
     "square webhook — resolves tenant from merchant_id then scopes writes by tenant_id",
   );
   const tenantId = conn.tenant_id as string;
-  const accessToken = conn.square_access_token as string;
+  const accessToken = conn.square_access_token;
+  if (!accessToken) {
+    console.warn(`[square-webhook] No access token for tenant ${tenantId} — skipping`);
+    return;
+  }
 
   const fullOrder = await fetchSquareOrder(accessToken, orderId);
   if (!fullOrder) {

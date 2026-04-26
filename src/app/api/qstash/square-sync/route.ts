@@ -4,6 +4,7 @@ import { apiJson } from "@/lib/api/response";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { Client } from "@upstash/qstash";
+import { buildSecretWrite, readSecret } from "@/lib/crypto/tenantSecrets";
 
 const squareSyncSchema = z.object({
   job_id: z.string().uuid(),
@@ -50,11 +51,16 @@ async function refreshSquareToken(
     }
 
     const data = await res.json();
+    // dual-write: 平文 + ciphertext
+    const accessTokenPayload = await buildSecretWrite(data.access_token);
+    const refreshTokenPayload = await buildSecretWrite(data.refresh_token);
     await admin
       .from("square_connections")
       .update({
-        square_access_token: data.access_token,
-        square_refresh_token: data.refresh_token,
+        square_access_token: accessTokenPayload.plain,
+        square_access_token_ciphertext: accessTokenPayload.ciphertext,
+        square_refresh_token: refreshTokenPayload.plain,
+        square_refresh_token_ciphertext: refreshTokenPayload.ciphertext,
         square_token_expires_at: data.expires_at,
       })
       .eq("id", connectionId);
@@ -78,11 +84,13 @@ async function handler(req: NextRequest) {
   await admin.from("square_sync_runs").update({ status: "processing" }).eq("id", job_id);
 
   try {
-    // 接続情報と sync_run の日付範囲を並行取得
+    // 接続情報と sync_run の日付範囲を並行取得 (dual-read: ciphertext 列も取得)
     const [{ data: conn }, { data: syncRun }] = await Promise.all([
       admin
         .from("square_connections")
-        .select("id, square_access_token, square_refresh_token, square_token_expires_at, square_location_ids")
+        .select(
+          "id, square_access_token, square_access_token_ciphertext, square_refresh_token, square_refresh_token_ciphertext, square_token_expires_at, square_location_ids",
+        )
         .eq("tenant_id", tenant_id)
         .eq("status", "active")
         .maybeSingle(),
@@ -105,11 +113,22 @@ async function handler(req: NextRequest) {
       return apiJson({ error: "No connection" }, { status: 400 });
     }
 
-    // トークン期限チェック＆リフレッシュ
-    let accessToken = conn.square_access_token as string;
+    // トークン期限チェック＆リフレッシュ (dual-read: ciphertext 優先 / 平文 fallback)
+    let accessToken =
+      (await readSecret(
+        conn.square_access_token_ciphertext as string | null,
+        conn.square_access_token as string | null,
+        "square_connections.square_access_token",
+      )) ?? "";
+    const refreshToken =
+      (await readSecret(
+        conn.square_refresh_token_ciphertext as string | null,
+        conn.square_refresh_token as string | null,
+        "square_connections.square_refresh_token",
+      )) ?? "";
     const expiresAt = new Date(conn.square_token_expires_at as string);
     if (expiresAt <= new Date()) {
-      const refreshed = await refreshSquareToken(conn.id as string, conn.square_refresh_token as string, admin);
+      const refreshed = await refreshSquareToken(conn.id as string, refreshToken, admin);
       if (!refreshed) {
         await admin
           .from("square_sync_runs")
