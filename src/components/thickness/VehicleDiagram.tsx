@@ -5,8 +5,8 @@ import type { CSSProperties, ReactNode } from "react";
  *
  * セダン上面視点を再現した exploded view。中央列にボンネット→ウィンドシールド
  * →ルーフ→リアガラス→トランクの流れを描き、左右にはフェンダー・ドア・ピラーを
- * 自然な台形/曲線で配置。ヘッドライト・テールランプ・サイドミラー・タイヤを
- * 描画してリアル度を上げている。
+ * 自然な台形/曲線で配置。ヘッドライト・テールランプ・サイドミラーを描画して
+ * リアル度を上げている。
  *
  * 各パネルは判定最大値（1-5）で色分けされ、ホバーで詳細をツールチップ表示する。
  */
@@ -113,7 +113,7 @@ type PanelDef = {
 // 中央列: x=290-530（HOOD/WINDSHIELD/ROOF/REAR_GLASS/TRUNK）
 // 左列:   x=80-260
 // 右列:   x=560-740
-// タイヤ等の装飾要素は body 外側へ
+// 装飾要素（ヘッドライト/テールランプ/ミラー/ガラス）は body 外周配置
 const EXTERIOR_PANELS: PanelDef[] = [
   // ── 中央列 ──
   {
@@ -293,18 +293,12 @@ function formatTooltip(section: string, info: PanelInfo | undefined, unit: strin
   return parts.join(" / ");
 }
 
-function PanelShape({
-  panel,
-  info,
-  unit,
-}: {
-  panel: PanelDef;
-  info: PanelInfo | undefined;
-  unit: string;
-}) {
+function PanelShape({ panel, info, unit }: { panel: PanelDef; info: PanelInfo | undefined; unit: string }) {
   const palette = paletteFor(info?.maxInterpretation ?? null);
   const isMeasured = !!info && info.count > 0;
-  const labelText = panel.short ? SHORT_LABEL[panel.section] ?? panel.section : SECTION_JA[panel.section] ?? panel.section;
+  const labelText = panel.short
+    ? (SHORT_LABEL[panel.section] ?? panel.section)
+    : (SECTION_JA[panel.section] ?? panel.section);
 
   const shapeStyle: CSSProperties = {
     fill: palette.fill,
@@ -373,16 +367,8 @@ function PanelShape({
   );
 }
 
-/** 装飾要素: タイヤ・ヘッドライト・テールランプ・サイドミラー・ガラス */
+/** 装飾要素: ヘッドライト・テールランプ・サイドミラー・ガラス */
 function ExteriorDecorations(): ReactNode {
-  const wheelStyle: CSSProperties = {
-    fill: "var(--text-primary)",
-    opacity: 0.78,
-  };
-  const wheelHubStyle: CSSProperties = {
-    fill: "var(--bg-surface-solid)",
-    opacity: 0.5,
-  };
   const headlightStyle: CSSProperties = {
     fill: "rgba(254, 240, 138, 0.85)",
     stroke: "var(--text-muted)",
@@ -417,22 +403,6 @@ function ExteriorDecorations(): ReactNode {
       <text x={410} y={428} textAnchor="middle" style={{ fill: "var(--text-muted)", fontSize: 10, opacity: 0.7 }}>
         リアガラス
       </text>
-
-      {/* タイヤ4輪（外装パネルの外側に飛び出す） */}
-      <g>
-        {/* 左前輪 */}
-        <ellipse cx={62} cy={130} rx={14} ry={28} style={wheelStyle} />
-        <ellipse cx={62} cy={130} rx={5} ry={10} style={wheelHubStyle} />
-        {/* 左後輪 */}
-        <ellipse cx={62} cy={520} rx={14} ry={28} style={wheelStyle} />
-        <ellipse cx={62} cy={520} rx={5} ry={10} style={wheelHubStyle} />
-        {/* 右前輪 */}
-        <ellipse cx={758} cy={130} rx={14} ry={28} style={wheelStyle} />
-        <ellipse cx={758} cy={130} rx={5} ry={10} style={wheelHubStyle} />
-        {/* 右後輪 */}
-        <ellipse cx={758} cy={520} rx={14} ry={28} style={wheelStyle} />
-        <ellipse cx={758} cy={520} rx={5} ry={10} style={wheelHubStyle} />
-      </g>
 
       {/* ヘッドライト（HOODの前端、左右） */}
       <g>
@@ -482,7 +452,7 @@ export function ExteriorDiagram({ panels, unit }: { panels: Record<string, Panel
           REAR ↓
         </text>
 
-        {/* 装飾（タイヤ・ライト・ガラス・ミラー）はパネルより前に描画して背面に */}
+        {/* 装飾（ライト・ガラス・ミラー）はパネルより前に描画して背面に */}
         <ExteriorDecorations />
 
         {/* 各パネル */}

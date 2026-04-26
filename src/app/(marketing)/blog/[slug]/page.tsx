@@ -92,7 +92,7 @@ export default async function BlogDetailPage({ params }: Props) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={article.heroImageUrl}
-                alt=""
+                alt={article.title}
                 className="w-full aspect-[5/2] rounded-2xl object-cover border border-white/[0.08]"
               />
             ) : (

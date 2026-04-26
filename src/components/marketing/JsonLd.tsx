@@ -55,3 +55,60 @@ export async function WebSiteJsonLd() {
   const nonce = await getNonce();
   return <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
 }
+
+type FaqItem = { question: string; answer: string };
+
+export async function FAQJsonLd({ items }: { items: FaqItem[] }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map(({ question, answer }) => ({
+      "@type": "Question",
+      name: question,
+      acceptedAnswer: { "@type": "Answer", text: answer },
+    })),
+  };
+
+  const nonce = await getNonce();
+  return <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
+
+type PlanOffer = { name: string; price: string; description: string };
+
+export async function PricingJsonLd({ plans }: { plans: PlanOffer[] }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: siteConfig.siteName,
+    url: siteConfig.siteUrl,
+    applicationCategory: "BusinessApplication",
+    offers: plans.map(({ name, description, price }) => ({
+      "@type": "Offer",
+      name,
+      description,
+      price: price.replace(/[¥,]/g, ""),
+      priceCurrency: "JPY",
+    })),
+  };
+
+  const nonce = await getNonce();
+  return <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
+
+type BreadcrumbItem = { name: string; url: string };
+
+export async function BreadcrumbJsonLd({ items }: { items: BreadcrumbItem[] }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map(({ name, url }, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name,
+      item: `${siteConfig.siteUrl}${url}`,
+    })),
+  };
+
+  const nonce = await getNonce();
+  return <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}

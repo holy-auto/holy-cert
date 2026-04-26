@@ -46,9 +46,10 @@ type OgInput = {
   title: string;
   subtitle?: string;
   badge?: string;
+  imageUrl?: string;
 };
 
-export async function makeOgImage({ title, subtitle, badge }: OgInput) {
+export async function makeOgImage({ title, subtitle, badge, imageUrl }: OgInput) {
   const tagline = "記録を、業界の共通言語にする。";
   const brand = "Ledra";
 
@@ -72,6 +73,34 @@ export async function makeOgImage({ title, subtitle, badge }: OgInput) {
           position: "relative",
         }}
       >
+        {/* Hero image overlay (right side) */}
+        {imageUrl && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              width: "45%",
+              height: "100%",
+              display: "flex",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt=""
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "linear-gradient(to right, #060a12 0%, transparent 40%)",
+                display: "flex",
+              }}
+            />
+          </div>
+        )}
         {/* Ambient blobs */}
         <div
           style={{
