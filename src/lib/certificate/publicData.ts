@@ -226,6 +226,7 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
       .from("vehicle_passports")
       .select("vin_code_normalized")
       .eq("vin_code_normalized", vinNormalized)
+      .returns<{ vin_code_normalized: string }>()
       .maybeSingle();
     passportVin = passportRow?.vin_code_normalized ?? null;
   }

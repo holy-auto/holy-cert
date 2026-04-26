@@ -19,6 +19,7 @@ export async function upsertVehiclePassport(certId: string): Promise<void> {
     .from("certificates")
     .select("vehicle_id")
     .eq("id", certId)
+    .returns<{ vehicle_id: string | null }>()
     .maybeSingle();
   if (!cert?.vehicle_id) return;
 
@@ -26,6 +27,13 @@ export async function upsertVehiclePassport(certId: string): Promise<void> {
     .from("vehicles")
     .select("vin_code_normalized, maker, model, year, passport_opt_out")
     .eq("id", cert.vehicle_id)
+    .returns<{
+      vin_code_normalized: string | null;
+      maker: string | null;
+      model: string | null;
+      year: number | null;
+      passport_opt_out: boolean;
+    }>()
     .maybeSingle();
   if (!vehicle?.vin_code_normalized || vehicle.passport_opt_out) return;
 
@@ -36,10 +44,11 @@ export async function upsertVehiclePassport(certId: string): Promise<void> {
     .from("vehicles")
     .select("id, tenant_id")
     .eq("vin_code_normalized", vin)
-    .eq("passport_opt_out", false);
+    .eq("passport_opt_out", false)
+    .returns<{ id: string; tenant_id: string }[]>();
   if (!vinVehicles?.length) return;
 
-  const vehicleIds = vinVehicles.map((v: { id: string }) => v.id);
+  const vehicleIds = vinVehicles.map((v) => v.id);
 
   // Certificates linked to those vehicles
   const { data: allCerts } = await admin

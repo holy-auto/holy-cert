@@ -24,6 +24,17 @@ export type PassportData = {
   certificates: PassportCertCard[];
 };
 
+type PassportRow = {
+  vin_code_normalized: string;
+  display_maker: string | null;
+  display_model: string | null;
+  display_year: number | null;
+  anchored_cert_count: number;
+  tenant_count: number;
+  first_seen_at: string;
+  last_activity_at: string;
+};
+
 export async function getPassportData(vinRaw: string): Promise<PassportData | null> {
   const vin = vinRaw.trim().toUpperCase();
   const admin = createServiceRoleAdmin("passport public page — /v/[vin], anonymous caller");
@@ -35,6 +46,7 @@ export async function getPassportData(vinRaw: string): Promise<PassportData | nu
         "anchored_cert_count, tenant_count, first_seen_at, last_activity_at",
     )
     .eq("vin_code_normalized", vin)
+    .returns<PassportRow>()
     .maybeSingle();
   if (!passport) return null;
 
@@ -43,11 +55,12 @@ export async function getPassportData(vinRaw: string): Promise<PassportData | nu
     .from("vehicles")
     .select("id, tenant_id")
     .eq("vin_code_normalized", vin)
-    .eq("passport_opt_out", false);
+    .eq("passport_opt_out", false)
+    .returns<{ id: string; tenant_id: string }[]>();
   if (!vinVehicles?.length) return null;
 
-  const vehicleIds = (vinVehicles as { id: string; tenant_id: string }[]).map((v) => v.id);
-  const tenantIds = [...new Set((vinVehicles as { tenant_id: string }[]).map((v) => v.tenant_id))];
+  const vehicleIds = vinVehicles.map((v) => v.id);
+  const tenantIds = [...new Set(vinVehicles.map((v) => v.tenant_id))];
 
   const [tenantsRes, certsRes] = await Promise.all([
     admin.from("tenants").select("id, name, slug").in("id", tenantIds),
