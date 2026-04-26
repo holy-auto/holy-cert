@@ -191,6 +191,10 @@
    Base Styles
    ══════════════════════════════════════════════════ */
 
+html {
+  background: var(--bg-base);
+}
+
 body {
   background: var(--bg-base);
   color: var(--text-primary);
