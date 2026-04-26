@@ -62,7 +62,7 @@ export default async function Page({ params }: PageProps) {
   const { data: row, error } = await supabase
     .from("certificates")
     .select(
-      "id,tenant_id,vehicle_id,public_id,status,customer_name,vehicle_info_json,content_free_text,content_preset_json,expiry_type,expiry_value,expiry_date,warranty_period_end,maintenance_date,warranty_exclusions,remarks,service_type,logo_asset_path,current_version,created_at,updated_at",
+      "id,tenant_id,customer_id,vehicle_id,public_id,status,customer_name,vehicle_info_json,content_free_text,content_preset_json,expiry_type,expiry_value,expiry_date,warranty_period_end,maintenance_date,warranty_exclusions,remarks,service_type,logo_asset_path,current_version,created_at,updated_at",
     )
     .eq("tenant_id", tenantId)
     .eq("public_id", publicId)
