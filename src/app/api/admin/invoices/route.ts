@@ -55,7 +55,24 @@ export async function GET(req: NextRequest) {
     const action = url.searchParams.get("action") ?? "";
     const status = url.searchParams.get("status") ?? "";
     const customerId = url.searchParams.get("customer_id") ?? "";
+    const docNumber = url.searchParams.get("doc_number") ?? "";
     const { page, perPage, from, to } = parsePagination(req, { maxPerPage: 200 });
+
+    // 請求書番号による単票取得（POS 会計用）
+    if (docNumber) {
+      const { data: inv } = await supabase
+        .from("documents")
+        .select(
+          "id, doc_number, recipient_name, customer_id, vehicle_id, total, subtotal, tax, tax_rate, status, issued_at, due_date, items_json",
+        )
+        .eq("tenant_id", caller.tenantId)
+        .eq("doc_type", "invoice")
+        .eq("doc_number", docNumber.trim())
+        .maybeSingle();
+
+      if (!inv) return apiJson({ found: false });
+      return apiJson({ found: true, invoice: inv });
+    }
 
     // 証明書取得アクション
     if (action === "certificates" && customerId) {

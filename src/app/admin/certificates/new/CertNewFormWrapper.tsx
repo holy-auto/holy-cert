@@ -125,6 +125,45 @@ export default function CertNewFormWrapper({
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | undefined>(defaultVehicleId);
   const [draftApplied, setDraftApplied] = useState(false);
 
+  // 前回証明書データ（車両選択時に取得）
+  type LastCert = {
+    public_id: string;
+    created_at: string;
+    service_type: string | null;
+    expiry_value: string | null;
+    warranty_exclusions: string | null;
+    customer_name: string | null;
+  };
+  const [lastCert, setLastCert] = useState<LastCert | null>(null);
+  const [lastCertDismissed, setLastCertDismissed] = useState(false);
+  const expiryValueRef = useRef<HTMLInputElement>(null);
+
+  const handleVehicleChange = useCallback(async (vehicleId: string | undefined) => {
+    setSelectedVehicleId(vehicleId);
+    setLastCert(null);
+    setLastCertDismissed(false);
+    if (!vehicleId) return;
+    try {
+      const res = await fetch(`/api/admin/vehicles/${encodeURIComponent(vehicleId)}/last-cert`);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (json.found) setLastCert(json.cert as LastCert);
+    } catch {
+      // 取得失敗は無視（必須機能ではない）
+    }
+  }, []);
+
+  const applyLastCert = () => {
+    if (!lastCert) return;
+    if (lastCert.expiry_value && expiryValueRef.current && !expiryValueRef.current.value) {
+      expiryValueRef.current.value = lastCert.expiry_value;
+    }
+    if (lastCert.warranty_exclusions && warrantyRef.current && !warrantyRef.current.value) {
+      warrantyRef.current.value = lastCert.warranty_exclusions;
+    }
+    setLastCertDismissed(true);
+  };
+
   const handleAiDraftApply = useCallback((draft: { title: string; description: string; cautions: string }) => {
     if (!formRef.current) return;
     const form = formRef.current;
@@ -278,8 +317,46 @@ export default function CertNewFormWrapper({
                 : vehicles
             }
             defaultVehicleId={defaultVehicleId}
-            onVehicleChange={setSelectedVehicleId}
+            onVehicleChange={handleVehicleChange}
           />
+
+          {/* 前回証明書からの引き継ぎバナー */}
+          {lastCert && !lastCertDismissed && (
+            <div className="mt-3 rounded-xl border border-accent/20 bg-accent-dim px-4 py-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="font-medium text-accent">前回の施工内容から引き継ぎますか？</span>
+                  <span className="ml-2 text-xs text-muted">
+                    {new Date(lastCert.created_at).toLocaleDateString("ja-JP")}
+                    {lastCert.service_type ? ` · ${lastCert.service_type}` : ""}
+                    {lastCert.customer_name ? ` · ${lastCert.customer_name}` : ""}
+                  </span>
+                  <ul className="mt-1 text-xs text-muted space-y-0.5">
+                    {lastCert.expiry_value && <li>・有効条件: {lastCert.expiry_value}</li>}
+                    {lastCert.warranty_exclusions && (
+                      <li className="truncate">・保証除外: {lastCert.warranty_exclusions.slice(0, 60)}{lastCert.warranty_exclusions.length > 60 ? "…" : ""}</li>
+                    )}
+                  </ul>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={applyLastCert}
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent/90"
+                  >
+                    引き継ぐ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLastCertDismissed(true)}
+                    className="rounded-lg border border-border-default px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-hover"
+                  >
+                    スキップ
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ━━━ 2. PPF施工範囲（PPFテンプレート時のみ） ━━━ */}
@@ -318,7 +395,7 @@ export default function CertNewFormWrapper({
           </div>
           <label className={labelCls}>
             <span className={labelTextCls}>有効条件（テキスト）</span>
-            <input name="expiry_value" className={inputCls} placeholder="半年ごとにメンテ推奨 など" />
+            <input ref={expiryValueRef} name="expiry_value" className={inputCls} placeholder="半年ごとにメンテ推奨 など" />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelCls}>

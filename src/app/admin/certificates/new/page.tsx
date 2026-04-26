@@ -38,6 +38,7 @@ export default async function Page({
     year: number | null;
     plate_display: string | null;
     vin_code: string | null;
+    size_class: string | null;
     customer_id: string | null;
     customer: { id: string; name: string } | null;
   };
@@ -56,7 +57,7 @@ export default async function Page({
         .returns<TemplateRow[]>(),
       supabase
         .from("vehicles")
-        .select("id, maker, model, year, plate_display, vin_code, customer_id, customer:customers(id, name)")
+        .select("id, maker, model, year, plate_display, vin_code, size_class, customer_id, customer:customers(id, name)")
         .eq("tenant_id", tenantId)
         .order("created_at", { ascending: false })
         .limit(300)

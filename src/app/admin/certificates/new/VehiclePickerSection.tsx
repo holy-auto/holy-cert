@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useId, useEffect, useRef, useMemo } from "react";
-import Button from "@/components/ui/Button";
+import { useState, useEffect, useRef, useMemo } from "react";
+import dynamic from "next/dynamic";
+
+const ShakenshoScanner = dynamic(() => import("@/components/vehicles/ShakenshoScanner"), {
+  ssr: false,
+});
 
 type Vehicle = {
   id: string;
@@ -10,6 +14,7 @@ type Vehicle = {
   year: number | null;
   plate_display: string | null;
   vin_code?: string | null;
+  size_class?: string | null;
   customer_id?: string | null;
   customer?: { id: string; name: string } | null;
 };
@@ -19,6 +24,18 @@ type Customer = {
   name: string;
   email: string | null;
   phone: string | null;
+};
+
+type Extracted = {
+  maker?: string | null;
+  model?: string | null;
+  year?: number | null;
+  vin_code?: string | null;
+  plate_display?: string | null;
+  length_mm?: number | null;
+  width_mm?: number | null;
+  height_mm?: number | null;
+  size_class?: string | null;
 };
 
 function vehicleLabel(v: Vehicle) {
@@ -49,15 +66,22 @@ export default function VehiclePickerSection({
   defaultVehicleId?: string;
   onVehicleChange?: (vehicleId: string | undefined) => void;
 }) {
-  const uid = useId();
-  const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles);
-  const [search, setSearch] = useState("");
+  const [vehicles] = useState<Vehicle[]>(initialVehicles);
   const [selectedId, setSelectedId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [model, setModel] = useState("");
   const [plate, setPlate] = useState("");
   const [maker, setMaker] = useState("");
+  const [vinCode, setVinCode] = useState("");
+  const [sizeClass, setSizeClass] = useState<string | null>(null);
+  const [customerPhone, setCustomerPhone] = useState<string | null>(null);
+
+  // Shakensho auto-fill state
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrMsg, setOcrMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Customer master search
   const [customerSearch, setCustomerSearch] = useState("");
@@ -67,7 +91,6 @@ export default function VehiclePickerSection({
 
   // Vehicle search (combobox for maker field)
   const [vehicleSearchOpen, setVehicleSearchOpen] = useState(false);
-  const vehicleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Pre-select vehicle when defaultVehicleId is provided
   useEffect(() => {
@@ -78,6 +101,8 @@ export default function VehiclePickerSection({
       setMaker(v.maker ?? "");
       setModel(vehicleModel(v));
       setPlate(v.plate_display ?? "");
+      setVinCode(v.vin_code ?? "");
+      setSizeClass(v.size_class ?? null);
       if (v.customer) {
         setCustomerName(v.customer.name);
         setCustomerId(v.customer.id);
@@ -131,6 +156,8 @@ export default function VehiclePickerSection({
     setMaker(v.maker ?? "");
     setModel(vehicleModel(v));
     setPlate(v.plate_display ?? "");
+    setVinCode(v.vin_code ?? "");
+    setSizeClass(v.size_class ?? null);
     setVehicleSearchOpen(false);
     onVehicleChange?.(v.id);
     // Auto-fill customer if vehicle has one
@@ -147,6 +174,8 @@ export default function VehiclePickerSection({
     onVehicleChange?.(undefined);
     setModel("");
     setPlate("");
+    setVinCode("");
+    setSizeClass(null);
   };
 
   const handleMakerChange = (val: string) => {
@@ -175,12 +204,194 @@ export default function VehiclePickerSection({
   const handleCustomerSelect = (c: Customer) => {
     setCustomerName(c.name);
     setCustomerId(c.id);
+    setCustomerPhone(c.phone ?? null);
     setCustomerSearch("");
     setCustomerSearchOpen(false);
   };
 
+  // Apply extracted data from QR scan or image OCR to form fields
+  const applyExtracted = (extracted: Extracted) => {
+    const filled: string[] = [];
+    if (extracted.maker) {
+      setMaker(extracted.maker);
+      filled.push("メーカー");
+    }
+    if (extracted.model || extracted.maker) {
+      const combined = [extracted.maker, extracted.model, extracted.year ? String(extracted.year) : null]
+        .filter(Boolean)
+        .join(" ");
+      setModel(combined);
+      if (extracted.model) filled.push("車種");
+    }
+    if (extracted.plate_display) {
+      setPlate(extracted.plate_display);
+      filled.push("ナンバー");
+    }
+    if (extracted.vin_code) {
+      setVinCode(extracted.vin_code);
+    }
+    if (extracted.size_class) {
+      setSizeClass(extracted.size_class);
+    }
+    // Clear master link since we're populating fields manually
+    setSelectedId("");
+    onVehicleChange?.(undefined);
+
+    if (filled.length > 0) {
+      setOcrMsg({ type: "success", text: `${filled.join("・")}を自動入力しました` });
+    } else {
+      setOcrMsg({ type: "error", text: "車両情報を読み取れませんでした。手入力してください。" });
+    }
+    setTimeout(() => setOcrMsg(null), 5000);
+  };
+
+  const handleQrResult = async (rawText: string) => {
+    setScannerOpen(false);
+    setOcrLoading(true);
+    setOcrMsg(null);
+    try {
+      const res = await fetch("/api/vehicles/parse-shakken-qr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw: rawText }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setOcrMsg({ type: "error", text: json.message ?? "二次元コードの解析に失敗しました" });
+        return;
+      }
+      applyExtracted(json.extracted as Extracted);
+    } catch {
+      setOcrMsg({ type: "error", text: "通信エラーが発生しました" });
+    } finally {
+      setOcrLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setOcrLoading(true);
+    setOcrMsg(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/vehicles/parse-shakken", { method: "POST", body: form });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setOcrMsg({ type: "error", text: json.message ?? "画像の読み取りに失敗しました" });
+        return;
+      }
+      applyExtracted(json.extracted as Extracted);
+    } catch {
+      setOcrMsg({ type: "error", text: "通信エラーが発生しました" });
+    } finally {
+      setOcrLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* ── 車検証から自動入力 ── */}
+      <div className="rounded-xl border border-border-default bg-surface p-4 space-y-3">
+        <div>
+          <div className="text-sm font-medium text-secondary">車検証から自動入力</div>
+          <p className="mt-0.5 text-xs text-muted">
+            電子車検証の二次元コードをスキャン、または画像をアップロードして車両情報を自動入力できます
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setScannerOpen(true)}
+            disabled={ocrLoading}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border-default bg-surface px-3 py-2 text-sm font-medium text-primary hover:bg-surface-hover disabled:opacity-50 transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+            </svg>
+            カメラでスキャン
+          </button>
+          <button
+            type="button"
+            onClick={() => imageInputRef.current?.click()}
+            disabled={ocrLoading}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border-default bg-surface px-3 py-2 text-sm font-medium text-primary hover:bg-surface-hover disabled:opacity-50 transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            画像をアップロード
+          </button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleImageUpload(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        {ocrLoading && (
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <svg
+              className="h-3.5 w-3.5 animate-spin"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            読み取り中...
+          </div>
+        )}
+
+        {ocrMsg && (
+          <p className={`text-xs ${ocrMsg.type === "success" ? "text-success-text" : "text-danger"}`}>
+            {ocrMsg.type === "success" ? "✓ " : "✕ "}
+            {ocrMsg.text}
+          </p>
+        )}
+
+        {sizeClass && (
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <span>サイズ判定:</span>
+            <span className="rounded-md bg-accent-dim px-2 py-0.5 text-xs font-semibold text-accent">
+              {sizeClass}
+            </span>
+            <span className="text-[11px]">（証明書の料金計算に使用されます）</span>
+          </div>
+        )}
+      </div>
+
+      {/* Scanner modal (dynamically loaded) */}
+      <ShakenshoScanner
+        open={scannerOpen}
+        onResult={handleQrResult}
+        onClose={() => setScannerOpen(false)}
+      />
+
       {/* Vehicle info section */}
       <div>
         <div className="mb-4">
@@ -191,6 +402,8 @@ export default function VehiclePickerSection({
 
         <input type="hidden" name="vehicle_id" value={selectedId} />
         <input type="hidden" name="vehicle_maker" value={maker} />
+        <input type="hidden" name="vin_code" value={vinCode} />
+        <input type="hidden" name="size_class" value={sizeClass ?? ""} />
 
         <div className="space-y-4">
           {/* Maker — combobox: type to search or manual entry */}
@@ -300,6 +513,7 @@ export default function VehiclePickerSection({
                   const val = e.target.value;
                   setCustomerName(val);
                   setCustomerId("");
+                  setCustomerPhone(null);
                   setCustomerSearch(val);
                   setCustomerSearchOpen(true);
                 }}
@@ -336,7 +550,13 @@ export default function VehiclePickerSection({
                   ))}
                 </ul>
               )}
-              <p className="mt-1 text-[11px] text-muted">入力すると顧客マスタを検索します。手入力のみでもOK</p>
+              {customerPhone ? (
+                <p className="mt-1 text-[11px] text-muted">
+                  電話番号: <span className="font-medium text-secondary">{customerPhone}</span>
+                </p>
+              ) : (
+                <p className="mt-1 text-[11px] text-muted">入力すると顧客マスタを検索します。手入力のみでもOK</p>
+              )}
             </div>
           </div>
         </div>
