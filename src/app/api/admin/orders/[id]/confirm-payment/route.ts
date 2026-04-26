@@ -1,68 +1,10 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import Stripe from "stripe";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
-
-function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion,
-  });
-}
-
-/** 支払い確認後に施工店（to_tenant）へ90%自動送金する（fire-and-forget） */
-async function triggerOrderPayout(orderId: string, fromTenantId: string): Promise<void> {
-  const { admin } = createTenantScopedAdmin(fromTenantId);
-
-  const { data: order } = await admin
-    .from("job_orders")
-    .select("id, invoice_number, payout_amount, to_tenant_id, payout_stripe_transfer_id")
-    .eq("id", orderId)
-    .single();
-
-  if (!order?.payout_amount || !order?.to_tenant_id) return;
-  // 既に送金済みの場合はスキップ
-  if (order.payout_stripe_transfer_id) return;
-
-  const { data: shop } = await admin
-    .from("tenants")
-    .select("stripe_connect_account_id, stripe_connect_onboarded")
-    .eq("id", order.to_tenant_id as string)
-    .single();
-
-  if (!shop?.stripe_connect_account_id || !shop?.stripe_connect_onboarded) {
-    // Stripe Connect 未設定 → 手動送金フラグを立てる
-    await admin
-      .from("job_orders")
-      .update({ payout_stripe_transfer_id: "manual_required" })
-      .eq("id", orderId);
-    console.warn("[confirm-payment] payout manual_required — Connect not set up", { orderId });
-    return;
-  }
-
-  const stripe = getStripe();
-  const transfer = await stripe.transfers.create({
-    amount: Math.round(order.payout_amount as number),
-    currency: "jpy",
-    destination: shop.stripe_connect_account_id as string,
-    metadata: {
-      order_id: orderId,
-      invoice_number: (order.invoice_number as string | null) ?? "",
-    },
-  });
-
-  await admin
-    .from("job_orders")
-    .update({
-      payout_stripe_transfer_id: transfer.id,
-      payout_executed_at: new Date().toISOString(),
-    })
-    .eq("id", orderId);
-
-  console.info("[confirm-payment] payout executed", { orderId, transferId: transfer.id });
-}
+import { executeOrderPayout } from "@/lib/orders/orderPayout";
 
 const confirmPaymentSchema = z.object({
   payment_method: z.string().trim().max(50).optional(),
@@ -71,7 +13,7 @@ const confirmPaymentSchema = z.object({
 
 /**
  * POST /api/admin/orders/[id]/confirm-payment
- * 支払確認（双方が確認 → both_confirmed → completed）
+ * 支払確認（双方が確認 → both_confirmed → completed → Stripe Connect 自動送金）
  * Body: { payment_method?: string, amount?: number }
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -139,7 +81,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       updateData.payment_status = "both_confirmed";
       updateData.status = "completed";
       // Stripe Connect 自動送金（fire-and-forget）
-      triggerOrderPayout(id, tenantId).catch((e: unknown) =>
+      executeOrderPayout(id).catch((e: unknown) =>
         console.error("[confirm-payment] payout failed:", e),
       );
     } else if (isFrom) {
@@ -148,8 +90,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       updateData.payment_status = "confirmed_by_vendor";
     }
 
-    // UPDATE にも tenant 検証フィルタをコピー (TOCTOU 対策)。
-    // 別テナントの注文を誤って更新しないよう id + or(...) で二重にスコープ。
     const { data, error } = await admin
       .from("job_orders")
       .update(updateData)
