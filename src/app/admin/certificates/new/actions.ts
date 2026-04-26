@@ -40,6 +40,7 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   const vehicle_id = String(formData.get("vehicle_id") || "").trim() || null;
   const vehicle_maker = String(formData.get("vehicle_maker") || "").trim();
   const vin_code = String(formData.get("vin_code") || "").trim() || null;
+  const size_class = String(formData.get("size_class") || "").trim() || null;
   const customer_name = String(formData.get("customer_name") || "").trim();
   const model = String(formData.get("model") || "").trim();
   const plate = String(formData.get("plate") || "").trim();
@@ -165,6 +166,7 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
           model: model || null,
           plate_display: plate || null,
           vin_code: vin_code || null,
+          size_class: size_class || null,
           customer_id: resolvedCustomerId ?? null,
         })
         .select("id")

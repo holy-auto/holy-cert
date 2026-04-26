@@ -31,6 +31,10 @@ type Extracted = {
   year?: number | null;
   vin_code?: string | null;
   plate_display?: string | null;
+  length_mm?: number | null;
+  width_mm?: number | null;
+  height_mm?: number | null;
+  size_class?: string | null;
 };
 
 function vehicleLabel(v: Vehicle) {
@@ -62,7 +66,6 @@ export default function VehiclePickerSection({
   onVehicleChange?: (vehicleId: string | undefined) => void;
 }) {
   const [vehicles] = useState<Vehicle[]>(initialVehicles);
-  const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerId, setCustomerId] = useState("");
@@ -70,6 +73,7 @@ export default function VehiclePickerSection({
   const [plate, setPlate] = useState("");
   const [maker, setMaker] = useState("");
   const [vinCode, setVinCode] = useState("");
+  const [sizeClass, setSizeClass] = useState<string | null>(null);
 
   // Shakensho auto-fill state
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -167,6 +171,7 @@ export default function VehiclePickerSection({
     setModel("");
     setPlate("");
     setVinCode("");
+    setSizeClass(null);
   };
 
   const handleMakerChange = (val: string) => {
@@ -219,6 +224,9 @@ export default function VehiclePickerSection({
     }
     if (extracted.vin_code) {
       setVinCode(extracted.vin_code);
+    }
+    if (extracted.size_class) {
+      setSizeClass(extracted.size_class);
     }
     // Clear master link since we're populating fields manually
     setSelectedId("");
@@ -360,6 +368,16 @@ export default function VehiclePickerSection({
             {ocrMsg.text}
           </p>
         )}
+
+        {sizeClass && (
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <span>サイズ判定:</span>
+            <span className="rounded-md bg-accent-dim px-2 py-0.5 text-xs font-semibold text-accent">
+              {sizeClass}
+            </span>
+            <span className="text-[11px]">（証明書の料金計算に使用されます）</span>
+          </div>
+        )}
       </div>
 
       {/* Scanner modal (dynamically loaded) */}
@@ -380,6 +398,7 @@ export default function VehiclePickerSection({
         <input type="hidden" name="vehicle_id" value={selectedId} />
         <input type="hidden" name="vehicle_maker" value={maker} />
         <input type="hidden" name="vin_code" value={vinCode} />
+        <input type="hidden" name="size_class" value={sizeClass ?? ""} />
 
         <div className="space-y-4">
           {/* Maker — combobox: type to search or manual entry */}

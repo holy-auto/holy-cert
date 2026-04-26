@@ -1,7 +1,7 @@
 import { apiInternalError, apiUnauthorized, apiValidationError } from "@/lib/api/response";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { parseShakenshoAuto, extractFirstRegistrationYear } from "@/lib/ocr/shakensho";
+import { parseShakenshoAuto, extractFirstRegistrationYear, calcSizeClass } from "@/lib/ocr/shakensho";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +32,12 @@ export async function POST(req: Request) {
       requireFields: ["maker"],
     });
 
+    const length_mm = parsed.length_mm ?? null;
+    const width_mm = parsed.width_mm ?? null;
+    const height_mm = parsed.height_mm ?? null;
+    const size_class =
+      length_mm && width_mm && height_mm ? calcSizeClass(length_mm, width_mm, height_mm) : null;
+
     return Response.json({
       ok: true,
       source,
@@ -43,6 +49,10 @@ export async function POST(req: Request) {
         plate_display: parsed.plate_display ?? null,
         expiry_date: parsed.expiry_date ?? null,
         fuel_type: parsed.fuel_type ?? null,
+        length_mm,
+        width_mm,
+        height_mm,
+        size_class,
       },
     });
   } catch (e) {
