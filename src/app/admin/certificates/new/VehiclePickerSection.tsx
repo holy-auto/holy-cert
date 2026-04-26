@@ -14,6 +14,7 @@ type Vehicle = {
   year: number | null;
   plate_display: string | null;
   vin_code?: string | null;
+  size_class?: string | null;
   customer_id?: string | null;
   customer?: { id: string; name: string } | null;
 };
@@ -74,6 +75,7 @@ export default function VehiclePickerSection({
   const [maker, setMaker] = useState("");
   const [vinCode, setVinCode] = useState("");
   const [sizeClass, setSizeClass] = useState<string | null>(null);
+  const [customerPhone, setCustomerPhone] = useState<string | null>(null);
 
   // Shakensho auto-fill state
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -100,6 +102,7 @@ export default function VehiclePickerSection({
       setModel(vehicleModel(v));
       setPlate(v.plate_display ?? "");
       setVinCode(v.vin_code ?? "");
+      setSizeClass(v.size_class ?? null);
       if (v.customer) {
         setCustomerName(v.customer.name);
         setCustomerId(v.customer.id);
@@ -154,6 +157,7 @@ export default function VehiclePickerSection({
     setModel(vehicleModel(v));
     setPlate(v.plate_display ?? "");
     setVinCode(v.vin_code ?? "");
+    setSizeClass(v.size_class ?? null);
     setVehicleSearchOpen(false);
     onVehicleChange?.(v.id);
     // Auto-fill customer if vehicle has one
@@ -200,6 +204,7 @@ export default function VehiclePickerSection({
   const handleCustomerSelect = (c: Customer) => {
     setCustomerName(c.name);
     setCustomerId(c.id);
+    setCustomerPhone(c.phone ?? null);
     setCustomerSearch("");
     setCustomerSearchOpen(false);
   };
@@ -508,6 +513,7 @@ export default function VehiclePickerSection({
                   const val = e.target.value;
                   setCustomerName(val);
                   setCustomerId("");
+                  setCustomerPhone(null);
                   setCustomerSearch(val);
                   setCustomerSearchOpen(true);
                 }}
@@ -544,7 +550,13 @@ export default function VehiclePickerSection({
                   ))}
                 </ul>
               )}
-              <p className="mt-1 text-[11px] text-muted">入力すると顧客マスタを検索します。手入力のみでもOK</p>
+              {customerPhone ? (
+                <p className="mt-1 text-[11px] text-muted">
+                  電話番号: <span className="font-medium text-secondary">{customerPhone}</span>
+                </p>
+              ) : (
+                <p className="mt-1 text-[11px] text-muted">入力すると顧客マスタを検索します。手入力のみでもOK</p>
+              )}
             </div>
           </div>
         </div>
