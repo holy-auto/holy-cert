@@ -7,6 +7,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { formatJpy, formatDate } from "@/lib/format";
+import OrderCsvImport from "@/components/ui/OrderCsvImport";
 
 type OrderStatus =
   | "pending"
@@ -198,8 +199,8 @@ export default function OrdersClient() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
 
-  // タブ: "my" = 自社案件, "browse" = 公開案件を検索
-  const [activeTab, setActiveTab] = useState<"my" | "browse">("my");
+  // タブ: "my" = 自社案件, "browse" = 公開案件を検索, "csv" = CSVインポート
+  const [activeTab, setActiveTab] = useState<"my" | "browse" | "csv">("my");
 
   // 公開案件検索
   const [browseOrders, setBrowseOrders] = useState<OrderRow[]>([]);
@@ -717,6 +718,17 @@ export default function OrdersClient() {
             >
               公開案件を探す
             </button>
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "csv"
+                  ? "border-accent text-accent"
+                  : "border-transparent text-muted hover:text-primary"
+              }`}
+              onClick={() => setActiveTab("csv")}
+            >
+              CSVインポート
+            </button>
           </div>
 
           {/* ─── My orders tab ─── */}
@@ -916,6 +928,11 @@ export default function OrdersClient() {
                 ))}
               </div>
             </section>
+          )}
+
+          {/* ─── CSV import tab ─── */}
+          {activeTab === "csv" && (
+            <OrderCsvImport onImported={() => { fetchOrders(typeFilter, statusFilter); setActiveTab("my"); }} />
           )}
         </>
       )}
