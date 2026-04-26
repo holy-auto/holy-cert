@@ -6,6 +6,7 @@ import { CTABanner } from "@/components/marketing/CTABanner";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { FAQList } from "@/components/marketing/FAQList";
 import { FAQItem } from "@/components/marketing/FAQItem";
+import { PricingJsonLd } from "@/components/marketing/JsonLd";
 import {
   PLANS,
   FEATURE_COMPARISON,
@@ -20,9 +21,16 @@ export const metadata = {
   description: "Ledraの料金プラン。フリーからプロまで、施工店の規模に合わせた4つのプランをご用意。",
 };
 
+const PLAN_OFFERS = Object.values(PLANS).map((p) => ({
+  name: p.name,
+  price: p.price,
+  description: p.description,
+}));
+
 export default function PricingPage() {
   return (
     <>
+      <PricingJsonLd plans={PLAN_OFFERS} />
       {/* Hero */}
       <Section bg="white">
         <SectionHeading
