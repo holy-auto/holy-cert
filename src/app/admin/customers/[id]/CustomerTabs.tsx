@@ -185,7 +185,7 @@ export default function CustomerTabs({
               </div>
             </div>
             <Link
-              href={`/admin/vehicles/new?returnTo=/admin/customers/${customerId}`}
+              href={`/admin/vehicles/new?customer_id=${customerId}&returnTo=/admin/customers/${customerId}`}
               className="btn-secondary text-xs"
             >
               + 車両登録

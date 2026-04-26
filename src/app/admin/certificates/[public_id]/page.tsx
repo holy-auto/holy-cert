@@ -206,6 +206,14 @@ export default async function Page({ params }: PageProps) {
                 <Link href={pdfUrl} target="_blank" className="btn-secondary">
                   PDF(1件)
                 </Link>
+                {row.customer_id && (
+                  <Link
+                    href={`/admin/invoices/new?customer_id=${row.customer_id}${row.vehicle_id ? `&vehicle_id=${row.vehicle_id}` : ""}`}
+                    className="btn-primary"
+                  >
+                    請求書を作成
+                  </Link>
+                )}
               </>
             ) : null}
           </div>
@@ -237,7 +245,13 @@ export default async function Page({ params }: PageProps) {
 
         <div className="glass-card p-5">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">CUSTOMER</div>
-          <div className="mt-2 text-sm font-medium text-primary">{row.customer_name || "-"}</div>
+          {row.customer_id ? (
+            <Link href={`/admin/customers/${row.customer_id}`} className="mt-2 block text-sm font-medium text-accent hover:underline">
+              {row.customer_name || row.customer_id}
+            </Link>
+          ) : (
+            <div className="mt-2 text-sm font-medium text-primary">{row.customer_name || "-"}</div>
+          )}
         </div>
 
         <div className="glass-card p-5">
@@ -278,9 +292,16 @@ export default async function Page({ params }: PageProps) {
           </section>
 
           <section className="glass-card p-5 space-y-4">
-            <div>
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">VEHICLE INFO</div>
-              <div className="mt-1 text-lg font-semibold text-primary">車両情報</div>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">VEHICLE INFO</div>
+                <div className="mt-1 text-lg font-semibold text-primary">車両情報</div>
+              </div>
+              {row.vehicle_id && (
+                <Link href={`/admin/vehicles/${row.vehicle_id}`} className="text-xs text-accent hover:underline">
+                  車両詳細 →
+                </Link>
+              )}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 text-sm">
