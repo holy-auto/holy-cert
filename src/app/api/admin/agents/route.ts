@@ -1,8 +1,9 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { parsePagination } from "@/lib/api/pagination";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,11 +14,13 @@ export async function GET(request: NextRequest) {
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
     const status = request.nextUrl.searchParams.get("status");
+    const p = parsePagination(request, { defaultPerPage: 50, maxPerPage: 200 });
 
     let query = admin
       .from("agents")
       .select(
         "id, name, contact_name, contact_email, contact_phone, address, status, commission_type, default_commission_rate, default_commission_fixed, stripe_account_id, stripe_onboarding_done, created_at",
+        { count: "exact" },
       )
       .order("created_at", { ascending: false });
 
@@ -25,7 +28,15 @@ export async function GET(request: NextRequest) {
       query = query.eq("status", status);
     }
 
-    const { data: agents, error } = await query;
+    // page=0 means caller did not opt in to pagination — return all rows for
+    // backward compatibility, but cap at maxPerPage to avoid runaway scans.
+    if (p.page > 0) {
+      query = query.range(p.from, p.to);
+    } else {
+      query = query.limit(p.perPage);
+    }
+
+    const { data: agents, error, count } = await query;
     if (error) {
       return apiInternalError(error, "agents GET");
     }
@@ -67,7 +78,15 @@ export async function GET(request: NextRequest) {
     }));
 
     const headers = { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" };
-    return apiJson({ agents: enriched }, { headers });
+    return apiJson(
+      {
+        agents: enriched,
+        page: p.page,
+        per_page: p.perPage,
+        total: count ?? null,
+      },
+      { headers },
+    );
   } catch (e) {
     return apiInternalError(e, "agents GET");
   }

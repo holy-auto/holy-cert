@@ -1,5 +1,4 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
@@ -55,8 +54,7 @@ export async function GET() {
         custTotalResult,
         custMonthResult,
         invTotalResult,
-        invUnpaidResult,
-        invOverdueResult,
+        invUnpaidTotalsResult,
         resTodayResult,
         resWeekResult,
         resPendingResult,
@@ -106,24 +104,15 @@ export async function GET() {
           .select("*", { count: "exact", head: true })
           .eq("tenant_id", tenantId)
           .gte("created_at", thisMonthStart),
-        // Invoices: total, unpaid (sent+overdue), overdue only
+        // Invoices: total + unpaid/overdue aggregations.
+        // unpaid amount sum is computed via SQL function so the unpaid rows
+        // don't need to be transferred into JS (used to OOM on large tenants).
         admin
           .from("documents")
           .select("*", { count: "exact", head: true })
           .eq("tenant_id", tenantId)
           .eq("doc_type", "invoice"),
-        admin
-          .from("documents")
-          .select("total")
-          .eq("tenant_id", tenantId)
-          .eq("doc_type", "invoice")
-          .in("status", ["sent", "overdue"]),
-        admin
-          .from("documents")
-          .select("*", { count: "exact", head: true })
-          .eq("tenant_id", tenantId)
-          .eq("doc_type", "invoice")
-          .eq("status", "overdue"),
+        admin.rpc("dashboard_unpaid_invoice_totals", { p_tenant_id: tenantId }),
         // Reservations: 3 counts
         admin
           .from("reservations")
@@ -177,13 +166,16 @@ export async function GET() {
       };
 
       // ── Section: Invoices ──
-      const unpaidDocs = invUnpaidResult.data ?? [];
-      const unpaidAmount = unpaidDocs.reduce((sum: number, d: any) => sum + (d.total ?? 0), 0);
+      // RPC returns a single row { unpaid_count, unpaid_amount, overdue_count }.
+      // Some Supabase RPC return shapes wrap it in an array; tolerate both.
+      const unpaidRow = Array.isArray(invUnpaidTotalsResult.data)
+        ? (invUnpaidTotalsResult.data[0] ?? null)
+        : invUnpaidTotalsResult.data;
       const invoices = {
         total: invTotalResult.count ?? 0,
-        unpaid: unpaidDocs.length,
-        unpaidAmount,
-        overdueCount: invOverdueResult.count ?? 0,
+        unpaid: Number(unpaidRow?.unpaid_count ?? 0),
+        unpaidAmount: Number(unpaidRow?.unpaid_amount ?? 0),
+        overdueCount: Number(unpaidRow?.overdue_count ?? 0),
       };
 
       // ── Section: Reservations ──

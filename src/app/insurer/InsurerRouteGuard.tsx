@@ -31,18 +31,24 @@ export default function InsurerRouteGuard({ children }: { children: ReactNode })
           return;
         }
 
-        // 2. Check insurer membership
+        // 2. Check insurer membership. Don't filter by is_active so we can
+        //    distinguish "no membership" (redirect to login) from "deactivated
+        //    membership" (show inactive state with explicit logout CTA).
         const { data, error } = await supabase
           .from("insurer_users")
           .select("id, insurer_id, role, is_active")
           .eq("auth_user_id", user.id)
-          .eq("is_active", true)
           .maybeSingle();
 
         if (cancelled) return;
 
         if (error || !data) {
           router.replace("/insurer/login");
+          return;
+        }
+
+        if (data.is_active === false) {
+          setState("inactive");
           return;
         }
 
@@ -88,7 +94,9 @@ export default function InsurerRouteGuard({ children }: { children: ReactNode })
               try {
                 const supabase = createClient();
                 await supabase.auth.signOut();
-              } catch { /* ignore */ }
+              } catch {
+                /* ignore */
+              }
               window.location.replace("/insurer/login");
             }}
             className="btn-primary mt-6"

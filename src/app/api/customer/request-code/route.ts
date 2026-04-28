@@ -82,6 +82,19 @@ export async function POST(req: Request) {
     const tenantId = await getTenantIdBySlug(tenant_slug);
     if (!tenantId) return apiNotFound("unknown tenant");
 
+    // Per-account limit: 3 OTP requests per (tenant+email) per 15 min.
+    // Stops attackers who rotate IPs from spamming a single victim's inbox
+    // and exhausting the per-OTP quota. Uses tenantId so the same email
+    // address shared across tenants is bucketed independently.
+    const accountKey = `otp-acct:${tenantId}:${email}`;
+    const accountRl = await checkRateLimit(accountKey, { limit: 3, windowSec: 900 });
+    if (!accountRl.allowed) {
+      return apiJson(
+        { error: "rate_limited", message: "このアカウントへのコード再送回数が上限に達しました。" },
+        { status: 429, headers: { "Retry-After": String(accountRl.retryAfterSec) } },
+      );
+    }
+
     let phoneHash = "";
     try {
       phoneHash = phoneLast4Hash(tenantId, last4Raw);

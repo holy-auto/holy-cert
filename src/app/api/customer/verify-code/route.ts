@@ -52,6 +52,19 @@ export async function POST(req: Request) {
 
     const email = normalizeEmail(emailRaw);
 
+    // Per-account verify lockout: 8 wrong attempts per (tenant+email) per
+    // 15 min, even across IPs. The existing per-OTP attempt counter (5)
+    // catches a single code; this one stops a sustained credential-stuffing
+    // pattern that requests a new code each time.
+    const acctKey = `verify-acct:${tenantId}:${email}`;
+    const acctRl = await checkRateLimit(acctKey, { limit: 8, windowSec: 900 });
+    if (!acctRl.allowed) {
+      return apiJson(
+        { error: "rate_limited", message: "このアカウントの試行回数が上限に達しました。" },
+        { status: 429, headers: { "Retry-After": String(acctRl.retryAfterSec) } },
+      );
+    }
+
     let phoneHash: string;
     try {
       phoneHash = phoneLast4Hash(tenantId, last4Raw);

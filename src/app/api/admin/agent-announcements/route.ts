@@ -1,8 +1,10 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentAnnouncementCreateSchema } from "@/lib/validations/agent-content";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,9 @@ export async function POST(request: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const body = await request.json();
+    const parsed = await parseJsonBody(request, agentAnnouncementCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const { data, error } = await admin
@@ -41,8 +45,8 @@ export async function POST(request: NextRequest) {
       .insert({
         title: body.title,
         body: body.body,
-        category: body.category ?? "general",
-        is_pinned: body.is_pinned ?? false,
+        category: body.category,
+        is_pinned: body.is_pinned,
         published_at: body.published_at ?? new Date().toISOString(),
         created_by: caller.userId,
       })

@@ -73,7 +73,28 @@ const middlewareDefaultLimiter = () => {
   return new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(300, "60 s"), prefix: "rl:mw" });
 };
 
-export type RateLimitPreset = "general" | "auth" | "webhook" | "mobile_pos" | "mobile_terminal" | "middleware_default";
+/**
+ * プリセット: admin の破壊的操作 (POST/PUT/PATCH/DELETE) (60 req / 60s)。
+ *
+ * proxy.ts から /api/admin/* の write メソッドにかかる。通常 UI 経由での
+ * 単発操作は秒間 1〜2 req に収まるため十分。盗まれたセッションでの
+ * 一括削除 / 一括書換を抑止することが目的。誤検知を避けるため bulk
+ * import / migration は専用 mobile_* preset を route 単位で再宣言する。
+ */
+const adminWriteLimiter = () => {
+  const r = getRedis();
+  if (!r) return null;
+  return new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(60, "60 s"), prefix: "rl:admin-write" });
+};
+
+export type RateLimitPreset =
+  | "general"
+  | "auth"
+  | "webhook"
+  | "mobile_pos"
+  | "mobile_terminal"
+  | "middleware_default"
+  | "admin_write";
 
 const presets: Record<RateLimitPreset, () => Ratelimit | null> = {
   general: generalLimiter,
@@ -82,6 +103,7 @@ const presets: Record<RateLimitPreset, () => Ratelimit | null> = {
   mobile_pos: mobilePosLimiter,
   mobile_terminal: mobileTerminalLimiter,
   middleware_default: middlewareDefaultLimiter,
+  admin_write: adminWriteLimiter,
 };
 
 /**

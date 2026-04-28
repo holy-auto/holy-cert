@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { makePublicId } from "@/lib/publicId";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { enforceBilling } from "@/lib/billing/guard";
 import {
+  apiError,
   apiJson,
   apiUnauthorized,
   apiValidationError,
@@ -192,7 +193,17 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return apiValidationError(parsed.error.issues[0]?.message ?? "invalid payload");
     }
-    const { to_tenant_id, title, description, category, budget, deadline, vehicle_id, requester_email, requester_company } = parsed.data;
+    const {
+      to_tenant_id,
+      title,
+      description,
+      category,
+      budget,
+      deadline,
+      vehicle_id,
+      requester_email,
+      requester_company,
+    } = parsed.data;
 
     // Use admin client to bypass RLS (API already validated auth above)
     const { admin } = createTenantScopedAdmin(caller.tenantId);
@@ -355,9 +366,7 @@ export async function PUT(req: NextRequest) {
 
     // 検収承認 → payment_pending 遷移時に請求書を自動送付（fire-and-forget）
     if (status === "payment_pending") {
-      sendOrderInvoiceEmail(id).catch((e: unknown) =>
-        console.error("[orders] invoice email failed:", e),
-      );
+      sendOrderInvoiceEmail(id).catch((e: unknown) => console.error("[orders] invoice email failed:", e));
     }
 
     return apiJson({ ok: true, order: data });
@@ -440,7 +449,11 @@ export async function PATCH(req: NextRequest) {
       return apiInternalError(error, "orders accept");
     }
     if (!data) {
-      return NextResponse.json({ error: "この案件は既に受注済みか、受注できません" }, { status: 409 });
+      return apiError({
+        code: "conflict",
+        status: 409,
+        message: "この案件は既に受注済みか、受注できません。",
+      });
     }
 
     // 監査ログ

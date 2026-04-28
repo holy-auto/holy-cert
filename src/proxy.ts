@@ -151,6 +151,18 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Tighter limit for destructive admin operations. The blanket /api/* limit
+  // above (300/min) catches mass scraping; this 60/min ceiling on writes
+  // additionally caps any single session from running a bulk-mutate script
+  // through the admin API. Read methods are unaffected.
+  if (pathname.startsWith("/api/admin/") && !["GET", "HEAD", "OPTIONS"].includes(request.method)) {
+    const limited = await checkRateLimit(request, "admin_write");
+    if (limited) {
+      limited.headers.set("x-request-id", requestId);
+      return limited;
+    }
+  }
+
   // CSRF protection for API mutations
   const csrfResponse = csrfCheck(request);
   if (csrfResponse) {

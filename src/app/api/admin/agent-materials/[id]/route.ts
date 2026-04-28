@@ -1,9 +1,11 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
-import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentMaterialUpdateSchema } from "@/lib/validations/agent-content";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -15,18 +17,10 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     if (!caller) return apiUnauthorized();
     if (!isPlatformAdmin(caller)) return apiForbidden();
 
-    const body = await request.json();
+    const parsed = await parseJsonBody(request, agentMaterialUpdateSchema);
+    if (!parsed.ok) return parsed.response;
+    const updates = parsed.data;
     const { admin } = createTenantScopedAdmin(caller.tenantId);
-
-    const updates: Record<string, unknown> = {};
-    const allowed = ["title", "description", "category_id", "version", "is_pinned", "is_published"];
-    for (const key of allowed) {
-      if (key in body) updates[key] = body[key];
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return apiValidationError("no fields to update");
-    }
 
     const { data, error } = await admin
       .from("agent_materials")
