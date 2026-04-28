@@ -71,7 +71,7 @@ export async function CustomerCasesSection() {
             <h3 className="mt-5 text-xl md:text-2xl font-bold text-white leading-snug">
               この場所には、あなたの店舗の名前が入ります。
             </h3>
-            <p className="mt-4 text-sm md:text-base leading-[1.9] text-white/80">
+            <p className="mt-4 text-sm md:text-base leading-[1.9] text-slate-200">
               Ledra は正式提供を開始したばかりで、まだ「歴史の最初の数社」を募集している段階です。事例化・記事化は Ledra
               側で完全に伴走するので、現場の負担なくご参加いただけます。
             </p>
