@@ -34,6 +34,13 @@ interface MyCompletion {
   score_earned: number;
 }
 
+interface MyQuizBest {
+  score: number;
+  total: number;
+  passed: boolean;
+  attempted_at: string;
+}
+
 const LEVEL_LABEL: Record<string, string> = {
   intro: "入門",
   basic: "基礎",
@@ -47,6 +54,8 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [myRating, setMyRating] = useState<MyRating | null>(null);
   const [myCompletion, setMyCompletion] = useState<MyCompletion | null>(null);
+  const [quizQuestionCount, setQuizQuestionCount] = useState(0);
+  const [myQuizBest, setMyQuizBest] = useState<MyQuizBest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,6 +81,8 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
         setLesson(data.lesson);
         setMyRating(data.my_rating);
         setMyCompletion(data.my_completion);
+        setQuizQuestionCount(data.quiz_question_count ?? 0);
+        setMyQuizBest(data.my_quiz_best);
         if (data.my_rating) {
           setRatingValue(data.my_rating.rating);
           setRatingComment(data.my_rating.comment ?? "");
@@ -236,12 +247,18 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
       </article>
 
       {/* 編集導線 (作者向け) */}
-      <div className="mt-8 flex items-center gap-2">
+      <div className="mt-8 flex items-center gap-2 flex-wrap">
         <Link
           href={`/admin/academy/learn/${id}/edit`}
           className="text-xs px-3 py-1.5 bg-inset border border-border-subtle rounded-lg text-secondary hover:bg-surface transition-colors"
         >
           ✏️ 編集
+        </Link>
+        <Link
+          href={`/admin/academy/learn/${id}/quiz/edit`}
+          className="text-xs px-3 py-1.5 bg-inset border border-border-subtle rounded-lg text-secondary hover:bg-surface transition-colors"
+        >
+          📝 クイズを編集 {quizQuestionCount > 0 && `(${quizQuestionCount}問)`}
         </Link>
         <button
           onClick={handleDelete}
@@ -251,6 +268,47 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
         </button>
       </div>
 
+      {/* クイズ */}
+      {lesson.status === "published" && quizQuestionCount > 0 && (
+        <div className="mt-10 glass-card p-5">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div>
+              <h2 className="font-semibold text-primary mb-1 flex items-center gap-2">
+                <span>📝</span> 理解度チェック
+              </h2>
+              <p className="text-xs text-muted">
+                {quizQuestionCount} 問・70% 以上で合格 → レッスン完了が自動マークされます
+              </p>
+            </div>
+            <Link
+              href={`/admin/academy/learn/${id}/quiz`}
+              className="shrink-0 text-sm px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+            >
+              {myQuizBest ? "もう一度挑戦" : "クイズに挑戦"}
+            </Link>
+          </div>
+          {myQuizBest && (
+            <div className="mt-3 p-3 bg-inset border border-border-subtle rounded-lg text-xs flex items-center gap-3">
+              <span
+                className={`px-2 py-0.5 rounded-full font-medium ${
+                  myQuizBest.passed
+                    ? "bg-success-dim text-success border border-success/30"
+                    : "bg-warning-dim text-warning border border-warning/30"
+                }`}
+              >
+                {myQuizBest.passed ? "✓ 合格" : "未合格"}
+              </span>
+              <span className="text-secondary">
+                ベスト: {myQuizBest.score} / {myQuizBest.total}
+              </span>
+              <span className="text-muted">
+                {new Date(myQuizBest.attempted_at).toLocaleDateString()}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 完了マーク */}
       {lesson.status === "published" && (
         <div className="mt-10 glass-card p-5 flex items-center justify-between gap-3">
@@ -259,20 +317,25 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
             <p className="text-xs text-muted">
               {myCompletion
                 ? `${new Date(myCompletion.completed_at).toLocaleDateString()} に完了。+${myCompletion.score_earned} pt 獲得済み`
-                : "完了マークを押すとレベルに応じてスコアを獲得できます"}
+                : quizQuestionCount > 0
+                  ? "クイズに合格すると自動的に完了マークされます"
+                  : "完了マークを押すとレベルに応じてスコアを獲得できます"}
             </p>
           </div>
-          <button
-            onClick={toggleCompletion}
-            disabled={submittingCompletion}
-            className={`text-sm px-5 py-2 rounded-lg transition-colors disabled:opacity-50 ${
-              myCompletion
-                ? "bg-success-dim border border-success/30 text-success hover:bg-success/20"
-                : "bg-accent text-white hover:bg-accent/90"
-            }`}
-          >
-            {submittingCompletion ? "..." : myCompletion ? "✓ 完了済み" : "完了する"}
-          </button>
+          {/* クイズがある場合は手動マーク不可 (クイズ合格で自動マーク)。完了済みなら取り消しのみ可 */}
+          {(quizQuestionCount === 0 || myCompletion) && (
+            <button
+              onClick={toggleCompletion}
+              disabled={submittingCompletion}
+              className={`text-sm px-5 py-2 rounded-lg transition-colors disabled:opacity-50 ${
+                myCompletion
+                  ? "bg-success-dim border border-success/30 text-success hover:bg-success/20"
+                  : "bg-accent text-white hover:bg-accent/90"
+              }`}
+            >
+              {submittingCompletion ? "..." : myCompletion ? "✓ 完了済み" : "完了する"}
+            </button>
+          )}
         </div>
       )}
 

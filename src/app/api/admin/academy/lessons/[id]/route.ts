@@ -83,7 +83,30 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       .eq("user_id", caller.userId)
       .maybeSingle();
 
-    return apiOk({ lesson: data, my_rating: myRating ?? null, my_completion: myCompletion ?? null });
+    // クイズの問題数
+    const { count: quizQuestionCount } = await supabase
+      .from("academy_quiz_questions")
+      .select("id", { count: "exact", head: true })
+      .eq("lesson_id", id);
+
+    // 自分の直近・最高得点クイズ結果
+    const { data: bestAttempt } = await supabase
+      .from("academy_quiz_attempts")
+      .select("score, total, passed, attempted_at")
+      .eq("lesson_id", id)
+      .eq("user_id", caller.userId)
+      .order("score", { ascending: false })
+      .order("attempted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return apiOk({
+      lesson: data,
+      my_rating: myRating ?? null,
+      my_completion: myCompletion ?? null,
+      quiz_question_count: quizQuestionCount ?? 0,
+      my_quiz_best: bestAttempt ?? null,
+    });
   } catch (e: unknown) {
     return apiInternalError(e);
   }
