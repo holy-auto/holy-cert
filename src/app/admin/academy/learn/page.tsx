@@ -68,6 +68,7 @@ export default function AcademyLearnPage() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [introOnly, setIntroOnly] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
 
   const fetchLessons = async () => {
     setLoading(true);
@@ -90,6 +91,20 @@ export default function AcademyLearnPage() {
   useEffect(() => {
     fetchLessons();
   }, [tab, category, level]);
+
+  // 完了済みIDを取得 (タブ切替で再取得するほど重要ではないので初回のみ)
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/academy/progress");
+        if (!res.ok) return;
+        const data = await res.json();
+        setCompletedIds(new Set<string>(data.completed_lesson_ids ?? []));
+      } catch {
+        // noop
+      }
+    })();
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -216,6 +231,11 @@ export default function AcademyLearnPage() {
                 {l.status === "draft" && (
                   <span className="text-xs px-2 py-0.5 bg-warning-dim border border-warning/30 text-warning rounded-full">
                     下書き
+                  </span>
+                )}
+                {completedIds.has(l.id) && (
+                  <span className="text-xs px-2 py-0.5 bg-success-dim border border-success/30 text-success rounded-full">
+                    ✓ 完了
                   </span>
                 )}
               </div>

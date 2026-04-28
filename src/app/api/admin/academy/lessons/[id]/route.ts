@@ -75,7 +75,15 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       .eq("user_id", caller.userId)
       .maybeSingle();
 
-    return apiOk({ lesson: data, my_rating: myRating ?? null });
+    // 完了済みかどうか
+    const { data: myCompletion } = await supabase
+      .from("academy_lesson_completions")
+      .select("completed_at, score_earned")
+      .eq("lesson_id", id)
+      .eq("user_id", caller.userId)
+      .maybeSingle();
+
+    return apiOk({ lesson: data, my_rating: myRating ?? null, my_completion: myCompletion ?? null });
   } catch (e: unknown) {
     return apiInternalError(e);
   }

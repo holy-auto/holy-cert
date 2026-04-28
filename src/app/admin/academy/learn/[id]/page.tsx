@@ -29,6 +29,11 @@ interface MyRating {
   comment: string | null;
 }
 
+interface MyCompletion {
+  completed_at: string;
+  score_earned: number;
+}
+
 const LEVEL_LABEL: Record<string, string> = {
   intro: "入門",
   basic: "基礎",
@@ -41,6 +46,7 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
   const router = useRouter();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [myRating, setMyRating] = useState<MyRating | null>(null);
+  const [myCompletion, setMyCompletion] = useState<MyCompletion | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +54,7 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
   const [ratingValue, setRatingValue] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [submittingCompletion, setSubmittingCompletion] = useState(false);
 
   useEffect(() => {
     let canceled = false;
@@ -64,6 +71,7 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
         }
         setLesson(data.lesson);
         setMyRating(data.my_rating);
+        setMyCompletion(data.my_completion);
         if (data.my_rating) {
           setRatingValue(data.my_rating.rating);
           setRatingComment(data.my_rating.comment ?? "");
@@ -98,6 +106,30 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
       }
     } finally {
       setSubmittingRating(false);
+    }
+  };
+
+  const toggleCompletion = async () => {
+    setSubmittingCompletion(true);
+    try {
+      if (myCompletion) {
+        const res = await fetch(`/api/admin/academy/lessons/${id}/complete`, { method: "DELETE" });
+        if (res.ok) setMyCompletion(null);
+        else alert("完了の取り消しに失敗しました");
+      } else {
+        const res = await fetch(`/api/admin/academy/lessons/${id}/complete`, { method: "POST" });
+        const data = await res.json();
+        if (res.ok) {
+          setMyCompletion({
+            completed_at: new Date().toISOString(),
+            score_earned: data.score_earned ?? 0,
+          });
+        } else {
+          alert(data.message ?? "完了マークに失敗しました");
+        }
+      }
+    } finally {
+      setSubmittingCompletion(false);
     }
   };
 
@@ -218,6 +250,31 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
           削除
         </button>
       </div>
+
+      {/* 完了マーク */}
+      {lesson.status === "published" && (
+        <div className="mt-10 glass-card p-5 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-primary mb-1">学習の進捗を記録</h2>
+            <p className="text-xs text-muted">
+              {myCompletion
+                ? `${new Date(myCompletion.completed_at).toLocaleDateString()} に完了。+${myCompletion.score_earned} pt 獲得済み`
+                : "完了マークを押すとレベルに応じてスコアを獲得できます"}
+            </p>
+          </div>
+          <button
+            onClick={toggleCompletion}
+            disabled={submittingCompletion}
+            className={`text-sm px-5 py-2 rounded-lg transition-colors disabled:opacity-50 ${
+              myCompletion
+                ? "bg-success-dim border border-success/30 text-success hover:bg-success/20"
+                : "bg-accent text-white hover:bg-accent/90"
+            }`}
+          >
+            {submittingCompletion ? "..." : myCompletion ? "✓ 完了済み" : "完了する"}
+          </button>
+        </div>
+      )}
 
       {/* 評価 */}
       {lesson.status === "published" && (
