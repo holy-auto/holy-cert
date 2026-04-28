@@ -9,8 +9,6 @@ import { FAQList } from "@/components/marketing/FAQList";
 import { FAQItem } from "@/components/marketing/FAQItem";
 import { CTABanner } from "@/components/marketing/CTABanner";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
-import { AnimatedStepper } from "@/components/marketing/AnimatedStepper";
-import { RevealCheckmark } from "@/components/marketing/RevealCheckmark";
 import { NarrativeTypewriter } from "@/components/marketing/NarrativeTypewriter";
 import { Container } from "@/components/marketing/Container";
 import { IntegrationLogoWall } from "@/components/marketing/IntegrationLogoWall";
@@ -20,7 +18,7 @@ import { GrowthJourney } from "@/components/marketing/GrowthJourney";
 import { TrustSecuritySection } from "@/components/marketing/TrustSecuritySection";
 import { CustomerCasesSection } from "@/components/marketing/CustomerCasesSection";
 import { CustomerSuccessSection } from "@/components/marketing/CustomerSuccessSection";
-import { DashboardMockSection } from "@/components/marketing/DashboardMockSection";
+import { WhatYouCanDoSection } from "@/components/marketing/WhatYouCanDoSection";
 import { MediaAwardsRow } from "@/components/marketing/MediaAwardsRow";
 import { FeatureCatalogSection } from "@/components/marketing/FeatureCatalogSection";
 import { IndustryEntries } from "@/components/marketing/IndustryEntries";
@@ -53,250 +51,8 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      {/* 課題提起 */}
-      <Section bg="alt">
-        <SectionHeading
-          title="こんな課題、ありませんか？"
-          subtitle="施工証明の管理には、多くの非効率が残されています"
-        />
-        <FeatureGrid>
-          <FeatureCard
-            variant="bordered"
-            delay={0}
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            }
-            title="紙・PDFでの管理"
-            description="施工証明書を紙やPDFで作成・保管しており、検索や共有に時間がかかる。紛失リスクもある。"
-          />
-          <FeatureCard
-            variant="bordered"
-            delay={100}
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            }
-            title="確認作業の非効率"
-            description="保険会社が施工内容を確認する際、電話やFAXでのやり取りが発生し、双方に負担がかかっている。"
-          />
-          <FeatureCard
-            variant="bordered"
-            delay={200}
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            }
-            title="証明の信頼性"
-            description="施工内容の真正性を客観的に証明する手段がなく、保険査定時に情報の正確性を担保しにくい。"
-          />
-        </FeatureGrid>
-      </Section>
-
-      {/* Ledraの解決方法 */}
-      <Section id="features">
-        <SectionHeading title="Ledraが解決します" subtitle="デジタル施工証明書で、施工店と保険会社の業務を変えます" />
-        <FeatureGrid>
-          <FeatureCard
-            delay={0}
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            }
-            title="WEB上で証明書を発行"
-            description="施工内容を入力するだけで、デジタル施工証明書をかんたんに発行。テンプレートで統一された品質を保てます。"
-          />
-          <FeatureCard
-            delay={100}
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-            }
-            title="URLで即時共有"
-            description="発行した証明書はURLで共有可能。保険会社はリンクひとつで施工内容を確認でき、やり取りの手間を削減します。"
-          />
-          <FeatureCard
-            delay={200}
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            }
-            title="改ざん防止と信頼性"
-            description="発行された証明書は改ざんできない仕組みで管理。保険会社が安心して査定に活用できる信頼性を提供します。"
-          />
-        </FeatureGrid>
-      </Section>
-
-      {/* 証明書発行の流れ */}
-      <Section bg="alt">
-        <SectionHeading title="証明書発行の流れ" subtitle="施工完了から証明書の共有まで、わずか数分で完了します" />
-        <AnimatedStepper
-          steps={[
-            {
-              step: "01",
-              title: "施工内容を入力",
-              description: "車両情報・施工内容・使用材料をテンプレートに沿って入力。写真のアップロードも可能です。",
-            },
-            {
-              step: "02",
-              title: "証明書を発行",
-              description: "内容を確認して発行。改ざん防止のデジタル証明書が即座に生成されます。",
-            },
-            {
-              step: "03",
-              title: "URLで顧客に共有",
-              description: "発行された証明書のURLをメールやLINEで共有。QRコードにも対応しています。",
-            },
-            {
-              step: "04",
-              title: "保険会社が照会",
-              description: "保険会社は専用ポータルから証明書を検索・確認。電話やFAXでのやり取りが不要になります。",
-            },
-          ]}
-        />
-      </Section>
-
-      {/* Ledraエコシステム */}
-      <Section id="ecosystem">
-        <SectionHeading title="Ledraのエコシステム" subtitle="記録から始まり、業界全体へ広がるプラットフォーム" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {[
-            {
-              name: "Ledra Cert",
-              label: "中核プロダクト",
-              description: "施工証明書の発行・履歴管理。施工の品質を可視化し、信頼の起点をつくる。",
-              icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              ),
-            },
-            {
-              name: "Ledra Connect",
-              label: "デバイス連携",
-              description: "IoTデバイスと施工現場をつなぎ、記録の自動化と正確性を高める。",
-              icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                  <path d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.858 15.355-5.858 21.213 0" />
-                </svg>
-              ),
-            },
-            {
-              name: "Ledra Hub",
-              label: "ネットワーク連携",
-              description: "加盟店・顧客・保険会社をひとつのネットワークに。信頼のつながりを構築する。",
-              icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                  <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              ),
-            },
-            {
-              name: "Ledra Standard",
-              label: "業界基準",
-              description: "施工品質の共通基準と認定制度。業界全体の信頼性を底上げする。",
-              icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-              ),
-            },
-            {
-              name: "Ledra Academy",
-              label: "技術育成",
-              description: "次世代の技術者を育成し、技術の継承と業界の持続的な発展を支える。",
-              icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                  <path d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
-                </svg>
-              ),
-            },
-          ].map((item, i) => (
-            <ScrollReveal key={item.name} variant="fade-up" delay={i * 80}>
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 hover:bg-white/[0.06] hover:border-white/[0.14] transition-all duration-300 h-full group">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-violet-500/10 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-white">{item.name}</div>
-                    <div className="text-[0.6875rem] text-white/75">{item.label}</div>
-                  </div>
-                </div>
-                <p className="text-sm leading-relaxed text-white/80">{item.description}</p>
-              </div>
-            </ScrollReveal>
-          ))}
-        </div>
-      </Section>
-
-      {/* 証明書プレビュー */}
-      <Section bg="alt">
-        <SectionHeading
-          title="発行される証明書のイメージ"
-          subtitle="施工店のブランドを反映した、プロフェッショナルなデジタル証明書"
-        />
-        <ScrollReveal variant="fade-up" delay={100}>
-          <div className="max-w-2xl mx-auto">
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-8 md:p-12">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-xs text-white/70 uppercase tracking-widest">施工証明書</div>
-                    <div className="mt-1 text-lg font-bold text-white">Ledra</div>
-                  </div>
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="w-5 h-5 text-blue-400"
-                    >
-                      <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="h-px bg-white/[0.06]" />
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="text-white/70">車両</div>
-                    <div className="mt-1 text-white/70">Toyota Alphard 2024</div>
-                  </div>
-                  <div>
-                    <div className="text-white/70">施工日</div>
-                    <div className="mt-1 text-white/70">2026.03.15</div>
-                  </div>
-                  <div>
-                    <div className="text-white/70">施工内容</div>
-                    <div className="mt-1 text-white/70">ボディコーティング</div>
-                  </div>
-                  <div>
-                    <div className="text-white/70">保証期間</div>
-                    <div className="mt-1 text-white/70">5年間</div>
-                  </div>
-                </div>
-                <div className="h-px bg-white/[0.06]" />
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center text-green-400">
-                    <RevealCheckmark size={18} />
-                  </div>
-                  <div className="text-sm text-green-400/80">改ざん防止により真正性を担保</div>
-                </div>
-              </div>
-            </div>
-            <p className="mt-6 text-center text-sm text-white/70">
-              自社ロゴ・ブランドカラーの反映、施工写真の添付にも対応
-            </p>
-          </div>
-        </ScrollReveal>
-      </Section>
+      {/* Ledra でできること — 旧: 課題提起 / 解決 / 流れ / エコシステム / 証明書プレビュー を統合 */}
+      <WhatYouCanDoSection />
 
       {/* ターゲット別導線 */}
       <Section id="usecases">
@@ -401,9 +157,6 @@ export default async function HomePage() {
 
       {/* 機能カタログ — 「全機能の網羅性」を圧縮して見せる */}
       <FeatureCatalogSection />
-
-      {/* 管理画面ダッシュボード — 現場のデータを経営の言葉に */}
-      <DashboardMockSection />
 
       {/* 連携パートナー — 既存の道具と無理なくつながる */}
       <IntegrationLogoWall />
