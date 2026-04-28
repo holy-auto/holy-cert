@@ -151,6 +151,36 @@ export default async function AcademyPage() {
           <p className="text-sm text-secondary">優良施工事例を閲覧・学習。自テナントの候補事例を公開登録できます。</p>
         </Link>
 
+        {/* オンライン学習 */}
+        <Link href="/admin/academy/learn" className="group glass-card p-5 hover:border-accent/40 transition-all">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">📖</span>
+            <div>
+              <div className="font-semibold text-primary group-hover:text-accent transition-colors">
+                オンライン学習
+              </div>
+              <div className="text-xs text-muted">入門は全プラン / 基礎以上はStarter以上</div>
+            </div>
+          </div>
+          <p className="text-sm text-secondary">
+            運営・先輩加盟店が投稿するレッスンで体系的に学習。投稿レッスンの高評価は割引・報酬還元の対象です。
+          </p>
+        </Link>
+
+        {/* 学習進捗 */}
+        <Link href="/admin/academy/progress" className="group glass-card p-5 hover:border-accent/40 transition-all">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">📈</span>
+            <div>
+              <div className="font-semibold text-primary group-hover:text-accent transition-colors">学習進捗</div>
+              <div className="text-xs text-muted">全プラン</div>
+            </div>
+          </div>
+          <p className="text-sm text-secondary">
+            完了レッスン・獲得バッジ・累計スコアを確認。次のレベルまでの進捗が一目でわかります。
+          </p>
+        </Link>
+
         {/* Ledra Standard 達成状況 */}
         <div className="glass-card p-5">
           <div className="flex items-center gap-3 mb-3">
