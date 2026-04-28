@@ -123,7 +123,7 @@ export function Hero() {
               {/* Decorative glow behind frame */}
               <div className="absolute -inset-6 bg-gradient-to-br from-blue-500/20 via-violet-500/10 to-transparent blur-2xl rounded-3xl pointer-events-none" />
               <ScreenshotFrame
-                src="/marketing/screenshots/hero-dashboard.png"
+                src="/marketing/screenshots/01-admin-dashboard.png"
                 alt="Ledra 管理ダッシュボード"
                 url="admin.ledra.app/dashboard"
                 aspect="aspect-[16/10]"

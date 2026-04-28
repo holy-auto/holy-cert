@@ -18,6 +18,8 @@ type ScreenshotFrameProps = {
   chrome?: "macos" | "none";
   /** next/image の sizes 属性。 */
   sizes?: string;
+  /** 画像の object-position (CSS)。縦長スクショを上寄せで切り抜きたい時など。 */
+  objectPosition?: string;
   /** 画像が無い／未配置の時の代替表示。SVG/Tailwind 製モックを想定。 */
   children?: React.ReactNode;
   className?: string;
@@ -40,6 +42,7 @@ export function ScreenshotFrame({
   url,
   chrome = "macos",
   sizes = "(min-width: 1024px) 56vw, 100vw",
+  objectPosition = "center top",
   children,
   className = "",
   priority = false,
@@ -60,7 +63,15 @@ export function ScreenshotFrame({
       )}
       <div className={`relative ${aspect} bg-[#060a12]`}>
         {showImage && src ? (
-          <Image src={src} alt={alt} fill sizes={sizes} className="object-cover" priority={priority} />
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            sizes={sizes}
+            className="object-cover"
+            style={{ objectPosition }}
+            priority={priority}
+          />
         ) : (
           <div className="absolute inset-0">{children}</div>
         )}

@@ -5,7 +5,7 @@ import { ScreenshotFrame } from "./ScreenshotFrame";
 
 /**
  * 「Ledra でできること」セクション。
- * 旧: 課題提起 → 解決 → 流れ → エコシステム の 4 セクションを 1 つに圧縮。
+ * 旧: 課題提起 → 解決 → 流れ → エコシステム / 証明書プレビュー の 5 セクションを 1 つに圧縮。
  *
  * 各カードは「機能タイトル + 1〜2 行説明 + 画面スクショ」で構成。
  * `src` の画像が `public/` 配下に存在しない場合は children のモックにフォールバックする
@@ -19,7 +19,7 @@ export function WhatYouCanDoSection() {
         subtitle="現場の発行作業から、経営の意思決定まで。Ledra ひとつで完結します。"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
         {/* 1. 証明書を WEB で発行 */}
         <FeatureCard
           eyebrow="01 — Issue"
@@ -28,63 +28,109 @@ export function WhatYouCanDoSection() {
           delay={0}
         >
           <ScreenshotFrame
-            src="/marketing/screenshots/cert-new.png"
+            src="/marketing/screenshots/07-certificate-new.png"
             alt="証明書の発行画面"
             url="admin.ledra.app/certs/new"
-            aspect="aspect-[16/10]"
           >
             <CertNewMockBody />
           </ScreenshotFrame>
         </FeatureCard>
 
-        {/* 2. URL / QR で共有 */}
+        {/* 2. 発行履歴を一覧で管理 */}
         <FeatureCard
-          eyebrow="02 — Share"
-          title="URL と QR で、即時共有"
-          description="発行した証明書はワンタップで共有。顧客にも保険会社にも、すぐ届きます。"
+          eyebrow="02 — Manage"
+          title="発行履歴を、一覧でまとめて管理"
+          description="店舗の証明書を一画面で。検索・PDF/CSV エクスポートにも対応。"
           delay={80}
         >
           <ScreenshotFrame
-            src="/marketing/screenshots/cert-share.png"
-            alt="証明書の共有画面"
-            url="ledra.app/v/abcd-1234"
-            aspect="aspect-[16/10]"
+            src="/marketing/screenshots/02-certificates-list.png"
+            alt="証明書一覧画面"
+            url="admin.ledra.app/certs"
+          >
+            <ListMockBody
+              label="証明書一覧"
+              rows={[
+                "LEDRA-DEMO-013  山田 太郎  ガラス",
+                "LEDRA-DEMO-012  小林 あかね  PPF",
+                "LEDRA-DEMO-011  佐藤 花子  コーティング",
+              ]}
+            />
+          </ScreenshotFrame>
+        </FeatureCard>
+
+        {/* 3. 車両ごとの履歴 */}
+        <FeatureCard
+          eyebrow="03 — Vehicle"
+          title="車両ごとの施工履歴を、まるごと追跡"
+          description="ナンバー単位で施工・予約・NFC を時系列に統合表示。次の施工提案にもつながります。"
+          delay={160}
+        >
+          <ScreenshotFrame
+            src="/marketing/screenshots/04-vehicle-timeline.png"
+            alt="車両ごとの施工履歴タイムライン"
+            url="admin.ledra.app/vehicles/.../timeline"
+          >
+            <ListMockBody
+              label="車両タイムライン"
+              rows={[
+                "2026/4/6  ボディガラスコーティング再施工",
+                "2026/2/10  セラミックコーティング (8 層)",
+                "2025/9/12  PPF 部分施工 (前面)",
+              ]}
+            />
+          </ScreenshotFrame>
+        </FeatureCard>
+
+        {/* 4. 顧客 360 */}
+        <FeatureCard
+          eyebrow="04 — Customer"
+          title="顧客 360 で、リピートにつなげる"
+          description="顧客ごとの証明書・車両・予約・請求をひとまとめに。営業の意思決定が速くなります。"
+          delay={240}
+        >
+          <ScreenshotFrame
+            src="/marketing/screenshots/05-customer-360.png"
+            alt="顧客 360 画面"
+            url="admin.ledra.app/customers/..."
+          >
+            <ListMockBody
+              label="顧客詳細"
+              rows={["山田 太郎 / 4 件の証明書", "車両: TOYOTA Alphard", "予約: 2026/5/15 ガラス再施工"]}
+            />
+          </ScreenshotFrame>
+        </FeatureCard>
+
+        {/* 5. URL で公開・共有 */}
+        <FeatureCard
+          eyebrow="05 — Share"
+          title="URL で、保険会社にも顧客にも共有"
+          description="発行された証明書は固有 URL で公開可能。改ざん検知付きの公開ページが即座に開けます。"
+          delay={320}
+        >
+          <ScreenshotFrame
+            src="/marketing/screenshots/08-public-cert-desktop.png"
+            alt="公開された施工証明書"
+            url="ledra.app/c/LEDRA-DEMO-0002"
+            objectPosition="center top"
           >
             <CertShareMockBody />
           </ScreenshotFrame>
         </FeatureCard>
 
-        {/* 3. ダッシュボード */}
+        {/* 6. KPI ダッシュボード */}
         <FeatureCard
-          eyebrow="03 — Manage"
+          eyebrow="06 — Insight"
           title="店舗別 KPI を、ダッシュボードで把握"
-          description="発行件数・売上・保険会社照会数を、店舗別・期間別に一目で確認できます。"
-          delay={160}
+          description="発行件数・売上・取引完了率を、店舗別・期間別に一目で確認できます。"
+          delay={400}
         >
           <ScreenshotFrame
-            src="/marketing/screenshots/dashboard.png"
+            src="/marketing/screenshots/01-admin-dashboard.png"
             alt="管理ダッシュボード"
             url="admin.ledra.app/dashboard"
-            aspect="aspect-[16/10]"
           >
             <DashboardMockBody />
-          </ScreenshotFrame>
-        </FeatureCard>
-
-        {/* 4. 改ざん防止 & 監査ログ */}
-        <FeatureCard
-          eyebrow="04 — Trust"
-          title="改ざん防止と監査ログで、信頼性を担保"
-          description="発行された証明書は、ハッシュチェーンで真正性を保証。監査ログで操作履歴も追跡できます。"
-          delay={240}
-        >
-          <ScreenshotFrame
-            src="/marketing/screenshots/audit-log.png"
-            alt="監査ログ画面"
-            url="admin.ledra.app/audit"
-            aspect="aspect-[16/10]"
-          >
-            <AuditMockBody />
           </ScreenshotFrame>
         </FeatureCard>
       </div>
@@ -118,7 +164,7 @@ function FeatureCard({
 }
 
 /* ------------------------------------------------------------------ */
-/* Fallback mocks — ScreenshotFrame の src が無い時に表示される SVG モック */
+/* Fallback mocks — ScreenshotFrame の src が無い時の代替表示 */
 /* ------------------------------------------------------------------ */
 
 function CertNewMockBody() {
@@ -224,31 +270,17 @@ function DashboardMockBody() {
   );
 }
 
-function AuditMockBody() {
-  const events: { time: string; actor: string; action: string; dot: string }[] = [
-    { time: "10:24", actor: "山田太郎", action: "証明書 #1284 を発行", dot: "bg-emerald-300" },
-    { time: "10:18", actor: "鈴木花子", action: "顧客台帳を更新", dot: "bg-blue-300" },
-    { time: "09:48", actor: "システム", action: "Merkle anchor (#42) を確定", dot: "bg-violet-300" },
-    { time: "09:31", actor: "山田太郎", action: "保険会社へ共有 URL を発行", dot: "bg-blue-300" },
-    { time: "09:12", actor: "システム", action: "監査ハッシュをチェーンに記録", dot: "bg-violet-300" },
-  ];
+function ListMockBody({ label, rows }: { label: string; rows: string[] }) {
   return (
-    <div className="absolute inset-0 p-4 flex flex-col">
-      <div className="mb-2 flex items-center justify-between text-[0.6rem]">
-        <span className="font-bold text-white">監査タイムライン</span>
-        <span className="text-emerald-300">改ざん検知 0 件</span>
-      </div>
-      <ul className="flex-1 space-y-1.5 overflow-hidden">
-        {events.map((e, i) => (
+    <div className="absolute inset-0 p-4 flex flex-col gap-2">
+      <div className="text-[0.6rem] font-bold text-white">{label}</div>
+      <ul className="flex-1 space-y-1.5">
+        {rows.map((r, i) => (
           <li
             key={i}
-            className="flex items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1.5 text-[0.6rem]"
+            className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1.5 text-[0.6rem] text-white/80 truncate"
           >
-            <span className={`block w-1.5 h-1.5 rounded-full ${e.dot}`} />
-            <span className="font-mono text-white/70">{e.time}</span>
-            <span className="text-white/80 truncate">
-              <span className="text-white">{e.actor}</span> が {e.action}
-            </span>
+            {r}
           </li>
         ))}
       </ul>
