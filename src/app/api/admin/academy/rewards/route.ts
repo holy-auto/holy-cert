@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const parsed = calculateSchema.safeParse(body);
     if (!parsed.success) {
-      return apiValidationError(parsed.error.errors[0].message);
+      return apiValidationError(parsed.error.issues[0]?.message ?? "invalid payload");
     }
 
     const result = await calculateMonthlyRewards(parsed.data.period_month);
