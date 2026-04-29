@@ -19,7 +19,9 @@
     "demo:setup": "tsx scripts/setup-demo-agent.ts",
     "demo:setup-tenant": "tsx scripts/setup-demo-tenant.ts",
     "demo:setup-tenant-user": "tsx scripts/setup-demo-tenant-user.ts",
-    "demo:reset-tenant": "tsx scripts/setup-demo-tenant.ts --reset"
+    "demo:reset-tenant": "tsx scripts/setup-demo-tenant.ts --reset",
+    "video:studio": "remotion studio remotion/index.tsx",
+    "video:render": "remotion render remotion/index.tsx LedraIntro out/LedraIntro.mp4"
   },
   "overrides": {
     "picomatch": "^4.0.4"
@@ -40,6 +42,7 @@
     "@peculiar/webcrypto": "^1.5.0",
     "@peculiar/x509": "^2.0.0",
     "@react-pdf/renderer": "^4.5.1",
+    "@remotion/cli": "^4.0.454",
     "@sentry/nextjs": "^10.47.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.98.0",
@@ -64,6 +67,7 @@
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "react-markdown": "^10.1.0",
+    "remotion": "^4.0.454",
     "require-in-the-middle": "^8.0.1",
     "resend": "^6.10.0",
     "rss-parser": "^3.13.0",
