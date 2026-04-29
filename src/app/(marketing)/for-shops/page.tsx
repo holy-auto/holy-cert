@@ -8,6 +8,7 @@ import { FAQItem } from "@/components/marketing/FAQItem";
 import { ScrollReveal } from "@/components/marketing/ScrollReveal";
 import { CTABanner } from "@/components/marketing/CTABanner";
 import { CTAButton } from "@/components/marketing/CTAButton";
+import { ScreenshotFrame } from "@/components/marketing/ScreenshotFrame";
 
 export const metadata = {
   title: "施工店の方へ",
@@ -54,10 +55,191 @@ const outcomes = [
   },
 ];
 
+const certFlowSteps = [
+  {
+    label: "① 車両を選ぶ",
+    url: "admin.ledra.app/certificates/new",
+    mock: (
+      <div className="p-4 space-y-3">
+        <p className="text-[0.625rem] font-semibold text-white/40 uppercase tracking-widest">車両を選択</p>
+        <div className="relative">
+          <div className="rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-xs text-white/50">
+            車両番号・名前で検索...
+          </div>
+        </div>
+        {[
+          { name: "トヨタ クラウン", plate: "TNG-240-1234", selected: true },
+          { name: "BMW 3シリーズ", plate: "品川 500 あ 3344", selected: false },
+          { name: "レクサス IS", plate: "横浜 330 め 7890", selected: false },
+        ].map((v) => (
+          <div
+            key={v.plate}
+            className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
+              v.selected
+                ? "border-blue-500/40 bg-blue-500/10"
+                : "border-white/[0.06] bg-white/[0.02]"
+            }`}
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.06] text-base">🚗</div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-white truncate">{v.name}</p>
+              <p className="text-[0.625rem] text-white/50 font-mono">{v.plate}</p>
+            </div>
+            {v.selected && (
+              <div className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center">
+                <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" fill="none">
+                  <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </div>
+            )}
+          </div>
+        ))}
+        <button className="w-full rounded-xl bg-blue-600/80 py-2.5 text-xs font-bold text-white">
+          次へ →
+        </button>
+      </div>
+    ),
+  },
+  {
+    label: "② 施工内容を記録",
+    url: "admin.ledra.app/certificates/new/details",
+    mock: (
+      <div className="p-4 space-y-3">
+        <p className="text-[0.625rem] font-semibold text-white/40 uppercase tracking-widest">施工内容を入力</p>
+        {[
+          { label: "施工種別", value: "ガラスコーティング" },
+          { label: "グレード", value: "プレミアム" },
+          { label: "施工者", value: "田中 太郎" },
+          { label: "施工日", value: "2026-04-29" },
+        ].map((row) => (
+          <div key={row.label} className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2">
+            <p className="text-[0.594rem] text-white/40 uppercase tracking-wide">{row.label}</p>
+            <p className="mt-0.5 text-xs font-medium text-white">{row.value}</p>
+          </div>
+        ))}
+        <div>
+          <p className="mb-1.5 text-[0.594rem] text-white/40 uppercase tracking-wide">施工写真</p>
+          <div className="grid grid-cols-3 gap-1.5">
+            {["📸", "📸", "📸"].map((icon, i) => (
+              <div
+                key={i}
+                className="aspect-square rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-xl"
+              >
+                {icon}
+              </div>
+            ))}
+          </div>
+        </div>
+        <button className="w-full rounded-xl bg-blue-600/80 py-2.5 text-xs font-bold text-white">
+          発行する
+        </button>
+      </div>
+    ),
+  },
+  {
+    label: "③ QRコードで共有",
+    url: "admin.ledra.app/certificates/LDR-2026-00842",
+    mock: (
+      <div className="p-4 flex flex-col items-center text-center space-y-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500/30">
+          <svg viewBox="0 0 24 24" className="h-6 w-6 text-emerald-400" fill="none">
+            <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-xs font-bold text-white">証明書を発行しました</p>
+          <p className="mt-0.5 text-[0.625rem] font-mono text-white/50">LDR-2026-00842</p>
+        </div>
+        <div className="w-24 h-24 rounded-xl border border-white/[0.1] bg-white/[0.04] grid grid-cols-5 gap-0.5 p-2">
+          {Array.from({ length: 25 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-[1px]"
+              style={{
+                background: [0,1,2,5,6,10,12,14,18,19,20,22,23,24].includes(i)
+                  ? "rgba(255,255,255,0.7)"
+                  : "transparent",
+              }}
+            />
+          ))}
+        </div>
+        <p className="text-[0.625rem] text-white/50">スマホをかざして確認</p>
+        <div className="flex gap-2 w-full">
+          <button className="flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] py-2 text-[0.625rem] font-medium text-white/80">
+            LINE 送信
+          </button>
+          <button className="flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] py-2 text-[0.625rem] font-medium text-white/80">
+            メール送信
+          </button>
+          <button className="flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] py-2 text-[0.625rem] font-medium text-white/80">
+            PDF出力
+          </button>
+        </div>
+      </div>
+    ),
+  },
+];
+
+const timelineEvents = [
+  {
+    time: "9:00",
+    title: "入庫チェックイン",
+    desc: "前日の予約が自動でチェックイン待ちに。タップひとつで作業開始を記録。",
+    tag: "予約管理",
+  },
+  {
+    time: "10:30",
+    title: "施工完了・写真撮影",
+    desc: "コーティング施工が完了。スマホカメラで施工写真を撮影しながら、C2PA署名が自動で付与されます。",
+    tag: "証明書",
+  },
+  {
+    time: "10:35",
+    title: "証明書発行（30秒）",
+    desc: "車両を選んで施工内容を確認してタップするだけ。写真・施工者・日時が自動で証明書に入ります。",
+    tag: "証明書",
+    highlight: true,
+  },
+  {
+    time: "10:36",
+    title: "顧客にQRコードを送信",
+    desc: "LINEまたはメールで証明書URLを送付。顧客はスマホで受け取り、いつでも確認できます。",
+    tag: "顧客共有",
+  },
+  {
+    time: "12:00",
+    title: "お会計",
+    desc: "施工完了後にPOS画面を開いてカード決済。Tap to Payで端末不要、領収書PDFも自動生成。",
+    tag: "POS会計",
+  },
+  {
+    time: "15:00",
+    title: "問合せ対応",
+    desc: "「あの車の施工履歴を見せてほしい」の電話。顧客検索で3秒、タイムラインで全履歴を即答。",
+    tag: "顧客管理",
+  },
+  {
+    time: "17:30",
+    title: "月次請求書チェック",
+    desc: "ダッシュボードで未回収アラートを確認。請求書一括作成・PDF送付もその場で完了。",
+    tag: "帳票",
+  },
+];
+
+const tagColors: Record<string, string> = {
+  予約管理: "text-sky-300 bg-sky-500/10 border-sky-500/20",
+  証明書: "text-blue-300 bg-blue-500/10 border-blue-500/20",
+  顧客共有: "text-violet-300 bg-violet-500/10 border-violet-500/20",
+  POS会計: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20",
+  顧客管理: "text-amber-300 bg-amber-500/10 border-amber-500/20",
+  帳票: "text-rose-300 bg-rose-500/10 border-rose-500/20",
+};
+
 const features = [
   {
     title: "デジタル施工証明書",
     description: "写真・施工内容・施工者・日時を証明書としてワンクリック発行。QRコードで顧客に即共有できます。",
+    href: "/features/blockchain-anchoring",
   },
   {
     title: "車検証OCR",
@@ -152,17 +334,79 @@ export default function ForShopsPage() {
         </div>
       </Section>
 
+      {/* Certificate flow */}
+      <Section bg="alt">
+        <SectionHeading
+          title="証明書発行、実際の操作はこれだけ"
+          subtitle="施工完了後30秒。3ステップで証明書が顧客のスマホに届きます。"
+        />
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+          {certFlowSteps.map((s, i) => (
+            <ScrollReveal key={s.label} variant="fade-up" delay={i * 80}>
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-blue-300 tracking-wide">{s.label}</p>
+                <ScreenshotFrame
+                  alt={s.label}
+                  url={s.url}
+                  aspect="aspect-[9/14]"
+                  chrome="macos"
+                  sizes="(min-width: 768px) 33vw, 100vw"
+                >
+                  {s.mock}
+                </ScreenshotFrame>
+              </div>
+            </ScrollReveal>
+          ))}
+        </div>
+      </Section>
+
       {/* Features */}
-      <Section bg="alt" id="features">
+      <Section id="features">
         <SectionHeading
           title="Ledra が提供するもの"
           subtitle="証明書発行だけではありません。施工店の『一日の時間の形』全体を、穏やかに更新します。"
         />
         <FeatureGrid className="mt-10">
           {features.map((f, i) => (
-            <FeatureCard key={f.title} title={f.title} description={f.description} delay={i * 40} />
+            <FeatureCard key={f.title} title={f.title} description={f.description} delay={i * 40} href={f.href} />
           ))}
         </FeatureGrid>
+      </Section>
+
+      {/* Day in the life timeline */}
+      <Section bg="alt">
+        <SectionHeading
+          title="施工店の1日"
+          subtitle="Ledra を導入した施工店の、ある日の使い方です。"
+        />
+        <div className="mx-auto mt-10 max-w-3xl relative">
+          {/* Vertical line */}
+          <div className="absolute left-[5.5rem] top-0 bottom-0 w-px bg-white/[0.06] hidden md:block" />
+          <div className="space-y-4">
+            {timelineEvents.map((e, i) => (
+              <ScrollReveal key={e.time} variant="fade-up" delay={i * 50}>
+                <div className={`flex gap-4 md:gap-6 rounded-2xl border p-4 md:p-5 transition-colors ${
+                  e.highlight
+                    ? "border-blue-500/30 bg-blue-500/[0.06]"
+                    : "border-white/[0.07] bg-white/[0.02]"
+                }`}>
+                  <div className="w-16 shrink-0 text-right">
+                    <span className="text-[0.75rem] font-mono font-medium text-white/50">{e.time}</span>
+                  </div>
+                  <div className="relative flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <h3 className="text-[0.938rem] font-bold text-white leading-snug">{e.title}</h3>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[0.625rem] font-medium border ${tagColors[e.tag] ?? "text-white/50 bg-white/[0.05] border-white/[0.1]"}`}>
+                        {e.tag}
+                      </span>
+                    </div>
+                    <p className="text-[0.875rem] leading-[1.75] text-white/70">{e.desc}</p>
+                  </div>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        </div>
       </Section>
 
       {/* Workflow */}
@@ -188,8 +432,39 @@ export default function ForShopsPage() {
         </div>
       </Section>
 
-      {/* Pilot CTA + Cases placeholder */}
+      {/* Blockchain trust teaser */}
       <Section bg="alt">
+        <ScrollReveal variant="fade-up">
+          <div className="mx-auto max-w-3xl rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] p-8 md:p-10">
+            <div className="flex flex-col md:flex-row md:items-center gap-6">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-500/15 border border-blue-500/25 text-2xl">
+                🔗
+              </div>
+              <div className="flex-1">
+                <p className="text-[0.688rem] uppercase tracking-widest text-blue-300/80 font-semibold mb-2">
+                  改ざん検知
+                </p>
+                <h3 className="text-[1.125rem] font-bold text-white leading-snug">
+                  発行した証明書は、発行後に書き換えられません
+                </h3>
+                <p className="mt-2 text-[0.875rem] leading-[1.8] text-white/70">
+                  C2PA写真署名とPolygonブロックチェーンにより、施工写真・施工内容が改ざんされると検知されます。
+                  保険会社が独立に真正性を確認できるため、査定での信頼性が変わります。
+                </p>
+              </div>
+              <a
+                href="/features/blockchain-anchoring"
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-300 hover:bg-blue-500/15 hover:text-blue-200 transition-colors whitespace-nowrap"
+              >
+                仕組みを見る →
+              </a>
+            </div>
+          </div>
+        </ScrollReveal>
+      </Section>
+
+      {/* Pilot CTA + Cases placeholder */}
+      <Section>
         <div className="mx-auto max-w-3xl rounded-2xl border border-white/[0.08] bg-white/[0.03] p-8 md:p-12 text-center">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium text-blue-300 bg-blue-500/10 border border-blue-500/20">
             PILOT PROGRAM
@@ -214,7 +489,7 @@ export default function ForShopsPage() {
       </Section>
 
       {/* Resources */}
-      <Section>
+      <Section bg="alt">
         <SectionHeading
           title="より詳しい情報"
           subtitle="資料でまとめて確認する、料金を見る、シミュレーターで試算する。"
@@ -261,7 +536,7 @@ export default function ForShopsPage() {
       </Section>
 
       {/* FAQ */}
-      <Section bg="alt">
+      <Section>
         <SectionHeading title="よくあるご質問" />
         <FAQList>
           <FAQItem
@@ -275,6 +550,14 @@ export default function ForShopsPage() {
           <FAQItem
             question="お客様から「紙の保証書がほしい」と言われた場合は？"
             answer="証明書はPDFで出力でき、印刷してお渡しいただけます。デジタル版をメインにしつつ、紙との併用運用も可能です。"
+          />
+          <FAQItem
+            question="写真の枚数や容量に制限はありますか？"
+            answer="1証明書あたり最大20枚まで添付できます。ストレージはプランごとに異なりますが、Standardプランで月間500GB相当の運用に対応しています。"
+          />
+          <FAQItem
+            question="保険会社から「証明書が本物か確認したい」と言われたら？"
+            answer="証明書URLまたはQRコードをそのまま共有するだけで、保険会社側でブロックチェーンによる真正性確認ができます。施工店側での追加作業は不要です。"
           />
           <FAQItem
             question="料金はいくらくらいになりますか？"
