@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Webhook } from "svix";
-import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
 import { maskEmail } from "@/lib/logger";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { claimWebhookEvent } from "@/lib/webhooks/idempotency";
+import { captureSecurityEvent } from "@/lib/observability/sentry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,6 +60,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (err) {
       console.error("[resend-webhook] Signature verification failed:", err);
+      captureSecurityEvent("webhook_signature_failed", { provider: "resend", svix_id: id });
       return apiUnauthorized();
     }
   }
@@ -70,6 +74,28 @@ export async function POST(req: NextRequest) {
 
   if (!event.type || !event.data) {
     return apiValidationError("Invalid event format");
+  }
+
+  // Idempotency — Resend は失敗時に再送する。svix-id を event_id 代わりに使用。
+  // (Resend payload 自体に一意 id がないため、svix-id を ingestion key とする)
+  const svixId = req.headers.get("svix-id");
+  if (svixId) {
+    const supabase = createServiceRoleAdmin("resend-webhook idempotency claim");
+    const claim = await claimWebhookEvent(supabase, "resend", svixId, event.type);
+    if (claim === "duplicate") {
+      console.info("[resend-webhook] duplicate event skipped", { svixId, type: event.type });
+      return apiJson({ received: true, duplicate: true });
+    }
+    if (claim === "error") {
+      // claim できない場合、Resend に 5xx を返して再送させる（重複処理よりは再送のほうが安全）
+      console.error("[resend-webhook] idempotency claim failed", { svixId, type: event.type });
+      captureSecurityEvent("webhook_idempotency_claim_failed", { provider: "resend", svix_id: svixId });
+      return apiError({
+        code: "internal_error",
+        message: "Idempotency claim failed; please retry.",
+        status: 503,
+      });
+    }
   }
 
   const { type, data } = event;

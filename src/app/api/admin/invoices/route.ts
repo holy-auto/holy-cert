@@ -13,6 +13,7 @@ import {
   apiInternalError,
 } from "@/lib/api/response";
 import { invoiceCreateSchema, invoiceUpdateSchema, invoiceDeleteSchema } from "@/lib/validations/invoice";
+import { buildTaxBreakdown, totalTax, isValidRegistrationNumber } from "@/lib/invoice/taxBreakdown";
 
 export const dynamic = "force-dynamic";
 
@@ -194,7 +195,6 @@ export async function POST(req: NextRequest) {
     const note = input.note;
     const items = input.items ?? [];
     const status = input.status;
-    const isInvoiceCompliant = !!input.is_invoice_compliant;
     const showSeal = !!input.show_seal;
     const showLogo = input.show_logo !== false;
     const showBankInfo = !!input.show_bank_info;
@@ -203,13 +203,15 @@ export async function POST(req: NextRequest) {
     const vehicleId = input.vehicle_id || null;
     const vehicleInfo = input.vehicle_info ?? null;
 
-    // 金額計算
+    // 金額計算 — 行ごとに tax_rate / is_reduced_rate を保持し、
+    //   税率ごとに小計・税額を区分 (適格請求書要件)。
     let subtotal = 0;
     const itemsJson = items.map((item: any) => {
       const qty = parseInt(String(item.quantity || 0), 10);
       const unitPrice = parseInt(String(item.unit_price || 0), 10);
       const amount = qty * unitPrice;
       subtotal += amount;
+      const lineRate = typeof item.tax_rate === "number" ? item.tax_rate : item.is_reduced_rate ? 8 : null;
       const mapped: Record<string, unknown> = {
         description: (item.description ?? "").trim(),
         quantity: qty,
@@ -217,13 +219,37 @@ export async function POST(req: NextRequest) {
         unit_price: unitPrice,
         amount,
       };
+      if (lineRate !== null) mapped.tax_rate = lineRate;
+      if (item.is_reduced_rate || lineRate === 8) mapped.is_reduced_rate = true;
       if (item.certificate_id) mapped.certificate_id = item.certificate_id;
       if (item.certificate_public_id) mapped.certificate_public_id = item.certificate_public_id;
       return mapped;
     });
 
-    const tax = Math.floor(subtotal * (taxRate / 100));
+    const taxBreakdown = buildTaxBreakdown(
+      itemsJson.map((it) => ({
+        amount: it.amount as number,
+        tax_rate: typeof it.tax_rate === "number" ? (it.tax_rate as number) : null,
+        is_reduced_rate: !!it.is_reduced_rate,
+      })),
+      taxRate,
+    );
+    const tax = totalTax(taxBreakdown);
     const total = subtotal + tax;
+
+    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
+
+    // 適格請求書フラグは「明示 ON」かつ「テナントの登録番号が T+13桁」のときのみ ON。
+    // フォーマット不正 / 未設定なら強制 OFF にして、PDF 上で「インボイス対応」表記が
+    // 出ないようにする (受領側で仕入税額控除に使われる誤解を防ぐ)。
+    const tenantInfo = await admin
+      .from("tenants")
+      .select("registration_number")
+      .eq("id", caller.tenantId)
+      .maybeSingle();
+    const tenantRegNumberValid = isValidRegistrationNumber(tenantInfo.data?.registration_number ?? null);
+    const isInvoiceCompliant = !!input.is_invoice_compliant && tenantRegNumberValid;
 
     const row = {
       id: crypto.randomUUID(),
@@ -239,6 +265,7 @@ export async function POST(req: NextRequest) {
       total,
       note,
       items_json: itemsJson,
+      tax_breakdown: taxBreakdown,
       meta_json: {},
       is_invoice_compliant: isInvoiceCompliant,
       show_seal: showSeal,
@@ -250,13 +277,11 @@ export async function POST(req: NextRequest) {
       vehicle_info_json: vehicleInfo ?? {},
     };
 
-    // RLS をバイパスしてサービスロールで INSERT（tenant_id で必ずスコープ限定）
-    const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data, error } = await admin
       .from("documents")
       .insert(row)
       .select(
-        "id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, items_json, is_invoice_compliant, show_seal, show_logo, show_bank_info, recipient_name, vehicle_id, vehicle_info_json, created_at, updated_at",
+        "id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, tax_breakdown, note, items_json, is_invoice_compliant, show_seal, show_logo, show_bank_info, recipient_name, vehicle_id, vehicle_info_json, created_at, updated_at",
       )
       .single();
     if (error) {
@@ -293,7 +318,20 @@ export async function PUT(req: NextRequest) {
     if (body.due_date !== undefined) updates.due_date = body.due_date;
     if (body.note !== undefined) updates.note = body.note;
     if (body.invoice_number !== undefined) updates.doc_number = body.invoice_number;
-    if (body.is_invoice_compliant !== undefined) updates.is_invoice_compliant = !!body.is_invoice_compliant;
+    if (body.is_invoice_compliant !== undefined) {
+      // 登録番号フォーマット未通過なら、明示 ON でも強制 OFF にする (PDF 表示と整合)
+      if (body.is_invoice_compliant) {
+        const { admin } = createTenantScopedAdmin(caller.tenantId);
+        const tenantInfo = await admin
+          .from("tenants")
+          .select("registration_number")
+          .eq("id", caller.tenantId)
+          .maybeSingle();
+        updates.is_invoice_compliant = isValidRegistrationNumber(tenantInfo.data?.registration_number ?? null);
+      } else {
+        updates.is_invoice_compliant = false;
+      }
+    }
     if (body.show_seal !== undefined) updates.show_seal = !!body.show_seal;
     if (body.show_logo !== undefined) updates.show_logo = !!body.show_logo;
     if (body.show_bank_info !== undefined) updates.show_bank_info = !!body.show_bank_info;
@@ -309,6 +347,7 @@ export async function PUT(req: NextRequest) {
         const unitPrice = parseInt(String(item.unit_price || 0), 10);
         const amount = qty * unitPrice;
         subtotal += amount;
+        const lineRate = typeof item.tax_rate === "number" ? item.tax_rate : item.is_reduced_rate ? 8 : null;
         const mapped: Record<string, unknown> = {
           description: (item.description ?? "").trim(),
           quantity: qty,
@@ -316,13 +355,24 @@ export async function PUT(req: NextRequest) {
           unit_price: unitPrice,
           amount,
         };
+        if (lineRate !== null) mapped.tax_rate = lineRate;
+        if (item.is_reduced_rate || lineRate === 8) mapped.is_reduced_rate = true;
         if (item.certificate_id) mapped.certificate_id = item.certificate_id;
         if (item.certificate_public_id) mapped.certificate_public_id = item.certificate_public_id;
         return mapped;
       });
       const taxRate = body.tax_rate ?? 10;
-      const tax = Math.floor(subtotal * (taxRate / 100));
+      const taxBreakdown = buildTaxBreakdown(
+        itemsJson.map((it) => ({
+          amount: it.amount as number,
+          tax_rate: typeof it.tax_rate === "number" ? (it.tax_rate as number) : null,
+          is_reduced_rate: !!it.is_reduced_rate,
+        })),
+        taxRate,
+      );
+      const tax = totalTax(taxBreakdown);
       updates.items_json = itemsJson;
+      updates.tax_breakdown = taxBreakdown;
       updates.subtotal = subtotal;
       updates.tax = tax;
       updates.total = subtotal + tax;
@@ -338,7 +388,7 @@ export async function PUT(req: NextRequest) {
       .eq("tenant_id", caller.tenantId)
       .eq("doc_type", "invoice")
       .select(
-        "id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, note, items_json, is_invoice_compliant, show_seal, show_logo, show_bank_info, recipient_name, payment_date, created_at, updated_at",
+        "id, tenant_id, customer_id, doc_type, doc_number, issued_at, due_date, status, subtotal, tax, total, tax_rate, tax_breakdown, note, items_json, is_invoice_compliant, show_seal, show_logo, show_bank_info, recipient_name, payment_date, created_at, updated_at",
       )
       .single();
 

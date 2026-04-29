@@ -3,6 +3,7 @@ import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { withCronLock } from "@/lib/cron/lock";
 import { normalizePlanTier } from "@/lib/billing/planFeatures";
 import {
   type FollowUpSetting,
@@ -33,63 +34,61 @@ export async function GET(req: NextRequest) {
     const supabase = createServiceRoleAdmin("cron:follow-up — iterates every tenant's follow_up_settings");
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
-    let remindersSent = 0;
-    let followUpsSent = 0;
-    let seasonalSent = 0;
-    let maintenanceSent = 0;
 
-    try {
-      const { data: rawSettings } = await supabase
-        .from("follow_up_settings")
-        .select(
-          "tenant_id, reminder_days_before, follow_up_days_after, enabled, send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled, maintenance_reminder_months",
-        )
-        .eq("enabled", true);
-      const settings = (rawSettings ?? []) as unknown as FollowUpSetting[];
+    const lock = await withCronLock(supabase, "follow-up", 600, async () => {
+      let remindersSent = 0;
+      let followUpsSent = 0;
+      let seasonalSent = 0;
+      let maintenanceSent = 0;
+      try {
+        const { data: rawSettings } = await supabase
+          .from("follow_up_settings")
+          .select(
+            "tenant_id, reminder_days_before, follow_up_days_after, enabled, send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled, maintenance_reminder_months",
+          )
+          .eq("enabled", true);
+        const settings = (rawSettings ?? []) as unknown as FollowUpSetting[];
 
-      if (!settings.length) {
-        return apiJson({
-          ok: true,
-          reminders_sent: 0,
-          follow_ups_sent: 0,
-          maintenance_sent: 0,
-          date: todayStr,
-        });
+        if (settings.length) {
+          const allTenantIds = [...new Set(settings.map((s) => s.tenant_id))];
+          const { data: tenants } = (await supabase
+            .from("tenants")
+            .select("id, name, phone, plan_tier")
+            .in("id", allTenantIds)) as { data: TenantInfo[] | null };
+          const tenantMap = new Map((tenants ?? []).map((t) => [t.id, t]));
+
+          for (const setting of settings) {
+            const tenant = tenantMap.get(setting.tenant_id);
+            if (!tenant) continue;
+
+            const shopName = tenant.name ?? "施工店";
+            const planTier = normalizePlanTier(tenant.plan_tier);
+
+            remindersSent += await processExpiryReminders(supabase, setting, shopName, today);
+            followUpsSent += await processRegularFollowUps(supabase, setting, tenant, shopName, planTier, today);
+            followUpsSent += await processPostIssueFollowUps(supabase, setting, tenant, shopName, planTier, todayStr);
+            followUpsSent += await processFirstReminderFollowUps(supabase, setting, tenant, shopName, planTier, today);
+            followUpsSent += await processWarrantyEndFollowUps(supabase, setting, tenant, shopName, planTier);
+            seasonalSent += await processSeasonalProposals(supabase, setting, shopName, today);
+            maintenanceSent += await processMaintenanceReminders(supabase, setting, shopName, today);
+          }
+        }
+      } catch (e) {
+        console.error("[cron/follow-up] failed:", e);
       }
+      return { remindersSent, followUpsSent, seasonalSent, maintenanceSent };
+    });
 
-      const allTenantIds = [...new Set(settings.map((s) => s.tenant_id))];
-
-      const { data: tenants } = (await supabase
-        .from("tenants")
-        .select("id, name, phone, plan_tier")
-        .in("id", allTenantIds)) as { data: TenantInfo[] | null };
-      const tenantMap = new Map((tenants ?? []).map((t) => [t.id, t]));
-
-      for (const setting of settings) {
-        const tenant = tenantMap.get(setting.tenant_id);
-        if (!tenant) continue;
-
-        const shopName = tenant.name ?? "施工店";
-        const planTier = normalizePlanTier(tenant.plan_tier);
-
-        remindersSent += await processExpiryReminders(supabase, setting, shopName, today);
-        followUpsSent += await processRegularFollowUps(supabase, setting, tenant, shopName, planTier, today);
-        followUpsSent += await processPostIssueFollowUps(supabase, setting, tenant, shopName, planTier, todayStr);
-        followUpsSent += await processFirstReminderFollowUps(supabase, setting, tenant, shopName, planTier, today);
-        followUpsSent += await processWarrantyEndFollowUps(supabase, setting, tenant, shopName, planTier);
-        seasonalSent += await processSeasonalProposals(supabase, setting, shopName, today);
-        maintenanceSent += await processMaintenanceReminders(supabase, setting, shopName, today);
-      }
-    } catch (e) {
-      console.error("[cron/follow-up] failed:", e);
+    if (!lock.acquired) {
+      return apiJson({ ok: true, skipped: "lock-held", date: todayStr });
     }
 
     return apiJson({
       ok: true,
-      reminders_sent: remindersSent,
-      follow_ups_sent: followUpsSent,
-      seasonal_sent: seasonalSent,
-      maintenance_sent: maintenanceSent,
+      reminders_sent: lock.value.remindersSent,
+      follow_ups_sent: lock.value.followUpsSent,
+      seasonal_sent: lock.value.seasonalSent,
+      maintenance_sent: lock.value.maintenanceSent,
       date: todayStr,
     });
   } catch (e) {

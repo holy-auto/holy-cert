@@ -1,20 +1,16 @@
 import React from "react";
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  Image,
-  StyleSheet,
-  Font,
-} from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image, StyleSheet, Font } from "@react-pdf/renderer";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createSignedAssetUrl } from "@/lib/signedUrl";
+import {
+  buildTaxBreakdown,
+  hasMultipleRates,
+  isValidRegistrationNumber,
+  type TaxBreakdownEntry,
+} from "@/lib/invoice/taxBreakdown";
 
-const NOTO_SANS_JP =
-  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
-const NOTO_SANS_JP_BOLD =
-  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
+const NOTO_SANS_JP = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
+const NOTO_SANS_JP_BOLD = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
 
 Font.register({
   family: "NotoSansJP",
@@ -30,6 +26,10 @@ type InvoiceItem = {
   unit_price: number;
   amount: number;
   certificate_public_id?: string | null;
+  /** 個別税率 (10 / 8 / 0)。未指定時は invoice.tax_rate を使う */
+  tax_rate?: number | null;
+  /** 軽減税率対象品目フラグ。true の場合は ※ マーカーを付与 */
+  is_reduced_rate?: boolean | null;
 };
 
 type BankInfo = {
@@ -52,6 +52,8 @@ export type InvoiceForPdf = {
   tax_rate?: number;
   note: string | null;
   items_json: InvoiceItem[];
+  /** 税率ごとの内訳。NULL の場合は items_json から自動算出 */
+  tax_breakdown?: TaxBreakdownEntry[] | null;
   is_invoice_compliant?: boolean;
   show_seal?: boolean;
   show_logo?: boolean;
@@ -205,17 +207,11 @@ const s = StyleSheet.create({
   },
 });
 
-export async function renderInvoicePdf(
-  invoice: InvoiceForPdf,
-  tenant: TenantForPdf,
-  customerName: string | null,
-) {
+export async function renderInvoicePdf(invoice: InvoiceForPdf, tenant: TenantForPdf, customerName: string | null) {
   let logoUrl: string | null = null;
   try {
     logoUrl =
-      invoice.show_logo && tenant.logo_asset_path
-        ? await createSignedAssetUrl(tenant.logo_asset_path, 3600)
-        : null;
+      invoice.show_logo && tenant.logo_asset_path ? await createSignedAssetUrl(tenant.logo_asset_path, 3600) : null;
   } catch {
     logoUrl = null;
   }
@@ -223,9 +219,7 @@ export async function renderInvoicePdf(
   let sealUrl: string | null = null;
   try {
     sealUrl =
-      invoice.show_seal && tenant.company_seal_path
-        ? await createSignedAssetUrl(tenant.company_seal_path, 3600)
-        : null;
+      invoice.show_seal && tenant.company_seal_path ? await createSignedAssetUrl(tenant.company_seal_path, 3600) : null;
   } catch {
     sealUrl = null;
   }
@@ -234,6 +228,16 @@ export async function renderInvoicePdf(
   const recipientName = invoice.recipient_name || customerName;
   const bank = tenant.bank_info;
   const showSeal = invoice.show_seal ?? false;
+
+  // 税率ごとの内訳。明示的な値があれば優先、なければ items_json から導出。
+  const breakdown =
+    invoice.tax_breakdown && invoice.tax_breakdown.length > 0
+      ? invoice.tax_breakdown
+      : buildTaxBreakdown(items, invoice.tax_rate ?? 10);
+  const showMultiRate = hasMultipleRates(breakdown);
+  const hasReducedItem = items.some((it) => it.is_reduced_rate || it.tax_rate === 8);
+  // 適格請求書として表示するのは、フラグ ON かつ T+13 桁の登録番号がある場合のみ。
+  const isQualifiedInvoice = !!invoice.is_invoice_compliant && isValidRegistrationNumber(tenant.registration_number);
 
   const doc = (
     <Document>
@@ -251,13 +255,9 @@ export async function renderInvoicePdf(
         <View style={s.mainRow}>
           {/* Left column: recipient, summary, grand total */}
           <View style={s.leftCol}>
-            {recipientName && (
-              <Text style={s.recipientName}>{recipientName} 御中</Text>
-            )}
+            {recipientName && <Text style={s.recipientName}>{recipientName} 御中</Text>}
 
-            <Text style={{ fontSize: 9, color: "#444", marginBottom: 12 }}>
-              下記のとおり、御請求申し上げます。
-            </Text>
+            <Text style={{ fontSize: 9, color: "#444", marginBottom: 12 }}>下記のとおり、御請求申し上げます。</Text>
 
             {/* Summary fields */}
             <View style={s.summaryTable}>
@@ -299,17 +299,9 @@ export async function renderInvoicePdf(
 
             <Text style={s.senderName}>{tenant.name}</Text>
             {tenant.address && <Text style={s.senderLine}>{tenant.address}</Text>}
-            {tenant.contact_phone && (
-              <Text style={s.senderLine}>TEL：{tenant.contact_phone}</Text>
-            )}
-            {tenant.contact_email && (
-              <Text style={s.senderLine}>{tenant.contact_email}</Text>
-            )}
-            {invoice.is_invoice_compliant && tenant.registration_number && (
-              <Text style={s.senderLine}>
-                登録番号：{tenant.registration_number}
-              </Text>
-            )}
+            {tenant.contact_phone && <Text style={s.senderLine}>TEL：{tenant.contact_phone}</Text>}
+            {tenant.contact_email && <Text style={s.senderLine}>{tenant.contact_email}</Text>}
+            {isQualifiedInvoice && <Text style={s.senderLine}>登録番号：{tenant.registration_number}</Text>}
 
             {/* Seal / 角印 — directly below sender info */}
             {sealUrl ? (
@@ -329,35 +321,65 @@ export async function renderInvoicePdf(
           <Text style={{ ...s.thText, ...s.colPrice }}>単価</Text>
           <Text style={{ ...s.thText, ...s.colAmount }}>金額</Text>
         </View>
-        {items.map((item, idx) => (
-          <View key={idx} style={s.tableRow}>
-            <Text style={s.colDesc}>
-              {item.description || "-"}
-              {item.certificate_public_id ? ` [証明書: ${item.certificate_public_id}]` : ""}
-            </Text>
-            <Text style={s.colQty}>{item.quantity}</Text>
-            <Text style={s.colPrice}>{fmtJpy(item.unit_price)}</Text>
-            <Text style={s.colAmount}>{fmtJpy(item.amount)}</Text>
-          </View>
-        ))}
+        {items.map((item, idx) => {
+          const reduced = item.is_reduced_rate || item.tax_rate === 8;
+          return (
+            <View key={idx} style={s.tableRow}>
+              <Text style={s.colDesc}>
+                {reduced ? "※ " : ""}
+                {item.description || "-"}
+                {item.certificate_public_id ? ` [証明書: ${item.certificate_public_id}]` : ""}
+              </Text>
+              <Text style={s.colQty}>{item.quantity}</Text>
+              <Text style={s.colPrice}>{fmtJpy(item.unit_price)}</Text>
+              <Text style={s.colAmount}>{fmtJpy(item.amount)}</Text>
+            </View>
+          );
+        })}
+        {hasReducedItem && <Text style={{ fontSize: 8, color: "#666", marginTop: 4 }}>※ は軽減税率 (8%) 対象品目</Text>}
 
         {/* ── Totals ── */}
         <View style={s.totalsWrap}>
           <View style={s.totalsBox}>
-            <View style={s.totalRow}>
-              <Text style={s.totalLabel}>小計</Text>
-              <Text style={s.totalValue}>{fmtJpy(invoice.subtotal)}</Text>
-            </View>
-            <View style={s.totalRow}>
-              <Text style={s.totalLabel}>
-                消費税（{invoice.tax_rate ?? 10}%）
-              </Text>
-              <Text style={s.totalValue}>{fmtJpy(invoice.tax)}</Text>
-            </View>
-            <View style={s.grandTotalRow}>
-              <Text style={s.grandTotalLabel}>合計</Text>
-              <Text style={s.grandTotalValue}>{fmtJpy(invoice.total)}</Text>
-            </View>
+            {showMultiRate ? (
+              <>
+                <View style={s.totalRow}>
+                  <Text style={s.totalLabel}>小計</Text>
+                  <Text style={s.totalValue}>{fmtJpy(invoice.subtotal)}</Text>
+                </View>
+                {breakdown.map((b) => (
+                  <View key={`sub-${b.rate}`} style={s.totalRow}>
+                    <Text style={s.totalLabel}>{b.rate === 8 ? "  内 軽減税率対象" : `  内 ${b.rate}%対象`}</Text>
+                    <Text style={s.totalValue}>{fmtJpy(b.subtotal)}</Text>
+                  </View>
+                ))}
+                {breakdown.map((b) => (
+                  <View key={`tax-${b.rate}`} style={s.totalRow}>
+                    <Text style={s.totalLabel}>消費税（{b.rate}%）</Text>
+                    <Text style={s.totalValue}>{fmtJpy(b.tax)}</Text>
+                  </View>
+                ))}
+                <View style={s.grandTotalRow}>
+                  <Text style={s.grandTotalLabel}>合計</Text>
+                  <Text style={s.grandTotalValue}>{fmtJpy(invoice.total)}</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={s.totalRow}>
+                  <Text style={s.totalLabel}>小計</Text>
+                  <Text style={s.totalValue}>{fmtJpy(invoice.subtotal)}</Text>
+                </View>
+                <View style={s.totalRow}>
+                  <Text style={s.totalLabel}>消費税（{breakdown[0]?.rate ?? invoice.tax_rate ?? 10}%）</Text>
+                  <Text style={s.totalValue}>{fmtJpy(invoice.tax)}</Text>
+                </View>
+                <View style={s.grandTotalRow}>
+                  <Text style={s.grandTotalLabel}>合計</Text>
+                  <Text style={s.grandTotalValue}>{fmtJpy(invoice.total)}</Text>
+                </View>
+              </>
+            )}
           </View>
         </View>
 
@@ -370,11 +392,9 @@ export async function renderInvoicePdf(
         )}
 
         {/* ── Compliance ── */}
-        {invoice.is_invoice_compliant && (
+        {isQualifiedInvoice && (
           <View style={s.compliance}>
-            <Text>
-              ※ この書類は適格請求書等保存方式（インボイス制度）に対応しています。
-            </Text>
+            <Text>※ この書類は適格請求書等保存方式（インボイス制度）に対応しています。</Text>
           </View>
         )}
       </Page>

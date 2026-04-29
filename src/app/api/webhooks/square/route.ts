@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { readSecret } from "@/lib/crypto/tenantSecrets";
+import { captureSecurityEvent } from "@/lib/observability/sentry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,10 +99,15 @@ export async function POST(req: NextRequest) {
     const valid = verifySquareSignature(rawBody, signature, signatureKey, notificationUrl);
     if (!valid) {
       console.warn("[square-webhook] Invalid signature");
+      captureSecurityEvent("webhook_signature_failed", { provider: "square" });
       return apiUnauthorized();
     }
   } catch (err) {
     console.error("[square-webhook] Signature verification error", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    captureSecurityEvent("webhook_signature_failed", {
+      provider: "square",
       error: err instanceof Error ? err.message : String(err),
     });
     return apiUnauthorized();

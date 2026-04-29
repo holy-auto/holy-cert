@@ -1,5 +1,19 @@
 import { z } from "zod";
 
+const invoiceItemSchema = z.object({
+  description: z.string().max(500).optional(),
+  quantity: z.coerce.number().min(0).optional(),
+  unit: z.string().max(20).optional(),
+  unit_price: z.coerce.number().min(0).optional(),
+  amount: z.coerce.number().min(0).optional(),
+  /** 行ごとの税率 (10/8/0)。未指定時は invoice.tax_rate 適用 */
+  tax_rate: z.coerce.number().min(0).max(100).nullable().optional(),
+  /** 軽減税率 (8%) 対象品目フラグ */
+  is_reduced_rate: z.boolean().nullable().optional(),
+  certificate_id: z.string().uuid().nullable().optional(),
+  certificate_public_id: z.string().nullable().optional(),
+});
+
 export const invoiceCreateSchema = z.object({
   customer_id: z.string().uuid().nullable().optional(),
   recipient_name: z
@@ -16,7 +30,7 @@ export const invoiceCreateSchema = z.object({
     .nullable()
     .optional()
     .transform((v) => v || null),
-  items: z.array(z.any()).max(500).optional(),
+  items: z.array(invoiceItemSchema.passthrough()).max(500).optional(),
   items_json: z.any().nullable().optional(),
   subtotal: z.number().min(0).default(0).optional(),
   tax: z.number().min(0).default(0).optional(),

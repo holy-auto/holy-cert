@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { withCronLock } from "@/lib/cron/lock";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
 import { verifyCronRequest } from "@/lib/cronAuth";
@@ -25,35 +26,40 @@ export async function GET(req: NextRequest) {
 
   try {
     const supabase = createServiceRoleAdmin("cron:cleanup-insurer-logs — platform-wide retention sweep");
-    const results: Record<string, number | string> = {};
 
-    // Cleanup insurer_access_logs (90 days)
-    try {
-      const { data } = await supabase.rpc("cleanup_insurer_access_logs", { p_retention_days: 90 });
-      results.insurer_access_logs = data ?? 0;
-    } catch (e: unknown) {
-      results.insurer_access_logs = `error: ${e instanceof Error ? e.message : String(e)}`;
-    }
+    const lock = await withCronLock(supabase, "cleanup-insurer-logs", 600, async () => {
+      const results: Record<string, number | string> = {};
 
-    // Cleanup email verifications (24h)
-    try {
-      const { data } = await supabase.rpc("cleanup_insurer_email_verifications");
-      results.email_verifications = data ?? 0;
-    } catch (e: unknown) {
-      results.email_verifications = `error: ${e instanceof Error ? e.message : String(e)}`;
-    }
+      // Cleanup insurer_access_logs (90 days)
+      try {
+        const { data } = await supabase.rpc("cleanup_insurer_access_logs", { p_retention_days: 90 });
+        results.insurer_access_logs = data ?? 0;
+      } catch (e: unknown) {
+        results.insurer_access_logs = `error: ${e instanceof Error ? e.message : String(e)}`;
+      }
 
-    // Cleanup admin audit logs (365 days)
-    try {
-      const { data } = await supabase.rpc("cleanup_admin_audit_logs", { p_retention_days: 365 });
-      results.admin_audit_logs = data ?? 0;
-    } catch (e: unknown) {
-      results.admin_audit_logs = `error: ${e instanceof Error ? e.message : String(e)}`;
-    }
+      // Cleanup email verifications (24h)
+      try {
+        const { data } = await supabase.rpc("cleanup_insurer_email_verifications");
+        results.email_verifications = data ?? 0;
+      } catch (e: unknown) {
+        results.email_verifications = `error: ${e instanceof Error ? e.message : String(e)}`;
+      }
 
-    console.info("[cron/cleanup-insurer-logs] results:", results);
+      // Cleanup admin audit logs (365 days)
+      try {
+        const { data } = await supabase.rpc("cleanup_admin_audit_logs", { p_retention_days: 365 });
+        results.admin_audit_logs = data ?? 0;
+      } catch (e: unknown) {
+        results.admin_audit_logs = `error: ${e instanceof Error ? e.message : String(e)}`;
+      }
 
-    return apiJson({ ok: true, results });
+      console.info("[cron/cleanup-insurer-logs] results:", results);
+      return results;
+    });
+
+    if (!lock.acquired) return apiJson({ ok: true, skipped: "lock-held" });
+    return apiJson({ ok: true, results: lock.value });
   } catch (e) {
     await sendCronFailureAlert("cleanup-insurer-logs", e);
     return apiInternalError(e, "cleanup-insurer-logs cron");

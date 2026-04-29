@@ -4,6 +4,7 @@ import * as cheerio from "cheerio";
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { withCronLock } from "@/lib/cron/lock";
 import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
 
 // ── 業界キーワード（これにマッチする記事だけ保存）──
@@ -456,86 +457,95 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = createServiceRoleAdmin("cron:news — aggregates industry news for all tenants");
 
-    let totalFetched = 0;
-    let totalSaved = 0;
-    let totalSkipped = 0;
-    const errors: string[] = [];
+    const lock = await withCronLock(supabase, "news", 600, async () => {
+      let totalFetched = 0;
+      let totalSaved = 0;
+      let totalSkipped = 0;
+      const errors: string[] = [];
 
-    // ── 1) RSSフィード収集 ──
-    await Promise.allSettled(
-      RSS_FEEDS.map(async (feed) => {
-        try {
-          const parsed = await parser.parseURL(feed.url);
-          const items = parsed.items ?? [];
-          totalFetched += items.length;
+      // ── 1) RSSフィード収集 ──
+      await Promise.allSettled(
+        RSS_FEEDS.map(async (feed) => {
+          try {
+            const parsed = await parser.parseURL(feed.url);
+            const items = parsed.items ?? [];
+            totalFetched += items.length;
 
-          const toInsert = [];
+            const toInsert = [];
 
-          for (const item of items.slice(0, 20)) {
-            const title = item.title ?? "";
-            const content = item.contentSnippet || item.content?.replace(/<[^>]*>/g, "") || "";
-            const matchedKeywords = isRelevant(title, content);
+            for (const item of items.slice(0, 20)) {
+              const title = item.title ?? "";
+              const content = item.contentSnippet || item.content?.replace(/<[^>]*>/g, "") || "";
+              const matchedKeywords = isRelevant(title, content);
 
-            if (!feed.alwaysRelevant && matchedKeywords.length === 0) {
-              totalSkipped++;
-              continue;
+              if (!feed.alwaysRelevant && matchedKeywords.length === 0) {
+                totalSkipped++;
+                continue;
+              }
+
+              toInsert.push({
+                title,
+                summary: content.slice(0, 300),
+                category: feed.category,
+                source: feed.source,
+                url: item.link ?? null,
+                published_at: item.isoDate || item.pubDate || new Date().toISOString(),
+                keywords: feed.alwaysRelevant ? [feed.category] : matchedKeywords.slice(0, 10),
+                is_relevant: true,
+              });
             }
 
-            toInsert.push({
-              title,
-              summary: content.slice(0, 300),
-              category: feed.category,
-              source: feed.source,
-              url: item.link ?? null,
-              published_at: item.isoDate || item.pubDate || new Date().toISOString(),
-              keywords: feed.alwaysRelevant ? [feed.category] : matchedKeywords.slice(0, 10),
-              is_relevant: true,
-            });
-          }
+            if (toInsert.length > 0) {
+              const { data, error } = await supabase
+                .from("saved_news")
+                .upsert(toInsert, { onConflict: "url", ignoreDuplicates: true })
+                .select("id");
 
-          if (toInsert.length > 0) {
+              if (error) {
+                errors.push(`[RSS] ${feed.source}: ${error.message}`);
+              } else {
+                totalSaved += data?.length ?? 0;
+              }
+            }
+          } catch (e: unknown) {
+            errors.push(`[RSS] ${feed.source}: ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }),
+      );
+
+      // ── 2) スクレイピング収集 ──
+      await Promise.allSettled(
+        SCRAPE_TARGETS.map(async (target) => {
+          try {
+            const articles = await scrapesite(target);
+            totalFetched += articles.length;
+
+            if (articles.length === 0) return;
+
             const { data, error } = await supabase
               .from("saved_news")
-              .upsert(toInsert, { onConflict: "url", ignoreDuplicates: true })
+              .upsert(articles, { onConflict: "url", ignoreDuplicates: true })
               .select("id");
 
             if (error) {
-              errors.push(`[RSS] ${feed.source}: ${error.message}`);
+              errors.push(`[SCRAPE] ${target.source}: ${error.message}`);
             } else {
               totalSaved += data?.length ?? 0;
             }
+          } catch (e: unknown) {
+            errors.push(`[SCRAPE] ${target.source}: ${e instanceof Error ? e.message : String(e)}`);
           }
-        } catch (e: unknown) {
-          errors.push(`[RSS] ${feed.source}: ${e instanceof Error ? e.message : String(e)}`);
-        }
-      }),
-    );
+        }),
+      );
 
-    // ── 2) スクレイピング収集 ──
-    await Promise.allSettled(
-      SCRAPE_TARGETS.map(async (target) => {
-        try {
-          const articles = await scrapesite(target);
-          totalFetched += articles.length;
+      return { totalFetched, totalSaved, totalSkipped, errors };
+    });
 
-          if (articles.length === 0) return;
+    if (!lock.acquired) {
+      return apiJson({ success: true, skipped: "lock-held", timestamp: new Date().toISOString() });
+    }
 
-          const { data, error } = await supabase
-            .from("saved_news")
-            .upsert(articles, { onConflict: "url", ignoreDuplicates: true })
-            .select("id");
-
-          if (error) {
-            errors.push(`[SCRAPE] ${target.source}: ${error.message}`);
-          } else {
-            totalSaved += data?.length ?? 0;
-          }
-        } catch (e: unknown) {
-          errors.push(`[SCRAPE] ${target.source}: ${e instanceof Error ? e.message : String(e)}`);
-        }
-      }),
-    );
-
+    const v = lock.value;
     return apiJson({
       success: true,
       timestamp: new Date().toISOString(),
@@ -543,11 +553,11 @@ export async function GET(req: NextRequest) {
         rssFeeds: RSS_FEEDS.length,
         scrapeSites: SCRAPE_TARGETS.length,
         totalSources: RSS_FEEDS.length + SCRAPE_TARGETS.length,
-        totalFetched,
-        totalSaved,
-        totalSkipped,
+        totalFetched: v.totalFetched,
+        totalSaved: v.totalSaved,
+        totalSkipped: v.totalSkipped,
       },
-      errors: errors.length > 0 ? errors : undefined,
+      errors: v.errors.length > 0 ? v.errors : undefined,
     });
   } catch (e) {
     await sendCronFailureAlert("news", e);

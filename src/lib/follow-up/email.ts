@@ -102,6 +102,64 @@ export async function sendFollowUpEmail(params: {
 }
 
 /**
+ * 低在庫アラートメール（テナント運営者向け）
+ *
+ * cron が日次で `inventory_items.current_stock <= min_stock` の品目を
+ * 集約して 1 通にまとめて送る。品目が増減しても 1 通に集約することで
+ * 通知疲れを防ぐ。
+ */
+export async function sendLowStockAlert(params: {
+  shopName: string;
+  recipientEmail: string;
+  items: Array<{
+    name: string;
+    sku: string | null;
+    current_stock: number;
+    min_stock: number;
+    unit: string;
+  }>;
+}): Promise<boolean> {
+  if (params.items.length === 0) return false;
+  const shop = escapeHtml(params.shopName);
+  const rows = params.items
+    .map((it) => {
+      const name = escapeHtml(it.name);
+      const sku = it.sku ? escapeHtml(it.sku) : "";
+      const unit = escapeHtml(it.unit);
+      return `
+        <tr>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e5e5;">${name}${sku ? `<br><span style="font-size:11px;color:#86868b;">${sku}</span>` : ""}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e5e5; text-align:right; color:#c00; font-weight:700;">${it.current_stock} ${unit}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e5e5; text-align:right; color:#86868b;">${it.min_stock} ${unit}</td>
+        </tr>`;
+    })
+    .join("");
+  const html = wrap(
+    "在庫不足アラート",
+    `
+      <p style="color: #1d1d1f; font-size: 14px;">
+        ${shop} 各位<br><br>
+        以下の品目が最低在庫を下回っています。発注のご検討をお願いいたします。
+      </p>
+      <table style="width:100%; border-collapse: collapse; font-size: 13px; margin: 16px 0;">
+        <thead>
+          <tr style="background:#f5f5f7;">
+            <th style="padding: 10px 12px; text-align:left; font-size:11px; color:#86868b;">品目 / SKU</th>
+            <th style="padding: 10px 12px; text-align:right; font-size:11px; color:#86868b;">現在庫</th>
+            <th style="padding: 10px 12px; text-align:right; font-size:11px; color:#86868b;">最低在庫</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="font-size: 12px; color: #86868b;">
+        ※ 詳細・発注は管理画面 → 在庫管理 からご確認ください。
+      </p>
+    `,
+  );
+  return send(params.recipientEmail, `[${shop}] 在庫不足アラート (${params.items.length}件)`, html);
+}
+
+/**
  * 定期メンテナンスリマインダー（6/12 ヶ月点検）
  *
  * recoat_proposal とは別の意図 — 「再施工してください」ではなく

@@ -6,6 +6,7 @@ import { insurerPriceIdToPlanTier } from "@/lib/stripe/insurerPlan";
 import { isTemplateOptionEvent } from "@/lib/template-options/stripe";
 import { confirmCampaignSlot } from "@/lib/billing/campaign";
 import { apiJson, apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
+import { captureSecurityEvent } from "@/lib/observability/sentry";
 import { logAuditEvent } from "@/lib/audit/certificateLog";
 import { isResendFailure, sendResendEmail } from "@/lib/email/resendSend";
 import { maskEmail } from "@/lib/logger";
@@ -291,6 +292,7 @@ export async function POST(req: NextRequest) {
     event = stripe.webhooks.constructEvent(rawBody, sig, whsec);
   } catch (e) {
     console.error("webhook signature verify failed", e);
+    captureSecurityEvent("webhook_signature_failed", { provider: "stripe" });
     return apiValidationError("Invalid signature");
   }
 

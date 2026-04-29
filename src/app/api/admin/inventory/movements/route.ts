@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { parsePagination } from "@/lib/api/pagination";
 import { inventoryMovementCreateSchema } from "@/lib/validations/inventory";
 
 export const dynamic = "force-dynamic";
 
-// ─── GET: 入出庫履歴 (最新100件) ───
+// ─── GET: 入出庫履歴（ページング対応）───
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -15,6 +16,7 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url);
     const itemId = url.searchParams.get("item_id");
+    const { page, perPage, from, to } = parsePagination(req, { maxPerPage: 200 });
 
     let query = supabase
       .from("inventory_movements")
@@ -22,15 +24,40 @@ export async function GET(req: NextRequest) {
         "id, item_id, type, quantity, reason, reservation_id, created_by, created_at, inventory_items(name, unit)",
       )
       .eq("tenant_id", caller.tenantId)
-      .order("created_at", { ascending: false })
-      .limit(100);
+      .order("created_at", { ascending: false });
 
-    if (itemId) query = query.eq("item_id", itemId);
+    let countQuery = supabase
+      .from("inventory_movements")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", caller.tenantId);
 
-    const { data, error } = await query;
+    if (itemId) {
+      query = query.eq("item_id", itemId);
+      countQuery = countQuery.eq("item_id", itemId);
+    }
+
+    if (page > 0) {
+      query = query.range(from, to);
+    } else {
+      // 後方互換: ページパラメータ不指定時は従来通り最新 100 件
+      query = query.limit(100);
+    }
+
+    const [{ data, error }, { count: totalCount }] = await Promise.all([query, countQuery]);
     if (error) return apiInternalError(error, "inventory-movements list");
 
-    return apiJson({ ok: true, movements: data ?? [] });
+    return apiJson({
+      ok: true,
+      movements: data ?? [],
+      ...(page > 0 && {
+        pagination: {
+          page,
+          per_page: perPage,
+          total: totalCount ?? 0,
+          total_pages: totalCount ? Math.ceil(totalCount / perPage) : 0,
+        },
+      }),
+    });
   } catch (e: unknown) {
     return apiInternalError(e, "inventory-movements GET");
   }

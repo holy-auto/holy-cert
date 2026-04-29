@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiValidationError, apiInternalError, apiError } from "@/lib/api/response";
+import { captureSecurityEvent } from "@/lib/observability/sentry";
 import { escapeHtml } from "@/lib/sanitize";
 import { executeOrderPayout } from "@/lib/orders/orderPayout";
 
@@ -99,6 +100,7 @@ export async function POST(req: NextRequest) {
     event = stripe.webhooks.constructEvent(rawBody, sig, whsec);
   } catch (e) {
     console.error("connect-webhook: signature verify failed", e);
+    captureSecurityEvent("webhook_signature_failed", { provider: "stripe_connect" });
     return apiValidationError("Invalid signature");
   }
 

@@ -266,6 +266,13 @@ export default function InventoryClient() {
         description="在庫アイテム・入出庫の記録と管理"
         actions={
           <div className="flex gap-2 flex-wrap">
+            <a
+              className="btn-secondary"
+              href={`/api/admin/inventory/items/export${showInactive ? "?active_only=false" : ""}`}
+              download
+            >
+              CSV
+            </a>
             <button
               type="button"
               className="btn-secondary"
@@ -632,8 +639,11 @@ export default function InventoryClient() {
           {/* History */}
           {showHistory && (
             <section className="glass-card overflow-hidden">
-              <div className="border-b border-border-subtle p-5 text-base font-semibold text-primary">
-                入出庫履歴（最新100件）
+              <div className="flex items-center justify-between border-b border-border-subtle p-5">
+                <div className="text-base font-semibold text-primary">入出庫履歴（最新100件）</div>
+                <a className="btn-ghost text-xs" href="/api/admin/inventory/movements/export" download>
+                  CSV
+                </a>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
