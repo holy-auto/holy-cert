@@ -20,6 +20,10 @@ interface Lesson {
   created_at: string;
 }
 
+interface RankedLesson extends Lesson {
+  score: number;
+}
+
 const CATEGORIES = [
   { value: "", label: "すべて" },
   { value: "general", label: "全般" },
@@ -51,6 +55,8 @@ const LEVEL_LABEL: Record<string, string> = {
   pro: "応用",
 };
 
+const RANK_MEDAL: Record<number, string> = { 0: "🥇", 1: "🥈", 2: "🥉" };
+
 function StarRating({ value }: { value: number }) {
   const full = Math.round(value);
   return (
@@ -58,6 +64,79 @@ function StarRating({ value }: { value: number }) {
       {"★".repeat(full)}
       <span className="text-muted">{"★".repeat(5 - full)}</span>
     </span>
+  );
+}
+
+function RankingSection({ category }: { category: string }) {
+  const [ranked, setRanked] = useState<RankedLesson[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let canceled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({ type: "lessons", limit: "5" });
+        if (category) params.set("category", category);
+        const res = await fetch(`/api/admin/academy/rankings?${params}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!canceled) setRanked(data.lessons ?? []);
+      } finally {
+        if (!canceled) setLoading(false);
+      }
+    })();
+    return () => { canceled = true; };
+  }, [category]);
+
+  if (loading) {
+    return (
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="shrink-0 w-56 h-28 glass-card animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (ranked.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+        <span>🏆</span>
+        {category
+          ? `${CATEGORIES.find((c) => c.value === category)?.label ?? category} ランキング`
+          : "総合ランキング TOP 5"}
+        <span className="text-xs text-muted font-normal">評価スコア順</span>
+      </h2>
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+        {ranked.map((l, idx) => (
+          <Link
+            key={l.id}
+            href={`/admin/academy/learn/${l.id}`}
+            className="shrink-0 w-60 glass-card p-3 hover:border-accent/40 transition-colors"
+          >
+            <div className="flex items-start justify-between gap-1 mb-1.5">
+              <span className="text-lg">{RANK_MEDAL[idx] ?? `#${idx + 1}`}</span>
+              <span
+                className={`text-xs px-1.5 py-0.5 border rounded-full ${LEVEL_BADGE[l.level] ?? ""}`}
+              >
+                {LEVEL_LABEL[l.level] ?? l.level}
+              </span>
+            </div>
+            <p className="text-sm font-semibold text-primary line-clamp-2 mb-2">{l.title}</p>
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <StarRating value={l.rating_avg} />
+              <span>({l.rating_count})</span>
+              <span className="ml-auto text-accent font-medium">
+                {l.score.toFixed(1)} pt
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -92,7 +171,6 @@ export default function AcademyLearnPage() {
     fetchLessons();
   }, [tab, category, level]);
 
-  // 完了済みIDを取得 (タブ切替で再取得するほど重要ではないので初回のみ)
   useEffect(() => {
     (async () => {
       try {
@@ -126,6 +204,9 @@ export default function AcademyLearnPage() {
           + レッスン投稿
         </Link>
       </div>
+
+      {/* ランキングセクション: published タブのみ */}
+      {tab === "published" && <RankingSection category={category} />}
 
       {/* 入門ロック説明 */}
       {introOnly && tab === "published" && (

@@ -35,6 +35,16 @@ interface QualifyingLesson {
   rating_count: number;
 }
 
+interface MvpEntry {
+  author_user_id: string;
+  tenant_id: string | null;
+  tenant_name: string;
+  lesson_count: number;
+  total_amount_jpy: number;
+  period_month: string;
+  top_lesson: { id: string; title: string; rating_avg: number; rating_count: number } | null;
+}
+
 interface RewardRecord {
   id: string;
   tenant_id: string | null;
@@ -87,6 +97,28 @@ export default function AcademyProgressPage() {
     return d.toISOString().slice(0, 10);
   });
   const [applyingId, setApplyingId] = useState<string | null>(null);
+
+  const [mvp, setMvp] = useState<MvpEntry | null>(null);
+  const [runnersUp, setRunnersUp] = useState<MvpEntry[]>([]);
+  const [mvpPeriod, setMvpPeriod] = useState<string | null>(null);
+
+  useEffect(() => {
+    let canceled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/academy/rankings?type=mvp&limit=3");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (canceled) return;
+        setMvp(data.mvp ?? null);
+        setRunnersUp(data.runners_up ?? []);
+        setMvpPeriod(data.period_month ?? null);
+      } catch {
+        // noop
+      }
+    })();
+    return () => { canceled = true; };
+  }, []);
 
   useEffect(() => {
     let canceled = false;
@@ -265,6 +297,52 @@ export default function AcademyProgressPage() {
               </div>
             ))}
           </div>
+
+          {/* 月間 MVP */}
+          {mvp && (
+            <div className="glass-card p-5 mb-6 border border-yellow-400/30 bg-yellow-400/5">
+              <h2 className="font-semibold text-primary mb-3 flex items-center gap-2">
+                <span>👑</span> 月間 MVP 投稿者
+                {mvpPeriod && (
+                  <span className="text-xs text-muted font-normal">
+                    {mvpPeriod.slice(0, 7).replace("-", "年")}月
+                  </span>
+                )}
+              </h2>
+              <div className="flex items-start gap-4 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <div className="text-lg font-bold text-yellow-400 flex items-center gap-2">
+                    🥇 {mvp.tenant_name}
+                  </div>
+                  <div className="text-sm text-secondary mt-1">
+                    高評価レッスン {mvp.lesson_count} 件・報酬 ¥{mvp.total_amount_jpy.toLocaleString()}
+                  </div>
+                  {mvp.top_lesson && (
+                    <Link
+                      href={`/admin/academy/learn/${mvp.top_lesson.id}`}
+                      className="mt-2 block text-xs text-accent hover:underline truncate"
+                    >
+                      代表作: {mvp.top_lesson.title}
+                      <span className="text-muted ml-1">
+                        ★{mvp.top_lesson.rating_avg.toFixed(1)} ({mvp.top_lesson.rating_count}件)
+                      </span>
+                    </Link>
+                  )}
+                </div>
+                {runnersUp.length > 0 && (
+                  <div className="shrink-0 text-xs text-muted space-y-1">
+                    {runnersUp.map((r, i) => (
+                      <div key={r.author_user_id} className="flex items-center gap-1">
+                        <span>{["🥈", "🥉"][i] ?? `#${i + 2}`}</span>
+                        <span className="text-secondary">{r.tenant_name}</span>
+                        <span>({r.lesson_count}件)</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* バッジ */}
           <div className="glass-card p-5 mb-6">
