@@ -70,41 +70,58 @@ export function ScreenshotFrame({
   const dimensions = src && showImage ? readPngDimensions(src) : null;
 
   return (
-    <div
-      className={`relative rounded-2xl bg-gradient-to-b from-[#222a3a] via-[#141925] to-[#0a0d14] p-[6px] md:p-[8px] shadow-[0_30px_80px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.4)] ${className}`}
-    >
-      {/* camera dot — 金属の質感を補う小さなアクセント */}
-      <span
-        aria-hidden
-        className="absolute top-[3px] md:top-[4px] left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/15"
-      />
+    <div className={`relative ${className}`}>
+      {/* === Screen (lid) === bezel + chrome + image */}
+      <div className="relative rounded-t-2xl rounded-b-md bg-gradient-to-b from-[#222a3a] via-[#141925] to-[#0a0d14] p-[6px] md:p-[8px] shadow-[0_30px_60px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.1)]">
+        {/* camera dot — lid 上部中央 */}
+        <span
+          aria-hidden
+          className="absolute top-[3px] md:top-[4px] left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/15"
+        />
 
-      {/* inner screen */}
-      <div className="rounded-xl border border-white/[0.06] bg-[#060a12] overflow-hidden">
-        {chrome === "macos" && (
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.02]">
-            <span className="block w-2.5 h-2.5 rounded-full bg-rose-400/50" />
-            <span className="block w-2.5 h-2.5 rounded-full bg-amber-400/50" />
-            <span className="block w-2.5 h-2.5 rounded-full bg-emerald-400/50" />
-            {url && <span className="ml-3 truncate text-[0.65rem] text-white/70 font-mono">{url}</span>}
-          </div>
-        )}
-        <div className={`relative ${aspect} bg-[#060a12]`}>
-          {showImage && src ? (
-            <ScreenshotLightboxImage
-              src={src}
-              alt={alt}
-              url={url}
-              sizes={sizes}
-              objectPosition={objectPosition}
-              priority={priority}
-              intrinsicWidth={dimensions?.width}
-              intrinsicHeight={dimensions?.height}
-            />
-          ) : (
-            <div className="absolute inset-0">{children}</div>
+        {/* inner screen */}
+        <div className="rounded-t-xl rounded-b-[3px] border border-white/[0.06] bg-[#060a12] overflow-hidden">
+          {chrome === "macos" && (
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.02]">
+              <span className="block w-2.5 h-2.5 rounded-full bg-rose-400/50" />
+              <span className="block w-2.5 h-2.5 rounded-full bg-amber-400/50" />
+              <span className="block w-2.5 h-2.5 rounded-full bg-emerald-400/50" />
+              {url && <span className="ml-3 truncate text-[0.65rem] text-white/70 font-mono">{url}</span>}
+            </div>
           )}
+          <div className={`relative ${aspect} bg-[#060a12]`}>
+            {showImage && src ? (
+              <ScreenshotLightboxImage
+                src={src}
+                alt={alt}
+                url={url}
+                sizes={sizes}
+                objectPosition={objectPosition}
+                priority={priority}
+                intrinsicWidth={dimensions?.width}
+                intrinsicHeight={dimensions?.height}
+              />
+            ) : (
+              <div className="absolute inset-0">{children}</div>
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* === Laptop deck (palm rest) — lid よりわずかに広い台形 === */}
+      <div
+        aria-hidden
+        className="relative mx-auto h-[10px] md:h-[14px] bg-gradient-to-b from-[#252c3a] via-[#171c28] to-[#0a0d14] rounded-b-lg shadow-[0_18px_30px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]"
+        style={{
+          width: "104%",
+          marginLeft: "-2%",
+          clipPath: "polygon(2.5% 0, 97.5% 0, 100% 100%, 0 100%)",
+        }}
+      >
+        {/* hinge cutout (lid と deck の境目の凹み) */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[14%] h-[3px] md:h-[4px] rounded-b-md bg-black/75" />
+        {/* trackpad hint (細い線で奥行き感を補う) */}
+        <div className="absolute bottom-[2px] md:bottom-[3px] left-1/2 -translate-x-1/2 w-[24%] h-[1px] rounded-full bg-white/[0.06]" />
       </div>
     </div>
   );
