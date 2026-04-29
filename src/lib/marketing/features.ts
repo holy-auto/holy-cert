@@ -10,7 +10,7 @@ export type FeatureGroup = {
   id: string;
   title: string;
   subtitle: string;
-  features: { title: string; description: string }[];
+  features: { title: string; description: string; href?: string }[];
 };
 
 export const FEATURE_GROUPS: FeatureGroup[] = [
@@ -26,11 +26,13 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       {
         title: "施工写真のC2PA署名",
         description: "撮影時に証明書と紐付け、C2PA規格で署名。後からの差し替え・改変を検知可能にします。",
+        href: "/features/blockchain-anchoring",
       },
       {
         title: "Polygon anchoring",
         description:
           "施工写真のSHA-256ハッシュをPolygonブロックチェーンに刻印。監査時に『その時点で存在した』ことを独立に検証できます。",
+        href: "/features/blockchain-anchoring",
       },
       {
         title: "バッチPDF出力",
@@ -140,6 +142,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         title: "電子署名（自前実装）",
         description:
           "代理店契約・NDAを ECDSA P-256 ベースの自前電子署名で締結。電子署名法準拠、鍵ローテーション・監査ログ対応。",
+        href: "/features/digital-signature",
       },
     ],
   },

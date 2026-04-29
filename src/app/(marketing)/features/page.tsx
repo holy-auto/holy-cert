@@ -57,7 +57,7 @@ export default function FeaturesPage() {
           <SectionHeading title={g.title} subtitle={g.subtitle} />
           <FeatureGrid className="mt-10">
             {g.features.map((f, i) => (
-              <FeatureCard key={f.title} title={f.title} description={f.description} delay={i * 50} />
+              <FeatureCard key={f.title} title={f.title} description={f.description} delay={i * 50} href={f.href} />
             ))}
           </FeatureGrid>
         </Section>
