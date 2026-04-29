@@ -27,12 +27,28 @@ alter table public.follow_up_settings
 comment on column public.follow_up_settings.maintenance_reminder_months is
   'Anniversary months (1-based) at which to send maintenance reminder email. Empty array disables. Default {6, 12}.';
 
--- Sanity check: only positive integers allowed (1..120 to allow up to 10 years).
+-- Sanity check: only positive integers in 1..120 (allow up to 10 years).
+--
+-- PostgreSQL does NOT allow subqueries inside CHECK constraints, so we
+-- can't use `<@ array(select generate_series(...))`. Instead we expose
+-- an IMMUTABLE function that validates the array element-wise and call
+-- it from the CHECK. IMMUTABLE function calls are permitted because the
+-- planner can evaluate them deterministically per row.
+create or replace function public.follow_up_maintenance_months_valid(arr int[])
+returns boolean
+language sql
+immutable
+as $$
+  -- empty array: feature disabled, treat as valid
+  select coalesce(array_length(arr, 1), 0) = 0
+    or not exists (
+      select 1 from unnest(arr) as x where x is null or x < 1 or x > 120
+    );
+$$;
+
 alter table public.follow_up_settings
   drop constraint if exists follow_up_settings_maintenance_months_range;
 
 alter table public.follow_up_settings
   add constraint follow_up_settings_maintenance_months_range
-  check (
-    maintenance_reminder_months <@ array(select generate_series(1, 120))
-  );
+  check (public.follow_up_maintenance_months_valid(maintenance_reminder_months));
