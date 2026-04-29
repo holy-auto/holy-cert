@@ -22,6 +22,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       {
         title: "デジタル施工証明書",
         description: "写真・施工内容・施工者・日時をまとめた証明書をワンクリックで発行。QRコードで顧客に即共有。",
+        href: "/features/digital-certificate",
       },
       {
         title: "施工写真のC2PA署名",
@@ -70,6 +71,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         title: "顧客 360° ビュー",
         description:
           "基本情報・車両・証明書・予約案件・請求書をタブ切替で横断参照。顧客コンテキストを保持したまま次アクションへ。",
+        href: "/features/customer-360",
       },
       {
         title: "CSVインポート",
@@ -132,6 +134,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       {
         title: "保険会社ポータル",
         description: "証明書の検索・照会、案件管理、分析を一画面で。査定時に『この車に何が行われたか』を即確認。",
+        href: "/features/insurer-portal",
       },
       {
         title: "代理店ポータル",
