@@ -7,11 +7,25 @@ on:
     paths:
       - "remotion/**"
   workflow_dispatch:
+    inputs:
+      composition:
+        description: "レンダリングする動画 ID"
+        required: true
+        default: "LedraIntro"
+        type: choice
+        options:
+          - LedraIntro
+          - AdminOnboarding
+          - InsurerOnboarding
+          - AgentOnboarding
+          - CertificateDeepDive
+          - WorkflowDeepDive
+          - ALL
 
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -30,16 +44,29 @@ jobs:
       - name: Install Chrome for Remotion
         run: npx remotion browser ensure
 
-      - name: Render video
+      - name: Render — single video
+        if: ${{ github.event_name == 'push' || inputs.composition != 'ALL' }}
         run: |
+          COMP="${{ inputs.composition || 'LedraIntro' }}"
           mkdir -p out
-          npx remotion render remotion/index.tsx LedraIntro out/LedraIntro.mp4 \
+          npx remotion render remotion/index.tsx "$COMP" "out/${COMP}.mp4" \
             --codec=h264 \
             --concurrency=2
 
-      - name: Upload MP4
+      - name: Render — ALL videos
+        if: ${{ inputs.composition == 'ALL' }}
+        run: |
+          mkdir -p out
+          for COMP in LedraIntro AdminOnboarding InsurerOnboarding AgentOnboarding CertificateDeepDive WorkflowDeepDive; do
+            echo "▶ Rendering $COMP ..."
+            npx remotion render remotion/index.tsx "$COMP" "out/${COMP}.mp4" \
+              --codec=h264 \
+              --concurrency=2
+          done
+
+      - name: Upload MP4(s)
         uses: actions/upload-artifact@v4
         with:
-          name: LedraIntro
-          path: out/LedraIntro.mp4
+          name: ledra-videos-${{ inputs.composition || 'LedraIntro' }}
+          path: out/*.mp4
           retention-days: 30
