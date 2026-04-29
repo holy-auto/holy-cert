@@ -34,9 +34,9 @@ export function Hero() {
       </div>
 
       <Container className="relative w-full py-20 md:py-24 lg:py-28">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           {/* Left: copy + CTAs */}
-          <div className="lg:col-span-6 text-left">
+          <div className="lg:col-span-5 text-left">
             <div className="animate-[hero-fade-in_0.7s_ease-out_0.15s_both]">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium text-blue-300 bg-blue-500/10 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
                 <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-[pulse-soft_2s_ease-in-out_infinite]" />
@@ -45,7 +45,7 @@ export function Hero() {
             </div>
 
             <h1 className="mt-8">
-              <span className="block text-[2.25rem] md:text-[3rem] lg:text-[3.5rem] xl:text-[4rem] font-bold leading-[1.1] tracking-tight text-white">
+              <span className="block text-[2rem] md:text-[2.5rem] lg:text-[2.75rem] xl:text-[3.25rem] font-bold leading-[1.15] tracking-tight text-white">
                 {TITLE_LINE_1.map((phrase, i) => (
                   <span
                     key={`l1-${i}`}
@@ -58,7 +58,7 @@ export function Hero() {
                   </span>
                 ))}
               </span>
-              <span className="block mt-1 text-[2.25rem] md:text-[3rem] lg:text-[3.5rem] xl:text-[4rem] font-bold leading-[1.1] tracking-tight">
+              <span className="block mt-1 text-[2rem] md:text-[2.5rem] lg:text-[2.75rem] xl:text-[3.25rem] font-bold leading-[1.15] tracking-tight">
                 {TITLE_LINE_2.map((phrase, i) => (
                   <span
                     key={`l2-${i}`}
@@ -73,7 +73,7 @@ export function Hero() {
               </span>
             </h1>
 
-            <p className="mt-7 text-base md:text-lg leading-relaxed text-white/80 max-w-xl animate-[hero-fade-up_0.8s_ease-out_0.95s_both]">
+            <p className="mt-6 text-base md:text-lg leading-relaxed text-white/80 max-w-xl animate-[hero-fade-up_0.8s_ease-out_0.95s_both]">
               Ledraは、施工証明・履歴管理・加盟店連携・技術育成を通じて、現場の技術を可視化し、業界全体に信頼と価値を届けるプラットフォームです。
             </p>
 
@@ -117,25 +117,26 @@ export function Hero() {
             </div>
           </div>
 
-          {/* Right: product screenshot */}
-          <div className="lg:col-span-6 relative animate-[hero-fade-up_0.9s_ease-out_0.5s_both]">
-            <div className="relative">
+          {/* Right: product screenshot — container 右端を超えてはみ出させる */}
+          <div className="lg:col-span-7 relative animate-[hero-fade-up_0.9s_ease-out_0.5s_both]">
+            <div className="relative lg:-mr-[10vw] xl:-mr-[18vw]">
               {/* Decorative glow behind frame */}
               <div className="absolute -inset-6 bg-gradient-to-br from-blue-500/20 via-violet-500/10 to-transparent blur-2xl rounded-3xl pointer-events-none" />
               <ScreenshotFrame
                 src="/marketing/screenshots/01-admin-dashboard.png"
                 alt="Ledra 管理ダッシュボード"
                 url="admin.ledra.app/dashboard"
-                aspect="aspect-[16/10]"
+                aspect="aspect-[16/9]"
+                objectPosition="right center"
                 priority
-                sizes="(min-width: 1024px) 56vw, 100vw"
+                sizes="(min-width: 1024px) 65vw, 100vw"
                 className="relative"
               >
                 <HeroDashboardMock />
               </ScreenshotFrame>
 
               {/* Floating sub-card */}
-              <div className="hidden md:block absolute -bottom-6 -left-6 w-[44%] rounded-xl border border-white/[0.1] bg-[#0a0f1a]/95 backdrop-blur-md p-3 shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+              <div className="hidden md:block absolute -bottom-6 -left-6 w-[44%] max-w-[260px] rounded-xl border border-white/[0.1] bg-[#0a0f1a]/95 backdrop-blur-md p-3 shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center gap-2 text-[0.65rem] text-white/70">
                   <span className="block w-2 h-2 rounded-full bg-emerald-400" />
                   改ざん検証 OK

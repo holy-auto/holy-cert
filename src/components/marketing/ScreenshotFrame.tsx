@@ -51,30 +51,39 @@ export function ScreenshotFrame({
 
   return (
     <div
-      className={`rounded-2xl border border-white/[0.1] bg-gradient-to-br from-[#0a0f1a] to-[#0b111c] shadow-[0_30px_80px_rgba(0,0,0,0.5)] overflow-hidden ${className}`}
+      className={`relative rounded-2xl bg-gradient-to-b from-[#222a3a] via-[#141925] to-[#0a0d14] p-[6px] md:p-[8px] shadow-[0_30px_80px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.4)] ${className}`}
     >
-      {chrome === "macos" && (
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
-          <span className="block w-2.5 h-2.5 rounded-full bg-rose-400/40" />
-          <span className="block w-2.5 h-2.5 rounded-full bg-amber-400/40" />
-          <span className="block w-2.5 h-2.5 rounded-full bg-emerald-400/40" />
-          {url && <span className="ml-3 truncate text-[0.65rem] text-white/70 font-mono">{url}</span>}
-        </div>
-      )}
-      <div className={`relative ${aspect} bg-[#060a12]`}>
-        {showImage && src ? (
-          <Image
-            src={src}
-            alt={alt}
-            fill
-            sizes={sizes}
-            className="object-cover"
-            style={{ objectPosition }}
-            priority={priority}
-          />
-        ) : (
-          <div className="absolute inset-0">{children}</div>
+      {/* camera dot — 金属の質感を補う小さなアクセント */}
+      <span
+        aria-hidden
+        className="absolute top-[3px] md:top-[4px] left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/15"
+      />
+
+      {/* inner screen */}
+      <div className="rounded-xl border border-white/[0.06] bg-[#060a12] overflow-hidden">
+        {chrome === "macos" && (
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.02]">
+            <span className="block w-2.5 h-2.5 rounded-full bg-rose-400/50" />
+            <span className="block w-2.5 h-2.5 rounded-full bg-amber-400/50" />
+            <span className="block w-2.5 h-2.5 rounded-full bg-emerald-400/50" />
+            {url && <span className="ml-3 truncate text-[0.65rem] text-white/70 font-mono">{url}</span>}
+          </div>
         )}
+        <div className={`relative ${aspect} bg-[#060a12]`}>
+          {showImage && src ? (
+            <Image
+              src={src}
+              alt={alt}
+              fill
+              sizes={sizes}
+              className="object-cover"
+              style={{ objectPosition }}
+              priority={priority}
+            />
+          ) : (
+            <div className="absolute inset-0">{children}</div>
+          )}
+        </div>
       </div>
     </div>
   );
