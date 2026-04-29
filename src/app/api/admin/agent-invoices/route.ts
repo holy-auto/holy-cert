@@ -4,11 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 import { parseJsonBody } from "@/lib/api/parseBody";
+import { parsePagination } from "@/lib/api/pagination";
 import { agentInvoiceCreateSchema } from "@/lib/validations/agent-content";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -16,12 +17,20 @@ export async function GET() {
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
-    const { data } = await admin
+    const p = parsePagination(request, { defaultPerPage: 50, maxPerPage: 200 });
+
+    let query = admin
       .from("agent_invoices")
       .select(
         "id, agent_id, period_start, period_end, subtotal, tax_rate, tax_amount, total, status, notes, issued_at, paid_at, created_at, updated_at, agents(name)",
+        { count: "exact" },
       )
       .order("created_at", { ascending: false });
+
+    if (p.page > 0) query = query.range(p.from, p.to);
+    else query = query.limit(p.perPage);
+
+    const { data, count } = await query;
 
     const invoices = (data ?? []).map((inv: any) => ({
       ...inv,
@@ -29,7 +38,12 @@ export async function GET() {
       agents: undefined,
     }));
 
-    return apiJson({ invoices });
+    return apiJson({
+      invoices,
+      page: p.page,
+      per_page: p.perPage,
+      total: count ?? null,
+    });
   } catch (e) {
     return apiInternalError(e, "agent-invoices GET");
   }

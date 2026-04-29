@@ -1,8 +1,9 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parsePagination } from "@/lib/api/pagination";
 
 /**
  * GET /api/admin/agent-applications
@@ -17,11 +18,13 @@ export async function GET(request: NextRequest) {
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
     const status = request.nextUrl.searchParams.get("status");
+    const p = parsePagination(request, { defaultPerPage: 50, maxPerPage: 200 });
 
     let query = admin
       .from("agent_applications")
       .select(
         "id, application_number, company_name, contact_name, email, phone, industry, status, created_at, updated_at, rejection_reason",
+        { count: "exact" },
       )
       .order("created_at", { ascending: false });
 
@@ -29,12 +32,20 @@ export async function GET(request: NextRequest) {
       query = query.eq("status", status);
     }
 
-    const { data, error } = await query;
+    if (p.page > 0) query = query.range(p.from, p.to);
+    else query = query.limit(p.perPage);
+
+    const { data, error, count } = await query;
     if (error) {
       return apiInternalError(error, "agent-applications GET");
     }
 
-    return apiJson({ applications: data ?? [] });
+    return apiJson({
+      applications: data ?? [],
+      page: p.page,
+      per_page: p.perPage,
+      total: count ?? null,
+    });
   } catch (e) {
     return apiInternalError(e, "agent-applications GET");
   }

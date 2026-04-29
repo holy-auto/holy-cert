@@ -1,12 +1,13 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { parsePagination } from "@/lib/api/pagination";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -14,18 +15,26 @@ export async function GET() {
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
+    const p = parsePagination(request, { defaultPerPage: 50, maxPerPage: 200 });
 
+    let materialsQuery = admin
+      .from("agent_materials")
+      .select(
+        "id, category_id, title, description, file_name, file_size, file_type, storage_path, version, is_pinned, is_published, uploaded_by, created_at, updated_at, agent_material_categories(name)",
+        { count: "exact" },
+      )
+      .order("created_at", { ascending: false });
+
+    if (p.page > 0) materialsQuery = materialsQuery.range(p.from, p.to);
+    else materialsQuery = materialsQuery.limit(p.perPage);
+
+    // Categories are reference data — never paginate; the list is small.
     const [catResult, matResult] = await Promise.all([
       admin
         .from("agent_material_categories")
         .select("id, name, sort_order, created_at, updated_at")
         .order("sort_order", { ascending: true }),
-      admin
-        .from("agent_materials")
-        .select(
-          "id, category_id, title, description, file_name, file_size, file_type, storage_path, version, is_pinned, is_published, uploaded_by, created_at, updated_at, agent_material_categories(name)",
-        )
-        .order("created_at", { ascending: false }),
+      materialsQuery,
     ]);
 
     const materials = (matResult.data ?? []).map((m: any) => ({
@@ -37,6 +46,9 @@ export async function GET() {
     return apiJson({
       categories: catResult.data ?? [],
       materials,
+      page: p.page,
+      per_page: p.perPage,
+      total: matResult.count ?? null,
     });
   } catch (e) {
     return apiInternalError(e, "agent-materials GET");

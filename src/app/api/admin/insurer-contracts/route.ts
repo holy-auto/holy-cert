@@ -11,6 +11,7 @@ import {
   apiInternalError,
 } from "@/lib/api/response";
 import { isPlatformTenantId } from "@/lib/auth/platformAdmin";
+import { parsePagination } from "@/lib/api/pagination";
 import { insurerContractCreateSchema, insurerContractUpdateSchema } from "@/lib/validations/insurer-contract";
 
 export const runtime = "nodejs";
@@ -29,11 +30,13 @@ export async function GET(req: NextRequest) {
     const { admin } = createTenantScopedAdmin(caller.tenantId);
     const insurerId = req.nextUrl.searchParams.get("insurer_id");
     const tenantId = req.nextUrl.searchParams.get("tenant_id");
+    const p = parsePagination(req, { defaultPerPage: 50, maxPerPage: 200 });
 
     let query = admin
       .from("insurer_tenant_contracts")
       .select(
         "id, insurer_id, tenant_id, status, terminated_at, created_at, updated_at, insurers(name, slug), tenants(name, slug)",
+        { count: "exact" },
       )
       .order("created_at", { ascending: false });
 
@@ -46,10 +49,18 @@ export async function GET(req: NextRequest) {
       query = query.eq("tenant_id", caller.tenantId);
     }
 
-    const { data, error } = await query;
+    if (p.page > 0) query = query.range(p.from, p.to);
+    else query = query.limit(p.perPage);
+
+    const { data, error, count } = await query;
     if (error) return apiInternalError(error, "insurer-contracts list");
 
-    return apiOk({ contracts: data ?? [] });
+    return apiOk({
+      contracts: data ?? [],
+      page: p.page,
+      per_page: p.perPage,
+      total: count ?? null,
+    });
   } catch (e) {
     return apiInternalError(e, "insurer-contracts list");
   }

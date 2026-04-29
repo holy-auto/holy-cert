@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
 import { parseJsonBody } from "@/lib/api/parseBody";
+import { parsePagination } from "@/lib/api/pagination";
 import { agentContractCreateSchema } from "@/lib/validations/agent-content";
 import { notifyAgentSignRequest } from "@/lib/agent/email";
 
@@ -38,17 +39,29 @@ export async function GET(request: NextRequest) {
     if (!agentId) return apiValidationError("agent_id is required");
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
-    const { data, error } = await admin
+    const p = parsePagination(request, { defaultPerPage: 50, maxPerPage: 200 });
+
+    let query = admin
       .from("agent_signing_requests")
       .select(
         "id, agent_id, template_type, title, status, signer_email, signer_name, sent_at, signed_at, signed_pdf_path, requested_by, created_at, updated_at",
+        { count: "exact" },
       )
       .eq("agent_id", agentId)
       .order("created_at", { ascending: false });
 
+    if (p.page > 0) query = query.range(p.from, p.to);
+    else query = query.limit(p.perPage);
+
+    const { data, error, count } = await query;
     if (error) throw error;
 
-    return apiJson({ contracts: data ?? [] });
+    return apiJson({
+      contracts: data ?? [],
+      page: p.page,
+      per_page: p.perPage,
+      total: count ?? null,
+    });
   } catch (e) {
     return apiInternalError(e, "admin/agent-contracts GET");
   }

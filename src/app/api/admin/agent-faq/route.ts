@@ -4,11 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 import { parseJsonBody } from "@/lib/api/parseBody";
+import { parsePagination } from "@/lib/api/pagination";
 import { agentFaqCreateSchema } from "@/lib/validations/agent-content";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -16,14 +17,23 @@ export async function GET() {
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
+    const p = parsePagination(request, { defaultPerPage: 100, maxPerPage: 500 });
+
+    let faqQuery = admin
+      .from("agent_faqs")
+      .select(
+        "id, category_id, question, answer, sort_order, is_published, created_at, updated_at, agent_faq_categories(name)",
+        { count: "exact" },
+      )
+      .order("sort_order");
+
+    if (p.page > 0) faqQuery = faqQuery.range(p.from, p.to);
+    else faqQuery = faqQuery.limit(p.perPage);
+
+    // Categories are reference data — never paginate; the list is small.
     const [catRes, faqRes] = await Promise.all([
       admin.from("agent_faq_categories").select("id, name, sort_order, created_at, updated_at").order("sort_order"),
-      admin
-        .from("agent_faqs")
-        .select(
-          "id, category_id, question, answer, sort_order, is_published, created_at, updated_at, agent_faq_categories(name)",
-        )
-        .order("sort_order"),
+      faqQuery,
     ]);
 
     const faqs = (faqRes.data ?? []).map((f: any) => ({
@@ -32,7 +42,13 @@ export async function GET() {
       agent_faq_categories: undefined,
     }));
 
-    return apiJson({ categories: catRes.data ?? [], faqs });
+    return apiJson({
+      categories: catRes.data ?? [],
+      faqs,
+      page: p.page,
+      per_page: p.perPage,
+      total: faqRes.count ?? null,
+    });
   } catch (e) {
     return apiInternalError(e, "agent-faq GET");
   }
