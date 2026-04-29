@@ -45,6 +45,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       {
         title: "NFC対応",
         description: "NFCタグに証明書を紐付け。スマホをかざすだけで施工証明を確認できるプレミアム体験。",
+        href: "/features/nfc",
       },
     ],
   },
@@ -57,11 +58,13 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         title: "車検証OCR",
         description:
           "車検証をカメラで撮影するだけで車両情報を自動入力。Claude Vision で画像から構造化データを直接抽出。",
+        href: "/features/vehicle-ocr",
       },
       {
         title: "サービス履歴タイムライン",
         description:
           "証明書・予約・作業・NFC書込を一本の時系列に合成して表示。『他に何が行われたか』が1画面で分かります。",
+        href: "/features/timeline",
       },
       {
         title: "顧客 360° ビュー",
@@ -137,6 +140,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       {
         title: "顧客ポータル",
         description: "エンドユーザーが自分の証明書をスマホで閲覧。QRコード・URLからアクセス。",
+        href: "/features/customer-portal",
       },
       {
         title: "電子署名（自前実装）",
