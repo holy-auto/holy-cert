@@ -64,6 +64,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         title: "サービス履歴タイムライン",
         description:
           "証明書・予約・作業・NFC書込を一本の時系列に合成して表示。『他に何が行われたか』が1画面で分かります。",
+        href: "/features/timeline",
       },
       {
         title: "顧客 360° ビュー",
@@ -139,6 +140,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       {
         title: "顧客ポータル",
         description: "エンドユーザーが自分の証明書をスマホで閲覧。QRコード・URLからアクセス。",
+        href: "/features/customer-portal",
       },
       {
         title: "電子署名（自前実装）",
