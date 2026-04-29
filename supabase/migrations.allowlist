@@ -141,3 +141,7 @@
 20260424000000_tighten_market_inquiries_rls.sql
 20260424000000_vehicle_passports.sql
 20260424010000_site_content_posts_super_admin_only.sql
+# follow_up_settings は settings テーブルで行数が極めて少ない。ACCESS EXCLUSIVE の影響は無視できる。
+# 別マイグレーションで NOT VALID + VALIDATE に分割することも可能だが、運用リスクに比して効果が薄い。
+20260429000000_follow_up_maintenance_reminders.sql
+20260429000001_fix_maintenance_months_constraint.sql

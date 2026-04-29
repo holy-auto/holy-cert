@@ -28,6 +28,29 @@ interface RecentCompletion {
   completed_at: string;
 }
 
+interface QualifyingLesson {
+  id: string;
+  title: string;
+  rating_avg: number;
+  rating_count: number;
+}
+
+interface RewardRecord {
+  id: string;
+  tenant_id: string | null;
+  author_user_id: string;
+  period_month: string;
+  qualifying_lessons: QualifyingLesson[];
+  lesson_count: number;
+  reward_per_lesson: number;
+  total_amount_jpy: number;
+  status: "pending" | "applied" | "skipped" | "failed";
+  stripe_credit_id: string | null;
+  applied_at: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 const LEVEL_LABEL: Record<string, string> = {
   intro: "入門",
   basic: "基礎",
@@ -35,11 +58,35 @@ const LEVEL_LABEL: Record<string, string> = {
   pro: "応用",
 };
 
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  pending: { label: "処理待ち", cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
+  applied: { label: "適用済", cls: "bg-green-500/15 text-green-600 border-green-500/30" },
+  skipped: { label: "スキップ", cls: "bg-muted/20 text-muted border-border-subtle" },
+  failed: { label: "失敗", cls: "bg-red-500/15 text-red-600 border-red-500/30" },
+};
+
+type Tab = "progress" | "rewards";
+
 export default function AcademyProgressPage() {
+  const [activeTab, setActiveTab] = useState<Tab>("progress");
+
   const [progress, setProgress] = useState<Progress | null>(null);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [recent, setRecent] = useState<RecentCompletion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(true);
+
+  const [rewards, setRewards] = useState<RewardRecord[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loadingRewards, setLoadingRewards] = useState(false);
+  const [rewardsFetched, setRewardsFetched] = useState(false);
+
+  const [calculating, setCalculating] = useState(false);
+  const [calcPeriod, setCalcPeriod] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [applyingId, setApplyingId] = useState<string | null>(null);
 
   useEffect(() => {
     let canceled = false;
@@ -54,15 +101,77 @@ export default function AcademyProgressPage() {
           setRecent(data.recent_completions ?? []);
         }
       } finally {
-        if (!canceled) setLoading(false);
+        if (!canceled) setLoadingProgress(false);
       }
     })();
-    return () => {
-      canceled = true;
-    };
+    return () => { canceled = true; };
   }, []);
 
-  if (loading) {
+  async function fetchRewards() {
+    setLoadingRewards(true);
+    try {
+      const res = await fetch("/api/admin/academy/rewards");
+      const data = await res.json();
+      if (res.ok) {
+        setRewards(data.rewards ?? []);
+        setIsAdmin(data.is_admin ?? false);
+      }
+    } finally {
+      setLoadingRewards(false);
+      setRewardsFetched(true);
+    }
+  }
+
+  function handleTabChange(tab: Tab) {
+    setActiveTab(tab);
+    if (tab === "rewards" && !rewardsFetched) {
+      fetchRewards();
+    }
+  }
+
+  async function handleCalculate() {
+    setCalculating(true);
+    try {
+      const res = await fetch("/api/admin/academy/rewards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ period_month: calcPeriod }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`集計完了: ${data.inserted} 件追加、${data.skipped_existing} 件スキップ`);
+        await fetchRewards();
+      } else {
+        alert(`エラー: ${data.error ?? "不明なエラー"}`);
+      }
+    } finally {
+      setCalculating(false);
+    }
+  }
+
+  async function handleApply(rewardId: string) {
+    setApplyingId(rewardId);
+    try {
+      const res = await fetch(`/api/admin/academy/rewards/${rewardId}/apply`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.already_applied) {
+          alert("既に適用済みです");
+        } else if (data.skipped) {
+          alert(`スキップ: ${data.detail}`);
+        } else {
+          alert(`Stripe credit 適用完了: ${data.stripe_credit_id}`);
+        }
+        await fetchRewards();
+      } else {
+        alert(`エラー: ${data.error ?? "不明なエラー"}`);
+      }
+    } finally {
+      setApplyingId(null);
+    }
+  }
+
+  if (loadingProgress) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
@@ -78,7 +187,6 @@ export default function AcademyProgressPage() {
     );
   }
 
-  // 次のレベルまでの進捗バー (100pt = 1 level)
   const currentLevelStart = (progress.level - 1) * 100;
   const nextLevelAt = progress.level * 100;
   const inLevel = Math.max(0, progress.total_score - currentLevelStart);
@@ -94,108 +202,256 @@ export default function AcademyProgressPage() {
           <span>📈</span> 学習進捗
         </h1>
         <p className="text-sm text-muted mt-1">
-          完了したレッスン・施工事例提供で獲得したスコアと、これまで集めたバッジを確認できます。
+          完了したレッスン・施工事例提供で獲得したスコアと、バッジ・報酬を確認できます。
         </p>
       </div>
 
-      {/* レベル + スコア */}
-      <div className="glass-card p-6 mb-6">
-        <div className="flex items-end justify-between flex-wrap gap-3 mb-3">
-          <div>
-            <div className="text-xs text-muted">あなたのレベル</div>
-            <div className="text-4xl font-bold text-accent">Lv.{progress.level}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-muted">累計スコア</div>
-            <div className="text-2xl font-semibold text-primary">{progress.total_score} pt</div>
-          </div>
-        </div>
-        <div className="bg-inset rounded-full h-3 overflow-hidden">
-          <div
-            className="bg-accent h-3 rounded-full transition-all"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <div className="text-xs text-muted mt-2">
-          次のレベルまで あと {Math.max(0, nextLevelAt - progress.total_score)} pt
-        </div>
-      </div>
-
-      {/* 統計 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: "完了レッスン", value: progress.lessons_completed, sub: "件" },
-          { label: "公開した事例", value: progress.cases_submitted, sub: "件" },
-          { label: "添削した証明書", value: progress.certs_reviewed, sub: "件" },
-          { label: "Ledra Standard", value: progress.standard_level, sub: "" },
-        ].map((s) => (
-          <div key={s.label} className="glass-card p-4 text-center">
-            <div className="text-2xl font-bold text-primary">
-              {s.value}
-              {s.sub && <span className="text-sm text-muted ml-1">{s.sub}</span>}
-            </div>
-            <div className="text-xs text-muted mt-1">{s.label}</div>
-          </div>
+      {/* タブ */}
+      <div className="flex gap-1 mb-6 border-b border-border-subtle">
+        {(["progress", "rewards"] as Tab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => handleTabChange(t)}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === t
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-secondary"
+            }`}
+          >
+            {t === "progress" ? "📊 進捗・バッジ" : "💰 報酬履歴"}
+          </button>
         ))}
       </div>
 
-      {/* バッジ */}
-      <div className="glass-card p-5 mb-6">
-        <h2 className="font-semibold text-primary mb-3 flex items-center gap-2">
-          <span>🎖</span> 獲得バッジ
-        </h2>
-        {badges.length === 0 ? (
-          <p className="text-sm text-muted">
-            まだバッジがありません。レッスン完了や事例公開で獲得できます。
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {badges.map((b) => (
+      {activeTab === "progress" && (
+        <>
+          {/* レベル + スコア */}
+          <div className="glass-card p-6 mb-6">
+            <div className="flex items-end justify-between flex-wrap gap-3 mb-3">
+              <div>
+                <div className="text-xs text-muted">あなたのレベル</div>
+                <div className="text-4xl font-bold text-accent">Lv.{progress.level}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-muted">累計スコア</div>
+                <div className="text-2xl font-semibold text-primary">{progress.total_score} pt</div>
+              </div>
+            </div>
+            <div className="bg-inset rounded-full h-3 overflow-hidden">
               <div
-                key={b.id}
-                className="flex items-center gap-3 p-3 rounded-xl bg-inset border border-border-subtle"
-              >
-                <span className="text-3xl">{b.emoji}</span>
-                <div>
-                  <div className="text-sm font-medium text-primary">{b.label}</div>
-                  <div className="text-xs text-muted">{b.description}</div>
+                className="bg-accent h-3 rounded-full transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <div className="text-xs text-muted mt-2">
+              次のレベルまで あと {Math.max(0, nextLevelAt - progress.total_score)} pt
+            </div>
+          </div>
+
+          {/* 統計 */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {[
+              { label: "完了レッスン", value: progress.lessons_completed, sub: "件" },
+              { label: "公開した事例", value: progress.cases_submitted, sub: "件" },
+              { label: "添削した証明書", value: progress.certs_reviewed, sub: "件" },
+              { label: "Ledra Standard", value: progress.standard_level, sub: "" },
+            ].map((s) => (
+              <div key={s.label} className="glass-card p-4 text-center">
+                <div className="text-2xl font-bold text-primary">
+                  {s.value}
+                  {s.sub && <span className="text-sm text-muted ml-1">{s.sub}</span>}
                 </div>
+                <div className="text-xs text-muted mt-1">{s.label}</div>
               </div>
             ))}
           </div>
-        )}
-      </div>
 
-      {/* 直近の完了 */}
-      <div className="glass-card p-5">
-        <h2 className="font-semibold text-primary mb-3 flex items-center gap-2">
-          <span>🕒</span> 直近の完了
-        </h2>
-        {recent.length === 0 ? (
-          <p className="text-sm text-muted">完了したレッスンはまだありません</p>
-        ) : (
-          <ul className="space-y-2">
-            {recent.map((r) => (
-              <li key={r.lesson_id} className="flex items-center justify-between gap-3 text-sm">
-                <Link
-                  href={`/admin/academy/learn/${r.lesson_id}`}
-                  className="flex-1 truncate text-secondary hover:text-accent transition-colors"
-                >
-                  {r.lesson_level && (
-                    <span className="text-xs px-1.5 py-0.5 bg-accent/10 border border-accent/20 rounded mr-2 text-accent">
-                      {LEVEL_LABEL[r.lesson_level] ?? r.lesson_level}
+          {/* バッジ */}
+          <div className="glass-card p-5 mb-6">
+            <h2 className="font-semibold text-primary mb-3 flex items-center gap-2">
+              <span>🎖</span> 獲得バッジ
+            </h2>
+            {badges.length === 0 ? (
+              <p className="text-sm text-muted">
+                まだバッジがありません。レッスン完了や事例公開で獲得できます。
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {badges.map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-inset border border-border-subtle"
+                  >
+                    <span className="text-3xl">{b.emoji}</span>
+                    <div>
+                      <div className="text-sm font-medium text-primary">{b.label}</div>
+                      <div className="text-xs text-muted">{b.description}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 直近の完了 */}
+          <div className="glass-card p-5">
+            <h2 className="font-semibold text-primary mb-3 flex items-center gap-2">
+              <span>🕒</span> 直近の完了
+            </h2>
+            {recent.length === 0 ? (
+              <p className="text-sm text-muted">完了したレッスンはまだありません</p>
+            ) : (
+              <ul className="space-y-2">
+                {recent.map((r) => (
+                  <li key={r.lesson_id} className="flex items-center justify-between gap-3 text-sm">
+                    <Link
+                      href={`/admin/academy/learn/${r.lesson_id}`}
+                      className="flex-1 truncate text-secondary hover:text-accent transition-colors"
+                    >
+                      {r.lesson_level && (
+                        <span className="text-xs px-1.5 py-0.5 bg-accent/10 border border-accent/20 rounded mr-2 text-accent">
+                          {LEVEL_LABEL[r.lesson_level] ?? r.lesson_level}
+                        </span>
+                      )}
+                      {r.lesson_title}
+                    </Link>
+                    <span className="text-xs text-muted shrink-0">
+                      +{r.score_earned} pt · {new Date(r.completed_at).toLocaleDateString()}
                     </span>
-                  )}
-                  {r.lesson_title}
-                </Link>
-                <span className="text-xs text-muted shrink-0">
-                  +{r.score_earned} pt · {new Date(r.completed_at).toLocaleDateString()}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === "rewards" && (
+        <div>
+          {/* 説明 */}
+          <div className="glass-card p-5 mb-6 flex gap-3 items-start">
+            <span className="text-2xl">💡</span>
+            <div>
+              <p className="text-sm text-primary font-medium">高評価レッスンへの報酬制度</p>
+              <p className="text-sm text-muted mt-1">
+                公開レッスンの平均評価 ★4.0 以上 かつ 評価件数 5件以上 を満たすと、
+                翌月の請求から <strong>¥500 / レッスン</strong> が減額されます。
+              </p>
+            </div>
+          </div>
+
+          {/* super_admin: 集計操作パネル */}
+          {isAdmin && (
+            <div className="glass-card p-5 mb-6">
+              <h2 className="font-semibold text-primary mb-3 flex items-center gap-2">
+                <span>⚙️</span> 月次集計 (管理者)
+              </h2>
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <label className="text-xs text-muted block mb-1">集計月 (YYYY-MM-01)</label>
+                  <input
+                    type="date"
+                    value={calcPeriod}
+                    onChange={(e) => setCalcPeriod(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-border-subtle bg-inset text-sm text-primary"
+                  />
+                </div>
+                <button
+                  onClick={handleCalculate}
+                  disabled={calculating}
+                  className="px-4 py-2 bg-accent text-white text-sm rounded-lg hover:bg-accent/90 disabled:opacity-50 transition-colors"
+                >
+                  {calculating ? "集計中…" : "集計実行"}
+                </button>
+              </div>
+              <p className="text-xs text-muted mt-2">
+                同じ月を再実行しても既存レコードはスキップされます（冪等）。
+              </p>
+            </div>
+          )}
+
+          {/* 報酬一覧 */}
+          {loadingRewards ? (
+            <div className="flex justify-center py-12">
+              <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : rewards.length === 0 ? (
+            <div className="glass-card p-8 text-center text-sm text-muted">
+              報酬履歴はまだありません。
+              {!isAdmin && " 高評価レッスンを作成すると月次集計で報酬が発生します。"}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {rewards.map((r) => {
+                const badge = STATUS_BADGE[r.status] ?? STATUS_BADGE.pending;
+                const [year, month] = r.period_month.split("-");
+                return (
+                  <div key={r.id} className="glass-card p-5">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-primary">
+                            {year}年{month}月
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded border font-medium ${badge.cls}`}
+                          >
+                            {badge.label}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted">
+                          対象 {r.lesson_count} レッスン × ¥{r.reward_per_lesson.toLocaleString()}
+                        </div>
+                        {r.notes && (
+                          <div className="text-xs text-muted mt-1">{r.notes}</div>
+                        )}
+                        {r.applied_at && (
+                          <div className="text-xs text-muted mt-1">
+                            適用日: {new Date(r.applied_at).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xl font-bold text-accent">
+                          ¥{r.total_amount_jpy.toLocaleString()}
+                        </div>
+                        {isAdmin && r.status === "pending" && (
+                          <button
+                            onClick={() => handleApply(r.id)}
+                            disabled={applyingId === r.id}
+                            className="mt-2 px-3 py-1 text-xs bg-accent text-white rounded-lg hover:bg-accent/90 disabled:opacity-50 transition-colors"
+                          >
+                            {applyingId === r.id ? "適用中…" : "Stripe 適用"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 対象レッスン詳細 */}
+                    {r.qualifying_lessons.length > 0 && (
+                      <details className="mt-3">
+                        <summary className="text-xs text-muted cursor-pointer hover:text-secondary">
+                          対象レッスン一覧
+                        </summary>
+                        <ul className="mt-2 space-y-1">
+                          {r.qualifying_lessons.map((l) => (
+                            <li key={l.id} className="text-xs text-secondary flex justify-between gap-2">
+                              <span className="truncate">{l.title}</span>
+                              <span className="text-muted shrink-0">
+                                ★{l.rating_avg.toFixed(1)} / {l.rating_count}件
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
