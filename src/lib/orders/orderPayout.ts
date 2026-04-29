@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { logger } from "@/lib/logger";
 
 function getStripe() {
@@ -18,7 +18,7 @@ type PayoutResult =
  * 既に送金済みの場合は no-op で ok:true を返す。
  */
 export async function executeOrderPayout(orderId: string): Promise<PayoutResult> {
-  const supabase = createAdminClient();
+  const supabase = createServiceRoleAdmin("orders/orderPayout: Stripe Connect 送金 (job_order の to_tenant 跨ぎ)");
 
   const { data: order } = await supabase
     .from("job_orders")

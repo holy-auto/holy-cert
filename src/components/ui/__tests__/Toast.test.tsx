@@ -4,13 +4,7 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { ToastProvider, useToast } from "../Toast";
 
 // Helper component that triggers toasts via the context
-function ToastTrigger({
-  message,
-  variant,
-}: {
-  message: string;
-  variant?: "success" | "error" | "warning" | "info";
-}) {
+function ToastTrigger({ message, variant }: { message: string; variant?: "success" | "error" | "warning" | "info" }) {
   const { toast } = useToast();
   return (
     <button onClick={() => toast(message, variant)} data-testid="trigger">
@@ -46,7 +40,7 @@ describe("Toast", () => {
   });
 
   it("shows success toast", () => {
-    const { container } = render(
+    render(
       <ToastProvider>
         <ToastTrigger message="Saved!" variant="success" />
       </ToastProvider>,
@@ -56,8 +50,8 @@ describe("Toast", () => {
     });
     expect(screen.getByText("Saved!")).toBeDefined();
     // Check the toast has the success border class
-    const toastEl = screen.getByText("Saved!").closest("div[class*='glass-card']");
-    expect(toastEl?.className).toContain("border-l-[var(--accent-emerald)]");
+    const toastEl = screen.getByRole("alert");
+    expect(toastEl.className).toContain("border-l-[var(--accent-emerald)]");
   });
 
   it("shows error toast", () => {
@@ -70,8 +64,8 @@ describe("Toast", () => {
       fireEvent.click(screen.getByTestId("trigger"));
     });
     expect(screen.getByText("Failed!")).toBeDefined();
-    const toastEl = screen.getByText("Failed!").closest("div[class*='glass-card']");
-    expect(toastEl?.className).toContain("border-l-[var(--accent-red)]");
+    const toastEl = screen.getByRole("alert");
+    expect(toastEl.className).toContain("border-l-[var(--accent-red)]");
   });
 
   it("shows warning toast", () => {
@@ -84,8 +78,8 @@ describe("Toast", () => {
       fireEvent.click(screen.getByTestId("trigger"));
     });
     expect(screen.getByText("Careful!")).toBeDefined();
-    const toastEl = screen.getByText("Careful!").closest("div[class*='glass-card']");
-    expect(toastEl?.className).toContain("border-l-[var(--accent-amber)]");
+    const toastEl = screen.getByRole("alert");
+    expect(toastEl.className).toContain("border-l-[var(--accent-amber)]");
   });
 
   it("defaults to info variant", () => {
@@ -98,8 +92,8 @@ describe("Toast", () => {
       fireEvent.click(screen.getByTestId("trigger"));
     });
     expect(screen.getByText("FYI")).toBeDefined();
-    const toastEl = screen.getByText("FYI").closest("div[class*='glass-card']");
-    expect(toastEl?.className).toContain("border-l-[var(--accent-blue)]");
+    const toastEl = screen.getByRole("alert");
+    expect(toastEl.className).toContain("border-l-[var(--accent-blue)]");
   });
 
   it("auto-dismisses toast after 5 seconds", () => {

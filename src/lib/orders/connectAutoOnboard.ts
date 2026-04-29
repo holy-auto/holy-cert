@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { sendResendEmail } from "@/lib/email/resendSend";
 import { logger } from "@/lib/logger";
 
@@ -72,7 +72,9 @@ function buildOnboardingEmailHtml(params: {
  * job_order の payout_stripe_transfer_id を 'pending_onboarding' にセットする。
  */
 export async function ensureConnectAndNotify(toTenantId: string, orderId: string): Promise<void> {
-  const supabase = createAdminClient();
+  const supabase = createServiceRoleAdmin(
+    "orders/connectAutoOnboard: Stripe Connect オンボーディング案内 (job_order の to_tenant 跨ぎ)",
+  );
 
   const { data: shop } = await supabase
     .from("tenants")
@@ -106,10 +108,7 @@ export async function ensureConnectAndNotify(toTenantId: string, orderId: string
       },
     });
     accountId = account.id;
-    await supabase
-      .from("tenants")
-      .update({ stripe_connect_account_id: accountId })
-      .eq("id", toTenantId);
+    await supabase.from("tenants").update({ stripe_connect_account_id: accountId }).eq("id", toTenantId);
     logger.info("[connectAutoOnboard] express account created", { toTenantId, accountId });
   }
 
@@ -148,10 +147,7 @@ export async function ensureConnectAndNotify(toTenantId: string, orderId: string
   }
 
   // 送金待ちフラグをセット
-  await supabase
-    .from("job_orders")
-    .update({ payout_stripe_transfer_id: "pending_onboarding" })
-    .eq("id", orderId);
+  await supabase.from("job_orders").update({ payout_stripe_transfer_id: "pending_onboarding" }).eq("id", orderId);
 
   logger.info("[connectAutoOnboard] onboarding email sent", {
     toTenantId,

@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { renderInvoicePdf, type TenantForPdf } from "@/lib/pdfInvoice";
 import { sendResendEmail } from "@/lib/email/resendSend";
 import { logger } from "@/lib/logger";
@@ -80,7 +80,7 @@ function buildConsolidatedEmailHtml(params: {
  * @param targetDate 対象月の任意の日付（デフォルト：今日）
  */
 export async function runMonthlyInvoices(targetDate?: Date): Promise<{ sent: number; errors: number }> {
-  const supabase = createAdminClient();
+  const supabase = createServiceRoleAdmin("orders/monthlyInvoice: 月次合算請求 (全テナントの job_order を跨いで集計)");
   const now = targetDate ?? new Date();
 
   // 対象月（例: "2026年4月"）
@@ -155,7 +155,7 @@ export async function runMonthlyInvoices(targetDate?: Date): Promise<{ sent: num
       const invoiceNumber = `CINV-${dateStr}-${shortId}`;
 
       // 施工店情報（最初の受注テナントを代表として使用）
-      const tenant = (firstOrder.to_tenant as unknown) as TenantForPdf | null;
+      const tenant = firstOrder.to_tenant as unknown as TenantForPdf | null;
       if (!tenant) continue;
 
       // PDF 生成
@@ -245,7 +245,10 @@ export async function runMonthlyInvoices(targetDate?: Date): Promise<{ sent: num
           platform_fee_amount: null, // 個別ではなく合算で管理
           payout_amount: null,
         })
-        .in("id", tenantOrders.map((o) => o.id));
+        .in(
+          "id",
+          tenantOrders.map((o) => o.id),
+        );
 
       logger.info("[monthlyInvoice] sent", {
         fromTenantId,

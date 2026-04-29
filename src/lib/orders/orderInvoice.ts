@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { renderInvoicePdf, type TenantForPdf } from "@/lib/pdfInvoice";
 import { sendResendEmail } from "@/lib/email/resendSend";
 import { logger } from "@/lib/logger";
@@ -17,7 +17,16 @@ function buildInvoiceEmailHtml(params: {
   feeRatePct: number;
   dueDateStr: string;
 }): string {
-  const { invoiceNumber, orderTitle, requesterCompany, totalAmount, platformFeeAmount, payoutAmount, feeRatePct, dueDateStr } = params;
+  const {
+    invoiceNumber,
+    orderTitle,
+    requesterCompany,
+    totalAmount,
+    platformFeeAmount,
+    payoutAmount,
+    feeRatePct,
+    dueDateStr,
+  } = params;
   return `<!DOCTYPE html>
 <html lang="ja">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -79,7 +88,9 @@ function buildInvoiceEmailHtml(params: {
  * Called fire-and-forget when the order transitions to payment_pending.
  */
 export async function sendOrderInvoiceEmail(orderId: string): Promise<void> {
-  const supabase = createAdminClient();
+  const supabase = createServiceRoleAdmin(
+    "orders/orderInvoice: 個別 job_order の請求書発行 (from_tenant/to_tenant 跨ぎ)",
+  );
 
   const { data: order, error } = await supabase
     .from("job_orders")
@@ -119,7 +130,7 @@ export async function sendOrderInvoiceEmail(orderId: string): Promise<void> {
   dueDate.setDate(dueDate.getDate() + 30);
   const dueDateStr = dueDate.toLocaleDateString("ja-JP");
 
-  const tenant = (order.to_tenant as unknown) as TenantForPdf | null;
+  const tenant = order.to_tenant as unknown as TenantForPdf | null;
   if (!tenant) {
     logger.warn("[orderInvoice] to_tenant not found", { orderId });
     return;
@@ -160,11 +171,7 @@ export async function sendOrderInvoiceEmail(orderId: string): Promise<void> {
 
   let pdfBuffer: Buffer;
   try {
-    pdfBuffer = await renderInvoicePdf(
-      invoiceData,
-      tenant,
-      (order.requester_company as string | null) ?? null,
-    );
+    pdfBuffer = await renderInvoicePdf(invoiceData, tenant, (order.requester_company as string | null) ?? null);
   } catch (e) {
     logger.error("[orderInvoice] pdf generation failed", { orderId, error: String(e) });
     return;
