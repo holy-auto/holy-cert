@@ -25,7 +25,12 @@ export function verifyCronRequest(req: Request): {
   if (vercelSignature) {
     const url = new URL(req.url);
     const expected = crypto.createHmac("sha256", cronSecret).update(url.pathname).digest("hex");
-    if (vercelSignature === expected) {
+    // Use timingSafeEqual to prevent timing-based secret discovery.
+    const sigBuf = Buffer.from(vercelSignature, "utf8");
+    const expBuf = Buffer.from(expected, "utf8");
+    const valid =
+      sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf);
+    if (valid) {
       return { authorized: true };
     }
     // Signature present but invalid — reject immediately
@@ -34,7 +39,13 @@ export function verifyCronRequest(req: Request): {
 
   // 2. Fallback: Bearer token check (Vercel built-in + local dev)
   const authHeader = req.headers.get("authorization");
-  if (authHeader === `Bearer ${cronSecret}`) {
+  const expectedBearer = `Bearer ${cronSecret}`;
+  // Use timingSafeEqual to prevent timing-based secret discovery.
+  const headerBuf = Buffer.from(authHeader ?? "", "utf8");
+  const expectedBuf = Buffer.from(expectedBearer, "utf8");
+  const bearerValid =
+    headerBuf.length === expectedBuf.length && crypto.timingSafeEqual(headerBuf, expectedBuf);
+  if (bearerValid) {
     return { authorized: true };
   }
 

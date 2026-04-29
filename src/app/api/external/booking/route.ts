@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import crypto from "crypto";
 import { z } from "zod";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiOk, apiInternalError, apiValidationError, apiError } from "@/lib/api/response";
@@ -102,7 +103,15 @@ export async function POST(req: NextRequest) {
     // テナントにキーが設定されていない場合は CRON_SECRET へフォールバック（後方互換）
     const cronSecret = process.env.CRON_SECRET;
     const expectedKey = tenant.external_api_key ?? cronSecret;
-    if (!expectedKey || apiKey !== expectedKey) {
+    // Use timingSafeEqual to prevent timing-based API key enumeration.
+    const apiKeyValid =
+      !!expectedKey &&
+      (() => {
+        const a = Buffer.from(apiKey, "utf8");
+        const b = Buffer.from(expectedKey, "utf8");
+        return a.length === b.length && crypto.timingSafeEqual(a, b);
+      })();
+    if (!apiKeyValid) {
       return apiError({ code: "unauthorized", message: "Invalid API key", status: 401 });
     }
 
