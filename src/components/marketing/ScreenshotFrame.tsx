@@ -1,6 +1,6 @@
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
-import Image from "next/image";
+import { ScreenshotLightboxImage } from "./ScreenshotLightboxImage";
 
 type ScreenshotFrameProps = {
   /**
@@ -27,11 +27,30 @@ type ScreenshotFrameProps = {
   priority?: boolean;
 };
 
+function publicFilePath(publicPath: string): string {
+  return join(process.cwd(), "public", publicPath.replace(/^\//, ""));
+}
+
 function publicFileExists(publicPath: string): boolean {
   try {
-    return existsSync(join(process.cwd(), "public", publicPath.replace(/^\//, "")));
+    return existsSync(publicFilePath(publicPath));
   } catch {
     return false;
+  }
+}
+
+/**
+ * PNG ヘッダから画像の物理サイズを読む。lightbox 表示時に CLS を抑え、
+ * 縦横比を正しく保つために使用。失敗したら null を返してデフォルトに任せる。
+ */
+function readPngDimensions(publicPath: string): { width: number; height: number } | null {
+  try {
+    const buf = readFileSync(publicFilePath(publicPath)).subarray(0, 24);
+    // PNG signature 8 bytes + IHDR length (4) + "IHDR" (4) + width (4) + height (4)
+    if (buf[0] !== 0x89 || buf[1] !== 0x50 || buf[2] !== 0x4e || buf[3] !== 0x47) return null;
+    return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+  } catch {
+    return null;
   }
 }
 
@@ -48,6 +67,7 @@ export function ScreenshotFrame({
   priority = false,
 }: ScreenshotFrameProps) {
   const showImage = src ? publicFileExists(src) : false;
+  const dimensions = src && showImage ? readPngDimensions(src) : null;
 
   return (
     <div
@@ -71,14 +91,15 @@ export function ScreenshotFrame({
         )}
         <div className={`relative ${aspect} bg-[#060a12]`}>
           {showImage && src ? (
-            <Image
+            <ScreenshotLightboxImage
               src={src}
               alt={alt}
-              fill
+              url={url}
               sizes={sizes}
-              className="object-cover"
-              style={{ objectPosition }}
+              objectPosition={objectPosition}
               priority={priority}
+              intrinsicWidth={dimensions?.width}
+              intrinsicHeight={dimensions?.height}
             />
           ) : (
             <div className="absolute inset-0">{children}</div>
