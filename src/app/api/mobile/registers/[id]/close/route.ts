@@ -1,15 +1,9 @@
-import { parseJsonSafe } from "@/lib/api/safeJson";
 import { NextRequest } from "next/server";
 import { resolveMobileCaller } from "@/lib/auth/mobileAuth";
 import { hasPermission } from "@/lib/auth/permissions";
-import {
-  apiOk,
-  apiUnauthorized,
-  apiForbidden,
-  apiNotFound,
-  apiValidationError,
-  apiInternalError,
-} from "@/lib/api/response";
+import { apiOk, apiUnauthorized, apiForbidden, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { mobileRegisterCloseSchema } from "@/lib/validations/mobile";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +23,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id } = await params;
 
-    const body = await parseJsonSafe(request);
-    if (body?.closing_cash == null || typeof body.closing_cash !== "number") {
-      return apiValidationError("closing_cash (number) is required");
-    }
+    const parsed = await parseJsonBody(request, mobileRegisterCloseSchema);
+    if (!parsed.ok) return parsed.response;
+    const { closing_cash, note } = parsed.data;
 
     // Find the open session for this register
     const { data: session } = await caller.supabase
@@ -51,8 +44,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .from("register_sessions")
       .update({
         status: "closed",
-        closing_cash: body.closing_cash,
-        note: body.note ?? null,
+        closing_cash,
+        note: note ?? null,
         closed_by: caller.userId,
         closed_at: new Date().toISOString(),
       })

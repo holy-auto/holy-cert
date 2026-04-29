@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
-import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentMemberInviteSchema } from "@/lib/validations/agent-portal";
 
 export const dynamic = "force-dynamic";
 
@@ -83,26 +85,16 @@ export async function POST(request: NextRequest) {
       return apiForbidden("メンバーを招待する権限がありません。");
     }
 
-    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
-    const email = ((body?.email as string) ?? "").trim().toLowerCase();
-    const role = ((body?.role as string) ?? "").trim() || "viewer";
-    const displayName = ((body?.display_name as string) ?? "").trim() || null;
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return apiValidationError("有効なメールアドレスを入力してください。");
-    }
-
-    const validRoles = ["admin", "staff", "viewer"];
-    if (!validRoles.includes(role)) {
-      return apiValidationError("無効なロールです。admin, staff, viewer のいずれかを指定してください。");
-    }
+    const parsed = await parseJsonBody(request, agentMemberInviteSchema);
+    if (!parsed.ok) return parsed.response;
+    const { email, role, display_name } = parsed.data;
 
     // Upsert the agent user via RPC
     const { data: member, error: upsertErr } = await supabase.rpc("upsert_agent_user", {
       p_agent_id: agentId,
       p_email: email,
       p_role: role,
-      p_display_name: displayName,
+      p_display_name: display_name ?? null,
     });
 
     if (upsertErr) {

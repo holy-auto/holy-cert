@@ -1,13 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import {
-  apiJson,
-  apiUnauthorized,
-  apiForbidden,
-  apiValidationError,
-  apiNotFound,
-  apiInternalError,
-} from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentSettingsUpdateSchema } from "@/lib/validations/agent-portal";
 
 export const dynamic = "force-dynamic";
 
@@ -89,46 +84,9 @@ export async function PUT(request: NextRequest) {
       return apiForbidden("設定を更新する権限がありません。");
     }
 
-    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
-
-    // Build the update object from allowed fields
-    const allowedFields = [
-      "name",
-      "contact_name",
-      "contact_email",
-      "contact_phone",
-      "company_name",
-      "company_address",
-      "website_url",
-      "logo_url",
-      "commission_type",
-      "commission_rate",
-      "bank_name",
-      "bank_branch",
-      "bank_account_type",
-      "bank_account_number",
-      "bank_account_holder",
-      "notes",
-    ];
-
-    const updates: Record<string, unknown> = {};
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        const value = body[field];
-        // Trim string values, allow null
-        if (typeof value === "string") {
-          updates[field] = value.trim() || null;
-        } else {
-          updates[field] = value;
-        }
-      }
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return apiValidationError("更新するフィールドがありません。");
-    }
-
-    updates.updated_at = new Date().toISOString();
+    const parsed = await parseJsonBody(request, agentSettingsUpdateSchema);
+    if (!parsed.ok) return parsed.response;
+    const updates: Record<string, unknown> = { ...parsed.data, updated_at: new Date().toISOString() };
 
     const { data: updated, error: updateErr } = await supabase
       .from("agents")

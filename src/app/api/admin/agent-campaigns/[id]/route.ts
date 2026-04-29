@@ -1,9 +1,11 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentCampaignUpdateSchema } from "@/lib/validations/agent-content";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -15,24 +17,10 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     if (!caller) return apiUnauthorized();
     if (!isPlatformAdmin(caller)) return apiForbidden();
 
-    const body = await request.json();
+    const parsed = await parseJsonBody(request, agentCampaignUpdateSchema);
+    if (!parsed.ok) return parsed.response;
+    const updates = parsed.data;
     const { admin } = createTenantScopedAdmin(caller.tenantId);
-    const allowed = [
-      "title",
-      "description",
-      "campaign_type",
-      "bonus_rate",
-      "bonus_fixed",
-      "start_date",
-      "end_date",
-      "is_active",
-      "banner_text",
-      "target_agents",
-    ];
-    const updates: Record<string, unknown> = {};
-    for (const key of allowed) {
-      if (key in body) updates[key] = body[key];
-    }
 
     const { data, error } = await admin
       .from("agent_campaigns")

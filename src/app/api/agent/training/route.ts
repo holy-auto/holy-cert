@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiJson, apiInternalError, apiUnauthorized, apiForbidden } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentTrainingProgressSchema } from "@/lib/validations/agent-portal";
 
 export const dynamic = "force-dynamic";
 
@@ -67,9 +69,10 @@ export async function PUT(request: NextRequest) {
     const agent = Array.isArray(agentData) ? agentData[0] : agentData;
     if (!agent?.agent_id) return apiForbidden("agent_not_found");
 
-    const body = await request.json().catch(() => ({}));
-    const courseId = body.course_id as string;
-    const progressVal = Math.min(100, Math.max(0, body.progress ?? 0));
+    const parsed = await parseJsonBody(request, agentTrainingProgressSchema);
+    if (!parsed.ok) return parsed.response;
+    const { course_id: courseId, progress: progressIn = 0 } = parsed.data;
+    const progressVal = Math.min(100, Math.max(0, progressIn));
     const status = progressVal >= 100 ? "completed" : progressVal > 0 ? "in_progress" : "not_started";
 
     const now = new Date().toISOString();

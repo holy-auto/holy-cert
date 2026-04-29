@@ -1,8 +1,10 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentInvoiceCreateSchema } from "@/lib/validations/agent-content";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +42,9 @@ export async function POST(request: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const body = await request.json();
+    const parsed = await parseJsonBody(request, agentInvoiceCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const { admin } = createTenantScopedAdmin(caller.tenantId);
 
     const subtotal = body.subtotal ?? 0;
@@ -59,7 +63,7 @@ export async function POST(request: NextRequest) {
         tax_amount: taxAmount,
         total,
         status: body.status ?? "draft",
-        notes: body.notes || null,
+        notes: body.notes ?? null,
       })
       .select(
         "id, agent_id, period_start, period_end, subtotal, tax_rate, tax_amount, total, status, notes, issued_at, paid_at, created_at, updated_at",
@@ -69,14 +73,13 @@ export async function POST(request: NextRequest) {
     if (invErr) return apiInternalError(invErr, "agent-invoices POST");
 
     // Insert line items if provided
-    if (body.lines && Array.isArray(body.lines) && body.lines.length > 0) {
-      const lines = body.lines.map((line: any) => ({
+    if (body.lines && body.lines.length > 0) {
+      const lines = body.lines.map((line) => ({
         invoice_id: invoice.id,
         description: line.description,
         quantity: line.quantity ?? 1,
         unit_price: line.unit_price ?? 0,
         amount: line.amount ?? (line.quantity ?? 1) * (line.unit_price ?? 0),
-        referral_id: line.referral_id || null,
       }));
       await admin.from("agent_invoice_lines").insert(lines);
     }

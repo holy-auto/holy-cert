@@ -1,4 +1,3 @@
-import { parseJsonSafe } from "@/lib/api/safeJson";
 import { NextRequest } from "next/server";
 import { resolveMobileCaller } from "@/lib/auth/mobileAuth";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -10,6 +9,8 @@ import {
   apiValidationError,
   apiInternalError,
 } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { mobileProgressEventSchema } from "@/lib/validations/mobile";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +23,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { reservationId } = await params;
 
-    const body = await parseJsonSafe(request);
-    if (!body?.progress_label) {
-      return apiValidationError("progress_label is required");
-    }
+    const parsed = await parseJsonBody(request, mobileProgressEventSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     // Look up reservation to get vehicle_id
     const { data: reservation } = await caller.supabase

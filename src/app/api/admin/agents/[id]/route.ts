@@ -1,16 +1,11 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
-import {
-  apiJson,
-  apiUnauthorized,
-  apiForbidden,
-  apiInternalError,
-  apiNotFound,
-  apiValidationError,
-} from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiNotFound } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { adminAgentUpdateSchema } from "@/lib/validations/agent-content";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -75,34 +70,10 @@ export async function PUT(request: NextRequest, ctx: RouteContext) {
     if (!caller) return apiUnauthorized();
     if (!isPlatformAdmin(caller)) return apiForbidden();
 
-    const body = await request.json();
+    const parsed = await parseJsonBody(request, adminAgentUpdateSchema);
+    if (!parsed.ok) return parsed.response;
+    const updates = parsed.data;
     const { admin } = createTenantScopedAdmin(caller.tenantId);
-
-    // Whitelist of updatable fields
-    const updates: Record<string, unknown> = {};
-    const allowedFields = [
-      "name",
-      "status",
-      "contact_name",
-      "contact_email",
-      "contact_phone",
-      "address",
-      "default_commission_rate",
-      "commission_type",
-      "default_commission_fixed",
-      "line_official_id",
-      "notes",
-    ];
-
-    for (const key of allowedFields) {
-      if (key in body) {
-        updates[key] = body[key];
-      }
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return apiValidationError("no fields to update");
-    }
 
     const { data, error } = await admin
       .from("agents")

@@ -2,8 +2,10 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
-import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
 import { parsePagination } from "@/lib/api/pagination";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { adminAgentCreateSchema } from "@/lib/validations/agent-content";
 
 export async function GET(request: NextRequest) {
   try {
@@ -99,22 +101,19 @@ export async function POST(request: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const body = await request.json();
-    const { name, contact_name, contact_email, contact_phone, address } = body;
-
-    if (!name) {
-      return apiValidationError("name is required");
-    }
+    const parsed = await parseJsonBody(request, adminAgentCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const { name, contact_name, contact_email, contact_phone, address } = parsed.data;
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
     const { data, error } = await admin
       .from("agents")
       .insert({
         name,
-        contact_name: contact_name || null,
-        contact_email: contact_email || null,
-        contact_phone: contact_phone || null,
-        address: address || null,
+        contact_name: contact_name ?? null,
+        contact_email: contact_email ?? null,
+        contact_phone: contact_phone ?? null,
+        address: address ?? null,
       })
       .select(
         "id, name, contact_name, contact_email, contact_phone, address, status, commission_type, default_commission_rate, default_commission_fixed, created_at, updated_at",

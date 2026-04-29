@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { ReferralStatus } from "@/types/agent";
 import {
   apiJson,
   apiUnauthorized,
@@ -9,6 +8,8 @@ import {
   apiNotFound,
   apiInternalError,
 } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentReferralUpdateSchema } from "@/lib/validations/agent-portal";
 
 export const dynamic = "force-dynamic";
 
@@ -98,27 +99,19 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return apiNotFound("not_found");
     }
 
-    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
+    const parsed = await parseJsonBody(request, agentReferralUpdateSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     const updates: Record<string, unknown> = {};
-
-    // Optional field updates
-    if (body.contact_name !== undefined) {
-      updates.contact_name = ((body.contact_name as string) ?? "").trim() || null;
-    }
-    if (body.contact_email !== undefined) {
-      updates.contact_email = ((body.contact_email as string) ?? "").trim() || null;
-    }
-    if (body.contact_phone !== undefined) {
-      updates.contact_phone = ((body.contact_phone as string) ?? "").trim() || null;
-    }
-    if (body.notes !== undefined) {
-      updates.notes = ((body.notes as string) ?? "").trim() || null;
-    }
+    if (body.contact_name !== undefined) updates.contact_name = body.contact_name || null;
+    if (body.contact_email !== undefined) updates.contact_email = body.contact_email || null;
+    if (body.contact_phone !== undefined) updates.contact_phone = body.contact_phone || null;
+    if (body.notes !== undefined) updates.notes = body.notes || null;
 
     // Status transition validation
     if (body.status !== undefined) {
-      const newStatus = (body.status as string).trim() as ReferralStatus;
+      const newStatus = body.status;
       const currentStatus = existing.status as string;
       const allowed = VALID_TRANSITIONS[currentStatus] ?? [];
 
@@ -134,10 +127,6 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       if (newStatus === "contracted" && !existing.contracted_at) {
         updates.contracted_at = new Date().toISOString();
       }
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return apiValidationError("更新するフィールドがありません。");
     }
 
     updates.updated_at = new Date().toISOString();

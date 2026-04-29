@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentNotificationsMarkReadSchema } from "@/lib/validations/agent-portal";
 
 export const dynamic = "force-dynamic";
 
@@ -43,8 +45,9 @@ export async function PUT(request: NextRequest) {
     const agent = Array.isArray(agentData) ? agentData[0] : agentData;
     if (!agent?.agent_id) return apiForbidden("agent_not_found");
 
-    const body = await request.json().catch(() => ({}));
-    const ids = body.ids as string[] | undefined;
+    const parsed = await parseJsonBody(request, agentNotificationsMarkReadSchema);
+    if (!parsed.ok) return parsed.response;
+    const ids = parsed.data.ids;
 
     let query = supabase.from("agent_notifications").update({ is_read: true }).eq("agent_id", agent.agent_id);
 

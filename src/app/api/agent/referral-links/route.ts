@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentReferralLinkCreateSchema } from "@/lib/validations/agent-portal";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +38,9 @@ export async function POST(request: NextRequest) {
     const agent = Array.isArray(agentData) ? agentData[0] : agentData;
     if (!agent?.agent_id) return apiForbidden("agent_not_found");
 
-    const body = await request.json().catch(() => ({}));
-    const label = ((body.label as string) ?? "").trim();
+    const parsed = await parseJsonBody(request, agentReferralLinkCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const { label } = parsed.data;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://ledra.co.jp";
     const code = `AL-${agent.agent_id.substring(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
     const url = `${baseUrl}/ref/${code}`;
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
       .insert({
         agent_id: agent.agent_id,
         code,
-        label: label || null,
+        label,
         url,
         created_by: auth.user.id,
       })

@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
-import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentReferralCreateSchema } from "@/lib/validations/agent-portal";
 
 export const dynamic = "force-dynamic";
 
@@ -96,19 +98,17 @@ export async function POST(request: NextRequest) {
       return apiForbidden("紹介を作成する権限がありません。");
     }
 
-    const body = await request.json().catch(() => ({}) as Record<string, unknown>);
-    const shopName = ((body?.shop_name as string) ?? "").trim();
-    if (!shopName) {
-      return apiValidationError("shop_name は必須です。");
-    }
+    const parsed = await parseJsonBody(request, agentReferralCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const { shop_name, contact_name, contact_email, contact_phone, notes } = parsed.data;
 
     const row = {
       agent_id: agentId,
-      shop_name: shopName,
-      contact_name: ((body?.contact_name as string) ?? "").trim() || null,
-      contact_email: ((body?.contact_email as string) ?? "").trim() || null,
-      contact_phone: ((body?.contact_phone as string) ?? "").trim() || null,
-      notes: ((body?.notes as string) ?? "").trim() || null,
+      shop_name,
+      contact_name: contact_name ?? null,
+      contact_email: contact_email ?? null,
+      contact_phone: contact_phone ?? null,
+      notes: notes ?? null,
     };
 
     const { data: created, error: insertErr } = await supabase

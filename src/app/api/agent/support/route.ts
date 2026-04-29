@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentSupportTicketCreateSchema } from "@/lib/validations/agent-portal";
 import { notifySlack } from "@/lib/slack";
 
 export const dynamic = "force-dynamic";
@@ -37,15 +39,9 @@ export async function POST(request: NextRequest) {
     const agent = Array.isArray(agentData) ? agentData[0] : agentData;
     if (!agent?.agent_id) return apiForbidden("agent_not_found");
 
-    const body = await request.json().catch(() => ({}));
-    const subject = ((body.subject as string) ?? "").trim();
-    const category = body.category ?? "general";
-    const priority = body.priority ?? "normal";
-    const message = ((body.message as string) ?? "").trim();
-
-    if (!subject || !message) {
-      return apiValidationError("subject and message are required");
-    }
+    const parsed = await parseJsonBody(request, agentSupportTicketCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const { subject, category = "general", priority = "normal", message } = parsed.data;
 
     // Create ticket
     const { data: ticket, error: ticketErr } = await supabase

@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { apiJson, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentSupportMessageCreateSchema } from "@/lib/validations/agent-portal";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -30,9 +32,9 @@ export async function POST(request: NextRequest, ctx: RouteContext) {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth?.user) return apiUnauthorized();
 
-    const body = await request.json().catch(() => ({}));
-    const text = ((body.body as string) ?? "").trim();
-    if (!text) return apiValidationError("body is required");
+    const parsed = await parseJsonBody(request, agentSupportMessageCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const { body: text } = parsed.data;
 
     const { data: msg, error } = await supabase
       .from("agent_ticket_messages")

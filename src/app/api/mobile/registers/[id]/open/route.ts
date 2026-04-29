@@ -1,8 +1,9 @@
-import { parseJsonSafe } from "@/lib/api/safeJson";
 import { NextRequest } from "next/server";
 import { resolveMobileCaller } from "@/lib/auth/mobileAuth";
 import { hasPermission } from "@/lib/auth/permissions";
-import { apiOk, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiOk, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { mobileRegisterOpenSchema } from "@/lib/validations/mobile";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id } = await params;
 
-    const body = await parseJsonSafe(request);
-    if (body?.opening_cash == null || typeof body.opening_cash !== "number") {
-      return apiValidationError("opening_cash (number) is required");
-    }
+    const parsed = await parseJsonBody(request, mobileRegisterOpenSchema);
+    if (!parsed.ok) return parsed.response;
+    const { opening_cash } = parsed.data;
 
     const { data, error } = await caller.supabase
       .from("register_sessions")
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         tenant_id: caller.tenantId,
         register_id: id,
         status: "open",
-        opening_cash: body.opening_cash,
+        opening_cash,
         opened_by: caller.userId,
         opened_at: new Date().toISOString(),
       })

@@ -1,8 +1,9 @@
-import { parseJsonSafe } from "@/lib/api/safeJson";
 import { NextRequest } from "next/server";
 import { resolveMobileCaller } from "@/lib/auth/mobileAuth";
 import { hasPermission } from "@/lib/auth/permissions";
-import { apiOk, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiOk, apiUnauthorized, apiForbidden, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { mobileReservationCreateSchema } from "@/lib/validations/mobile";
 
 export const dynamic = "force-dynamic";
 
@@ -52,12 +53,10 @@ export async function POST(request: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!hasPermission(caller.role, "reservations:create")) return apiForbidden();
 
-    const body = await parseJsonSafe(request);
-    if (!body) return apiValidationError("Invalid request body");
-
+    const parsed = await parseJsonBody(request, mobileReservationCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const { scheduled_date, customer_id } = body;
-    if (!scheduled_date) return apiValidationError("scheduled_date is required");
-    if (!customer_id) return apiValidationError("customer_id is required");
 
     const storeId = body.store_id ?? request.nextUrl.searchParams.get("store_id") ?? undefined;
 

@@ -1,8 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiNotFound, apiError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+
+const nfcRetireSchema = z.object({
+  id: z.string().uuid("NFC タグ ID の形式が不正です。"),
+});
 
 /**
  * PATCH /api/admin/nfc — 論理削除（status → retired）
@@ -12,21 +18,14 @@ export async function PATCH(request: NextRequest) {
   const caller = await resolveCallerWithRole(supabase);
   if (!caller) return apiUnauthorized();
 
-  let body: { id?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return apiValidationError("Invalid JSON");
-  }
-
-  if (!body.id) {
-    return apiValidationError("タグIDが必要です。");
-  }
+  const parsed = await parseJsonBody(request, nfcRetireSchema);
+  if (!parsed.ok) return parsed.response;
+  const { id } = parsed.data;
 
   const { data: tag, error: findErr } = await supabase
     .from("nfc_tags")
     .select("id, status")
-    .eq("id", body.id)
+    .eq("id", id)
     .eq("tenant_id", caller.tenantId)
     .maybeSingle();
 
@@ -41,7 +40,7 @@ export async function PATCH(request: NextRequest) {
   const { error: updateErr } = await supabase
     .from("nfc_tags")
     .update({ status: "retired" })
-    .eq("id", body.id)
+    .eq("id", id)
     .eq("tenant_id", caller.tenantId);
 
   if (updateErr) {

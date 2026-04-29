@@ -1,7 +1,8 @@
-import { parseJsonSafe } from "@/lib/api/safeJson";
 import { NextRequest } from "next/server";
 import { resolveMobileCaller } from "@/lib/auth/mobileAuth";
-import { apiOk, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { apiOk, apiUnauthorized, apiInternalError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { mobilePushTokenSchema, mobilePushTokenDeleteSchema } from "@/lib/validations/mobile";
 
 export const dynamic = "force-dynamic";
 
@@ -11,13 +12,9 @@ export async function POST(request: NextRequest) {
     const caller = await resolveMobileCaller(request);
     if (!caller) return apiUnauthorized();
 
-    const body = await parseJsonSafe(request);
-    if (!body?.token || typeof body.token !== "string") {
-      return apiValidationError("token is required");
-    }
-    if (!body.platform || !["ios", "android"].includes(body.platform)) {
-      return apiValidationError('platform must be "ios" or "android"');
-    }
+    const parsed = await parseJsonBody(request, mobilePushTokenSchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     const { data, error } = await caller.supabase
       .from("push_tokens")
@@ -48,16 +45,15 @@ export async function DELETE(request: NextRequest) {
     const caller = await resolveMobileCaller(request);
     if (!caller) return apiUnauthorized();
 
-    const body = await parseJsonSafe(request);
-    if (!body?.token || typeof body.token !== "string") {
-      return apiValidationError("token is required");
-    }
+    const parsed = await parseJsonBody(request, mobilePushTokenDeleteSchema);
+    if (!parsed.ok) return parsed.response;
+    const { token } = parsed.data;
 
     const { error } = await caller.supabase
       .from("push_tokens")
       .delete()
       .eq("user_id", caller.userId)
-      .eq("token", body.token);
+      .eq("token", token);
 
     if (error) return apiInternalError(error, "push.unregister");
 

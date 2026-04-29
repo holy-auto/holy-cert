@@ -1,9 +1,11 @@
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { randomBytes } from "crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiForbidden, apiInternalError, apiValidationError } from "@/lib/api/response";
+import { parseJsonBody } from "@/lib/api/parseBody";
+import { agentContractCreateSchema } from "@/lib/validations/agent-content";
 import { notifyAgentSignRequest } from "@/lib/agent/email";
 
 export const dynamic = "force-dynamic";
@@ -65,14 +67,9 @@ export async function POST(request: NextRequest) {
     if (!caller) return apiUnauthorized();
     if (!requireMinRole(caller, "admin")) return apiForbidden();
 
-    const body = await request.json();
-    const { agent_id, template_type, title, signer_email, signer_name } = body;
-
-    if (!agent_id) return apiValidationError("agent_id is required");
-    if (!template_type) return apiValidationError("template_type is required");
-    if (!title?.trim()) return apiValidationError("title is required");
-    if (!signer_email?.trim()) return apiValidationError("signer_email is required");
-    if (!signer_name?.trim()) return apiValidationError("signer_name is required");
+    const parsed = await parseJsonBody(request, agentContractCreateSchema);
+    if (!parsed.ok) return parsed.response;
+    const { agent_id, template_type, title, signer_email, signer_name } = parsed.data;
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
 
@@ -89,10 +86,10 @@ export async function POST(request: NextRequest) {
       .insert({
         agent_id,
         template_type,
-        title: title.trim(),
+        title,
         status: "sent",
-        signer_email: signer_email.trim(),
-        signer_name: signer_name.trim(),
+        signer_email,
+        signer_name,
         sent_at: now,
         sign_token: signToken,
         sign_expires_at: signExpiresAt,
@@ -108,9 +105,9 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
     const signUrl = `${baseUrl}/agent-sign/${signToken}`;
 
-    await notifyAgentSignRequest(signer_email.trim(), {
-      signerName: signer_name.trim(),
-      title: title.trim(),
+    await notifyAgentSignRequest(signer_email, {
+      signerName: signer_name,
+      title,
       signUrl,
       expiresAt: signExpiresAt,
       idempotencyKey: `agent-contract-send:${record.id}`,
