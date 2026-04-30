@@ -26,6 +26,12 @@ const AiQualityPanel = dynamic(() => import("./AiQualityPanel"), {
   ssr: false,
   loading: () => null,
 });
+// 音声メモ → ドラフト整形。Web Speech API はクライアント側でしか動かないので
+// SSR を無効化し、必要になったときにだけロードする。
+const VoiceMemoPanel = dynamic(() => import("./VoiceMemoPanel"), {
+  ssr: false,
+  loading: () => null,
+});
 
 type Vehicle = {
   id: string;
@@ -543,6 +549,9 @@ export default function CertNewFormWrapper({
           {canAiDraft && (
             <AiDraftPanel vehicleId={selectedVehicleId} templateCategory={serviceType} onApply={handleAiDraftApply} />
           )}
+
+          {/* 音声メモパネル（Standard以上）— マイクで喋った内容を AI が整形してフォームへ */}
+          {canAiDraft && <VoiceMemoPanel serviceType={serviceType} onApply={handleAiDraftApply} />}
 
           {/* AI下書き適用通知 */}
           {draftApplied && (
