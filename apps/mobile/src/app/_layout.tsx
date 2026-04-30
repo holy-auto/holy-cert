@@ -1,14 +1,15 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Stack, router } from "expo-router";
 import { PaperProvider } from "react-native-paper";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import { StripeTerminalProvider } from "@stripe/stripe-terminal-react-native";
 
 import { theme } from "@/constants/theme";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthInit } from "@/hooks/useAuthInit";
-import { bindUnauthorizedHandler } from "@/lib/api";
+import { bindUnauthorizedHandler, mobileApi } from "@/lib/api";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { initSentry, setSentryUser } from "@/lib/sentry";
 import { useAuthStore } from "@/stores/authStore";
@@ -42,45 +43,57 @@ export default function RootLayout() {
     }
   }, [isReady]);
 
+  // Stripe Terminal の connection token 取得
+  // SDK 0.0.1-beta.29 では initialize() 経由ではなく Provider 経由で渡す
+  const fetchTokenProvider = useCallback(async () => {
+    const res = await mobileApi<{ secret: string }>(
+      "/pos/terminal/connection-token",
+      { method: "GET" }
+    );
+    return res.secret;
+  }, []);
+
   if (!isReady) return null;
 
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <PaperProvider theme={theme}>
-          <ToastProvider>
-            <StatusBar style="dark" />
-            <OfflineBanner />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen
-                name="customers"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="vehicles"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="certificates"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="nfc" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="settings"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="reservations"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="work" options={{ headerShown: false }} />
-              <Stack.Screen name="pos" options={{ headerShown: false }} />
-              <Stack.Screen name="dashboard" />
-            </Stack>
-          </ToastProvider>
-        </PaperProvider>
+        <StripeTerminalProvider tokenProvider={fetchTokenProvider}>
+          <PaperProvider theme={theme}>
+            <ToastProvider>
+              <StatusBar style="dark" />
+              <OfflineBanner />
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="customers"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="vehicles"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="certificates"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="nfc" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="settings"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="reservations"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="work" options={{ headerShown: false }} />
+                <Stack.Screen name="pos" options={{ headerShown: false }} />
+                <Stack.Screen name="dashboard" />
+              </Stack>
+            </ToastProvider>
+          </PaperProvider>
+        </StripeTerminalProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
