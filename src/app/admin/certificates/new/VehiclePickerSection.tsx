@@ -389,6 +389,10 @@ export default function VehiclePickerSection({
       <ShakenshoScanner
         open={scannerOpen}
         onResult={handleQrResult}
+        onImageCapture={async (blob) => {
+          setScannerOpen(false);
+          await handleImageUpload(new File([blob], "shakken.jpg", { type: "image/jpeg" }));
+        }}
         onClose={() => setScannerOpen(false)}
       />
 

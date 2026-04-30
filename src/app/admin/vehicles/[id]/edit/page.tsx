@@ -164,6 +164,24 @@ export default function AdminVehicleEditPage() {
     }
   }
 
+  async function onScannerCapture(blob: Blob) {
+    setScannerOpen(false);
+    setOcrBusy(true);
+    setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", new File([blob], "shakken.jpg", { type: "image/jpeg" }));
+      const res = await fetch("/api/vehicles/parse-shakken", { method: "POST", body: fd });
+      const j = await res.json();
+      if (!res.ok) { setErr(j?.message || "車検証の読み取りに失敗しました。"); return; }
+      applyExtracted(j.extracted);
+    } catch (e: any) {
+      setErr(String(e?.message || e));
+    } finally {
+      setOcrBusy(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6">
@@ -219,6 +237,7 @@ export default function AdminVehicleEditPage() {
         <ShakenshoScanner
           open={scannerOpen}
           onResult={onScanResult}
+          onImageCapture={onScannerCapture}
           onClose={() => setScannerOpen(false)}
         />
 

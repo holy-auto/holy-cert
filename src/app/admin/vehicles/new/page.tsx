@@ -199,6 +199,24 @@ export default function AdminVehicleNewPage() {
     }
   }
 
+  async function onScannerCapture(blob: Blob) {
+    setScannerOpen(false);
+    setOcrBusy(true);
+    setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", new File([blob], "shakken.jpg", { type: "image/jpeg" }));
+      const res = await fetch("/api/vehicles/parse-shakken", { method: "POST", body: fd });
+      const j = await res.json();
+      if (!res.ok) { setErr(j?.message || "車検証の読み取りに失敗しました。"); return; }
+      applyExtracted(j.extracted);
+    } catch (e: unknown) {
+      setErr(String((e as Error)?.message ?? e));
+    } finally {
+      setOcrBusy(false);
+    }
+  }
+
   const inputCls = "input-field w-full";
 
   return (
@@ -233,7 +251,7 @@ export default function AdminVehicleNewPage() {
           </div>
         </div>
 
-        <ShakenshoScanner open={scannerOpen} onResult={onScanResult} onClose={() => setScannerOpen(false)} />
+        <ShakenshoScanner open={scannerOpen} onResult={onScanResult} onImageCapture={onScannerCapture} onClose={() => setScannerOpen(false)} />
 
         <form onSubmit={onSubmit} className="space-y-6 glass-card p-6">
           <div className="grid gap-4 md:grid-cols-2">

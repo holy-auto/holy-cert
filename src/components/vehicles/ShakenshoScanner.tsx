@@ -1,31 +1,40 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 
+/** QRが読めない場合にOCRフォールバックを提示するまでの秒数 */
+const OCR_HINT_AFTER_MS = 8000;
+
 interface Props {
   open: boolean;
-  /** スキャン成功時に、デコード済みの生テキストを親へ渡す。 */
+  /** QRスキャン成功時に、デコード済みの生テキストを親へ渡す。 */
   onResult: (rawText: string) => void;
+  /**
+   * QR検出が一定時間できなかった場合に「写真で読み取る」ボタンから呼ばれる。
+   * 現在の映像フレームを JPEG Blob として渡すので、親は
+   * `/api/vehicles/parse-shakken` に POST して構造化データに変換する。
+   */
+  onImageCapture?: (blob: Blob) => void;
   onClose: () => void;
 }
 
 /**
  * 車検証 二次元コード 用カメラスキャナ モーダル。
  *
- * `@zxing/browser` の `BrowserMultiFormatReader` でライブビデオから
- * QR コード（必要に応じて DataMatrix）を継続的に読み取り、
- * 検出した最初の 1 件で `onResult` を呼ぶ。
- *
- * 呼び出し側は得られた生テキストを `/api/vehicles/parse-shakken-qr` に
- * POST して構造化データに変換する。
+ * 1. `@zxing/browser` でライブ映像から QR を継続検出し、成功時に `onResult` を呼ぶ。
+ * 2. OCR_HINT_AFTER_MS 秒間 QR が読めない場合は「写真で読み取る」ボタンを表示し、
+ *    タップ時に現フレームを JPEG Blob にして `onImageCapture` を呼ぶ。
+ *    これにより、紙車検証や QR が小さい場合も Claude Vision OCR にフォールバックできる。
  */
-export default function ShakenshoScanner({ open, onResult, onClose }: Props) {
+export default function ShakenshoScanner({ open, onResult, onImageCapture, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const calledRef = useRef(false);
+  const controlsRef = useRef<IScannerControls | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showOcrHint, setShowOcrHint] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -33,35 +42,30 @@ export default function ShakenshoScanner({ open, onResult, onClose }: Props) {
     calledRef.current = false;
     setReady(false);
     setError(null);
+    setShowOcrHint(false);
 
     const hints = new Map<DecodeHintType, unknown>();
     hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX]);
     hints.set(DecodeHintType.TRY_HARDER, true);
 
     const reader = new BrowserMultiFormatReader(hints);
-
     const videoEl = videoRef.current;
     if (!videoEl) return;
 
     let cancelled = false;
-    let controls: IScannerControls | null = null;
 
     reader
       .decodeFromVideoDevice(undefined, videoEl, (result) => {
         if (cancelled || calledRef.current) return;
         if (result) {
           calledRef.current = true;
-          // stop the stream immediately to free the camera
-          controls?.stop();
+          controlsRef.current?.stop();
           onResult(result.getText());
         }
       })
       .then((c) => {
-        if (cancelled) {
-          c.stop();
-          return;
-        }
-        controls = c;
+        if (cancelled) { c.stop(); return; }
+        controlsRef.current = c;
         setReady(true);
       })
       .catch((e: Error & { name?: string }) => {
@@ -77,12 +81,36 @@ export default function ShakenshoScanner({ open, onResult, onClose }: Props) {
         }
       });
 
+    // QR が一定時間読めなければ OCR ヒントを表示
+    const hintTimer = setTimeout(() => {
+      if (!cancelled && !calledRef.current) setShowOcrHint(true);
+    }, OCR_HINT_AFTER_MS);
+
     return () => {
       cancelled = true;
-      controls?.stop();
-      controls = null;
+      clearTimeout(hintTimer);
+      controlsRef.current?.stop();
+      controlsRef.current = null;
     };
   }, [open, onResult]);
+
+  const handleCaptureForOcr = useCallback(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl || !onImageCapture) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = videoEl.videoWidth || 1280;
+    canvas.height = videoEl.videoHeight || 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      controlsRef.current?.stop();
+      onImageCapture(blob);
+    }, "image/jpeg", 0.92);
+  }, [onImageCapture]);
 
   if (!open) return null;
 
@@ -132,8 +160,25 @@ export default function ShakenshoScanner({ open, onResult, onClose }: Props) {
         )}
       </div>
 
-      <div className="p-4 text-center text-xs text-white/80">
-        スキャンできない場合は「閉じる」→「車検証から読み取る」で画像アップロードをお試しください
+      <div className="flex flex-col items-center gap-3 p-4">
+        {showOcrHint && onImageCapture ? (
+          <>
+            <p className="text-xs text-white/70 text-center">
+              QRコードが読み取れません。車検証全体が映っている状態で下のボタンをタップしてください。
+            </p>
+            <button
+              type="button"
+              onClick={handleCaptureForOcr}
+              className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black hover:bg-white/90 active:scale-95 transition-transform"
+            >
+              写真で読み取る（OCR）
+            </button>
+          </>
+        ) : (
+          <p className="text-xs text-white/60 text-center">
+            QR コードが読み取れない場合、しばらく待つと写真撮影での読み取りに切り替えられます。
+          </p>
+        )}
       </div>
     </div>
   );
