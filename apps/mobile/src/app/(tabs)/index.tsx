@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  useWindowDimensions,
+} from "react-native";
 import { Text, Card, IconButton } from "react-native-paper";
 import { router } from "expo-router";
 
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/lib/supabase";
+import { SalesBarChart, type SalesPoint } from "@/components/SalesBarChart";
 
 interface DashboardStats {
   todayReservations: number;
@@ -13,22 +20,40 @@ interface DashboardStats {
   todayPayments: number;
 }
 
+const SALES_DAYS = 7;
+
+function buildDateRange(days: number): string[] {
+  const out: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    out.push(d.toISOString().split("T")[0]);
+  }
+  return out;
+}
+
 export default function HomeScreen() {
   const { user, selectedStore } = useAuthStore();
+  const { width } = useWindowDimensions();
   const [stats, setStats] = useState<DashboardStats>({
     todayReservations: 0,
     activeWork: 0,
     awaitingPayment: 0,
     todayPayments: 0,
   });
+  const [salesSeries, setSalesSeries] = useState<SalesPoint[]>(() =>
+    buildDateRange(SALES_DAYS).map((date) => ({ date, amount: 0 }))
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   async function loadStats() {
     if (!user?.tenantId || !selectedStore?.id) return;
 
     const today = new Date().toISOString().split("T")[0];
+    const dateRange = buildDateRange(SALES_DAYS);
+    const sevenDaysAgo = dateRange[0];
 
-    const [reservations, work, awaitingPay, payments] = await Promise.all([
+    const [reservations, work, awaitingPay, payments, salesRows] = await Promise.all([
       supabase
         .from("reservations")
         .select("id", { count: "exact", head: true })
@@ -55,6 +80,12 @@ export default function HomeScreen() {
         .eq("tenant_id", user.tenantId)
         .eq("store_id", selectedStore.id)
         .gte("paid_at", today),
+      supabase
+        .from("payments")
+        .select("amount, paid_at")
+        .eq("tenant_id", user.tenantId)
+        .eq("store_id", selectedStore.id)
+        .gte("paid_at", sevenDaysAgo),
     ]);
 
     setStats({
@@ -63,6 +94,21 @@ export default function HomeScreen() {
       awaitingPayment: awaitingPay.count ?? 0,
       todayPayments: payments.count ?? 0,
     });
+
+    // 直近7日の売上を日付別に集計
+    const buckets: Record<string, number> = Object.fromEntries(
+      dateRange.map((d) => [d, 0])
+    );
+    for (const row of (salesRows.data ?? []) as Array<{
+      amount: number;
+      paid_at: string;
+    }>) {
+      const dateKey = row.paid_at.split("T")[0];
+      if (dateKey in buckets) {
+        buckets[dateKey] += row.amount ?? 0;
+      }
+    }
+    setSalesSeries(dateRange.map((date) => ({ date, amount: buckets[date] })));
   }
 
   useEffect(() => {
@@ -125,6 +171,26 @@ export default function HomeScreen() {
           icon="check-circle"
           color="#8b5cf6"
         />
+      </View>
+
+      {/* 売上推移 */}
+      <View style={styles.salesSection}>
+        <View style={styles.salesHeader}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            直近7日の売上
+          </Text>
+          <Text variant="bodySmall" style={styles.salesTotal}>
+            {"¥"}
+            {salesSeries
+              .reduce((sum, p) => sum + p.amount, 0)
+              .toLocaleString()}
+          </Text>
+        </View>
+        <Card mode="outlined" style={styles.salesCard}>
+          <Card.Content>
+            <SalesBarChart data={salesSeries} width={width - 64} />
+          </Card.Content>
+        </Card>
       </View>
 
       <View style={styles.quickActions}>
@@ -242,6 +308,23 @@ const styles = StyleSheet.create({
   statLabel: {
     color: "#71717a",
     marginTop: 4,
+  },
+  salesSection: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  salesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: 8,
+  },
+  salesTotal: {
+    color: "#1a1a2e",
+    fontWeight: "700",
+  },
+  salesCard: {
+    backgroundColor: "#ffffff",
   },
   quickActions: {
     padding: 16,
