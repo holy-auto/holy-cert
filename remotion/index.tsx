@@ -1,5 +1,6 @@
+import React from "react";
 import { registerRoot, Composition } from "remotion";
-import { Slideshow, totalFrames, type SlideDef } from "./Slideshow";
+import { Slideshow, totalFrames } from "./Slideshow";
 
 // ── 説明会 ────────────────────────────────────────────────────────────
 import { LedraVideo } from "./LedraVideo";
@@ -104,130 +105,146 @@ import { MaterialsShared } from "./slides/agent-full/14_Materials_Shared";
 import { SupportNotifications } from "./slides/agent-full/15_Support_Notifications";
 
 // ─────────────────────────────────────────────────────────────────────
-// スライド定義
-// ─────────────────────────────────────────────────────────────────────
-
-const ADMIN_SLIDES: SlideDef[] = [
-  { component: AdminWelcome },
-  { component: AdminInitialSetup },
-  { component: AdminRegisterData },
-  { component: AdminFirstCertificate },
-  { component: AdminFirstInvoice },
-  { component: AdminNextSteps },
-];
-
-const INSURER_SLIDES: SlideDef[] = [
-  { component: InsurerWelcome },
-  { component: InsurerSearchCertificate },
-  { component: InsurerCaseManagement },
-  { component: InsurerTeamAndAnalytics },
-];
-
-const AGENT_SLIDES: SlideDef[] = [
-  { component: AgentWelcome },
-  { component: AgentReferralLink },
-  { component: AgentRegisterReferral },
-  { component: AgentCommissionAndGrowth },
-];
-
-const CERT_SLIDES: SlideDef[] = [
-  { component: CertStructure },
-  { component: CertOCRAndPhotos },
-  { component: CertQRAndURL },
-  { component: CertBlockchain },
-  { component: CertBatchAndExport },
-];
-
-// チャプター区切りは短め (450f = 15s)、本編スライドは長め (1500f = 50s)
-const ADMIN_FULL_SLIDES: SlideDef[] = [
-  { component: AdminIntro,        frames: 900  }, // 30s
-  { component: Ch1Divider,        frames: 450  }, // 15s
-  { component: DashboardKPI,      frames: 1500 },
-  { component: DashboardWidgets,  frames: 1500 },
-  { component: Ch2Divider,        frames: 450  },
-  { component: CertList,          frames: 1500 },
-  { component: CertIssue,         frames: 1500 },
-  { component: CertOps,           frames: 1500 },
-  { component: Ch3Divider,        frames: 450  },
-  { component: VehicleRegister,   frames: 1500 },
-  { component: VehicleTimeline,   frames: 1500 },
-  { component: Customer360,       frames: 1500 },
-  { component: Ch4Divider,        frames: 450  },
-  { component: ReservationMgmt,   frames: 1500 },
-  { component: JobWorkflow,       frames: 1500 },
-  { component: WalkInJob,         frames: 1500 },
-  { component: Ch5Divider,        frames: 450  },
-  { component: Invoice,           frames: 1500 },
-  { component: POSSquare,         frames: 1500 },
-  { component: Analytics,         frames: 1500 },
-  { component: Ch6Divider,        frames: 450  },
-  { component: BtoBFull,          frames: 1500 },
-  { component: Ch7Divider,        frames: 450  },
-  { component: SettingsMembers,   frames: 1500 },
-  { component: SecurityBilling,   frames: 1500 },
-  // 合計: 900 + 450×7 + 1500×18 = 900 + 3150 + 27000 = 31050f ≈ 17.3 min
-];
-
-const WORKFLOW_SLIDES: SlideDef[] = [
-  { component: WorkflowOverview },
-  { component: WorkflowStatusStepper },
-  { component: WorkflowWalkIn },
-  { component: WorkflowDuplicateGuard },
-  { component: WorkflowContextCarryover },
-];
-
-// 900 + 450×4 + 1500×13 = 22200f ≈ 12.3 min
-const INSURER_FULL_SLIDES: SlideDef[] = [
-  { component: InsurerFullIntro,    frames: 900  },
-  { component: InsurerCh1Divider,   frames: 450  },
-  { component: SearchBasic,         frames: 1500 },
-  { component: SearchVehicle,       frames: 1500 },
-  { component: CertDetail,          frames: 1500 },
-  { component: Watchlist,           frames: 1500 },
-  { component: InsurerCh2Divider,   frames: 450  },
-  { component: CaseCreate,          frames: 1500 },
-  { component: CaseBulk,            frames: 1500 },
-  { component: TemplatesRules,      frames: 1500 },
-  { component: SLAManagement,       frames: 1500 },
-  { component: InsurerCh3Divider,   frames: 450  },
-  { component: InsurerAnalytics,    frames: 1500 },
-  { component: ReportsExport,       frames: 1500 },
-  { component: InsurerCh4Divider,   frames: 450  },
-  { component: InsurerUsers,        frames: 1500 },
-  { component: AuditNotifications,  frames: 1500 },
-  { component: InsurerSecurity,     frames: 1500 },
-];
-
-// 900 + 450×4 + 1500×11 = 19200f ≈ 10.7 min
-const AGENT_FULL_SLIDES: SlideDef[] = [
-  { component: AgentFullIntro,        frames: 900  },
-  { component: AgentCh1Divider,       frames: 450  },
-  { component: ApplyProcess,          frames: 1500 },
-  { component: AccountSetup,          frames: 1500 },
-  { component: AgentCh2Divider,       frames: 450  },
-  { component: ReferralLinks,         frames: 1500 },
-  { component: ReferralRegister,      frames: 1500 },
-  { component: ReferralTracking,      frames: 1500 },
-  { component: AgentCh3Divider,       frames: 450  },
-  { component: CommissionDetail,      frames: 1500 },
-  { component: ReportsRankings,       frames: 1500 },
-  { component: Campaigns,             frames: 1500 },
-  { component: AgentCh4Divider,       frames: 450  },
-  { component: Training,              frames: 1500 },
-  { component: MaterialsShared,       frames: 1500 },
-  { component: SupportNotifications,  frames: 1500 },
-];
-
-// ─────────────────────────────────────────────────────────────────────
-// Root
+// ラッパーコンポーネント
+// defaultProps にコンポーネント参照（関数）を入れると
+// シリアライズ時に undefined になるため、各動画を専用コンポーネントでラップする
 // ─────────────────────────────────────────────────────────────────────
 
 const FPS = 30;
 const W = 1920;
 const H = 1080;
-const DEFAULT_FRAMES = 810; // 27s per slide
+const D = 810; // 27s per slide (short-form default)
 
-export const RemotionRoot = () => (
+const AdminOnboardingVideo: React.FC = () => (
+  <Slideshow slides={[
+    { component: AdminWelcome },
+    { component: AdminInitialSetup },
+    { component: AdminRegisterData },
+    { component: AdminFirstCertificate },
+    { component: AdminFirstInvoice },
+    { component: AdminNextSteps },
+  ]} defaultFrames={D} />
+);
+
+const InsurerOnboardingVideo: React.FC = () => (
+  <Slideshow slides={[
+    { component: InsurerWelcome },
+    { component: InsurerSearchCertificate },
+    { component: InsurerCaseManagement },
+    { component: InsurerTeamAndAnalytics },
+  ]} defaultFrames={D} />
+);
+
+const AgentOnboardingVideo: React.FC = () => (
+  <Slideshow slides={[
+    { component: AgentWelcome },
+    { component: AgentReferralLink },
+    { component: AgentRegisterReferral },
+    { component: AgentCommissionAndGrowth },
+  ]} defaultFrames={D} />
+);
+
+const CertificateDeepDiveVideo: React.FC = () => (
+  <Slideshow slides={[
+    { component: CertStructure },
+    { component: CertOCRAndPhotos },
+    { component: CertQRAndURL },
+    { component: CertBlockchain },
+    { component: CertBatchAndExport },
+  ]} defaultFrames={D} />
+);
+
+const WorkflowDeepDiveVideo: React.FC = () => (
+  <Slideshow slides={[
+    { component: WorkflowOverview },
+    { component: WorkflowStatusStepper },
+    { component: WorkflowWalkIn },
+    { component: WorkflowDuplicateGuard },
+    { component: WorkflowContextCarryover },
+  ]} defaultFrames={D} />
+);
+
+const AdminFullGuideVideo: React.FC = () => (
+  <Slideshow slides={[
+    { component: AdminIntro,       frames: 900  },
+    { component: Ch1Divider,       frames: 450  },
+    { component: DashboardKPI,     frames: 1500 },
+    { component: DashboardWidgets, frames: 1500 },
+    { component: Ch2Divider,       frames: 450  },
+    { component: CertList,         frames: 1500 },
+    { component: CertIssue,        frames: 1500 },
+    { component: CertOps,          frames: 1500 },
+    { component: Ch3Divider,       frames: 450  },
+    { component: VehicleRegister,  frames: 1500 },
+    { component: VehicleTimeline,  frames: 1500 },
+    { component: Customer360,      frames: 1500 },
+    { component: Ch4Divider,       frames: 450  },
+    { component: ReservationMgmt,  frames: 1500 },
+    { component: JobWorkflow,      frames: 1500 },
+    { component: WalkInJob,        frames: 1500 },
+    { component: Ch5Divider,       frames: 450  },
+    { component: Invoice,          frames: 1500 },
+    { component: POSSquare,        frames: 1500 },
+    { component: Analytics,        frames: 1500 },
+    { component: Ch6Divider,       frames: 450  },
+    { component: BtoBFull,         frames: 1500 },
+    { component: Ch7Divider,       frames: 450  },
+    { component: SettingsMembers,  frames: 1500 },
+    { component: SecurityBilling,  frames: 1500 },
+  ]} />
+);
+
+// 900 + 450×4 + 1500×13 = 22200f ≈ 12.3 min
+const InsurerFullGuideVideo: React.FC = () => (
+  <Slideshow slides={[
+    { component: InsurerFullIntro,   frames: 900  },
+    { component: InsurerCh1Divider,  frames: 450  },
+    { component: SearchBasic,        frames: 1500 },
+    { component: SearchVehicle,      frames: 1500 },
+    { component: CertDetail,         frames: 1500 },
+    { component: Watchlist,          frames: 1500 },
+    { component: InsurerCh2Divider,  frames: 450  },
+    { component: CaseCreate,         frames: 1500 },
+    { component: CaseBulk,           frames: 1500 },
+    { component: TemplatesRules,     frames: 1500 },
+    { component: SLAManagement,      frames: 1500 },
+    { component: InsurerCh3Divider,  frames: 450  },
+    { component: InsurerAnalytics,   frames: 1500 },
+    { component: ReportsExport,      frames: 1500 },
+    { component: InsurerCh4Divider,  frames: 450  },
+    { component: InsurerUsers,       frames: 1500 },
+    { component: AuditNotifications, frames: 1500 },
+    { component: InsurerSecurity,    frames: 1500 },
+  ]} />
+);
+
+// 900 + 450×4 + 1500×11 = 19200f ≈ 10.7 min
+const AgentFullGuideVideo: React.FC = () => (
+  <Slideshow slides={[
+    { component: AgentFullIntro,       frames: 900  },
+    { component: AgentCh1Divider,      frames: 450  },
+    { component: ApplyProcess,         frames: 1500 },
+    { component: AccountSetup,         frames: 1500 },
+    { component: AgentCh2Divider,      frames: 450  },
+    { component: ReferralLinks,        frames: 1500 },
+    { component: ReferralRegister,     frames: 1500 },
+    { component: ReferralTracking,     frames: 1500 },
+    { component: AgentCh3Divider,      frames: 450  },
+    { component: CommissionDetail,     frames: 1500 },
+    { component: ReportsRankings,      frames: 1500 },
+    { component: Campaigns,            frames: 1500 },
+    { component: AgentCh4Divider,      frames: 450  },
+    { component: Training,             frames: 1500 },
+    { component: MaterialsShared,      frames: 1500 },
+    { component: SupportNotifications, frames: 1500 },
+  ]} />
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// Root
+// ─────────────────────────────────────────────────────────────────────
+
+export const RemotionRoot: React.FC = () => (
   <>
     {/* 説明会 (10スライド × 27s = 270s = 4.5min) */}
     <Composition
@@ -238,76 +255,76 @@ export const RemotionRoot = () => (
       defaultProps={{}}
     />
 
-    {/* Admin オンボーディング */}
+    {/* Admin オンボーディング (6スライド × 27s) */}
     <Composition
       id="AdminOnboarding"
-      component={Slideshow}
-      durationInFrames={totalFrames(ADMIN_SLIDES, DEFAULT_FRAMES)}
+      component={AdminOnboardingVideo}
+      durationInFrames={6 * D}
       fps={FPS} width={W} height={H}
-      defaultProps={{ slides: ADMIN_SLIDES, defaultFrames: DEFAULT_FRAMES }}
+      defaultProps={{}}
     />
 
-    {/* Insurer オンボーディング */}
+    {/* Insurer オンボーディング (4スライド × 27s) */}
     <Composition
       id="InsurerOnboarding"
-      component={Slideshow}
-      durationInFrames={totalFrames(INSURER_SLIDES, DEFAULT_FRAMES)}
+      component={InsurerOnboardingVideo}
+      durationInFrames={4 * D}
       fps={FPS} width={W} height={H}
-      defaultProps={{ slides: INSURER_SLIDES, defaultFrames: DEFAULT_FRAMES }}
+      defaultProps={{}}
     />
 
-    {/* Agent オンボーディング */}
+    {/* Agent オンボーディング (4スライド × 27s) */}
     <Composition
       id="AgentOnboarding"
-      component={Slideshow}
-      durationInFrames={totalFrames(AGENT_SLIDES, DEFAULT_FRAMES)}
+      component={AgentOnboardingVideo}
+      durationInFrames={4 * D}
       fps={FPS} width={W} height={H}
-      defaultProps={{ slides: AGENT_SLIDES, defaultFrames: DEFAULT_FRAMES }}
+      defaultProps={{}}
     />
 
-    {/* 証明書 深掘り */}
+    {/* 証明書 深掘り (5スライド × 27s) */}
     <Composition
       id="CertificateDeepDive"
-      component={Slideshow}
-      durationInFrames={totalFrames(CERT_SLIDES, DEFAULT_FRAMES)}
+      component={CertificateDeepDiveVideo}
+      durationInFrames={5 * D}
       fps={FPS} width={W} height={H}
-      defaultProps={{ slides: CERT_SLIDES, defaultFrames: DEFAULT_FRAMES }}
+      defaultProps={{}}
     />
 
-    {/* ワークフロー 深掘り */}
+    {/* ワークフロー 深掘り (5スライド × 27s) */}
     <Composition
       id="WorkflowDeepDive"
-      component={Slideshow}
-      durationInFrames={totalFrames(WORKFLOW_SLIDES, DEFAULT_FRAMES)}
+      component={WorkflowDeepDiveVideo}
+      durationInFrames={5 * D}
       fps={FPS} width={W} height={H}
-      defaultProps={{ slides: WORKFLOW_SLIDES, defaultFrames: DEFAULT_FRAMES }}
+      defaultProps={{}}
     />
 
     {/* Admin 完全ガイド (長尺 約17分) */}
     <Composition
       id="AdminFullGuide"
-      component={Slideshow}
-      durationInFrames={totalFrames(ADMIN_FULL_SLIDES)}
+      component={AdminFullGuideVideo}
+      durationInFrames={900 + 450 * 7 + 1500 * 18}
       fps={FPS} width={W} height={H}
-      defaultProps={{ slides: ADMIN_FULL_SLIDES }}
+      defaultProps={{}}
     />
 
     {/* Insurer 完全ガイド (長尺 約12分) */}
     <Composition
       id="InsurerFullGuide"
-      component={Slideshow}
-      durationInFrames={totalFrames(INSURER_FULL_SLIDES)}
+      component={InsurerFullGuideVideo}
+      durationInFrames={900 + 450 * 4 + 1500 * 13}
       fps={FPS} width={W} height={H}
-      defaultProps={{ slides: INSURER_FULL_SLIDES }}
+      defaultProps={{}}
     />
 
     {/* Agent 完全ガイド (長尺 約11分) */}
     <Composition
       id="AgentFullGuide"
-      component={Slideshow}
-      durationInFrames={totalFrames(AGENT_FULL_SLIDES)}
+      component={AgentFullGuideVideo}
+      durationInFrames={900 + 450 * 4 + 1500 * 11}
       fps={FPS} width={W} height={H}
-      defaultProps={{ slides: AGENT_FULL_SLIDES }}
+      defaultProps={{}}
     />
   </>
 );
