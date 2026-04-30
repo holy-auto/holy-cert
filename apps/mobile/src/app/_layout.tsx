@@ -12,6 +12,8 @@ import { bindUnauthorizedHandler } from "@/lib/api";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { initSentry, setSentryUser } from "@/lib/sentry";
 import { useAuthStore } from "@/stores/authStore";
+import { ToastProvider } from "@/components/ToastProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,39 +45,43 @@ export default function RootLayout() {
   if (!isReady) return null;
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PaperProvider theme={theme}>
-        <StatusBar style="dark" />
-        <OfflineBanner />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="customers"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="vehicles"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="certificates"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="nfc" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="settings"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="reservations"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="work" options={{ headerShown: false }} />
-          <Stack.Screen name="pos" options={{ headerShown: false }} />
-          <Stack.Screen name="dashboard" />
-        </Stack>
-      </PaperProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <PaperProvider theme={theme}>
+          <ToastProvider>
+            <StatusBar style="dark" />
+            <OfflineBanner />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen
+                name="customers"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="vehicles"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="certificates"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="nfc" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="settings"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="reservations"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="work" options={{ headerShown: false }} />
+              <Stack.Screen name="pos" options={{ headerShown: false }} />
+              <Stack.Screen name="dashboard" />
+            </Stack>
+          </ToastProvider>
+        </PaperProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
