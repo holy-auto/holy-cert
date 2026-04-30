@@ -8,8 +8,18 @@ import * as SplashScreen from "expo-splash-screen";
 import { theme } from "@/constants/theme";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthInit } from "@/hooks/useAuthInit";
+import { initSentry, setSentryUser } from "@/lib/sentry";
+import { useAuthStore } from "@/stores/authStore";
 
 SplashScreen.preventAutoHideAsync();
+
+// 起動時に1回だけ Sentry を初期化 (DSN/パッケージ未設定なら no-op)
+initSentry();
+
+// authStore と Sentry の user タグを連動 (ログイン/ログアウトを反映)
+useAuthStore.subscribe((state) => {
+  setSentryUser(state.user ? { id: state.user.id, tenantId: state.user.tenantId } : null);
+});
 
 export default function RootLayout() {
   const { isReady } = useAuthInit();
