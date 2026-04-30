@@ -1,23 +1,43 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { View, FlatList, StyleSheet } from "react-native";
-import { Text, Card, Chip, ActivityIndicator } from "react-native-paper";
-import { useQuery } from "@tanstack/react-query";
+import {
+  Text,
+  Card,
+  Chip,
+  ActivityIndicator,
+  Menu,
+  IconButton,
+  Dialog,
+  Portal,
+  Button,
+  Snackbar,
+} from "react-native-paper";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
+import { mobileApi } from "@/lib/api";
+
+type TagStatus =
+  | "prepared"
+  | "written"
+  | "attached"
+  | "lost"
+  | "retired"
+  | "error";
 
 interface NfcTag {
   id: string;
   tag_code: string;
   uid: string | null;
-  status: string;
+  status: TagStatus;
   certificate_id: string | null;
   vehicle_id: string | null;
   certificate_no: string | null;
   plate_display: string | null;
 }
 
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+const STATUS_STYLES: Record<TagStatus, { bg: string; text: string }> = {
   prepared: { bg: "#f3f4f6", text: "#374151" },
   written: { bg: "#dbeafe", text: "#1e40af" },
   attached: { bg: "#dcfce7", text: "#166534" },
@@ -26,10 +46,37 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   error: { bg: "#fee2e2", text: "#991b1b" },
 };
 
+const STATUS_LABELS: Record<TagStatus, string> = {
+  prepared: "未書込",
+  written: "書込済",
+  attached: "車両装着",
+  lost: "紛失",
+  retired: "廃棄",
+  error: "エラー",
+};
+
+type RetireAction = "lost" | "retired";
+
+const ACTION_LABELS: Record<RetireAction, string> = {
+  lost: "紛失として記録",
+  retired: "廃棄",
+};
+
 export default function NfcTagsScreen() {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
 
-  const { data: tags, isLoading, refetch } = useQuery({
+  const [menuTagId, setMenuTagId] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<
+    { tag: NfcTag; action: RetireAction } | null
+  >(null);
+  const [snackbar, setSnackbar] = useState("");
+
+  const {
+    data: tags,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["nfc-tags", user?.tenantId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -56,12 +103,30 @@ export default function NfcTagsScreen() {
     enabled: !!user?.tenantId,
   });
 
+  const retireMutation = useMutation({
+    mutationFn: async (input: { id: string; status: RetireAction }) => {
+      return mobileApi<{ nfc_tag: { id: string; status: TagStatus } }>(
+        `/nfc/${input.id}/status`,
+        { method: "PATCH", body: { status: input.status } }
+      );
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["nfc-tags"] });
+      setSnackbar(
+        `タグを${variables.status === "lost" ? "紛失" : "廃棄"}として記録しました`
+      );
+    },
+    onError: (err) => {
+      setSnackbar(err instanceof Error ? err.message : "状態変更に失敗しました");
+    },
+  });
+
   const renderItem = useCallback(
     ({ item }: { item: NfcTag }) => {
-      const statusStyle = STATUS_STYLES[item.status] ?? {
-        bg: "#f3f4f6",
-        text: "#374151",
-      };
+      const statusStyle = STATUS_STYLES[item.status] ?? STATUS_STYLES.prepared;
+      const isTerminal = item.status === "retired";
+      const canMarkLost =
+        item.status === "written" || item.status === "attached";
 
       return (
         <Card style={styles.card} mode="outlined">
@@ -82,8 +147,41 @@ export default function NfcTagsScreen() {
                 style={{ backgroundColor: statusStyle.bg }}
                 textStyle={{ color: statusStyle.text, fontSize: 11 }}
               >
-                {item.status}
+                {STATUS_LABELS[item.status] ?? item.status}
               </Chip>
+              {!isTerminal && (
+                <Menu
+                  visible={menuTagId === item.id}
+                  onDismiss={() => setMenuTagId(null)}
+                  anchor={
+                    <IconButton
+                      icon="dots-vertical"
+                      size={20}
+                      onPress={() => setMenuTagId(item.id)}
+                      accessibilityLabel="アクション"
+                    />
+                  }
+                >
+                  {canMarkLost && (
+                    <Menu.Item
+                      leadingIcon="help-circle-outline"
+                      title={ACTION_LABELS.lost}
+                      onPress={() => {
+                        setMenuTagId(null);
+                        setConfirm({ tag: item, action: "lost" });
+                      }}
+                    />
+                  )}
+                  <Menu.Item
+                    leadingIcon="trash-can-outline"
+                    title={ACTION_LABELS.retired}
+                    onPress={() => {
+                      setMenuTagId(null);
+                      setConfirm({ tag: item, action: "retired" });
+                    }}
+                  />
+                </Menu>
+              )}
             </View>
 
             {(item.certificate_no || item.plate_display) && (
@@ -104,7 +202,7 @@ export default function NfcTagsScreen() {
         </Card>
       );
     },
-    []
+    [menuTagId]
   );
 
   return (
@@ -124,6 +222,64 @@ export default function NfcTagsScreen() {
           }
         />
       )}
+
+      <Portal>
+        <Dialog
+          visible={!!confirm}
+          onDismiss={() => setConfirm(null)}
+        >
+          <Dialog.Icon
+            icon={confirm?.action === "retired" ? "trash-can" : "help-circle"}
+            color={confirm?.action === "retired" ? "#991b1b" : "#b45309"}
+          />
+          <Dialog.Title style={styles.dialogTitle}>
+            {confirm ? ACTION_LABELS[confirm.action] : ""}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              {confirm?.action === "retired"
+                ? "このタグを廃棄します。廃棄後は状態を戻せません。"
+                : "このタグを紛失として記録します。後で見つかった場合は再度書込みできます。"}
+            </Text>
+            {confirm?.tag && (
+              <Text variant="bodySmall" style={styles.dialogSub}>
+                対象: {confirm.tag.tag_code}
+                {confirm.tag.certificate_no
+                  ? ` (証明書 ${confirm.tag.certificate_no})`
+                  : ""}
+              </Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirm(null)}>キャンセル</Button>
+            <Button
+              mode="contained"
+              buttonColor={
+                confirm?.action === "retired" ? "#991b1b" : "#b45309"
+              }
+              loading={retireMutation.isPending}
+              disabled={retireMutation.isPending}
+              onPress={() => {
+                if (!confirm) return;
+                retireMutation.mutate(
+                  { id: confirm.tag.id, status: confirm.action },
+                  { onSettled: () => setConfirm(null) }
+                );
+              }}
+            >
+              実行
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <Snackbar
+        visible={!!snackbar}
+        onDismiss={() => setSnackbar("")}
+        duration={3000}
+      >
+        {snackbar}
+      </Snackbar>
     </View>
   );
 }
@@ -135,8 +291,15 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center" },
   tagCode: { fontWeight: "700", color: "#1a1a2e" },
   sub: { color: "#71717a", marginTop: 2 },
-  linkedInfo: { marginTop: 8, borderTopWidth: 1, borderTopColor: "#e4e4e7", paddingTop: 8 },
+  linkedInfo: {
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#e4e4e7",
+    paddingTop: 8,
+  },
   linked: { color: "#3b82f6", marginTop: 2 },
   loading: { marginTop: 32 },
   empty: { textAlign: "center", color: "#71717a", marginTop: 32 },
+  dialogTitle: { textAlign: "center", fontWeight: "700" },
+  dialogSub: { color: "#71717a", marginTop: 8 },
 });
