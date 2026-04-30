@@ -1,11 +1,14 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import PageHeader from "@/components/ui/PageHeader";
 import CustomerDetailClient from "./CustomerDetailClient";
 import CustomerNextActionPanel from "./CustomerNextActionPanel";
 import CustomerTabs from "./CustomerTabs";
-import { deriveSignals } from "@/lib/customers/signals";
+import { deriveSignals, type CustomerSignals } from "@/lib/customers/signals";
+import { getOrCreateCustomerSummary } from "@/lib/customers/getOrCreateAiSummary";
 
 /**
  * 顧客詳細 (360° ビュー)
@@ -61,8 +64,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     );
   }
 
-  // 紐付くデータを並列取得
-  const [vehiclesRes, certificatesRes, reservationsRes, invoiceDocsRes] = await Promise.all([
+  // 紐付くデータを並列取得 (tenant 名は AI サマリの shopName に流す)
+  const [vehiclesRes, certificatesRes, reservationsRes, invoiceDocsRes, tenantRes] = await Promise.all([
     supabase
       .from("vehicles")
       .select("id, maker, model, year, plate_display")
@@ -88,12 +91,14 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .eq("customer_id", id)
       .in("doc_type", ["invoice", "consolidated_invoice"])
       .order("created_at", { ascending: false }),
+    supabase.from("tenants").select("name").eq("id", tenantId).maybeSingle(),
   ]);
 
   const vehicles = vehiclesRes.data ?? [];
   const certificates = certificatesRes.data ?? [];
   const reservations = reservationsRes.data ?? [];
   const invoices = invoiceDocsRes.data ?? [];
+  const shopName = (tenantRes.data?.name as string | undefined) ?? undefined;
 
   const signals = deriveSignals({
     customer: { id, created_at: customer.created_at },
@@ -118,8 +123,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       {/* Customer Info + Edit */}
       <CustomerDetailClient customer={customer} />
 
-      {/* 次のアクション (deterministic signals) */}
-      <CustomerNextActionPanel signals={signals} />
+      {/* 次のアクション。signals はサーバ側で確定済みなので即時表示。
+          AI サマリは Suspense で並行ストリーム (失敗 / 未生成でも signals だけで動く)。 */}
+      <Suspense fallback={<CustomerNextActionPanel signals={signals} />}>
+        <CustomerNextActionWithSummary
+          signals={signals}
+          tenantId={tenantId}
+          customerId={id}
+          customerName={customer.name ?? "お客様"}
+          shopName={shopName}
+        />
+      </Suspense>
 
       {/* 360° Tabs */}
       <CustomerTabs
@@ -131,4 +145,44 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       />
     </div>
   );
+}
+
+/**
+ * AI サマリを fetch / generate してから NextActionPanel を再描画する。
+ * Suspense の fallback として "summary なし" 版が先に表示され、これが解決
+ * すると summary 入りに差し替わる。
+ *
+ * service-role 経由で書き込みするため createTenantScopedAdmin を使う
+ * (RLS は tenant_id で絞っているのでテナント越境はしない)。
+ */
+async function CustomerNextActionWithSummary({
+  signals,
+  tenantId,
+  customerId,
+  customerName,
+  shopName,
+}: {
+  signals: CustomerSignals;
+  tenantId: string;
+  customerId: string;
+  customerName: string;
+  shopName?: string;
+}) {
+  const { admin } = createTenantScopedAdmin(tenantId);
+  let summary: string | null = null;
+  try {
+    const result = await getOrCreateCustomerSummary({
+      supabase: admin,
+      tenantId,
+      customerId,
+      customerName,
+      shopName,
+      signals,
+    });
+    summary = result?.summary ?? null;
+  } catch (err) {
+    // AI / DB のどちらかが落ちても deterministic panel に降格するだけ
+    console.error("[customers/[id]] summary fetch failed:", err);
+  }
+  return <CustomerNextActionPanel signals={signals} summary={summary} />;
 }

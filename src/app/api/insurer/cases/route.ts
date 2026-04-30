@@ -5,6 +5,7 @@ import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createInsurerScopedAdmin } from "@/lib/supabase/admin";
 import { escapeIlike, escapePostgrestValue } from "@/lib/sanitize";
 import { insurerCaseCreateSchema } from "@/lib/validations/insurer-case";
+import { applyAssignmentRules, type AssignmentRule } from "@/lib/insurer/applyAssignmentRules";
 
 export const runtime = "nodejs";
 
@@ -158,6 +159,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Auto-assignment: 既定ルールに合致するなら assigned_to を立てる。
+    // ルール取得失敗 / マッチ無しのときは undefined のまま (= 人間が手動アサイン)
+    let autoAssign: { ruleId: string; ruleName?: string; assignedTo: string } | null = null;
+    try {
+      const { data: rawRules } = await admin
+        .from("insurer_assignment_rules")
+        .select("id, name, condition_type, condition_value, assign_to, is_active")
+        .eq("insurer_id", caller.insurerId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      const rules = (rawRules ?? []) as AssignmentRule[];
+      autoAssign = applyAssignmentRules(rules, {
+        priority: priority ?? null,
+        category: category ?? null,
+        tenant_id,
+      });
+    } catch (ruleErr) {
+      // ルール参照エラーで案件作成自体は失敗させない (フェイルオープン)
+      console.error("[insurer.cases] applyAssignmentRules failed:", ruleErr);
+    }
+
     const insertData: Record<string, unknown> = {
       insurer_id: caller.insurerId,
       title,
@@ -170,6 +192,7 @@ export async function POST(req: NextRequest) {
     if (tenant_id) insertData.tenant_id = tenant_id;
     if (priority) insertData.priority = priority;
     if (category) insertData.category = category;
+    if (autoAssign) insertData.assigned_to = autoAssign.assignedTo;
 
     const { data: newCase, error } = await admin
       .from("insurer_cases")
@@ -189,7 +212,17 @@ export async function POST(req: NextRequest) {
       insurer_id: caller.insurerId,
       insurer_user_id: caller.insurerUserId,
       action: "case_create",
-      meta: { case_id: newCase.id, route: "POST /api/insurer/cases" },
+      meta: {
+        case_id: newCase.id,
+        route: "POST /api/insurer/cases",
+        ...(autoAssign
+          ? {
+              auto_assigned_to: autoAssign.assignedTo,
+              auto_assignment_rule_id: autoAssign.ruleId,
+              auto_assignment_rule_name: autoAssign.ruleName,
+            }
+          : {}),
+      },
       ip,
       user_agent: ua,
     });

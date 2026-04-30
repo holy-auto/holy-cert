@@ -8,6 +8,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import DashboardCharts from "./DashboardCharts";
 import OnboardingTour from "./OnboardingTour";
 import DashboardModeSwitch from "./DashboardModeSwitch";
+import TodayTasksWidget, { TodayTasksWidgetSkeleton } from "./TodayTasksWidget";
 
 // ── Partner Rank System ──
 interface PartnerRank {
@@ -631,6 +632,13 @@ export default async function AdminHome() {
           </Link>
         </div>
       </div>
+
+      {/* Today's Tasks (タスク指向ウィジェット) */}
+      {tenantId && (
+        <Suspense fallback={<TodayTasksWidgetSkeleton />}>
+          <TodayTasksWidget tenantId={tenantId} />
+        </Suspense>
+      )}
 
       {/* Tenant Stats */}
       {tenantId && (

@@ -51,6 +51,28 @@ export interface ShakenshoData {
   drive_type?: string;
   /** 保安基準適用年月日 (YYYY-MM-DD) */
   safety_standard_date?: string;
+
+  // ─── 強化抽出フィールド ───────────────────────────────────────────────
+
+  /** 自動車の種別（例: "普通", "小型", "軽自動車", "大型特殊"） */
+  vehicle_type?: string;
+  /** 用途（"自家用" / "事業用"） */
+  usage_type?: string;
+  /** 所有者氏名・名称 (PII — 表示は任意) */
+  owner_name?: string;
+  /** 使用者氏名・名称 (PII — 所有者と異なる場合のみ) */
+  user_name?: string;
+  /** 外板の色（例: "白", "黒", "シルバー"）*/
+  color?: string;
+  /** 最大積載量 kg */
+  max_payload_kg?: number;
+
+  // ─── メタ情報 ────────────────────────────────────────────────────────
+
+  /** OCR 全体の信頼度: "high" / "medium" / "low" */
+  extraction_confidence?: "high" | "medium" | "low";
+  /** フィールドごとの検証警告メッセージ */
+  validation_warnings?: string[];
 }
 
 /**
@@ -114,14 +136,22 @@ const SYSTEM_PROMPT = `あなたは日本の自動車車検証（自動車検査
   "weight_kg": 車両重量のキログラム数値 | null,
   "displacement_cc": 総排気量のcc数値 | null,
   "fuel_type": "燃料の種類（例: ガソリン、軽油、電気、ガソリン・電気）| null",
-  "plate_display": "自動車登録番号・車両番号（例: 品川 300 あ 12-34）| null"
+  "plate_display": "自動車登録番号・車両番号（例: 品川 300 あ 12-34）| null",
+  "vehicle_type": "自動車の種別（例: 普通、小型、軽自動車、大型特殊）| null",
+  "usage_type": "用途（自家用 または 事業用）| null",
+  "owner_name": "所有者の氏名・名称 | null",
+  "user_name": "使用者の氏名・名称（所有者と同じ場合は null）| null",
+  "color": "外板の色（例: 白、黒、シルバー）| null",
+  "max_payload_kg": 最大積載量のキログラム数値（貨物車のみ）| null,
+  "confidence": "high（主要フィールドを概ね読み取れた） / medium / low（ほとんど読み取れなかった）"
 }
 
 注意:
-- 寸法・重量・排気量は整数で返す（車検証の値をそのまま）
-- 長さ・幅・高さはミリメートル、重量はキログラム、排気量はcc
+- 寸法・重量・排気量・積載量は整数で返す（車検証の値をそのまま）
+- 長さ・幅・高さはミリメートル、重量・積載量はキログラム、排気量はcc
 - 有効期間満了日は西暦 YYYY-MM-DD 形式（和暦は西暦に変換）
-- 車検証以外の画像や、読み取り不能な場合は全項目 null で返す`;
+- 車検証以外の画像や、読み取り不能な場合は全項目 null で返す
+- confidence: maker/model/vin/expiry_date のうち3つ以上読めたら high、1〜2つなら medium、0なら low`;
 
 interface RawResponse {
   maker: string | null;
@@ -137,6 +167,61 @@ interface RawResponse {
   displacement_cc: number | null;
   fuel_type: string | null;
   plate_display: string | null;
+  vehicle_type: string | null;
+  usage_type: string | null;
+  owner_name: string | null;
+  user_name: string | null;
+  color: string | null;
+  max_payload_kg: number | null;
+  confidence: string | null;
+}
+
+/**
+ * 抽出結果の整合性チェック (純関数)。
+ * 矛盾・疑わしい値があれば警告文を返す。
+ */
+export function validateShakenshoData(data: ShakenshoData): string[] {
+  const warnings: string[] = [];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  // VIN (車台番号) — 英数字 6〜20 文字が一般的
+  if (data.vin) {
+    if (!/^[A-Za-z0-9\-]{4,25}$/.test(data.vin)) {
+      warnings.push(`車台番号の形式が不正の可能性があります: ${data.vin}`);
+    }
+  }
+
+  // 初度登録年 — 1950〜currentYear+1 の範囲
+  const regYear = extractFirstRegistrationYear(data.first_registration);
+  if (regYear !== null && (regYear < 1950 || regYear > currentYear + 1)) {
+    warnings.push(`初度登録年が範囲外です: ${regYear}年`);
+  }
+
+  // 車検満了日 — 過去 10 年〜未来 5 年の範囲
+  if (data.expiry_date) {
+    const expiryMs = Date.parse(data.expiry_date);
+    if (!Number.isNaN(expiryMs)) {
+      const expiryYear = new Date(expiryMs).getFullYear();
+      if (expiryYear < currentYear - 10 || expiryYear > currentYear + 5) {
+        warnings.push(`車検満了日が範囲外です: ${data.expiry_date}`);
+      }
+    }
+  }
+
+  // 寸法: 長さ > 幅 > 高さ かつ各値が合理的な範囲
+  if (data.length_mm && data.length_mm < 2000) warnings.push(`車長が短すぎます: ${data.length_mm}mm`);
+  if (data.width_mm && data.width_mm < 1000) warnings.push(`車幅が狭すぎます: ${data.width_mm}mm`);
+  if (data.length_mm && data.width_mm && data.length_mm < data.width_mm) {
+    warnings.push(`車長 (${data.length_mm}mm) が車幅 (${data.width_mm}mm) より短いのは異常です`);
+  }
+
+  // 車両重量: 軽自動車は通常 600〜900kg、一般乗用車は 1000〜3500kg
+  if (data.weight_kg && (data.weight_kg < 400 || data.weight_kg > 25000)) {
+    warnings.push(`車両重量が範囲外の可能性があります: ${data.weight_kg}kg`);
+  }
+
+  return warnings;
 }
 
 /**
@@ -144,9 +229,7 @@ interface RawResponse {
  * - "2023-01", "2022年3月", "令和4年3月" など複数フォーマットに対応
  * - 抽出できない場合は null
  */
-export function extractFirstRegistrationYear(
-  firstRegistration: string | undefined,
-): number | null {
+export function extractFirstRegistrationYear(firstRegistration: string | undefined): number | null {
   if (!firstRegistration) return null;
 
   const westernMatch = firstRegistration.match(/^(\d{4})/);
@@ -228,8 +311,7 @@ export async function parseShakenshoAuto(
   const { decode2DCodes, parseShakenshoCode } = await import("./shakensho-qr");
 
   const qrTexts = await decode2DCodes(imageBuffer);
-  const qrData =
-    qrTexts.length > 0 ? parseShakenshoCode(qrTexts.join("\n")) : null;
+  const qrData = qrTexts.length > 0 ? parseShakenshoCode(qrTexts.join("\n")) : null;
 
   const required = options.requireFields ?? [];
   if (qrData && hasAllFields(qrData, required)) {
@@ -251,6 +333,8 @@ export async function parseShakenshoAuto(
       (merged as Record<string, unknown>)[key] = value;
     }
   }
+  // Re-validate after QR fields overwrite OCR fields
+  merged.validation_warnings = validateShakenshoData(merged);
   return { data: merged, source: "hybrid" };
 }
 
@@ -305,6 +389,16 @@ export async function parseShakensho(imageBuffer: Buffer): Promise<ShakenshoData
   }
   if (raw.fuel_type) data.fuel_type = raw.fuel_type;
   if (raw.plate_display) data.plate_display = raw.plate_display;
+  if (raw.vehicle_type) data.vehicle_type = raw.vehicle_type;
+  if (raw.usage_type) data.usage_type = raw.usage_type;
+  if (raw.owner_name) data.owner_name = raw.owner_name;
+  if (raw.user_name) data.user_name = raw.user_name;
+  if (raw.color) data.color = raw.color;
+  if (typeof raw.max_payload_kg === "number" && raw.max_payload_kg > 0) data.max_payload_kg = raw.max_payload_kg;
+
+  const conf = raw.confidence as string | null | undefined;
+  data.extraction_confidence = conf === "high" || conf === "medium" || conf === "low" ? conf : "low";
+  data.validation_warnings = validateShakenshoData(data);
 
   return data;
 }

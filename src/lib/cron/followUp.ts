@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { sendExpiryReminder, sendFollowUpEmail, sendMaintenanceReminder } from "@/lib/follow-up/email";
+import { sendMaintenanceLineMessage } from "@/lib/line/client";
 import { normalizePlanTier } from "@/lib/billing/planFeatures";
 import {
   generateFollowUpContent,
@@ -717,17 +718,19 @@ export async function processMaintenanceReminders(
       const customer = customerMap.get(cert.customer_id);
       if (!customer) continue;
       if (customer.followup_opt_out) continue;
-      if (!customer.email) continue; // LINE Push は別途対応 (現状 email 送信のみ)
+      // LINE / email のいずれかが届けられないと送れない
+      if (!customer.line_user_id && !customer.email) continue;
 
       const customerName = customer.name ?? cert.customer_name ?? "お客様";
       const certLabel = cert.service_name ?? "施工証明書";
 
-      // Standard / Pro プランでは AI でメッセージのトーンをパーソナライズし、
-      // それ以外はテンプレートで送る。AI 失敗時はテンプレートにフォールバック。
+      // Standard / Pro プランでは AI で文面をパーソナライズ。生成された
+      // `lineMessage` は LINE 配信に使う。AI 失敗時はテンプレートにフォールバック。
+      let aiLineMessage: string | null = null;
       if (useAI) {
         try {
           const vehicle = cert.vehicle_id ? vehicleMap.get(cert.vehicle_id) : undefined;
-          await generateFollowUpContent({
+          const content = await generateFollowUpContent({
             trigger: "maintenance_reminder",
             customer: { name: customerName },
             certificate: {
@@ -743,27 +746,55 @@ export async function processMaintenanceReminders(
             shop: { name: shopName, phone: tenant.phone ?? undefined },
             daysElapsed: m * 30,
           });
-          // 生成内容自体はログ用に既存のテンプレートメールへ流用 (件名/本文は
-          // 第二段で email body へ差し込めるよう拡張予定)。MVP では AI 生成
-          // は呼ばれていることを保証し、配信は既存テンプレートで行う。
+          aiLineMessage = content.lineMessage ?? null;
         } catch (err) {
           console.error("[follow-up] maintenance AI personalization failed:", err);
         }
       }
 
-      const ok = await sendMaintenanceReminder({
-        shopName,
-        customerEmail: customer.email,
-        customerName,
-        certificateLabel: certLabel,
-        monthsSince: m,
-      });
+      // ── 配信: LINE 優先、失敗時は email にフォールバック ──
+      // line_user_id があり、かつテナントの LINE 設定が有効なら LINE で送る。
+      // どちらかが欠けていたら email で送る。両方落ちたら failed としてログ。
+      let ok = false;
+      let channel: "line" | "email" = "email";
+      let recipientEmail: string | null = null;
+      let recipientLineUserId: string | null = null;
+
+      if (customer.line_user_id) {
+        const lineMessage =
+          aiLineMessage ?? buildMaintenanceLineFallback({ shopName, customerName, certLabel, monthsSince: m });
+        const lineOk = await sendMaintenanceLineMessage({
+          tenantId: setting.tenant_id,
+          lineUserId: customer.line_user_id,
+          lineMessage,
+        });
+        if (lineOk) {
+          ok = true;
+          channel = "line";
+          recipientLineUserId = customer.line_user_id;
+        }
+      }
+
+      if (!ok && customer.email) {
+        ok = await sendMaintenanceReminder({
+          shopName,
+          customerEmail: customer.email,
+          customerName,
+          certificateLabel: certLabel,
+          monthsSince: m,
+        });
+        channel = "email";
+        recipientEmail = customer.email;
+      }
+
       await supabase.from("notification_logs").insert({
         tenant_id: setting.tenant_id,
         type: notifType,
         target_type: "certificate",
         target_id: cert.id,
-        recipient_email: customer.email,
+        recipient_email: recipientEmail,
+        recipient_line_user_id: recipientLineUserId,
+        channel,
         status: ok ? "sent" : "failed",
       });
       if (ok) sent++;
@@ -771,4 +802,113 @@ export async function processMaintenanceReminders(
   }
 
   return sent;
+}
+
+/**
+ * メンテナンスリマインダーの dry-run プレビュー入力。
+ *
+ * cron が実際に走る前に「これから N 日以内に何件・誰に送られそうか」を
+ * 管理 UI で見せるための純関数。DB アクセスは呼び出し側で済ませ、
+ * その結果 (cert + customer フラット配列) を渡してもらう。
+ */
+export interface MaintenancePreviewCertInput {
+  certId: string;
+  serviceType: string | null;
+  serviceName: string | null;
+  createdAt: string; // ISO timestamp
+  customerName: string | null;
+  customerEmail: string | null;
+  customerLineUserId: string | null;
+  customerOptOut: boolean;
+}
+
+export interface MaintenancePreviewItem {
+  certId: string;
+  scheduledDate: string; // YYYY-MM-DD (送信予定日)
+  monthsSince: number;
+  serviceType: string | null;
+  serviceName: string | null;
+  customerName: string;
+  channel: "line" | "email" | "none";
+}
+
+/**
+ * 設定 + 候補リスト + 期間から「次に送られる予定のリスト」を返す。
+ *
+ * - `today` から `today + days` 日以内に送信される節目のみ採用
+ * - service_type 別ルールに合致しないものは除外
+ * - customerOptOut の顧客は除外
+ * - 連絡手段が無い顧客 (line_user_id も email も無し) は channel: 'none'
+ *   で出して理由を可視化
+ */
+export function previewMaintenanceTargets(args: {
+  setting: Pick<FollowUpSetting, "maintenance_reminder_months" | "maintenance_schedule_by_service">;
+  certs: MaintenancePreviewCertInput[];
+  today: Date;
+  days: number;
+}): MaintenancePreviewItem[] {
+  const { setting, certs, today, days } = args;
+  const defaultMonths = (setting.maintenance_reminder_months ?? [6, 12]).filter((m) => m > 0 && m <= 120);
+  const byService = setting.maintenance_schedule_by_service ?? {};
+
+  const out: MaintenancePreviewItem[] = [];
+  for (const c of certs) {
+    if (c.customerOptOut) continue;
+    const months = pickMaintenanceMonths(c.serviceType, byService, defaultMonths);
+    if (!months.length) continue;
+
+    const created = new Date(c.createdAt);
+    if (Number.isNaN(created.getTime())) continue;
+
+    for (const m of months) {
+      const scheduled = new Date(created);
+      const day = scheduled.getDate();
+      scheduled.setMonth(scheduled.getMonth() + m);
+      // 月末オーバーフロー (例: 1/31 + 1 month → 3/3) を月末に丸める
+      if (scheduled.getDate() !== day) scheduled.setDate(0);
+
+      const diffDays = Math.floor((scheduled.getTime() - startOfDay(today).getTime()) / 86_400_000);
+      if (diffDays < 0 || diffDays > days) continue;
+
+      out.push({
+        certId: c.certId,
+        scheduledDate: scheduled.toISOString().slice(0, 10),
+        monthsSince: m,
+        serviceType: c.serviceType,
+        serviceName: c.serviceName,
+        customerName: c.customerName ?? "(顧客名なし)",
+        channel: c.customerLineUserId ? "line" : c.customerEmail ? "email" : "none",
+      });
+    }
+  }
+
+  // 送信予定日 → 顧客名で安定ソート (同じ日に複数件あったときに UI が安定)
+  out.sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate) || a.customerName.localeCompare(b.customerName));
+  return out;
+}
+
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/**
+ * AI 文面の生成に失敗した / プランが対象外のときの LINE フォールバック文面。
+ * LINE は 200 文字程度を超えると一部端末で省略表示になるので簡潔に。
+ */
+function buildMaintenanceLineFallback(params: {
+  shopName: string;
+  customerName: string;
+  certLabel: string;
+  monthsSince: number;
+}): string {
+  const milestone =
+    params.monthsSince === 6 ? "半年" : params.monthsSince === 12 ? "1 年" : `${params.monthsSince} ヶ月`;
+  return [
+    `【${params.shopName}】${params.customerName} 様`,
+    ``,
+    `「${params.certLabel}」の施工から ${milestone} が経過しました。`,
+    `${milestone}点検にお越しいただくことをおすすめしております。`,
+    ``,
+    `ご予約・お問い合わせはお気軽にどうぞ。`,
+  ].join("\n");
 }

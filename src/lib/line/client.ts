@@ -448,3 +448,33 @@ export async function sendProgressUpdate(params: {
 }
 
 export { getLineConfig };
+
+/**
+ * メンテナンスリマインダーを LINE で送信する。
+ *
+ * 戻り値が boolean なのは、cron が email へフォールバックできるようにするため。
+ * - LINE 設定が未構成 (`getLineConfig` が null) → false (失敗扱い)
+ * - send で例外 → false
+ * 例外を握りつぶす点は `sendDocumentLink` と同じ流儀。
+ *
+ * `lineMessage` には改行込みのプレーンテキストを想定 (絵文字 OK)。Flex Message
+ * は使わない: LINE の仕様で長文を 1 通で確実に届かせるには text type が一番
+ * 安定で、AI 生成のトーンを邪魔しない。
+ */
+export async function sendMaintenanceLineMessage(params: {
+  tenantId: string;
+  lineUserId: string;
+  lineMessage: string;
+}): Promise<boolean> {
+  if (!params.lineUserId || !params.lineMessage) return false;
+  const config = await getLineConfig(params.tenantId);
+  if (!config) return false;
+
+  try {
+    await sendMessage(config.channelAccessToken, params.lineUserId, [{ type: "text", text: params.lineMessage }]);
+    return true;
+  } catch (err) {
+    console.error("[line] sendMaintenanceLineMessage failed:", err);
+    return false;
+  }
+}
