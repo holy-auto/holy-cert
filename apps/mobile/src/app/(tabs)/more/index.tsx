@@ -27,6 +27,8 @@ export default function MoreScreen() {
             key={item.route}
             style={styles.gridItem}
             onPress={() => router.push(item.route as never)}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
           >
             <View style={styles.iconContainer}>
               <Icon source={item.icon} size={28} color="#1a1a2e" />
