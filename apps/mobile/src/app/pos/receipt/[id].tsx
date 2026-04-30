@@ -40,9 +40,32 @@ const METHOD_LABELS: Record<string, string> = {
   bank_transfer: "振込",
 };
 
+interface TenantInvoiceInfo {
+  name: string;
+  registration_number: string | null;
+  address: string | null;
+  contact_phone: string | null;
+}
+
 export default function PosReceiptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
+
+  // 適格請求書発行事業者登録番号 (T+13桁) と発行者情報
+  const { data: tenant } = useQuery<TenantInvoiceInfo | null>({
+    queryKey: ["tenant-invoice", user?.tenantId],
+    queryFn: async () => {
+      if (!user?.tenantId) return null;
+      const { data, error } = await supabase
+        .from("tenants")
+        .select("name, registration_number, address, contact_phone")
+        .eq("id", user.tenantId)
+        .single();
+      if (error) throw error;
+      return data as TenantInvoiceInfo;
+    },
+    enabled: !!user?.tenantId,
+  });
 
   const { data: payment, isLoading } = useQuery<Payment>({
     queryKey: ["payment-receipt", id],
@@ -91,10 +114,42 @@ export default function PosReceiptScreen() {
 
   const paidDate = new Date(payment.paid_at);
 
+  // 内税方式 (10%): 表示価格に税が含まれる前提
+  const TAX_RATE = 0.1;
+  const taxIncluded = payment.amount;
+  const taxAmount = Math.round(taxIncluded - taxIncluded / (1 + TAX_RATE));
+  const subtotal = taxIncluded - taxAmount;
+
   return (
     <>
       <Stack.Screen options={{ title: "レシート" }} />
       <ScrollView style={styles.container}>
+        {/* 発行者情報 (適格請求書としての要件) */}
+        {tenant && (
+          <Card style={styles.card} mode="outlined">
+            <Card.Content style={styles.issuerHeader}>
+              <Text variant="titleMedium" style={styles.issuerName}>
+                {tenant.name}
+              </Text>
+              {tenant.address && (
+                <Text variant="bodySmall" style={styles.issuerSub}>
+                  {tenant.address}
+                </Text>
+              )}
+              {tenant.contact_phone && (
+                <Text variant="bodySmall" style={styles.issuerSub}>
+                  TEL: {tenant.contact_phone}
+                </Text>
+              )}
+              {tenant.registration_number && (
+                <Text variant="bodySmall" style={styles.regNumber}>
+                  登録番号: {tenant.registration_number}
+                </Text>
+              )}
+            </Card.Content>
+          </Card>
+        )}
+
         {/* Header */}
         <Card style={styles.card} mode="outlined">
           <Card.Content style={styles.receiptHeader}>
@@ -171,12 +226,34 @@ export default function PosReceiptScreen() {
                 </View>
               ))}
               <Divider style={{ marginVertical: 8 }} />
+
+              {/* 適格請求書要件: 税率ごとの合計と税額を分離表示 */}
+              <View style={styles.lineItem}>
+                <Text variant="bodyMedium" style={{ flex: 1 }}>
+                  小計（税抜）
+                </Text>
+                <Text variant="bodyMedium">
+                  {"¥"}
+                  {subtotal.toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.lineItem}>
+                <Text variant="bodyMedium" style={{ flex: 1 }}>
+                  消費税 ({Math.round(TAX_RATE * 100)}% 対象 {"¥"}
+                  {subtotal.toLocaleString()})
+                </Text>
+                <Text variant="bodyMedium">
+                  {"¥"}
+                  {taxAmount.toLocaleString()}
+                </Text>
+              </View>
+              <Divider style={{ marginVertical: 8 }} />
               <View style={styles.lineItem}>
                 <Text
                   variant="titleSmall"
                   style={{ flex: 1, fontWeight: "700" }}
                 >
-                  合計
+                  合計（税込）
                 </Text>
                 <Text variant="titleSmall" style={{ fontWeight: "700" }}>
                   {"\u00a5"}
@@ -240,6 +317,15 @@ export default function PosReceiptScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fafafa" },
+  issuerHeader: { paddingVertical: 12 },
+  issuerName: { fontWeight: "700", color: "#1a1a2e" },
+  issuerSub: { color: "#71717a", marginTop: 2 },
+  regNumber: {
+    color: "#1a1a2e",
+    marginTop: 6,
+    fontFamily: "monospace",
+    fontWeight: "600",
+  },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: {
     marginHorizontal: 16,
