@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
         const { data: rawSettings } = await supabase
           .from("follow_up_settings")
           .select(
-            "tenant_id, reminder_days_before, follow_up_days_after, enabled, send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled, maintenance_reminder_months",
+            "tenant_id, reminder_days_before, follow_up_days_after, enabled, send_on_issue, first_reminder_days, warranty_end_days, inspection_pre_days, seasonal_enabled, maintenance_reminder_months, maintenance_schedule_by_service",
           )
           .eq("enabled", true);
         const settings = (rawSettings ?? []) as unknown as FollowUpSetting[];
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
             followUpsSent += await processFirstReminderFollowUps(supabase, setting, tenant, shopName, planTier, today);
             followUpsSent += await processWarrantyEndFollowUps(supabase, setting, tenant, shopName, planTier);
             seasonalSent += await processSeasonalProposals(supabase, setting, shopName, today);
-            maintenanceSent += await processMaintenanceReminders(supabase, setting, shopName, today);
+            maintenanceSent += await processMaintenanceReminders(supabase, setting, tenant, shopName, planTier, today);
           }
         }
       } catch (e) {
