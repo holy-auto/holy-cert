@@ -94,6 +94,7 @@ export default function HomeScreen() {
         <IconButton
           icon="cog-outline"
           onPress={() => router.push("/settings")}
+          accessibilityLabel="設定を開く"
         />
       </View>
 
@@ -172,9 +173,23 @@ function StatCard({
   onPress?: () => void;
 }) {
   return (
-    <Card style={styles.statCard} onPress={onPress} mode="outlined">
+    <Card
+      style={styles.statCard}
+      onPress={onPress}
+      mode="outlined"
+      accessibilityLabel={`${title}: ${value}件`}
+      accessibilityRole={onPress ? "button" : undefined}
+    >
       <Card.Content style={styles.statContent}>
-        <IconButton icon={icon} iconColor={color} size={24} style={{ margin: 0 }} />
+        <IconButton
+          icon={icon}
+          iconColor={color}
+          size={24}
+          style={{ margin: 0 }}
+          // 親 Card が同じラベルを持つので、装飾として TalkBack/VoiceOver からは無視
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
         <Text variant="headlineMedium" style={[styles.statValue, { color }]}>
           {value}
         </Text>
@@ -202,6 +217,7 @@ function ActionButton({
         mode="contained-tonal"
         size={24}
         onPress={onPress}
+        accessibilityLabel={label}
       />
       <Text variant="labelSmall" style={styles.actionLabel}>
         {label}

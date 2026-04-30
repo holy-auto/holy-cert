@@ -174,13 +174,28 @@ export default function ReservationsScreen() {
     <View style={styles.container}>
       {/* Date picker row */}
       <View style={styles.dateRow}>
-        <IconButton icon="chevron-left" size={20} onPress={() => shiftDate(-1)} />
-        <Pressable onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
+        <IconButton
+          icon="chevron-left"
+          size={20}
+          onPress={() => shiftDate(-1)}
+          accessibilityLabel="前日へ"
+        />
+        <Pressable
+          onPress={() => setShowDatePicker(true)}
+          style={styles.dateButton}
+          accessibilityRole="button"
+          accessibilityLabel={`日付選択: ${formatDate(selectedDate)}`}
+        >
           <Text variant="titleSmall" style={styles.dateText}>
             {formatDate(selectedDate)}
           </Text>
         </Pressable>
-        <IconButton icon="chevron-right" size={20} onPress={() => shiftDate(1)} />
+        <IconButton
+          icon="chevron-right"
+          size={20}
+          onPress={() => shiftDate(1)}
+          accessibilityLabel="翌日へ"
+        />
         <Pressable
           onPress={() => setSelectedDate(new Date())}
           style={styles.todayButton}
