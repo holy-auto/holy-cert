@@ -62,6 +62,11 @@ describe("deriveSignals", () => {
     expect(s.completedReservationWithoutCertificate).toBeNull();
     expect(s.overdueInvoiceCount).toBe(0);
     expect(s.unpaidInvoiceCount).toBe(0);
+    // LTV / churn — 来店なし
+    expect(s.visitCount).toBe(0);
+    expect(s.totalSpend).toBe(0);
+    expect(s.estimatedAnnualLtv).toBeNull();
+    expect(s.churnRisk).toBeNull();
     // 車両未登録は medium priority のアクション 1 件
     const ids = s.nextActions.map((a) => a.id);
     expect(ids).toContain("register_vehicle");
@@ -227,5 +232,101 @@ describe("deriveSignals", () => {
     if (firstMediumIdx !== -1 && lastHighIdx !== -1) {
       expect(lastHighIdx).toBeLessThan(firstMediumIdx);
     }
+  });
+
+  // ── LTV / 離反リスク ────────────────────────────────────────────────
+  describe("LTV and churnRisk", () => {
+    it("totalSpend sums paid invoices only", () => {
+      const s = deriveSignals({
+        ...baseInput,
+        reservations: [res({ status: "completed", scheduled_date: "2026-04-01" })],
+        invoices: [
+          inv({ status: "paid", total: 50000 }),
+          inv({ status: "paid", total: 30000 }),
+          inv({ status: "sent", total: 20000 }), // 未払い: 含まない
+        ],
+      });
+      expect(s.totalSpend).toBe(80000);
+    });
+
+    it("visitCount equals number of completed reservations", () => {
+      const s = deriveSignals({
+        ...baseInput,
+        reservations: [
+          res({ status: "completed", scheduled_date: "2026-01-01" }),
+          res({ status: "completed", scheduled_date: "2026-03-01" }),
+          res({ status: "cancelled", scheduled_date: "2026-02-01" }), // 除外
+        ],
+      });
+      expect(s.visitCount).toBe(2);
+    });
+
+    it("churnRisk is null when there are no completed reservations", () => {
+      const s = deriveSignals({ ...baseInput });
+      expect(s.churnRisk).toBeNull();
+    });
+
+    it("churnRisk is low when last visit < 90 days ago", () => {
+      const s = deriveSignals({
+        ...baseInput,
+        reservations: [res({ status: "completed", scheduled_date: "2026-04-01" })], // 29 days
+      });
+      expect(s.churnRisk).toBe("low");
+    });
+
+    it("churnRisk is medium when last visit is 90–179 days ago", () => {
+      const s = deriveSignals({
+        ...baseInput,
+        reservations: [res({ status: "completed", scheduled_date: "2026-01-20" })], // ~100 days
+      });
+      expect(s.churnRisk).toBe("medium");
+    });
+
+    it("churnRisk is high when last visit >= 180 days ago", () => {
+      const s = deriveSignals({
+        ...baseInput,
+        reservations: [res({ status: "completed", scheduled_date: "2025-10-01" })], // ~211 days
+      });
+      expect(s.churnRisk).toBe("high");
+    });
+
+    it("estimatedAnnualLtv is null when no visits", () => {
+      const s = deriveSignals({ ...baseInput });
+      expect(s.estimatedAnnualLtv).toBeNull();
+    });
+
+    it("estimatedAnnualLtv is a positive number when visits + paid invoices exist", () => {
+      const s = deriveSignals({
+        ...baseInput,
+        reservations: [
+          res({ status: "completed", scheduled_date: "2025-10-01" }),
+          res({ status: "completed", scheduled_date: "2026-04-01" }),
+        ],
+        invoices: [inv({ status: "paid", total: 100000 })],
+      });
+      expect(s.estimatedAnnualLtv).toBeGreaterThan(0);
+    });
+
+    it("reengage_dormant_customer action appears for high churn risk (no upcoming reservation)", () => {
+      const s = deriveSignals({
+        ...baseInput,
+        vehicles: [{ id: "v1" }],
+        certificates: [cert({ status: "active" })],
+        reservations: [res({ status: "completed", scheduled_date: "2025-10-01" })],
+      });
+      expect(s.churnRisk).toBe("high");
+      expect(s.nextActions.some((a) => a.id === "reengage_dormant_customer")).toBe(true);
+    });
+
+    it("reengage action does not appear when churnRisk is low", () => {
+      const s = deriveSignals({
+        ...baseInput,
+        vehicles: [{ id: "v1" }],
+        certificates: [cert({ status: "active" })],
+        reservations: [res({ status: "completed", scheduled_date: "2026-04-20" })],
+      });
+      expect(s.churnRisk).toBe("low");
+      expect(s.nextActions.some((a) => a.id === "reengage_dormant_customer")).toBe(false);
+    });
   });
 });

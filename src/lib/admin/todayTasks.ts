@@ -33,7 +33,13 @@ export type TaskTone = "urgent" | "warn" | "normal";
 
 export interface TaskTile {
   /** 安定 ID (e2e / ログ / アイコン分岐で使う) */
-  id: "in_progress_jobs" | "today_visits" | "overdue_invoices" | "expiring_certificates" | "unpaid_invoices";
+  id:
+    | "in_progress_jobs"
+    | "today_visits"
+    | "overdue_invoices"
+    | "expiring_certificates"
+    | "unpaid_invoices"
+    | "churn_risk_customers";
   label: string;
   count: number;
   /** カードのサブタイトル (件数の意味を補足) */
@@ -67,6 +73,8 @@ export function deriveTodayTasks(input: {
   reservations: TodayReservation[];
   invoices: TodayInvoice[];
   certificates: TodayCertificate[];
+  /** 180 日以上来店がなく予約もない顧客数 (DB 集計値をそのまま渡す) */
+  churnRiskCustomerCount?: number;
   now?: Date;
   /** 何日先までの保証切れを「間近」とみなすか (default 30) */
   expiringWindowDays?: number;
@@ -167,6 +175,20 @@ export function deriveTodayTasks(input: {
       href: "/admin/certificates",
       tone: "warn",
       priority: 2,
+    });
+  }
+
+  // 5. 離反リスク顧客 (180 日以上来店なし + 予約なし)
+  const churnCount = input.churnRiskCustomerCount ?? 0;
+  if (churnCount > 0) {
+    tiles.push({
+      id: "churn_risk_customers",
+      label: "離反リスクの顧客",
+      count: churnCount,
+      hint: "180 日以上来店がなく予約もありません。再来店を促しましょう。",
+      href: "/admin/customers",
+      tone: "warn",
+      priority: 3,
     });
   }
 

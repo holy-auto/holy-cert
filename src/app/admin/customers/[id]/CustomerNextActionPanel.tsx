@@ -117,6 +117,25 @@ export default function CustomerNextActionPanel({
         />
       </div>
 
+      {/* LTV / 離反リスク */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <SignalChip label="来店回数" value={`${signals.visitCount} 回`} />
+        <SignalChip label="累計売上" value={signals.totalSpend > 0 ? formatYen(signals.totalSpend) : "—"} />
+        <SignalChip
+          label="離反リスク"
+          value={
+            signals.churnRisk === "high"
+              ? "高"
+              : signals.churnRisk === "medium"
+                ? "中"
+                : signals.churnRisk === "low"
+                  ? "低"
+                  : "—"
+          }
+          tone={signals.churnRisk === "high" ? "danger" : signals.churnRisk === "medium" ? "warn" : "default"}
+        />
+      </div>
+
       {/* 次アクション */}
       {signals.nextActions.length === 0 ? (
         <div className="rounded-xl border border-border-subtle bg-surface px-4 py-3 text-xs text-muted">

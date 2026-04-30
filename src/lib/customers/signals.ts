@@ -46,6 +46,8 @@ export interface SignalInvoice {
   doc_number?: string | null;
 }
 
+export type ChurnRisk = "high" | "medium" | "low";
+
 export interface NextAction {
   /** UI key / e2e selector / 重複検知の安定 ID */
   id:
@@ -83,6 +85,18 @@ export interface CustomerSignals {
   overdueInvoiceTotal: number;
   unpaidInvoiceCount: number;
   unpaidInvoiceTotal: number;
+
+  /** 完了予約の件数 (来店回数) */
+  visitCount: number;
+  /** paid 請求書の合計 (推定生涯売上) */
+  totalSpend: number;
+  /** 年間来店頻度 × 平均客単価の推定値。来店 0 回なら null */
+  estimatedAnnualLtv: number | null;
+  /**
+   * 離反リスク。来店実績が無ければ null (未来店客は別カテゴリ)。
+   * high = 180 日以上未来店 / medium = 90〜179 日 / low = 90 日未満
+   */
+  churnRisk: ChurnRisk | null;
 
   /**
    * 優先度順に並べた次アクション (最大 3 件)。Phase 2 では LLM が文章化し直す
@@ -178,6 +192,28 @@ export function deriveSignals(input: {
     }
   }
 
+  // LTV / 離反リスク
+  const visitCount = completedReservations.length;
+  const totalSpend = invoices.filter((inv) => inv.status === "paid").reduce((sum, inv) => sum + (inv.total ?? 0), 0);
+
+  const estimatedAnnualLtv = (() => {
+    if (visitCount === 0) return null;
+    const avgSpend = totalSpend / visitCount;
+    // 最初の完了予約から今日までの月数で頻度を推定
+    const firstVisitDate = parseDate(completedReservations[completedReservations.length - 1]?.scheduled_date);
+    if (!firstVisitDate) return null;
+    const monthsActive = Math.max(1, dayDiff(now, firstVisitDate) / 30);
+    const visitsPerMonth = visitCount / monthsActive;
+    return Math.round(avgSpend * visitsPerMonth * 12);
+  })();
+
+  const churnRisk: ChurnRisk | null = (() => {
+    if (daysSinceLastVisit === null) return null; // 来店実績なし
+    if (daysSinceLastVisit >= 180) return "high";
+    if (daysSinceLastVisit >= 90) return "medium";
+    return "low";
+  })();
+
   const nextActions = buildNextActions({
     customerId: input.customer.id,
     vehicleCount: vehicles.length,
@@ -189,6 +225,7 @@ export function deriveSignals(input: {
     unpaidInvoiceCount,
     unpaidInvoiceTotal,
     daysSinceLastVisit,
+    churnRisk,
   });
 
   return {
@@ -204,6 +241,10 @@ export function deriveSignals(input: {
     overdueInvoiceTotal,
     unpaidInvoiceCount,
     unpaidInvoiceTotal,
+    visitCount,
+    totalSpend,
+    estimatedAnnualLtv,
+    churnRisk,
     nextActions,
   };
 }
@@ -223,6 +264,7 @@ function buildNextActions(args: {
   unpaidInvoiceCount: number;
   unpaidInvoiceTotal: number;
   daysSinceLastVisit: number | null;
+  churnRisk: ChurnRisk | null;
 }): NextAction[] {
   const out: NextAction[] = [];
   const cid = args.customerId;
@@ -292,17 +334,17 @@ function buildNextActions(args: {
   }
 
   if (
-    args.daysSinceLastVisit != null &&
-    args.daysSinceLastVisit >= 180 &&
+    args.churnRisk != null &&
+    args.churnRisk !== "low" &&
     args.upcomingReservation == null &&
     args.inProgressReservation == null
   ) {
     out.push({
       id: "reengage_dormant_customer",
-      label: "リエンゲージメント",
-      reason: `最終来店から ${args.daysSinceLastVisit} 日経過しています`,
+      label: args.churnRisk === "high" ? "離反リスク：再来店を促す" : "来店間隔が空いています",
+      reason: `最終来店から ${args.daysSinceLastVisit} 日経過 (${args.churnRisk === "high" ? "高リスク" : "中リスク"})`,
       cta: { href: `/admin/jobs/new?customer_id=${cid}`, text: "飛び込み案件を作成" },
-      priority: "low",
+      priority: args.churnRisk === "high" ? "medium" : "low",
     });
   }
 

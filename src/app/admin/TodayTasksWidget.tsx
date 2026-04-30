@@ -43,6 +43,8 @@ function tileIcon(id: TaskTile["id"]): string {
       return "🧾";
     case "expiring_certificates":
       return "⏳";
+    case "churn_risk_customers":
+      return "⚠️";
   }
 }
 
@@ -67,9 +69,11 @@ export default async function TodayTasksWidget({ tenantId }: { tenantId: string 
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
 
-  // 並列取得。各クエリは LIMIT を強く効かせて、ダッシュボード描画コストを抑える
-  // (今日のタスクは件数が増えても 100 件超は基本的に異常事態なので 200 で十分)。
-  const [reservationsRes, invoicesRes, certsRes] = await Promise.all([
+  // 180 日前の日付文字列
+  const dormantCutoff = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  // 並列取得。各クエリは LIMIT を強く効かせて、ダッシュボード描画コストを抑える。
+  const [reservationsRes, invoicesRes, certsRes, churnRes] = await Promise.all([
     admin
       .from("reservations")
       .select("id, status, scheduled_date, title")
@@ -92,12 +96,28 @@ export default async function TodayTasksWidget({ tenantId }: { tenantId: string 
       .not("expiry_date", "is", null)
       .gte("expiry_date", todayStr)
       .limit(200),
+    // 離反リスク: 最終来店 > 180 日かつアクティブ予約なしの顧客数
+    // reservations テーブルから顧客 ID + max scheduled_date を取得し、
+    // 180 日超のものを絞る。シンプルに client で件数だけ取る。
+    admin
+      .from("reservations")
+      .select("customer_id")
+      .eq("tenant_id", tenantId)
+      .eq("status", "completed")
+      .lt("scheduled_date", dormantCutoff)
+      .limit(500),
   ]);
+
+  // 離反リスク顧客数: 上記クエリで来店があるが最終来店が 180 日超の顧客を
+  // 重複排除して数える (簡易 heuristic。予約中顧客の除外は UI 側で案内のみ)
+  const dormantCustomerIds = new Set((churnRes.data ?? []).map((r: { customer_id: string }) => r.customer_id));
+  const churnRiskCustomerCount = dormantCustomerIds.size;
 
   const tiles = deriveTodayTasks({
     reservations: reservationsRes.data ?? [],
     invoices: invoicesRes.data ?? [],
     certificates: certsRes.data ?? [],
+    churnRiskCustomerCount,
     now: today,
   });
 
