@@ -9,6 +9,8 @@ import { theme } from "@/constants/theme";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthInit } from "@/hooks/useAuthInit";
 import { bindUnauthorizedHandler } from "@/lib/api";
+import { OfflineBanner } from "@/components/OfflineBanner";
+import { initSentry, setSentryUser } from "@/lib/sentry";
 import { useAuthStore } from "@/stores/authStore";
 
 SplashScreen.preventAutoHideAsync();
@@ -17,6 +19,16 @@ SplashScreen.preventAutoHideAsync();
 bindUnauthorizedHandler(() => {
   useAuthStore.getState().reset();
   router.replace("/(auth)/login");
+});
+
+// 起動時に1回だけ Sentry を初期化 (DSN/パッケージ未設定なら no-op)
+initSentry();
+
+// authStore と Sentry の user タグを連動 (ログイン/ログアウトを反映)
+useAuthStore.subscribe((state) => {
+  setSentryUser(
+    state.user ? { id: state.user.id, tenantId: state.user.tenantId } : null
+  );
 });
 
 export default function RootLayout() {
@@ -34,6 +46,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <PaperProvider theme={theme}>
         <StatusBar style="dark" />
+        <OfflineBanner />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
