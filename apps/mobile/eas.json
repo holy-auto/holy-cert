@@ -39,7 +39,8 @@
         "ascAppId": "6762254734",
         "appleTeamId": "T43978PBAA",
         "ascApiKeyIssuerId": "d7f65243-d5ef-47af-bb47-0063816aadbb",
-        "ascApiKeyId": "P235PU8K3S"
+        "ascApiKeyId": "P235PU8K3S",
+        "ascApiKeyPath": "D:\\AuthKey_P235PU8K3S.p8"
       },
       "android": {
         "serviceAccountKeyPath": "./google-play-service-account.json",
