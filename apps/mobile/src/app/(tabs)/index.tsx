@@ -11,7 +11,11 @@ interface DashboardStats {
   activeWork: number;
   awaitingPayment: number;
   todayPayments: number;
+  preparedNfcTags: number;
 }
+
+// 在庫アラート閾値: prepared (uid 未割当) のタグがこれ以下になったら警告
+const NFC_LOW_STOCK_THRESHOLD = 10;
 
 export default function HomeScreen() {
   const { user, selectedStore } = useAuthStore();
@@ -20,6 +24,7 @@ export default function HomeScreen() {
     activeWork: 0,
     awaitingPayment: 0,
     todayPayments: 0,
+    preparedNfcTags: 0,
   });
   const [refreshing, setRefreshing] = useState(false);
 
@@ -28,40 +33,49 @@ export default function HomeScreen() {
 
     const today = new Date().toISOString().split("T")[0];
 
-    const [reservations, work, awaitingPay, payments] = await Promise.all([
-      supabase
-        .from("reservations")
-        .select("id", { count: "exact", head: true })
-        .eq("tenant_id", user.tenantId)
-        .eq("store_id", selectedStore.id)
-        .eq("scheduled_date", today)
-        .not("status", "eq", "cancelled"),
-      supabase
-        .from("reservations")
-        .select("id", { count: "exact", head: true })
-        .eq("tenant_id", user.tenantId)
-        .eq("store_id", selectedStore.id)
-        .in("status", ["arrived", "in_progress"]),
-      supabase
-        .from("reservations")
-        .select("id", { count: "exact", head: true })
-        .eq("tenant_id", user.tenantId)
-        .eq("store_id", selectedStore.id)
-        .eq("status", "completed")
-        .eq("payment_status", "unpaid"),
-      supabase
-        .from("payments")
-        .select("id", { count: "exact", head: true })
-        .eq("tenant_id", user.tenantId)
-        .eq("store_id", selectedStore.id)
-        .gte("paid_at", today),
-    ]);
+    const [reservations, work, awaitingPay, payments, preparedTags] =
+      await Promise.all([
+        supabase
+          .from("reservations")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", user.tenantId)
+          .eq("store_id", selectedStore.id)
+          .eq("scheduled_date", today)
+          .not("status", "eq", "cancelled"),
+        supabase
+          .from("reservations")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", user.tenantId)
+          .eq("store_id", selectedStore.id)
+          .in("status", ["arrived", "in_progress"]),
+        supabase
+          .from("reservations")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", user.tenantId)
+          .eq("store_id", selectedStore.id)
+          .eq("status", "completed")
+          .eq("payment_status", "unpaid"),
+        supabase
+          .from("payments")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", user.tenantId)
+          .eq("store_id", selectedStore.id)
+          .gte("paid_at", today),
+        // NFCタグ在庫: tenant 全体で uid 未割当の prepared タグ数
+        supabase
+          .from("nfc_tags")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", user.tenantId)
+          .eq("status", "prepared")
+          .is("uid", null),
+      ]);
 
     setStats({
       todayReservations: reservations.count ?? 0,
       activeWork: work.count ?? 0,
       awaitingPayment: awaitingPay.count ?? 0,
       todayPayments: payments.count ?? 0,
+      preparedNfcTags: preparedTags.count ?? 0,
     });
   }
 
@@ -96,6 +110,33 @@ export default function HomeScreen() {
           onPress={() => router.push("/settings")}
         />
       </View>
+
+      {/* NFCタグ在庫アラート */}
+      {stats.preparedNfcTags <= NFC_LOW_STOCK_THRESHOLD && (
+        <Card
+          style={[styles.card, styles.alertCard]}
+          mode="outlined"
+          onPress={() => router.push("/nfc/tags")}
+        >
+          <Card.Content style={styles.alertContent}>
+            <IconButton
+              icon="alert-circle-outline"
+              iconColor="#b45309"
+              size={24}
+              style={{ margin: 0 }}
+            />
+            <View style={{ flex: 1 }}>
+              <Text variant="titleSmall" style={styles.alertTitle}>
+                NFCタグ在庫が少なくなっています
+              </Text>
+              <Text variant="bodySmall" style={styles.alertSub}>
+                残り {stats.preparedNfcTags} 枚 (閾値 {NFC_LOW_STOCK_THRESHOLD}{" "}
+                枚)。発注を検討してください
+              </Text>
+            </View>
+          </Card.Content>
+        </Card>
+      )}
 
       <View style={styles.grid}>
         <StatCard
@@ -231,6 +272,11 @@ const styles = StyleSheet.create({
     width: "47%",
     backgroundColor: "#ffffff",
   },
+  card: { marginHorizontal: 12, marginTop: 12, backgroundColor: "#ffffff" },
+  alertCard: { borderColor: "#fcd34d", backgroundColor: "#fef3c7" },
+  alertContent: { flexDirection: "row", alignItems: "center", gap: 4 },
+  alertTitle: { fontWeight: "700", color: "#92400e" },
+  alertSub: { color: "#b45309", marginTop: 2 },
   statContent: {
     alignItems: "center",
     paddingVertical: 12,
