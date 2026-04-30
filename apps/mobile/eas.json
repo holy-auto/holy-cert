@@ -7,33 +7,95 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "ios": {
-        "simulator": true
+        "simulator": true,
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "resourceClass": "medium"
       },
       "env": {
-        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true",
+        "EXPO_PUBLIC_API_URL": "http://localhost:3000",
+        "EXPO_PUBLIC_ENV": "development"
       }
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
+      "ios": {
+        "resourceClass": "m-medium"
+      },
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "resourceClass": "medium"
       },
       "env": {
-        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true",
+        "EXPO_PUBLIC_API_URL": "https://preview.ledra.co.jp",
+        "EXPO_PUBLIC_ENV": "preview"
+      }
+    },
+    "staging": {
+      "distribution": "internal",
+      "channel": "staging",
+      "autoIncrement": true,
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "buildType": "apk",
+        "resourceClass": "medium"
+      },
+      "env": {
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true",
+        "EXPO_PUBLIC_API_URL": "https://staging.ledra.co.jp",
+        "EXPO_PUBLIC_ENV": "staging"
       }
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
+      "ios": {
+        "resourceClass": "m-medium"
+      },
       "android": {
-        "buildType": "aab"
+        "buildType": "aab",
+        "resourceClass": "medium"
       },
       "env": {
-        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true",
+        "EXPO_PUBLIC_API_URL": "https://ledra.co.jp",
+        "EXPO_PUBLIC_ENV": "production"
       }
     }
   },
   "submit": {
+    "preview": {
+      "ios": {
+        "ascAppId": "6762254734",
+        "appleTeamId": "T43978PBAA",
+        "appleApiKeyIssuerId": "d7f65243-d5ef-47af-bb47-0063816aadbb",
+        "appleApiKeyId": "P235PU8K3S"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "internal"
+      }
+    },
+    "staging": {
+      "ios": {
+        "ascAppId": "6762254734",
+        "appleTeamId": "T43978PBAA",
+        "appleApiKeyIssuerId": "d7f65243-d5ef-47af-bb47-0063816aadbb",
+        "appleApiKeyId": "P235PU8K3S"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "alpha"
+      }
+    },
     "production": {
       "ios": {
         "ascAppId": "6762254734",
