@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { PaperProvider } from "react-native-paper";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
@@ -8,18 +8,27 @@ import * as SplashScreen from "expo-splash-screen";
 import { theme } from "@/constants/theme";
 import { queryClient } from "@/lib/queryClient";
 import { useAuthInit } from "@/hooks/useAuthInit";
+import { bindUnauthorizedHandler } from "@/lib/api";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { initSentry, setSentryUser } from "@/lib/sentry";
 import { useAuthStore } from "@/stores/authStore";
 
 SplashScreen.preventAutoHideAsync();
 
+// 401 受信時のグローバルハンドラ: store を初期化して /login へリダイレクト
+bindUnauthorizedHandler(() => {
+  useAuthStore.getState().reset();
+  router.replace("/(auth)/login");
+});
+
 // 起動時に1回だけ Sentry を初期化 (DSN/パッケージ未設定なら no-op)
 initSentry();
 
 // authStore と Sentry の user タグを連動 (ログイン/ログアウトを反映)
 useAuthStore.subscribe((state) => {
-  setSentryUser(state.user ? { id: state.user.id, tenantId: state.user.tenantId } : null);
+  setSentryUser(
+    state.user ? { id: state.user.id, tenantId: state.user.tenantId } : null
+  );
 });
 
 export default function RootLayout() {
