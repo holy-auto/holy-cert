@@ -11,6 +11,7 @@ import CertEditForm from "./CertEditForm";
 import CertEditHistory from "./CertEditHistory";
 import CertImageUpload from "./CertImageUpload";
 import CertImageDeleteButton from "./CertImageDeleteButton";
+import PhotoTamperingPanel from "./PhotoTamperingPanel";
 import { formatDateTime } from "@/lib/format";
 import { buildExplorerUrl } from "@/lib/anchoring/providers";
 import { normalizePlanTier, PHOTO_LIMITS } from "@/lib/billing/planFeatures";
@@ -246,7 +247,10 @@ export default async function Page({ params }: PageProps) {
         <div className="glass-card p-5">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">CUSTOMER</div>
           {row.customer_id ? (
-            <Link href={`/admin/customers/${row.customer_id}`} className="mt-2 block text-sm font-medium text-accent hover:underline">
+            <Link
+              href={`/admin/customers/${row.customer_id}`}
+              className="mt-2 block text-sm font-medium text-accent hover:underline"
+            >
               {row.customer_name || row.customer_id}
             </Link>
           ) : (
@@ -465,6 +469,14 @@ export default async function Page({ params }: PageProps) {
           <section className="glass-card p-5">
             <AiExplainPanel certificateId={row.id as string} />
           </section>
+
+          {/* 写真改ざん検出 */}
+          {images.length > 0 && (
+            <PhotoTamperingPanel
+              certificateId={row.id as string}
+              photoUrls={images.map((img) => img.url).filter((u): u is string => !!u)}
+            />
+          )}
 
           {/* 電子署名依頼パネル */}
           {!isVoid && (
