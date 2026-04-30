@@ -54,7 +54,14 @@ function SignalChip({
   );
 }
 
-export default function CustomerNextActionPanel({ signals }: { signals: CustomerSignals }) {
+export default function CustomerNextActionPanel({
+  signals,
+  summary,
+}: {
+  signals: CustomerSignals;
+  /** Phase 2: AI が生成した 1〜2 文のサマリ。null/undefined なら表示しない */
+  summary?: string | null;
+}) {
   const lastVisitText =
     signals.daysSinceLastVisit == null
       ? "未来店"
@@ -71,8 +78,20 @@ export default function CustomerNextActionPanel({ signals }: { signals: Customer
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">NEXT ACTIONS</div>
           <div className="mt-0.5 text-base font-semibold text-primary">次のアクション</div>
         </div>
-        <span className="text-[10px] text-muted">deterministic signals · v1</span>
+        <span className="text-[10px] text-muted">{summary ? "AI summary · v2" : "deterministic signals · v1"}</span>
       </div>
+
+      {/* AI サマリ (Phase 2) — signals だけで動くため null なら省略 */}
+      {summary && (
+        <div className="rounded-xl border border-accent/30 bg-accent-dim px-4 py-3">
+          <div className="flex items-start gap-2">
+            <span aria-hidden className="text-base leading-none">
+              🤖
+            </span>
+            <p className="text-sm text-primary leading-relaxed">{summary}</p>
+          </div>
+        </div>
+      )}
 
       {/* signals サマリ */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
