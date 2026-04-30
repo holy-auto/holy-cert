@@ -8,7 +8,7 @@ export interface SlideDef {
 }
 
 interface SlideshowProps {
-  slides: SlideDef[];
+  slides?: SlideDef[];
   /** 各スライドのデフォルトフレーム数 (デフォルト 810 = 27s @30fps) */
   defaultFrames?: number;
 }
@@ -26,7 +26,7 @@ function SlideTransition({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Slideshow({ slides, defaultFrames = 810 }: SlideshowProps) {
+export function Slideshow({ slides = [], defaultFrames = 810 }: SlideshowProps) {
   let offset = 0;
 
   return (
