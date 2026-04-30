@@ -2,11 +2,15 @@
 
 /**
  * AI写真品質チェックパネル（B-3）
- * 証明書作成フォームに組み込む。写真URLとカテゴリを元に
+ * 証明書作成フォームに組み込む。写真枚数・カテゴリ・フォーム入力値を元に
  * Ledra Standard 基準での抜け漏れ・品質問題を検出する。
+ *
+ * 発行前 (= certificate_id 未確定時) は precheck=true で呼び、写真 URL ではなく
+ * 枚数 (photo_count) とフォーム入力値だけでルールベース監査する。Vision API は
+ * 写真アップロード後の事後監査でしか動かさない。
  */
 
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 
 interface PhotoIssue {
   type: string;
@@ -52,8 +56,10 @@ interface AuditResult {
 
 interface Props {
   category?: string;
-  photoUrls?: string[];
-  fieldValues?: Record<string, string>;
+  /** 写真の枚数 (アップロード前のためファイル数を渡す) */
+  photoCount?: number;
+  /** フォームへの ref。チェック時に最新の入力値を取り出す */
+  formRef?: RefObject<HTMLFormElement | null>;
 }
 
 const STATUS_CONFIG = {
@@ -87,11 +93,25 @@ const STATUS_CONFIG = {
   },
 };
 
-export default function AiQualityPanel({ category, photoUrls = [], fieldValues = {} }: Props) {
+export default function AiQualityPanel({ category, photoCount = 0, formRef }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AuditResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  /** チェックボタン押下時にフォームから最新の入力値をスナップショット */
+  const collectFieldValues = (): Record<string, string> => {
+    const form = formRef?.current;
+    if (!form) return {};
+    const out: Record<string, string> = {};
+    for (const [key, value] of new FormData(form).entries()) {
+      if (typeof value !== "string") continue;
+      if (key === "status" || key === "template_id" || key === "template_name") continue;
+      const trimmed = value.trim();
+      if (trimmed) out[key] = trimmed;
+    }
+    return out;
+  };
 
   const check = async () => {
     if (!category) {
@@ -105,7 +125,13 @@ export default function AiQualityPanel({ category, photoUrls = [], fieldValues =
       const res = await fetch("/api/admin/certificates/ai-quality", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, photo_urls: photoUrls, field_values: fieldValues }),
+        body: JSON.stringify({
+          category,
+          photo_count: photoCount,
+          field_values: collectFieldValues(),
+          // 発行前パネルは Vision を呼ばない (写真は未アップロードのため)
+          precheck: true,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "品質チェックに失敗しました");

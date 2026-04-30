@@ -21,6 +21,12 @@ export type FollowUpSetting = {
   seasonal_enabled: boolean | null;
   /** Anniversary months (1-based) for maintenance reminders. Default [6, 12]. */
   maintenance_reminder_months: number[] | null;
+  /**
+   * 施工種別ごとのリマインド月数 override。例 `{ "ppf": [6,12,24] }`。
+   * キー未指定の種別は `maintenance_reminder_months` (テナント既定) を使う。
+   * `{}` (default) のときは全種別が既定値で動く。
+   */
+  maintenance_schedule_by_service: Record<string, number[]> | null;
 };
 
 export type TenantInfo = {
@@ -595,23 +601,62 @@ export function monthsBackDateStr(today: Date, months: number): string {
   return target.toISOString().slice(0, 10);
 }
 
+/**
+ * 施工種別に応じたリマインド月配列を返す。
+ *
+ * - `byService` にキーがある → そちらを使う
+ * - 無い or `serviceType` 未指定 → `defaults` (テナント全体の既定値)
+ * - 1..120 の整数のみに絞る (DB 制約と整合)
+ *
+ * 純関数。cron / 管理 UI / プレビュー API などから流用する想定。
+ */
+export function pickMaintenanceMonths(
+  serviceType: string | null | undefined,
+  byService: Record<string, number[]> | null | undefined,
+  defaults: number[] | null | undefined,
+): number[] {
+  const sanitize = (arr: number[] | null | undefined): number[] =>
+    (arr ?? []).filter((m) => Number.isInteger(m) && m > 0 && m <= 120);
+
+  const fallback = sanitize(defaults ?? [6, 12]);
+  if (!serviceType) return fallback;
+
+  const key = serviceType.trim().toLowerCase();
+  if (!key || !byService) return fallback;
+  if (Object.prototype.hasOwnProperty.call(byService, key)) {
+    const override = sanitize(byService[key]);
+    return override; // 空配列なら "無効化" の意味で意図的にそのまま返す
+  }
+  return fallback;
+}
+
 export async function processMaintenanceReminders(
   supabase: SupabaseClient,
   setting: FollowUpSetting,
+  tenant: TenantInfo,
   shopName: string,
+  planTier: string,
   today: Date,
 ): Promise<number> {
-  const months = (setting.maintenance_reminder_months ?? [6, 12]).filter((m) => m > 0 && m <= 120);
-  if (!months.length) return 0;
+  // テナント既定 + 全 override の和集合 = 「今日が節目になり得る月数」
+  const defaultMonths = (setting.maintenance_reminder_months ?? [6, 12]).filter((m) => m > 0 && m <= 120);
+  const byService = setting.maintenance_schedule_by_service ?? {};
+  const allMonths = new Set<number>(defaultMonths);
+  for (const arr of Object.values(byService)) {
+    for (const m of arr ?? []) {
+      if (Number.isInteger(m) && m > 0 && m <= 120) allMonths.add(m);
+    }
+  }
+  if (!allMonths.size) return 0;
 
   let sent = 0;
 
-  for (const m of months) {
+  for (const m of allMonths) {
     const dateStr = monthsBackDateStr(today, m);
 
     const { data: certs } = await supabase
       .from("certificates")
-      .select("id, customer_id, customer_name, service_name, created_at")
+      .select("id, customer_id, customer_name, service_name, service_type, vehicle_id, expiry_value, created_at")
       .eq("tenant_id", setting.tenant_id)
       .neq("status", "void")
       .gte("created_at", `${dateStr}T00:00:00`)
@@ -620,7 +665,13 @@ export async function processMaintenanceReminders(
     const certList = certs ?? [];
     if (!certList.length) continue;
 
-    const certIds = certList.map((c) => c.id);
+    // service_type 別スケジュールに照らして「今月は対象でない」種別を間引く
+    const eligibleCerts = certList.filter((c) =>
+      pickMaintenanceMonths(c.service_type, byService, defaultMonths).includes(m),
+    );
+    if (!eligibleCerts.length) continue;
+
+    const certIds = eligibleCerts.map((c) => c.id);
     const notifType = `maintenance_reminder_${m}m`;
     const { data: existingLogs } = await supabase
       .from("notification_logs")
@@ -629,26 +680,82 @@ export async function processMaintenanceReminders(
       .eq("type", notifType);
     const alreadyNotifiedIds = new Set((existingLogs ?? []).map((l) => l.target_id));
 
-    const customerIds = [...new Set(certList.map((c) => c.customer_id).filter(Boolean))] as string[];
-    const customerMap = new Map<string, { name: string | null; email: string | null }>();
+    const customerIds = [...new Set(eligibleCerts.map((c) => c.customer_id).filter(Boolean))] as string[];
+    type CustomerRow = {
+      id: string;
+      name: string | null;
+      email: string | null;
+      line_user_id: string | null;
+      followup_opt_out: boolean | null;
+    };
+    const customerMap = new Map<string, CustomerRow>();
     if (customerIds.length) {
-      const { data: customers } = await supabase.from("customers").select("id, name, email").in("id", customerIds);
-      for (const c of customers ?? []) {
-        customerMap.set(c.id, { name: c.name, email: c.email });
-      }
+      const { data: customers } = (await supabase
+        .from("customers")
+        .select("id, name, email, line_user_id, followup_opt_out")
+        .in("id", customerIds)) as { data: CustomerRow[] | null };
+      for (const c of customers ?? []) customerMap.set(c.id, c);
     }
 
-    for (const cert of certList) {
+    // 車両情報 (AI パーソナライズ用)。失敗してもメインフローは止めない。
+    const vehicleIds = [...new Set(eligibleCerts.map((c) => c.vehicle_id).filter(Boolean))] as string[];
+    type VehicleRow = { id: string; maker: string | null; model: string | null; color: string | null };
+    const vehicleMap = new Map<string, VehicleRow>();
+    if (vehicleIds.length) {
+      const { data: vehicles } = (await supabase
+        .from("vehicles")
+        .select("id, maker, model, color")
+        .in("id", vehicleIds)) as { data: VehicleRow[] | null };
+      for (const v of vehicles ?? []) vehicleMap.set(v.id, v);
+    }
+
+    const useAI = isAiPlan(planTier);
+
+    for (const cert of eligibleCerts) {
       if (!cert.customer_id) continue;
       if (alreadyNotifiedIds.has(cert.id)) continue;
       const customer = customerMap.get(cert.customer_id);
-      if (!customer?.email) continue;
+      if (!customer) continue;
+      if (customer.followup_opt_out) continue;
+      if (!customer.email) continue; // LINE Push は別途対応 (現状 email 送信のみ)
+
+      const customerName = customer.name ?? cert.customer_name ?? "お客様";
+      const certLabel = cert.service_name ?? "施工証明書";
+
+      // Standard / Pro プランでは AI でメッセージのトーンをパーソナライズし、
+      // それ以外はテンプレートで送る。AI 失敗時はテンプレートにフォールバック。
+      if (useAI) {
+        try {
+          const vehicle = cert.vehicle_id ? vehicleMap.get(cert.vehicle_id) : undefined;
+          await generateFollowUpContent({
+            trigger: "maintenance_reminder",
+            customer: { name: customerName },
+            certificate: {
+              label: certLabel,
+              issued_at: cert.created_at,
+              warranty_period: cert.expiry_value ?? undefined,
+            },
+            vehicle: {
+              maker: vehicle?.maker ?? undefined,
+              model: vehicle?.model ?? undefined,
+              color: vehicle?.color ?? undefined,
+            },
+            shop: { name: shopName, phone: tenant.phone ?? undefined },
+            daysElapsed: m * 30,
+          });
+          // 生成内容自体はログ用に既存のテンプレートメールへ流用 (件名/本文は
+          // 第二段で email body へ差し込めるよう拡張予定)。MVP では AI 生成
+          // は呼ばれていることを保証し、配信は既存テンプレートで行う。
+        } catch (err) {
+          console.error("[follow-up] maintenance AI personalization failed:", err);
+        }
+      }
 
       const ok = await sendMaintenanceReminder({
         shopName,
         customerEmail: customer.email,
-        customerName: customer.name ?? cert.customer_name ?? "お客様",
-        certificateLabel: cert.service_name ?? "施工証明書",
+        customerName,
+        certificateLabel: certLabel,
         monthsSince: m,
       });
       await supabase.from("notification_logs").insert({

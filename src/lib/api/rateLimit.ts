@@ -60,6 +60,19 @@ const mobileTerminalLimiter = () => {
 };
 
 /**
+ * プリセット: AI ルート (20 req / 60s)。
+ *
+ * Anthropic Vision / LLM を呼ぶ route 用。テナント単位の identifier と組み合わせ、
+ * 課金爆発と意図しないループ呼び出しを抑止する。precheck (rule-based のみ) は
+ * Vision を呼ばないため軽いが、同経路に乗せて 1 ユーザの暴走を防ぐ。
+ */
+const aiLimiter = () => {
+  const r = getRedis();
+  if (!r) return null;
+  return new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(20, "60 s"), prefix: "rl:ai" });
+};
+
+/**
  * プリセット: middleware 層の blanket limit (300 req / 60s)。
  *
  * proxy.ts から /api/* に対して第一線の IP ベース防御として適用する。
@@ -94,7 +107,8 @@ export type RateLimitPreset =
   | "mobile_pos"
   | "mobile_terminal"
   | "middleware_default"
-  | "admin_write";
+  | "admin_write"
+  | "ai";
 
 const presets: Record<RateLimitPreset, () => Ratelimit | null> = {
   general: generalLimiter,
@@ -104,6 +118,7 @@ const presets: Record<RateLimitPreset, () => Ratelimit | null> = {
   mobile_terminal: mobileTerminalLimiter,
   middleware_default: middlewareDefaultLimiter,
   admin_write: adminWriteLimiter,
+  ai: aiLimiter,
 };
 
 /**

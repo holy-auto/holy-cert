@@ -111,6 +111,8 @@ export default function CertNewFormWrapper({
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [savingDefault, setSavingDefault] = useState(false);
   const [defaultSaveMsg, setDefaultSaveMsg] = useState<string | null>(null);
+  const [photoCount, setPhotoCount] = useState(0);
+  const [gateBlock, setGateBlock] = useState<{ reason: string; details: string[] } | null>(null);
   const photoRef = useRef<PhotoUploadHandle>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const warrantyRef = useRef<HTMLTextAreaElement>(null);
@@ -176,9 +178,68 @@ export default function CertNewFormWrapper({
     setTimeout(() => setDraftApplied(false), 3000);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  /**
+   * フォームの全 string フィールドをルール監査用の Record に変換する。
+   * 写真や status などは除外。
+   */
+  const collectFieldValues = (formData: FormData): Record<string, string> => {
+    const out: Record<string, string> = {};
+    for (const [key, value] of formData.entries()) {
+      if (typeof value !== "string") continue;
+      if (key === "status" || key === "template_id" || key === "template_name") continue;
+      const trimmed = value.trim();
+      if (trimmed) out[key] = trimmed;
+    }
+    return out;
+  };
+
+  /**
+   * 発行前ゲート: ルールベースで必須写真・必須項目・error 警告を判定。
+   * Vision を呼ばないため軽量。レスポンスの gate.action を返す。
+   */
+  type GateOutcome =
+    | { action: "block"; reason: string; details: string[] }
+    | { action: "warn"; warnings: string[] }
+    | { action: "pass" };
+  const runPrecheckGate = async (formData: FormData): Promise<GateOutcome> => {
+    if (!canAiQuality || !serviceType) return { action: "pass" };
+    try {
+      const res = await fetch("/api/admin/certificates/ai-quality", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: serviceType,
+          photo_count: photoRef.current?.getFiles().length ?? 0,
+          field_values: collectFieldValues(formData),
+          precheck: true,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.gate) return { action: "pass" };
+      const gate = json.gate as
+        | { action: "block"; reason: string; missingFields: string[]; missingPhotos: string[]; errors: string[] }
+        | { action: "warn"; warnings: string[] }
+        | { action: "pass" };
+      if (gate.action === "block") {
+        const details = [
+          ...gate.missingPhotos.map((p) => `写真不足: ${p}`),
+          ...gate.missingFields.map((f) => `項目不足: ${f}`),
+          ...gate.errors,
+        ];
+        return { action: "block", reason: gate.reason, details };
+      }
+      if (gate.action === "warn") return { action: "warn", warnings: gate.warnings };
+      return { action: "pass" };
+    } catch {
+      // ゲート呼び出しに失敗した場合は発行を妨げない (フェイルオープン)
+      return { action: "pass" };
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setGateBlock(null);
 
     const form = e.currentTarget;
     const formData = new FormData(form);
@@ -194,6 +255,28 @@ export default function CertNewFormWrapper({
         block: "center",
       });
       return;
+    }
+
+    // 発行前ゲート (下書き保存はスキップ)
+    if (submitStatus === "active") {
+      const gate = await runPrecheckGate(formData);
+      if (gate.action === "block") {
+        setGateBlock({ reason: gate.reason, details: gate.details });
+        form.querySelector<HTMLElement>("[data-ai-quality-panel]")?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        return;
+      }
+      if (gate.action === "warn") {
+        const proceed = window.confirm(
+          `品質チェックで ${gate.warnings.length} 件の推奨修正があります:\n\n${gate.warnings
+            .slice(0, 5)
+            .map((w) => `・${w}`)
+            .join("\n")}${gate.warnings.length > 5 ? "\n…" : ""}\n\nこのまま発行しますか？`,
+        );
+        if (!proceed) return;
+      }
     }
 
     const files = photoRef.current?.getFiles() ?? [];
@@ -334,7 +417,10 @@ export default function CertNewFormWrapper({
                   <ul className="mt-1 text-xs text-muted space-y-0.5">
                     {lastCert.expiry_value && <li>・有効条件: {lastCert.expiry_value}</li>}
                     {lastCert.warranty_exclusions && (
-                      <li className="truncate">・保証除外: {lastCert.warranty_exclusions.slice(0, 60)}{lastCert.warranty_exclusions.length > 60 ? "…" : ""}</li>
+                      <li className="truncate">
+                        ・保証除外: {lastCert.warranty_exclusions.slice(0, 60)}
+                        {lastCert.warranty_exclusions.length > 60 ? "…" : ""}
+                      </li>
                     )}
                   </ul>
                 </div>
@@ -395,7 +481,12 @@ export default function CertNewFormWrapper({
           </div>
           <label className={labelCls}>
             <span className={labelTextCls}>有効条件（テキスト）</span>
-            <input ref={expiryValueRef} name="expiry_value" className={inputCls} placeholder="半年ごとにメンテ推奨 など" />
+            <input
+              ref={expiryValueRef}
+              name="expiry_value"
+              className={inputCls}
+              placeholder="半年ごとにメンテ推奨 など"
+            />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelCls}>
@@ -411,10 +502,34 @@ export default function CertNewFormWrapper({
 
         {/* ━━━ 4. 施工写真 ━━━ */}
         <section className="border-t border-border-subtle py-6 space-y-4">
-          <PhotoUploadSection ref={photoRef} maxPhotos={maxPhotos} planLabel={planLabel} />
+          <PhotoUploadSection
+            ref={photoRef}
+            maxPhotos={maxPhotos}
+            planLabel={planLabel}
+            onCountChange={setPhotoCount}
+          />
 
           {/* AI品質チェックパネル */}
-          {canAiQuality && serviceType && <AiQualityPanel category={serviceType} photoUrls={[]} fieldValues={{}} />}
+          {canAiQuality && serviceType && (
+            <div data-ai-quality-panel>
+              <AiQualityPanel category={serviceType} photoCount={photoCount} formRef={formRef} />
+            </div>
+          )}
+
+          {/* 発行前ゲートでブロックされた場合のエラー表示 */}
+          {gateBlock && (
+            <div className="rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-400">
+              <p className="font-semibold">発行できません: {gateBlock.reason}</p>
+              {gateBlock.details.length > 0 && (
+                <ul className="mt-2 list-disc pl-5 text-xs space-y-0.5">
+                  {gateBlock.details.map((d, i) => (
+                    <li key={i}>{d}</li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-2 text-xs opacity-80">必要項目を満たすか、「下書き保存」で保存してください。</p>
+            </div>
+          )}
         </section>
 
         {/* ━━━ 5. 詳細な施工内容 ━━━ */}

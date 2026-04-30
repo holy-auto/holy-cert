@@ -331,3 +331,52 @@ function determineStandardLevel(score: number, status: string): "none" | "basic"
   if (score >= 50) return "basic";
   return "none";
 }
+
+// ─────────────────────────────────────────────
+// 発行前ゲート判定
+// ─────────────────────────────────────────────
+
+export type GateDecision =
+  | { action: "block"; reason: string; missingFields: string[]; missingPhotos: string[]; errors: string[] }
+  | { action: "warn"; warnings: string[] }
+  | { action: "pass" };
+
+/**
+ * 監査結果から発行前ゲートの判定を返す。
+ *
+ * - 必須フィールド/写真の不足 or `error` レベルの warning → block
+ * - `warning` レベルの warning が 1 件以上 → warn (ユーザに確認させる)
+ * - それ以外 → pass
+ *
+ * 純関数なので unit test しやすく、UI と cron / API の両方から流用可能。
+ */
+export function decideGate(
+  audit: Pick<CertificatePhotoAudit, "missingFields" | "missingPhotos" | "warningMessages">,
+): GateDecision {
+  const errors = audit.warningMessages.filter((w) => w.level === "error").map((w) => w.message);
+  const warnings = audit.warningMessages.filter((w) => w.level === "warning").map((w) => w.message);
+
+  if (audit.missingFields.length > 0 || audit.missingPhotos.length > 0 || errors.length > 0) {
+    const reason =
+      audit.missingPhotos.length > 0 && audit.missingFields.length > 0
+        ? "必須写真と必須項目が不足しています"
+        : audit.missingPhotos.length > 0
+          ? "必須写真が不足しています"
+          : audit.missingFields.length > 0
+            ? "必須項目が未入力です"
+            : "発行を阻むエラーがあります";
+    return {
+      action: "block",
+      reason,
+      missingFields: audit.missingFields,
+      missingPhotos: audit.missingPhotos,
+      errors,
+    };
+  }
+
+  if (warnings.length > 0) {
+    return { action: "warn", warnings };
+  }
+
+  return { action: "pass" };
+}

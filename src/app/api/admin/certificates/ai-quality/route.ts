@@ -11,14 +11,25 @@ import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiOk, apiUnauthorized, apiInternalError, apiValidationError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { normalizePlanTier } from "@/lib/billing/planFeatures";
-import { auditCertificatePhotos, type StandardRule } from "@/lib/ai/photoQualityCheck";
+import { auditCertificatePhotos, decideGate, type StandardRule } from "@/lib/ai/photoQualityCheck";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 
 const aiQualitySchema = z.object({
   certificate_id: z.string().uuid().optional(),
   category: z.string().trim().min(1, "category が必要です").max(100),
   photo_urls: z.array(z.string().url()).max(50).optional(),
+  /**
+   * 発行前ゲート用のショートカット。フォーム入力中はまだ写真をアップロードして
+   * いないため URL は無いが、枚数だけは判定したい。precheck=true のときだけ
+   * photo_urls の代わりにこのカウントを使う。
+   */
+  photo_count: z.number().int().min(0).max(50).optional(),
   field_values: z.record(z.string(), z.string()).optional(),
+  /**
+   * true のとき: Vision を呼ばず、ルールベース監査のみ実行。DB にも書き込まない。
+   * 発行ボタンの直前でブロック判定するための軽量モード。
+   */
+  precheck: z.boolean().optional(),
 });
 
 export const dynamic = "force-dynamic";
@@ -31,14 +42,14 @@ export async function POST(req: NextRequest) {
 
     // Vision AI (Anthropic) を最大 50 枚分呼び出すため、テナント単位で
     // レートリミットを掛けて課金爆発を防ぐ。
-    const limited = await checkRateLimit(req, "auth", `ai-quality:${caller.tenantId}`);
+    const limited = await checkRateLimit(req, "ai", `ai-quality:${caller.tenantId}`);
     if (limited) return limited;
 
     const parsed = aiQualitySchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) {
       return apiValidationError(parsed.error.issues[0]?.message ?? "invalid payload");
     }
-    const { certificate_id, category, photo_urls, field_values } = parsed.data;
+    const { certificate_id, category, photo_urls, photo_count, field_values, precheck } = parsed.data;
 
     const { admin } = createTenantScopedAdmin(caller.tenantId);
 
@@ -54,36 +65,42 @@ export async function POST(req: NextRequest) {
 
     if (!rule) {
       // ルールが存在しない場合は基本通過
-      return apiOk({
-        audit: {
-          certificateId: certificate_id ?? "",
-          category,
-          overallStatus: "pass",
-          standardLevel: "basic",
-          score: 70,
-          photoResults: [],
-          missingPhotos: [],
-          missingFields: [],
-          warningMessages: [],
-        },
-      });
+      const audit = {
+        certificateId: certificate_id ?? "",
+        category,
+        overallStatus: "pass" as const,
+        standardLevel: "basic" as const,
+        score: 70,
+        photoResults: [],
+        missingPhotos: [],
+        missingFields: [],
+        warningMessages: [],
+      };
+      return apiOk({ audit, gate: decideGate(audit) });
     }
 
-    // Vision AIチェックはstandard以上
+    // precheck モードのときは枚数のみ・Vision なしでルールベース監査
+    // (発行ボタン直前のブロック判定用)。
     const tier = normalizePlanTier(caller.planTier);
-    const useVision = tier === "standard" || tier === "pro";
+    const useVision = !precheck && (tier === "standard" || tier === "pro");
+
+    // precheck では photo_count を photo_urls.length 相当として扱う
+    const effectivePhotoUrls =
+      precheck && photo_count != null
+        ? Array.from({ length: photo_count }, (_, i) => `precheck://photo-${i}`)
+        : (photo_urls ?? []);
 
     const audit = await auditCertificatePhotos({
       certificateId: certificate_id ?? "",
       category,
-      photoUrls: photo_urls ?? [],
+      photoUrls: effectivePhotoUrls,
       fieldValues: field_values ?? {},
       standardRule: rule as StandardRule,
       checkPhotosWithAI: useVision,
     });
 
-    // 結果をDBにキャッシュ
-    if (certificate_id) {
+    // 結果をDBにキャッシュ (precheck では DB を汚さない)
+    if (!precheck && certificate_id) {
       await admin.from("certificate_quality_scores").upsert(
         {
           certificate_id,
@@ -117,7 +134,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return apiOk({ audit });
+    return apiOk({ audit, gate: decideGate(audit) });
   } catch (e: unknown) {
     return apiInternalError(e);
   }
