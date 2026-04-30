@@ -52,6 +52,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="work" options={{ headerShown: false }} />
           <Stack.Screen name="pos" options={{ headerShown: false }} />
+          <Stack.Screen name="dashboard" />
         </Stack>
       </PaperProvider>
     </QueryClientProvider>

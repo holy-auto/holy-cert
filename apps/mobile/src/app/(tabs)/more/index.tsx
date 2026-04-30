@@ -15,6 +15,7 @@ const MENU_ITEMS: MenuItem[] = [
   { icon: "nfc", label: "NFC", route: "/nfc/scan" },
   { icon: "tag-multiple", label: "NFCタグ台帳", route: "/nfc/tags" },
   { icon: "cash-register", label: "レジ管理", route: "/pos/register" },
+  { icon: "chart-bar", label: "店舗ダッシュボード", route: "/dashboard" },
   { icon: "cog-outline", label: "設定", route: "/settings" },
 ];
 
