@@ -16,18 +16,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { mobileApi } from "@/lib/api";
+import { MobileApi } from "@/lib/apiContracts";
 
-interface RegisterSession {
-  id: string;
-  status: "open" | "closed";
-  opened_at: string;
-  closed_at: string | null;
-  opening_cash: number;
-  closing_cash: number | null;
-  total_sales: number;
-  total_transactions: number;
-  expected_cash: number;
-}
+type RegisterSession = MobileApi.RegisterSession;
 
 export default function PosRegisterScreen() {
   const { user, selectedStore } = useAuthStore();
@@ -67,10 +58,13 @@ export default function PosRegisterScreen() {
       if (isNaN(amount) || amount < 0) {
         throw new Error("正しい金額を入力してください");
       }
-      return mobileApi(`/registers/${selectedStore!.id}/open`, {
-        method: "POST",
-        body: { opening_cash: amount },
-      });
+      return mobileApi<MobileApi.OpenRegisterResponse>(
+        `/registers/${selectedStore!.id}/open`,
+        {
+          method: "POST",
+          body: { opening_cash: amount },
+        }
+      );
     },
     onSuccess: () => {
       setOpeningCash("");
@@ -92,10 +86,13 @@ export default function PosRegisterScreen() {
       if (isNaN(amount) || amount < 0) {
         throw new Error("正しい金額を入力してください");
       }
-      return mobileApi(`/registers/${selectedStore!.id}/close`, {
-        method: "POST",
-        body: { closing_cash: amount },
-      });
+      return mobileApi<MobileApi.CloseRegisterResponse>(
+        `/registers/${selectedStore!.id}/close`,
+        {
+          method: "POST",
+          body: { closing_cash: amount },
+        }
+      );
     },
     onSuccess: () => {
       setClosingCash("");

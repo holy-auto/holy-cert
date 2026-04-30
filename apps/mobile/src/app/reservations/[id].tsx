@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { mobileApi } from "@/lib/api";
+import { MobileApi } from "@/lib/apiContracts";
 
 interface Reservation {
   id: string;
@@ -93,7 +94,10 @@ export default function ReservationDetailScreen() {
 
   const checkinMutation = useMutation({
     mutationFn: () =>
-      mobileApi(`/reservations/${id}/checkin`, { method: "POST" }),
+      mobileApi<MobileApi.CheckinReservationResponse>(
+        `/reservations/${id}/checkin`,
+        { method: "POST" }
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservation", id] });
     },
@@ -101,7 +105,10 @@ export default function ReservationDetailScreen() {
 
   const startMutation = useMutation({
     mutationFn: () =>
-      mobileApi(`/reservations/${id}/start`, { method: "POST" }),
+      mobileApi<MobileApi.StartReservationResponse>(
+        `/reservations/${id}/start`,
+        { method: "POST" }
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservation", id] });
     },
@@ -109,7 +116,10 @@ export default function ReservationDetailScreen() {
 
   const completeMutation = useMutation({
     mutationFn: () =>
-      mobileApi(`/reservations/${id}/complete`, { method: "POST" }),
+      mobileApi<MobileApi.CompleteReservationResponse>(
+        `/reservations/${id}/complete`,
+        { method: "POST" }
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservation", id] });
     },

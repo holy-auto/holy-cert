@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { mobileApi } from "@/lib/api";
+import { MobileApi } from "@/lib/apiContracts";
 
 interface CertificateDetail {
   id: string;
@@ -84,7 +85,10 @@ export default function CertificateDetailScreen() {
 
   const activateMutation = useMutation({
     mutationFn: () =>
-      mobileApi(`/certificates/${id}/activate`, { method: "POST" }),
+      mobileApi<MobileApi.ActivateCertificateResponse>(
+        `/certificates/${id}/activate`,
+        { method: "POST" }
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["certificate", id] });
       queryClient.invalidateQueries({ queryKey: ["certificates"] });
@@ -93,10 +97,13 @@ export default function CertificateDetailScreen() {
 
   const voidMutation = useMutation({
     mutationFn: (reason: string) =>
-      mobileApi(`/certificates/${id}/void`, {
-        method: "POST",
-        body: { reason },
-      }),
+      mobileApi<MobileApi.VoidCertificateResponse>(
+        `/certificates/${id}/void`,
+        {
+          method: "POST",
+          body: { reason },
+        }
+      ),
     onSuccess: () => {
       setVoidDialogVisible(false);
       setVoidReason("");
