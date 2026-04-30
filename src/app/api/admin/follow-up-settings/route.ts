@@ -4,10 +4,20 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiJson, apiUnauthorized, apiInternalError, apiValidationError } from "@/lib/api/response";
 
+/**
+ * 施工種別ごとのメンテナンス月数 override の zod スキーマ。
+ * キーは小文字英数 + アンダースコアのみ許可 (DB 側に流す前のサニタイズ)。
+ */
+const maintenanceScheduleByServiceSchema = z
+  .record(z.string().regex(/^[a-z0-9_]+$/), z.array(z.coerce.number().int().min(1).max(120)).max(10))
+  .default({});
+
 const followUpSettingsSchema = z.object({
   reminder_days_before: z.array(z.coerce.number().int().positive()).max(10).default([30, 7, 1]),
   follow_up_days_after: z.array(z.coerce.number().int().positive()).max(10).default([90, 180]),
   enabled: z.boolean().default(true),
+  maintenance_reminder_months: z.array(z.coerce.number().int().min(1).max(120)).max(10).default([6, 12]),
+  maintenance_schedule_by_service: maintenanceScheduleByServiceSchema,
 });
 
 export const dynamic = "force-dynamic";
@@ -21,7 +31,9 @@ export async function GET() {
 
     const { data } = await supabase
       .from("follow_up_settings")
-      .select("reminder_days_before, follow_up_days_after, enabled")
+      .select(
+        "reminder_days_before, follow_up_days_after, enabled, maintenance_reminder_months, maintenance_schedule_by_service",
+      )
       .eq("tenant_id", caller.tenantId)
       .maybeSingle();
 
@@ -30,6 +42,8 @@ export async function GET() {
         reminder_days_before: [30, 7, 1],
         follow_up_days_after: [90, 180],
         enabled: true,
+        maintenance_reminder_months: [6, 12],
+        maintenance_schedule_by_service: {},
       },
     });
   } catch (e: unknown) {

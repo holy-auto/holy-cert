@@ -805,6 +805,93 @@ export async function processMaintenanceReminders(
 }
 
 /**
+ * メンテナンスリマインダーの dry-run プレビュー入力。
+ *
+ * cron が実際に走る前に「これから N 日以内に何件・誰に送られそうか」を
+ * 管理 UI で見せるための純関数。DB アクセスは呼び出し側で済ませ、
+ * その結果 (cert + customer フラット配列) を渡してもらう。
+ */
+export interface MaintenancePreviewCertInput {
+  certId: string;
+  serviceType: string | null;
+  serviceName: string | null;
+  createdAt: string; // ISO timestamp
+  customerName: string | null;
+  customerEmail: string | null;
+  customerLineUserId: string | null;
+  customerOptOut: boolean;
+}
+
+export interface MaintenancePreviewItem {
+  certId: string;
+  scheduledDate: string; // YYYY-MM-DD (送信予定日)
+  monthsSince: number;
+  serviceType: string | null;
+  serviceName: string | null;
+  customerName: string;
+  channel: "line" | "email" | "none";
+}
+
+/**
+ * 設定 + 候補リスト + 期間から「次に送られる予定のリスト」を返す。
+ *
+ * - `today` から `today + days` 日以内に送信される節目のみ採用
+ * - service_type 別ルールに合致しないものは除外
+ * - customerOptOut の顧客は除外
+ * - 連絡手段が無い顧客 (line_user_id も email も無し) は channel: 'none'
+ *   で出して理由を可視化
+ */
+export function previewMaintenanceTargets(args: {
+  setting: Pick<FollowUpSetting, "maintenance_reminder_months" | "maintenance_schedule_by_service">;
+  certs: MaintenancePreviewCertInput[];
+  today: Date;
+  days: number;
+}): MaintenancePreviewItem[] {
+  const { setting, certs, today, days } = args;
+  const defaultMonths = (setting.maintenance_reminder_months ?? [6, 12]).filter((m) => m > 0 && m <= 120);
+  const byService = setting.maintenance_schedule_by_service ?? {};
+
+  const out: MaintenancePreviewItem[] = [];
+  for (const c of certs) {
+    if (c.customerOptOut) continue;
+    const months = pickMaintenanceMonths(c.serviceType, byService, defaultMonths);
+    if (!months.length) continue;
+
+    const created = new Date(c.createdAt);
+    if (Number.isNaN(created.getTime())) continue;
+
+    for (const m of months) {
+      const scheduled = new Date(created);
+      const day = scheduled.getDate();
+      scheduled.setMonth(scheduled.getMonth() + m);
+      // 月末オーバーフロー (例: 1/31 + 1 month → 3/3) を月末に丸める
+      if (scheduled.getDate() !== day) scheduled.setDate(0);
+
+      const diffDays = Math.floor((scheduled.getTime() - startOfDay(today).getTime()) / 86_400_000);
+      if (diffDays < 0 || diffDays > days) continue;
+
+      out.push({
+        certId: c.certId,
+        scheduledDate: scheduled.toISOString().slice(0, 10),
+        monthsSince: m,
+        serviceType: c.serviceType,
+        serviceName: c.serviceName,
+        customerName: c.customerName ?? "(顧客名なし)",
+        channel: c.customerLineUserId ? "line" : c.customerEmail ? "email" : "none",
+      });
+    }
+  }
+
+  // 送信予定日 → 顧客名で安定ソート (同じ日に複数件あったときに UI が安定)
+  out.sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate) || a.customerName.localeCompare(b.customerName));
+  return out;
+}
+
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/**
  * AI 文面の生成に失敗した / プランが対象外のときの LINE フォールバック文面。
  * LINE は 200 文字程度を超えると一部端末で省略表示になるので簡潔に。
  */

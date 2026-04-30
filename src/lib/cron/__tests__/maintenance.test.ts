@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   monthsBackDateStr,
   pickMaintenanceMonths,
+  previewMaintenanceTargets,
   processMaintenanceReminders,
   type FollowUpSetting,
+  type MaintenancePreviewCertInput,
   type TenantInfo,
 } from "../followUp";
 
@@ -502,5 +504,126 @@ describe("processMaintenanceReminders", () => {
     );
     expect(sent).toBe(0);
     expect(world.insertCalls.find((c) => c.table === "notification_logs")).toBeUndefined();
+  });
+});
+
+/**
+ * previewMaintenanceTargets は管理 UI の dry-run 用 純関数。
+ * 「N 日以内に送られる予定」のリストを純粋に signals + cert + customer から
+ * 計算する。実際の送信や DB 書込は行わない。
+ */
+const previewCert = (over: Partial<MaintenancePreviewCertInput> = {}): MaintenancePreviewCertInput => ({
+  certId: "c-" + Math.random().toString(36).slice(2, 6),
+  serviceType: "ppf",
+  serviceName: "PPF",
+  createdAt: "2025-10-29T10:00:00Z",
+  customerName: "山田",
+  customerEmail: "u1@example.com",
+  customerLineUserId: null,
+  customerOptOut: false,
+  ...over,
+});
+
+describe("previewMaintenanceTargets", () => {
+  const PREVIEW_TODAY = new Date("2026-04-29T00:00:00Z");
+
+  it("includes a cert that hits the 6-month milestone today (within window)", () => {
+    const items = previewMaintenanceTargets({
+      setting: { maintenance_reminder_months: [6, 12], maintenance_schedule_by_service: {} },
+      certs: [previewCert()],
+      today: PREVIEW_TODAY,
+      days: 30,
+    });
+    expect(items).toHaveLength(1);
+    expect(items[0].monthsSince).toBe(6);
+    expect(items[0].scheduledDate).toBe("2026-04-29");
+    expect(items[0].channel).toBe("email");
+  });
+
+  it("excludes a cert whose anniversary is outside the window", () => {
+    // 12 ヶ月 = 2026-10-29 (180 日後) → days=30 では出ない
+    const items = previewMaintenanceTargets({
+      setting: { maintenance_reminder_months: [6, 12], maintenance_schedule_by_service: {} },
+      certs: [previewCert()],
+      today: PREVIEW_TODAY,
+      days: 30,
+    });
+    expect(items.filter((i) => i.monthsSince === 12)).toHaveLength(0);
+  });
+
+  it("respects service_type override (ppf disabled, coating enabled)", () => {
+    const items = previewMaintenanceTargets({
+      setting: {
+        maintenance_reminder_months: [6, 12],
+        maintenance_schedule_by_service: { ppf: [], coating: [6] },
+      },
+      certs: [previewCert({ certId: "c1", serviceType: "ppf" }), previewCert({ certId: "c2", serviceType: "coating" })],
+      today: PREVIEW_TODAY,
+      days: 30,
+    });
+    expect(items.map((i) => i.certId)).toEqual(["c2"]);
+  });
+
+  it("excludes opted-out customers", () => {
+    const items = previewMaintenanceTargets({
+      setting: { maintenance_reminder_months: [6], maintenance_schedule_by_service: {} },
+      certs: [previewCert({ customerOptOut: true })],
+      today: PREVIEW_TODAY,
+      days: 30,
+    });
+    expect(items).toHaveLength(0);
+  });
+
+  it("reports channel: 'line' when line_user_id is present, 'email' otherwise", () => {
+    const items = previewMaintenanceTargets({
+      setting: { maintenance_reminder_months: [6], maintenance_schedule_by_service: {} },
+      certs: [
+        previewCert({ certId: "c1", customerLineUserId: "U-1", customerName: "A" }),
+        previewCert({ certId: "c2", customerLineUserId: null, customerEmail: "b@example.com", customerName: "B" }),
+      ],
+      today: PREVIEW_TODAY,
+      days: 30,
+    });
+    const byCert = Object.fromEntries(items.map((i) => [i.certId, i.channel]));
+    expect(byCert["c1"]).toBe("line");
+    expect(byCert["c2"]).toBe("email");
+  });
+
+  it("reports channel: 'none' when neither email nor LINE is reachable", () => {
+    const items = previewMaintenanceTargets({
+      setting: { maintenance_reminder_months: [6], maintenance_schedule_by_service: {} },
+      certs: [previewCert({ customerLineUserId: null, customerEmail: null })],
+      today: PREVIEW_TODAY,
+      days: 30,
+    });
+    expect(items).toHaveLength(1);
+    expect(items[0].channel).toBe("none");
+  });
+
+  it("sorts items by scheduled_date then customer name", () => {
+    const items = previewMaintenanceTargets({
+      setting: { maintenance_reminder_months: [6], maintenance_schedule_by_service: {} },
+      certs: [
+        previewCert({ certId: "c1", createdAt: "2025-10-30T00:00:00Z", customerName: "B" }),
+        previewCert({ certId: "c2", createdAt: "2025-10-29T00:00:00Z", customerName: "A" }),
+        previewCert({ certId: "c3", createdAt: "2025-10-30T00:00:00Z", customerName: "A" }),
+      ],
+      today: PREVIEW_TODAY,
+      days: 30,
+    });
+    const dates = items.map((i) => i.scheduledDate);
+    const names = items.map((i) => i.customerName);
+    expect(dates).toEqual(["2026-04-29", "2026-04-30", "2026-04-30"]);
+    expect(names).toEqual(["A", "A", "B"]);
+  });
+
+  it("skips certs with malformed createdAt rather than throwing", () => {
+    const items = previewMaintenanceTargets({
+      setting: { maintenance_reminder_months: [6], maintenance_schedule_by_service: {} },
+      certs: [previewCert({ createdAt: "not-a-date" })],
+      today: PREVIEW_TODAY,
+      days: 30,
+    });
+    expect(items).toHaveLength(0);
   });
 });
