@@ -8,9 +8,9 @@ export const AdminV2Login: React.FC = () => (
     <ScreenshotSlide
       file="screenshots/admin/login.png"
       step="手順 1"
-      title="管理者ポータルへのログイン"
-      description="ブラウザで管理者ポータルのURLを開きます。メールアドレスと初期パスワードを入力し「ログイン」をクリックしてください。パスワードは管理者から受け取ります。"
-      subtext="URLは https://[yourshop].ledra.jp/login です（テナントURLは管理者から通知されます）。"
+      title="加盟店ポータルへのログイン"
+      description="ブラウザで加盟店ポータルのURLを開きます。メールアドレスと初期パスワードを入力し「ログイン」をクリックしてください。ログイン情報はLedraサポートから送付されます。"
+      subtext="URL: https://[yourshop].ledra.jp/login（テナントURLはLedraの担当者から通知されます）。"
     />
   </AbsoluteFill>
 );

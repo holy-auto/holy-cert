@@ -66,7 +66,7 @@ export const AdminV2Intro: React.FC = () => {
           position: "relative",
         }}
       >
-        管理者ポータル — 操作ガイド
+        加盟店ポータル — 操作ガイド
       </div>
 
       {/* Big title */}
@@ -87,7 +87,7 @@ export const AdminV2Intro: React.FC = () => {
             whiteSpace: "pre-line",
           }}
         >
-          {"管理者\nポータル 操作ガイド"}
+          {"加盟店\nポータル"}
         </div>
       </div>
 
