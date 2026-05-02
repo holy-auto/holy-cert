@@ -1,0 +1,21 @@
+diff --git a/node_modules/react-native-nfc-manager/app.plugin.js b/node_modules/react-native-nfc-manager/app.plugin.js
+--- a/node_modules/react-native-nfc-manager/app.plugin.js
++++ b/node_modules/react-native-nfc-manager/app.plugin.js
+@@ -39,13 +39,11 @@ function addValuesToArray(obj, key, values) {
+   return obj;
+ }
+
+-function withIosNfcEntitlement(c, {includeNdefEntitlement}) {
++function withIosNfcEntitlement(c, _opts) {
+   return withEntitlementsPlist(c, (config) => {
+-    // Add the required formats
+-    let entitlements = ['NDEF', 'TAG']
+-    if (includeNdefEntitlement === false) {
+-      entitlements = ['TAG']
+-    }
++    // NDEF is disallowed in iOS SDK 26+ (Apple validation 90778).
++    // Force TAG only; NDEF reader still works via NFCNDEFReaderSession.
++    const entitlements = ['TAG'];
+     config.modResults = addValuesToArray(
+       config.modResults,
+       'com.apple.developer.nfc.readersession.formats',
