@@ -14,8 +14,7 @@ do $$ begin
   -- ─────────────────────────────────────────
   insert into insurers (
     id, name, slug, plan_tier, is_active,
-    contact_email, contact_phone, address,
-    max_users
+    contact_email, contact_phone, address
   ) values (
     '00000000-0000-0000-0000-de0000000100'::uuid,
     'デモ損害保険株式会社',
@@ -24,8 +23,7 @@ do $$ begin
     true,
     'demo@insurer.ledra.test',
     '03-0000-0100',
-    '東京都港区デモ虎ノ門1-2-3 デモ虎ノ門ビル 10F',
-    20
+    '東京都港区デモ虎ノ門1-2-3 デモ虎ノ門ビル 10F'
   )
   on conflict (id) do nothing;
 
