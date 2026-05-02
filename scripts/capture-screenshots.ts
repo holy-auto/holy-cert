@@ -49,8 +49,10 @@ async function captureAdmin(browser: ReturnType<typeof chromium.launch> extends 
   await page.locator('input[name="email"]').fill(ADMIN_EMAIL);
   await page.locator('input[name="password"]').fill(ADMIN_PASSWORD);
   await page.locator('button[type="submit"]').click();
-  await page.waitForURL(/\/admin/, { timeout: 20000 });
-  await page.waitForTimeout(1200);
+  // Wait until we leave the login page (redirect can go to any URL)
+  await page.waitForFunction(() => !window.location.pathname.startsWith("/login"), { timeout: 25000 });
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(1500);
 
   // Dashboard
   await go(page, `${BASE_URL}/admin`);
@@ -157,8 +159,9 @@ async function captureInsurer(browser: ReturnType<typeof chromium.launch> extend
   await page.locator('input[name="email"], input[type="email"]').fill(INSURER_EMAIL);
   await page.locator('input[name="password"], input[type="password"]').fill(INSURER_PASSWORD);
   await page.locator('button[type="submit"]').click();
-  await page.waitForURL(/\/insurer\/dashboard/, { timeout: 20000 });
-  await page.waitForTimeout(1200);
+  await page.waitForFunction(() => !window.location.pathname.startsWith("/insurer/login"), { timeout: 25000 });
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(1500);
 
   // Dashboard
   await shot(page, "insurer/dashboard.png");
@@ -228,8 +231,9 @@ async function captureAgent(browser: ReturnType<typeof chromium.launch> extends 
   await page.locator('input[name="email"], input[type="email"]').fill(AGENT_EMAIL);
   await page.locator('input[name="password"], input[type="password"]').fill(AGENT_PASSWORD);
   await page.locator('button[type="submit"]').click();
-  await page.waitForURL(/\/agent\/dashboard/, { timeout: 20000 });
-  await page.waitForTimeout(1200);
+  await page.waitForFunction(() => !window.location.pathname.startsWith("/agent/login"), { timeout: 25000 });
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(1500);
 
   // Dashboard
   await shot(page, "agent/dashboard.png");

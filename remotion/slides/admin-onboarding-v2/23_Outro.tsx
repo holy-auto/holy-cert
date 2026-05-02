@@ -76,7 +76,7 @@ export const AdminV2Outro: React.FC = () => {
       {/* Subtitle */}
       <div style={{ opacity: s(18), position: "relative", maxWidth: 720 }}>
         <p style={{ fontSize: 30, color: TEXT_MUTED, lineHeight: 1.6, margin: 0 }}>
-          管理者ポータルの基本操作を完了しました
+          加盟店ポータルの基本操作を完了しました
         </p>
       </div>
 
@@ -133,7 +133,7 @@ export const AdminV2Outro: React.FC = () => {
           marginTop: 8,
         }}
       >
-        Ledra — 管理者ポータル 操作ガイド
+        Ledra — 加盟店ポータル 操作ガイド
       </div>
     </AbsoluteFill>
   );
