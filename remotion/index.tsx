@@ -86,6 +86,68 @@ import { InsurerUsers } from "./slides/insurer-full/15_Users";
 import { AuditNotifications } from "./slides/insurer-full/16_Audit_Notifications";
 import { InsurerSecurity } from "./slides/insurer-full/17_Security";
 
+// ── Admin オンボーディング V2 (実画面) ────────────────────────────────
+import { AdminV2Intro }           from "./slides/admin-onboarding-v2/00_Intro";
+import { AdminV2Ch1Divider }      from "./slides/admin-onboarding-v2/01_Ch1_Divider";
+import { AdminV2Login }           from "./slides/admin-onboarding-v2/02_Login";
+import { AdminV2Dashboard }       from "./slides/admin-onboarding-v2/03_Dashboard";
+import { AdminV2DashboardWidgets }from "./slides/admin-onboarding-v2/04_DashboardWidgets";
+import { AdminV2Ch2Divider }      from "./slides/admin-onboarding-v2/05_Ch2_Divider";
+import { AdminV2CertList }        from "./slides/admin-onboarding-v2/06_CertList";
+import { AdminV2CertIssue }       from "./slides/admin-onboarding-v2/07_CertIssue";
+import { AdminV2CertDetail }      from "./slides/admin-onboarding-v2/08_CertDetail";
+import { AdminV2Ch3Divider }      from "./slides/admin-onboarding-v2/09_Ch3_Divider";
+import { AdminV2VehicleList }     from "./slides/admin-onboarding-v2/10_VehicleList";
+import { AdminV2VehicleNew }      from "./slides/admin-onboarding-v2/11_VehicleNew";
+import { AdminV2CustomerList }    from "./slides/admin-onboarding-v2/12_CustomerList";
+import { AdminV2CustomerDetail }  from "./slides/admin-onboarding-v2/13_CustomerDetail";
+import { AdminV2Ch4Divider }      from "./slides/admin-onboarding-v2/14_Ch4_Divider";
+import { AdminV2Reservations }    from "./slides/admin-onboarding-v2/15_Reservations";
+import { AdminV2JobWorkflow }     from "./slides/admin-onboarding-v2/16_JobWorkflow";
+import { AdminV2Ch5Divider }      from "./slides/admin-onboarding-v2/17_Ch5_Divider";
+import { AdminV2POS }             from "./slides/admin-onboarding-v2/18_POS";
+import { AdminV2Billing }         from "./slides/admin-onboarding-v2/19_Billing";
+import { AdminV2Ch6Divider }      from "./slides/admin-onboarding-v2/20_Ch6_Divider";
+import { AdminV2Settings }        from "./slides/admin-onboarding-v2/21_Settings";
+import { AdminV2Members }         from "./slides/admin-onboarding-v2/22_Members";
+import { AdminV2Outro }           from "./slides/admin-onboarding-v2/23_Outro";
+
+// ── Insurer オンボーディング V2 (実画面) ──────────────────────────────
+import { InsurerV2Intro }         from "./slides/insurer-onboarding-v2/00_Intro";
+import { InsurerV2Ch1Divider }    from "./slides/insurer-onboarding-v2/01_Ch1_Divider";
+import { InsurerV2Login }         from "./slides/insurer-onboarding-v2/02_Login";
+import { InsurerV2Dashboard }     from "./slides/insurer-onboarding-v2/03_Dashboard";
+import { InsurerV2Search }        from "./slides/insurer-onboarding-v2/04_Search";
+import { InsurerV2CertDetail }    from "./slides/insurer-onboarding-v2/05_CertDetail";
+import { InsurerV2VehicleSearch } from "./slides/insurer-onboarding-v2/06_VehicleSearch";
+import { InsurerV2Ch2Divider }    from "./slides/insurer-onboarding-v2/07_Ch2_Divider";
+import { InsurerV2CaseList }      from "./slides/insurer-onboarding-v2/08_CaseList";
+import { InsurerV2CaseCreate }    from "./slides/insurer-onboarding-v2/09_CaseCreate";
+import { InsurerV2CaseBulk }      from "./slides/insurer-onboarding-v2/10_CaseBulk";
+import { InsurerV2Ch3Divider }    from "./slides/insurer-onboarding-v2/11_Ch3_Divider";
+import { InsurerV2Analytics }     from "./slides/insurer-onboarding-v2/12_Analytics";
+import { InsurerV2Reports }       from "./slides/insurer-onboarding-v2/13_Reports";
+import { InsurerV2Ch4Divider }    from "./slides/insurer-onboarding-v2/14_Ch4_Divider";
+import { InsurerV2Users }         from "./slides/insurer-onboarding-v2/15_Users";
+import { InsurerV2Outro }         from "./slides/insurer-onboarding-v2/16_Outro";
+
+// ── Agent オンボーディング V2 (実画面) ────────────────────────────────
+import { AgentV2Intro }           from "./slides/agent-onboarding-v2/00_Intro";
+import { AgentV2Ch1Divider }      from "./slides/agent-onboarding-v2/01_Ch1_Divider";
+import { AgentV2Login }           from "./slides/agent-onboarding-v2/02_Login";
+import { AgentV2Dashboard }       from "./slides/agent-onboarding-v2/03_Dashboard";
+import { AgentV2Ch2Divider }      from "./slides/agent-onboarding-v2/04_Ch2_Divider";
+import { AgentV2ReferralList }    from "./slides/agent-onboarding-v2/05_ReferralList";
+import { AgentV2ReferralNew }     from "./slides/agent-onboarding-v2/06_ReferralNew";
+import { AgentV2ReferralTracking }from "./slides/agent-onboarding-v2/07_ReferralTracking";
+import { AgentV2Ch3Divider }      from "./slides/agent-onboarding-v2/08_Ch3_Divider";
+import { AgentV2Commissions }     from "./slides/agent-onboarding-v2/09_Commissions";
+import { AgentV2Reports }         from "./slides/agent-onboarding-v2/10_Reports";
+import { AgentV2Ch4Divider }      from "./slides/agent-onboarding-v2/11_Ch4_Divider";
+import { AgentV2Training }        from "./slides/agent-onboarding-v2/12_Training";
+import { AgentV2Materials }       from "./slides/agent-onboarding-v2/13_Materials";
+import { AgentV2Outro }           from "./slides/agent-onboarding-v2/14_Outro";
+
 // ── Agent 完全ガイド ───────────────────────────────────────────────────
 import { AgentFullIntro } from "./slides/agent-full/00_Intro";
 import { AgentCh1Divider } from "./slides/agent-full/01_Ch1_Divider";
@@ -103,6 +165,81 @@ import { AgentCh4Divider } from "./slides/agent-full/12_Ch4_Divider";
 import { Training } from "./slides/agent-full/13_Training";
 import { MaterialsShared } from "./slides/agent-full/14_Materials_Shared";
 import { SupportNotifications } from "./slides/agent-full/15_Support_Notifications";
+
+// ── V2 ラッパーコンポーネント ──────────────────────────────────────────
+// 900 + 6×450 + 16×3000 + 900 = 52500f ≈ 29 min
+const AdminOnboardingV2Video: React.FC = () => (
+  <Slideshow slides={[
+    { component: AdminV2Intro,            frames: 900  },
+    { component: AdminV2Ch1Divider,       frames: 450  },
+    { component: AdminV2Login,            frames: 3000 },
+    { component: AdminV2Dashboard,        frames: 3000 },
+    { component: AdminV2DashboardWidgets, frames: 3000 },
+    { component: AdminV2Ch2Divider,       frames: 450  },
+    { component: AdminV2CertList,         frames: 3000 },
+    { component: AdminV2CertIssue,        frames: 3000 },
+    { component: AdminV2CertDetail,       frames: 3000 },
+    { component: AdminV2Ch3Divider,       frames: 450  },
+    { component: AdminV2VehicleList,      frames: 3000 },
+    { component: AdminV2VehicleNew,       frames: 3000 },
+    { component: AdminV2CustomerList,     frames: 3000 },
+    { component: AdminV2CustomerDetail,   frames: 3000 },
+    { component: AdminV2Ch4Divider,       frames: 450  },
+    { component: AdminV2Reservations,     frames: 3000 },
+    { component: AdminV2JobWorkflow,      frames: 3000 },
+    { component: AdminV2Ch5Divider,       frames: 450  },
+    { component: AdminV2POS,              frames: 3000 },
+    { component: AdminV2Billing,          frames: 3000 },
+    { component: AdminV2Ch6Divider,       frames: 450  },
+    { component: AdminV2Settings,         frames: 3000 },
+    { component: AdminV2Members,          frames: 3000 },
+    { component: AdminV2Outro,            frames: 900  },
+  ]} />
+);
+
+// 900 + 4×450 + 11×3000 + 900 = 36600f ≈ 20 min
+const InsurerOnboardingV2Video: React.FC = () => (
+  <Slideshow slides={[
+    { component: InsurerV2Intro,         frames: 900  },
+    { component: InsurerV2Ch1Divider,    frames: 450  },
+    { component: InsurerV2Login,         frames: 3000 },
+    { component: InsurerV2Dashboard,     frames: 3000 },
+    { component: InsurerV2Search,        frames: 3000 },
+    { component: InsurerV2CertDetail,    frames: 3000 },
+    { component: InsurerV2VehicleSearch, frames: 3000 },
+    { component: InsurerV2Ch2Divider,    frames: 450  },
+    { component: InsurerV2CaseList,      frames: 3000 },
+    { component: InsurerV2CaseCreate,    frames: 3000 },
+    { component: InsurerV2CaseBulk,      frames: 3000 },
+    { component: InsurerV2Ch3Divider,    frames: 450  },
+    { component: InsurerV2Analytics,     frames: 3000 },
+    { component: InsurerV2Reports,       frames: 3000 },
+    { component: InsurerV2Ch4Divider,    frames: 450  },
+    { component: InsurerV2Users,         frames: 3000 },
+    { component: InsurerV2Outro,         frames: 900  },
+  ]} />
+);
+
+// 900 + 4×450 + 9×3000 + 900 = 30600f ≈ 17 min
+const AgentOnboardingV2Video: React.FC = () => (
+  <Slideshow slides={[
+    { component: AgentV2Intro,            frames: 900  },
+    { component: AgentV2Ch1Divider,       frames: 450  },
+    { component: AgentV2Login,            frames: 3000 },
+    { component: AgentV2Dashboard,        frames: 3000 },
+    { component: AgentV2Ch2Divider,       frames: 450  },
+    { component: AgentV2ReferralList,     frames: 3000 },
+    { component: AgentV2ReferralNew,      frames: 3000 },
+    { component: AgentV2ReferralTracking, frames: 3000 },
+    { component: AgentV2Ch3Divider,       frames: 450  },
+    { component: AgentV2Commissions,      frames: 3000 },
+    { component: AgentV2Reports,          frames: 3000 },
+    { component: AgentV2Ch4Divider,       frames: 450  },
+    { component: AgentV2Training,         frames: 3000 },
+    { component: AgentV2Materials,        frames: 3000 },
+    { component: AgentV2Outro,            frames: 900  },
+  ]} />
+);
 
 // ─────────────────────────────────────────────────────────────────────
 // ラッパーコンポーネント
@@ -323,6 +460,33 @@ export const RemotionRoot: React.FC = () => (
       id="AgentFullGuide"
       component={AgentFullGuideVideo}
       durationInFrames={900 + 450 * 4 + 1500 * 11}
+      fps={FPS} width={W} height={H}
+      defaultProps={{}}
+    />
+
+    {/* Admin オンボーディング V2 — 実画面付き (約29分) */}
+    <Composition
+      id="AdminOnboardingV2"
+      component={AdminOnboardingV2Video}
+      durationInFrames={900 + 450 * 6 + 3000 * 16 + 900}
+      fps={FPS} width={W} height={H}
+      defaultProps={{}}
+    />
+
+    {/* Insurer オンボーディング V2 — 実画面付き (約20分) */}
+    <Composition
+      id="InsurerOnboardingV2"
+      component={InsurerOnboardingV2Video}
+      durationInFrames={900 + 450 * 4 + 3000 * 11 + 900}
+      fps={FPS} width={W} height={H}
+      defaultProps={{}}
+    />
+
+    {/* Agent オンボーディング V2 — 実画面付き (約17分) */}
+    <Composition
+      id="AgentOnboardingV2"
+      component={AgentOnboardingV2Video}
+      durationInFrames={900 + 450 * 4 + 3000 * 9 + 900}
       fps={FPS} width={W} height={H}
       defaultProps={{}}
     />

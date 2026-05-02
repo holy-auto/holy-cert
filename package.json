@@ -21,7 +21,8 @@
     "demo:setup-tenant-user": "tsx scripts/setup-demo-tenant-user.ts",
     "demo:reset-tenant": "tsx scripts/setup-demo-tenant.ts --reset",
     "video:studio": "remotion studio remotion/index.tsx",
-    "video:render": "remotion render remotion/index.tsx LedraIntro out/LedraIntro.mp4"
+    "video:render": "remotion render remotion/index.tsx LedraIntro out/LedraIntro.mp4",
+    "screenshots:capture": "tsx scripts/capture-screenshots.ts"
   },
   "overrides": {
     "picomatch": "^4.0.4"

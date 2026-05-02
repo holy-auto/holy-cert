@@ -23,12 +23,30 @@ on:
           - AdminFullGuide
           - InsurerFullGuide
           - AgentFullGuide
+          - AdminOnboardingV2
+          - InsurerOnboardingV2
+          - AgentOnboardingV2
           - ALL
+          - ALL_V2
 
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SECRET_ENCRYPTION_KEY:         ${{ secrets.SECRET_ENCRYPTION_KEY }}
+      CUSTOMER_AUTH_PEPPER:          ${{ secrets.CUSTOMER_AUTH_PEPPER }}
+      NEXT_PUBLIC_APP_URL:           ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+      DEMO_ADMIN_EMAIL:              ${{ secrets.DEMO_ADMIN_EMAIL || 'demo@ledra-motors.example' }}
+      DEMO_ADMIN_PASSWORD:           ${{ secrets.DEMO_ADMIN_PASSWORD || 'Demo1234!' }}
+      DEMO_INSURER_EMAIL:            ${{ secrets.DEMO_INSURER_EMAIL }}
+      DEMO_INSURER_PASSWORD:         ${{ secrets.DEMO_INSURER_PASSWORD }}
+      DEMO_AGENT_EMAIL:              ${{ secrets.DEMO_AGENT_EMAIL }}
+      DEMO_AGENT_PASSWORD:           ${{ secrets.DEMO_AGENT_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -44,11 +62,74 @@ jobs:
       - name: Install Japanese fonts
         run: sudo apt-get install -y fonts-noto-cjk
 
+      # ─── Screenshot capture (only for V2 compositions) ───────────────────
+      - name: Detect if screenshots are needed
+        id: need_shots
+        run: |
+          COMP="${{ inputs.composition || 'LedraIntro' }}"
+          if [[ "$COMP" == *"V2"* ]] || [[ "$COMP" == "ALL_V2" ]] || [[ "$COMP" == "ALL" ]]; then
+            echo "needed=true" >> $GITHUB_OUTPUT
+          else
+            echo "needed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Seed demo tenant
+        if: steps.need_shots.outputs.needed == 'true'
+        run: |
+          npm run demo:setup-tenant
+          npm run demo:setup-tenant-user
+        env:
+          NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY:     ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SECRET_ENCRYPTION_KEY:         ${{ secrets.SECRET_ENCRYPTION_KEY }}
+          CUSTOMER_AUTH_PEPPER:          ${{ secrets.CUSTOMER_AUTH_PEPPER }}
+
+      - name: Start Next.js dev server
+        if: steps.need_shots.outputs.needed == 'true'
+        run: |
+          nohup npm run dev > /tmp/nextjs.log 2>&1 &
+          echo "NEXTJS_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for Next.js to be ready
+        if: steps.need_shots.outputs.needed == 'true'
+        run: |
+          echo "Waiting for http://localhost:3000..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "✅ Next.js ready after ${i}s"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Install Playwright browsers
+        if: steps.need_shots.outputs.needed == 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Capture screenshots
+        if: steps.need_shots.outputs.needed == 'true'
+        run: npx tsx scripts/capture-screenshots.ts
+        env:
+          E2E_BASE_URL:          http://localhost:3000
+          DEMO_ADMIN_EMAIL:      ${{ secrets.DEMO_ADMIN_EMAIL || 'demo@ledra-motors.example' }}
+          DEMO_ADMIN_PASSWORD:   ${{ secrets.DEMO_ADMIN_PASSWORD || 'Demo1234!' }}
+          DEMO_INSURER_EMAIL:    ${{ secrets.DEMO_INSURER_EMAIL }}
+          DEMO_INSURER_PASSWORD: ${{ secrets.DEMO_INSURER_PASSWORD }}
+          DEMO_AGENT_EMAIL:      ${{ secrets.DEMO_AGENT_EMAIL }}
+          DEMO_AGENT_PASSWORD:   ${{ secrets.DEMO_AGENT_PASSWORD }}
+
+      - name: Stop Next.js dev server
+        if: steps.need_shots.outputs.needed == 'true' && always()
+        run: |
+          if [ -n "$NEXTJS_PID" ]; then kill "$NEXTJS_PID" 2>/dev/null || true; fi
+
+      # ─── Remotion render ─────────────────────────────────────────────────
       - name: Install Chrome for Remotion
         run: npx remotion browser ensure
 
       - name: Render — single video
-        if: ${{ github.event_name == 'push' || inputs.composition != 'ALL' }}
+        if: ${{ github.event_name == 'push' || (inputs.composition != 'ALL' && inputs.composition != 'ALL_V2') }}
         run: |
           COMP="${{ inputs.composition || 'LedraIntro' }}"
           mkdir -p out
@@ -60,7 +141,18 @@ jobs:
         if: ${{ inputs.composition == 'ALL' }}
         run: |
           mkdir -p out
-          for COMP in LedraIntro AdminOnboarding InsurerOnboarding AgentOnboarding CertificateDeepDive WorkflowDeepDive AdminFullGuide InsurerFullGuide AgentFullGuide; do
+          for COMP in LedraIntro AdminOnboarding InsurerOnboarding AgentOnboarding CertificateDeepDive WorkflowDeepDive AdminFullGuide InsurerFullGuide AgentFullGuide AdminOnboardingV2 InsurerOnboardingV2 AgentOnboardingV2; do
+            echo "▶ Rendering $COMP ..."
+            npx remotion render remotion/index.tsx "$COMP" "out/${COMP}.mp4" \
+              --codec=h264 \
+              --concurrency=2
+          done
+
+      - name: Render — ALL_V2 videos (screenshot-based)
+        if: ${{ inputs.composition == 'ALL_V2' }}
+        run: |
+          mkdir -p out
+          for COMP in AdminOnboardingV2 InsurerOnboardingV2 AgentOnboardingV2; do
             echo "▶ Rendering $COMP ..."
             npx remotion render remotion/index.tsx "$COMP" "out/${COMP}.mp4" \
               --codec=h264 \
