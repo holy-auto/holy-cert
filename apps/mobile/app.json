@@ -19,9 +19,6 @@
         "NFCReaderUsageDescription": "Ledraは証明書NFCタグの読み取りと書き込みに使用します",
         "NSCameraUsageDescription": "Ledraは施工写真の撮影に使用します",
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "entitlements": {
-        "com.apple.developer.nfc.readersession.formats": ["NDEF", "TAG"]
       }
     },
     "android": {
@@ -80,8 +77,7 @@
       [
         "react-native-nfc-manager",
         {
-          "nfcPermission": "Ledraは証明書NFCタグの読み取りと書き込みに使用します",
-          "includeNdefEntitlement": true
+          "nfcPermission": "Ledraは証明書NFCタグの読み取りと書き込みに使用します"
         }
       ]
     ]

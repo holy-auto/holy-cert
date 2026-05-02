@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, Platform } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import {
@@ -63,14 +63,6 @@ interface ReservationCheckout {
 // iPad では「カード」選択肢を除外
 type PaymentMethod = "cash" | "card" | "qr" | "bank_transfer";
 
-function generateUUID(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
 // ─────────────────────────────────────────────────────────────
 // QR決済ポーリング（Android）
 // Stripe Checkout Session が paid になるまで監視
@@ -107,7 +99,6 @@ function useQrPaymentPoller(
 export default function PosCheckoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, selectedStore } = useAuthStore();
-  const idempotencyKey = useRef(generateUUID()).current;
   const { isIPhone, isIPad, isAndroid } = useDeviceType();
 
   // 支払い方法の初期値：iPad はデフォルト現金
@@ -203,26 +194,35 @@ export default function PosCheckoutScreen() {
           throw new Error(result.error ?? "カード決済失敗");
         }
         // Supabase に記録
+        const itemsJson = (reservation?.reservation_items ?? []).map((it) => ({
+          name: it.menu_item?.name ?? "不明",
+          quantity: it.quantity,
+          unit_price: it.unit_price,
+          amount: it.quantity * it.unit_price,
+        }));
         const { error } = await supabase.rpc("pos_checkout", {
-          p_reservation_id: id,
           p_tenant_id: user!.tenantId,
+          p_reservation_id: id,
           p_store_id: selectedStore!.id,
           p_payment_method: "card",
           p_amount: total,
           p_received_amount: total,
-          p_change_amount: 0,
-          p_cashier_id: user!.id,
-          p_idempotency_key: idempotencyKey,
+          p_items_json: itemsJson,
+          p_user_id: user!.id,
         });
         if (error) throw error;
         return;
       }
 
       // ────────────────────────────────────────────────────────
-      // B. iPad / Android: QRコード決済（Stripe Checkout）
-      //    iPad は Tap to Pay 非対応のため QR で代替
+      // B. QRコード決済（Stripe Checkout）
+      //    iPad/Android: 「カード」ボタン（Tap to Pay 非対応のためQRで代替）
+      //    iPhone:       「QR」ボタン
       // ────────────────────────────────────────────────────────
-      if ((isAndroid || isIPad) && paymentMethod === "card") {
+      const isQrFlow =
+        ((isAndroid || isIPad) && paymentMethod === "card") ||
+        (isIPhone && paymentMethod === "qr");
+      if (isQrFlow) {
         const res = await mobileApi<{ url: string; session_id: string }>(
           "/pos/checkout/qr-session",
           {
@@ -244,21 +244,30 @@ export default function PosCheckoutScreen() {
       // ────────────────────────────────────────────────────────
       // C. 現金・QR(支払方法記録)・振込（全端末共通）
       // ────────────────────────────────────────────────────────
+      const itemsJson = (reservation?.reservation_items ?? []).map((it) => ({
+        name: it.menu_item?.name ?? "不明",
+        quantity: it.quantity,
+        unit_price: it.unit_price,
+        amount: it.quantity * it.unit_price,
+      }));
       const { error } = await supabase.rpc("pos_checkout", {
-        p_reservation_id: id,
         p_tenant_id: user!.tenantId,
+        p_reservation_id: id,
         p_store_id: selectedStore!.id,
         p_payment_method: paymentMethod,
         p_amount: total,
         p_received_amount: paymentMethod === "cash" ? received : total,
-        p_change_amount: change,
-        p_cashier_id: user!.id,
-        p_idempotency_key: idempotencyKey,
+        p_items_json: itemsJson,
+        p_user_id: user!.id,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      if ((isAndroid || isIPad) && paymentMethod === "card") return; // QR はポーリング側で遷移
+      // QRフロー（iPad/Android「カード」or iPhone「QR」）はポーリング側で遷移
+      const isQrFlow =
+        ((isAndroid || isIPad) && paymentMethod === "card") ||
+        (isIPhone && paymentMethod === "qr");
+      if (isQrFlow) return;
       resetPayment();
       router.replace(`/pos/receipt/${id}`);
     },
@@ -280,7 +289,7 @@ export default function PosCheckoutScreen() {
     if (isIPhone) {
       return [
         { value: "cash", label: "現金" },
-        { value: "card", label: "Tap to Pay" },
+        { value: "card", label: "カード" },
         { value: "qr", label: "QR" },
         { value: "bank_transfer", label: "振込" },
       ];
@@ -331,6 +340,7 @@ export default function PosCheckoutScreen() {
       return "Tap to Pay で決済";
     }
     if ((isAndroid || isIPad) && paymentMethod === "card") return "QRコードを表示";
+    if (isIPhone && paymentMethod === "qr") return "QRコードを表示";
     return "決済確定";
   })();
 
@@ -463,8 +473,10 @@ export default function PosCheckoutScreen() {
           </Card>
         )}
 
-        {/* ── Android: QRコード表示エリア ──────────────────────── */}
-        {isAndroid && paymentMethod === "card" && qrUrl && (
+        {/* ── QRコード表示エリア（iPad/Android「カード」 or iPhone「QR」） ──── */}
+        {(((isAndroid || isIPad) && paymentMethod === "card") ||
+          (isIPhone && paymentMethod === "qr")) &&
+          qrUrl && (
           <Card
             style={[styles.card, { backgroundColor: "#f0fdf4" }]}
             mode="outlined"

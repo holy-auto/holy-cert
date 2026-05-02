@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return apiValidationError(parsed.error.issues[0]?.message ?? "invalid payload");
     }
-    const { amount, reservation_id: reservationId, tenant_id: tenantId } = parsed.data;
+    const { amount, tenant_id: tenantId } = parsed.data;
+    const reservationId = parsed.data.reservation_id ?? "";
     const storeId = parsed.data.store_id ?? "";
 
     // テナントの Stripe Connect アカウント取得
