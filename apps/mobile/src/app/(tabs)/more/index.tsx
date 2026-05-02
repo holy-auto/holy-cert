@@ -1,4 +1,10 @@
-import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  useWindowDimensions,
+} from "react-native";
 import { Text, Icon } from "react-native-paper";
 import { router } from "expo-router";
 
@@ -20,13 +26,20 @@ const MENU_ITEMS: MenuItem[] = [
 ];
 
 export default function MoreScreen() {
+  const { width } = useWindowDimensions();
+  const PADDING = 16;
+  const GAP = 12;
+  const COLUMNS = 3;
+  const itemWidth =
+    (width - PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.grid}>
         {MENU_ITEMS.map((item) => (
           <Pressable
             key={item.route}
-            style={styles.gridItem}
+            style={[styles.gridItem, { width: itemWidth, height: itemWidth }]}
             onPress={() => router.push(item.route as never)}
             accessibilityRole="button"
             accessibilityLabel={item.label}
@@ -53,8 +66,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   gridItem: {
-    width: "30%",
-    aspectRatio: 1,
     backgroundColor: "#ffffff",
     borderRadius: 12,
     alignItems: "center",

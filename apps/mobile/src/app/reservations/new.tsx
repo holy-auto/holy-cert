@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   List,
   Snackbar,
+  SegmentedButtons,
 } from "react-native-paper";
 import { router, Stack } from "expo-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -23,7 +24,6 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
-import { mobileApi } from "@/lib/api";
 
 interface Customer {
   id: string;
@@ -33,26 +33,27 @@ interface Customer {
 
 interface Vehicle {
   id: string;
-  plate_number: string;
-  make: string | null;
+  plate_display: string | null;
+  maker: string | null;
   model: string | null;
 }
 
 interface MenuItem {
   id: string;
   name: string;
-  price: number;
-  category: string | null;
+  unit_price: number;
 }
+
+type ReservationType = "scheduled" | "walk_in";
 
 export default function ReservationNewScreen() {
   const { user, selectedStore } = useAuthStore();
 
+  const [reservationType, setReservationType] = useState<ReservationType>("scheduled");
+
   // Form state
   const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null
-  );
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -62,9 +63,7 @@ export default function ReservationNewScreen() {
   const [snackbar, setSnackbar] = useState("");
 
   // Customer search
-  const { data: customers = [], isFetching: searchingCustomers } = useQuery<
-    Customer[]
-  >({
+  const { data: customers = [], isFetching: searchingCustomers } = useQuery<Customer[]>({
     queryKey: ["customers-search", customerSearch],
     queryFn: async () => {
       if (!customerSearch || customerSearch.length < 2) return [];
@@ -86,7 +85,7 @@ export default function ReservationNewScreen() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vehicles")
-        .select("id, plate_number, make, model")
+        .select("id, plate_display, maker, model")
         .eq("customer_id", selectedCustomer!.id)
         .eq("tenant_id", user!.tenantId);
       if (error) throw error;
@@ -97,56 +96,64 @@ export default function ReservationNewScreen() {
 
   // Menu items
   const { data: menuItems = [] } = useQuery<MenuItem[]>({
-    queryKey: ["menu-items", selectedStore?.id],
+    queryKey: ["menu-items-res", user?.tenantId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("menu_items")
-        .select("id, name, price, category")
+        .select("id, name, unit_price")
         .eq("tenant_id", user!.tenantId)
-        .eq("store_id", selectedStore!.id)
         .eq("is_active", true)
-        .order("category")
-        .order("name");
+        .order("sort_order");
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!selectedStore,
+    enabled: !!user?.tenantId,
   });
 
   // Submit
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedCustomer || !selectedVehicle) {
-        throw new Error("顧客と車両を選択してください");
-      }
       if (selectedMenuItems.length === 0) {
         throw new Error("メニューを1つ以上選択してください");
       }
 
-      const scheduledDate = selectedDate.toISOString().split("T")[0];
-      const scheduledTime = selectedDate.toTimeString().slice(0, 5);
+      const isWalkIn = reservationType === "walk_in";
+      const now = new Date();
+
+      const scheduledDate = isWalkIn
+        ? now.toISOString().split("T")[0]
+        : selectedDate.toISOString().split("T")[0];
+      const scheduledTime = isWalkIn
+        ? now.toTimeString().slice(0, 5)
+        : selectedDate.toTimeString().slice(0, 5);
 
       const items = selectedMenuItems.map((menuItemId) => {
         const mi = menuItems.find((m) => m.id === menuItemId);
         return {
           menu_item_id: menuItemId,
           quantity: 1,
-          unit_price: mi?.price ?? 0,
+          unit_price: mi?.unit_price ?? 0,
         };
       });
+
+      const estimatedAmount = items.reduce(
+        (sum, item) => sum + item.quantity * item.unit_price,
+        0,
+      );
 
       const { data, error } = await supabase
         .from("reservations")
         .insert({
           tenant_id: user!.tenantId,
           store_id: selectedStore!.id,
-          customer_id: selectedCustomer.id,
-          vehicle_id: selectedVehicle.id,
+          customer_id: selectedCustomer?.id ?? null,
+          vehicle_id: selectedVehicle?.id ?? null,
           scheduled_date: scheduledDate,
           scheduled_time: scheduledTime,
-          status: "confirmed",
+          status: isWalkIn ? "arrived" : "confirmed",
           payment_status: "unpaid",
           notes: notes || null,
+          estimated_amount: estimatedAmount,
         })
         .select("id")
         .single();
@@ -160,7 +167,7 @@ export default function ReservationNewScreen() {
             items.map((item) => ({
               reservation_id: data.id,
               ...item,
-            }))
+            })),
           );
         if (itemsError) throw itemsError;
       }
@@ -177,25 +184,51 @@ export default function ReservationNewScreen() {
 
   function toggleMenuItem(id: string) {
     setSelectedMenuItems((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }
 
   const total = selectedMenuItems.reduce((sum, id) => {
     const mi = menuItems.find((m) => m.id === id);
-    return sum + (mi?.price ?? 0);
+    return sum + (mi?.unit_price ?? 0);
   }, 0);
+
+  const isWalkIn = reservationType === "walk_in";
 
   return (
     <>
-      <Stack.Screen options={{ title: "予約作成" }} />
+      <Stack.Screen options={{ title: isWalkIn ? "飛び込み受付" : "予約作成" }} />
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-        {/* Customer Picker */}
+        {/* 予約タイプ */}
         <Card style={styles.card} mode="outlined">
           <Card.Content>
             <Text variant="titleMedium" style={styles.heading}>
-              顧客
+              受付タイプ
             </Text>
+            <SegmentedButtons
+              value={reservationType}
+              onValueChange={(v) => setReservationType(v as ReservationType)}
+              buttons={[
+                { value: "scheduled", label: "予約", icon: "calendar-check" },
+                { value: "walk_in", label: "飛び込み", icon: "walk" },
+              ]}
+            />
+          </Card.Content>
+        </Card>
+
+        {/* Customer Picker */}
+        <Card style={styles.card} mode="outlined">
+          <Card.Content>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleMedium" style={styles.heading}>
+                顧客
+              </Text>
+              {isWalkIn && (
+                <Chip compact style={styles.optionalChip}>
+                  <Text style={styles.optionalText}>任意</Text>
+                </Chip>
+              )}
+            </View>
             {selectedCustomer ? (
               <View style={styles.selectedRow}>
                 <View style={{ flex: 1 }}>
@@ -249,9 +282,16 @@ export default function ReservationNewScreen() {
         {selectedCustomer && (
           <Card style={styles.card} mode="outlined">
             <Card.Content>
-              <Text variant="titleMedium" style={styles.heading}>
-                車両
-              </Text>
+              <View style={styles.sectionHeader}>
+                <Text variant="titleMedium" style={styles.heading}>
+                  車両
+                </Text>
+                {isWalkIn && (
+                  <Chip compact style={styles.optionalChip}>
+                    <Text style={styles.optionalText}>任意</Text>
+                  </Chip>
+                )}
+              </View>
               {vehicles.length === 0 ? (
                 <Text variant="bodyMedium" style={styles.subText}>
                   この顧客の車両がありません
@@ -269,14 +309,13 @@ export default function ReservationNewScreen() {
                     <Text
                       variant="bodyLarge"
                       style={{
-                        fontWeight:
-                          selectedVehicle?.id === v.id ? "700" : "400",
+                        fontWeight: selectedVehicle?.id === v.id ? "700" : "400",
                       }}
                     >
-                      {v.plate_number}
+                      {v.plate_display ?? "ナンバー未登録"}
                     </Text>
                     <Text variant="bodySmall" style={styles.subText}>
-                      {[v.make, v.model].filter(Boolean).join(" ")}
+                      {[v.maker, v.model].filter(Boolean).join(" ")}
                     </Text>
                   </TouchableOpacity>
                 ))
@@ -285,57 +324,70 @@ export default function ReservationNewScreen() {
           </Card>
         )}
 
-        {/* Date/Time Picker */}
-        <Card style={styles.card} mode="outlined">
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.heading}>
-              日時
-            </Text>
-            <View style={styles.dateRow}>
-              <Button
-                mode="outlined"
-                icon="calendar"
-                onPress={() => setShowDatePicker(true)}
-                style={{ flex: 1, marginRight: 8 }}
-              >
-                {selectedDate.toLocaleDateString("ja-JP")}
-              </Button>
-              <Button
-                mode="outlined"
-                icon="clock-outline"
-                onPress={() => setShowTimePicker(true)}
-                style={{ flex: 1 }}
-              >
-                {selectedDate.toLocaleTimeString("ja-JP", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Button>
-            </View>
-            {showDatePicker && (
-              <DateTimePicker
-                value={selectedDate}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(_, date) => {
-                  setShowDatePicker(false);
-                  if (date) setSelectedDate(date);
-                }}
-              />
-            )}
-            {showTimePicker && (
-              <DateTimePicker
-                value={selectedDate}
-                mode="time"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(_, date) => {
-                  setShowTimePicker(false);
-                  if (date) setSelectedDate(date);
-                }}
-              />
-            )}
-          </Card.Content>
-        </Card>
+        {/* Date/Time Picker（予約モードのみ） */}
+        {!isWalkIn && (
+          <Card style={styles.card} mode="outlined">
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.heading}>
+                日時
+              </Text>
+              <View style={styles.dateRow}>
+                <Button
+                  mode="outlined"
+                  icon="calendar"
+                  onPress={() => setShowDatePicker(true)}
+                  style={{ flex: 1, marginRight: 8 }}
+                >
+                  {selectedDate.toLocaleDateString("ja-JP")}
+                </Button>
+                <Button
+                  mode="outlined"
+                  icon="clock-outline"
+                  onPress={() => setShowTimePicker(true)}
+                  style={{ flex: 1 }}
+                >
+                  {selectedDate.toLocaleTimeString("ja-JP", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Button>
+              </View>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  onChange={(_, date) => {
+                    setShowDatePicker(false);
+                    if (date) setSelectedDate(date);
+                  }}
+                />
+              )}
+              {showTimePicker && (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="time"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  onChange={(_, date) => {
+                    setShowTimePicker(false);
+                    if (date) setSelectedDate(date);
+                  }}
+                />
+              )}
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* 飛び込みモード情報 */}
+        {isWalkIn && (
+          <Card style={[styles.card, styles.walkInInfoCard]} mode="outlined">
+            <Card.Content style={styles.walkInInfoContent}>
+              <Text variant="bodyMedium" style={styles.walkInInfoText}>
+                本日の日時で「来店済」ステータスとして登録されます
+              </Text>
+            </Card.Content>
+          </Card>
+        )}
 
         {/* Menu Items Multi-select */}
         <Card style={styles.card} mode="outlined">
@@ -352,10 +404,14 @@ export default function ReservationNewScreen() {
                   style={styles.chip}
                   showSelectedCheck
                 >
-                  {mi.name} ({"\u00a5"}
-                  {mi.price.toLocaleString()})
+                  {mi.name} (¥{mi.unit_price.toLocaleString()})
                 </Chip>
               ))}
+              {menuItems.length === 0 && (
+                <Text variant="bodySmall" style={styles.subText}>
+                  メニューが未登録です
+                </Text>
+              )}
             </View>
             {selectedMenuItems.length > 0 && (
               <Text
@@ -366,8 +422,7 @@ export default function ReservationNewScreen() {
                   textAlign: "right",
                 }}
               >
-                合計: {"\u00a5"}
-                {total.toLocaleString()}
+                合計: ¥{total.toLocaleString()}
               </Text>
             )}
           </Card.Content>
@@ -394,19 +449,18 @@ export default function ReservationNewScreen() {
         <View style={styles.submitArea}>
           <Button
             mode="contained"
-            icon="check"
+            icon={isWalkIn ? "walk" : "check"}
             onPress={() => createMutation.mutate()}
             loading={createMutation.isPending}
             disabled={
               createMutation.isPending ||
-              !selectedCustomer ||
-              !selectedVehicle ||
-              selectedMenuItems.length === 0
+              selectedMenuItems.length === 0 ||
+              (!isWalkIn && (!selectedCustomer || !selectedVehicle))
             }
             style={styles.submitButton}
             buttonColor="#1a1a2e"
           >
-            予約を作成
+            {isWalkIn ? "飛び込み受付を作成" : "予約を作成"}
           </Button>
         </View>
 
@@ -432,6 +486,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   heading: { fontWeight: "700", color: "#1a1a2e", marginBottom: 8 },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  optionalChip: { backgroundColor: "#f4f4f5" },
+  optionalText: { fontSize: 11, color: "#71717a" },
   subText: { color: "#71717a", marginTop: 2 },
   selectedRow: {
     flexDirection: "row",
@@ -455,6 +517,19 @@ const styles = StyleSheet.create({
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  walkInInfoCard: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#93c5fd",
+  },
+  walkInInfoContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  walkInInfoText: {
+    color: "#1d4ed8",
+    fontWeight: "600",
   },
   chipContainer: {
     flexDirection: "row",
