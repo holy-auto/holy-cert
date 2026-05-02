@@ -280,7 +280,7 @@ export default function PosCheckoutScreen() {
     if (isIPhone) {
       return [
         { value: "cash", label: "現金" },
-        { value: "card", label: "Tap to Pay" },
+        { value: "card", label: "カード" },
         { value: "qr", label: "QR" },
         { value: "bank_transfer", label: "振込" },
       ];
@@ -463,8 +463,8 @@ export default function PosCheckoutScreen() {
           </Card>
         )}
 
-        {/* ── Android: QRコード表示エリア ──────────────────────── */}
-        {isAndroid && paymentMethod === "card" && qrUrl && (
+        {/* ── Android/iPad: QRコード表示エリア ──────────────────── */}
+        {(isAndroid || isIPad) && paymentMethod === "card" && qrUrl && (
           <Card
             style={[styles.card, { backgroundColor: "#f0fdf4" }]}
             mode="outlined"
