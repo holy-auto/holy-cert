@@ -2,11 +2,14 @@ import { supabase } from "./supabase";
 
 export type AppRole = "super_admin" | "owner" | "admin" | "staff" | "viewer";
 
+export type PlanTier = "mini" | "standard" | "pro";
+
 export interface UserProfile {
   id: string;
   email: string;
   tenantId: string;
   tenantName: string;
+  planTier: PlanTier;
   role: AppRole;
   storeIds: string[];
 }
@@ -28,7 +31,8 @@ export async function fetchUserProfile(): Promise<UserProfile | null> {
       tenant_id,
       role,
       tenants (
-        name
+        name,
+        plan_tier
       )
     `
     )
@@ -40,13 +44,14 @@ export async function fetchUserProfile(): Promise<UserProfile | null> {
     return null;
   }
 
-  const tenant = membership.tenants as unknown as { name: string } | null;
+  const tenant = membership.tenants as unknown as { name: string; plan_tier: string } | null;
 
   return {
     id: user.id,
     email: user.email ?? "",
     tenantId: membership.tenant_id,
     tenantName: tenant?.name ?? "",
+    planTier: (tenant?.plan_tier ?? "mini") as PlanTier,
     role: membership.role as AppRole,
     storeIds: [],
   };

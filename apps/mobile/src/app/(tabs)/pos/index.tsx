@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { View, StyleSheet, FlatList, RefreshControl } from "react-native";
-import { Text, Card, Chip } from "react-native-paper";
+import { Text, Card, Chip, Icon } from "react-native-paper";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
@@ -130,6 +130,28 @@ export default function PosScreen() {
           <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
         }
         contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <Card
+            style={styles.walkInCard}
+            mode="outlined"
+            onPress={() => router.push("/pos/walk-in")}
+          >
+            <Card.Content style={styles.walkInContent}>
+              <View style={styles.walkInIcon}>
+                <Icon source="plus-circle" size={24} color="#ffffff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="titleSmall" style={styles.walkInTitle}>
+                  新規会計（飛び込み）
+                </Text>
+                <Text variant="bodySmall" style={styles.walkInSub}>
+                  予約なしのお客様の会計を作成
+                </Text>
+              </View>
+              <Icon source="chevron-right" size={24} color="#71717a" />
+            </Card.Content>
+          </Card>
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text variant="bodyMedium" style={styles.emptyText}>
@@ -176,6 +198,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
   },
+  walkInCard: {
+    backgroundColor: "#ffffff",
+    marginBottom: 12,
+  },
+  walkInContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  walkInIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#1a1a2e",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  walkInTitle: { fontWeight: "700", color: "#1a1a2e" },
+  walkInSub: { color: "#71717a", marginTop: 2 },
   empty: { alignItems: "center", paddingTop: 48 },
   emptyText: { color: "#71717a" },
 });

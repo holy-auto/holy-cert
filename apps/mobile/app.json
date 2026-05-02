@@ -73,7 +73,8 @@
           "appDelegate": true
         }
       ],
-      "./plugins/withRemoveTapToPayEntitlement"
+      "./plugins/withRemoveTapToPayEntitlement",
+      "react-native-nfc-manager"
     ]
   }
 }

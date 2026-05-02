@@ -71,7 +71,6 @@ export default function TabsLayout() {
         name="more"
         options={{
           title: "その他",
-          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Icon source="dots-horizontal" size={size} color={color} />
           ),
