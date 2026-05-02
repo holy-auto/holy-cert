@@ -21,7 +21,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
-        "com.apple.developer.nfc.readersession.formats": ["NDEF", "TAG"]
+        "com.apple.developer.nfc.readersession.formats": ["TAG"]
       }
     },
     "android": {
@@ -81,7 +81,7 @@
         "react-native-nfc-manager",
         {
           "nfcPermission": "Ledraは証明書NFCタグの読み取りと書き込みに使用します",
-          "includeNdefEntitlement": true
+          "includeNdefEntitlement": false
         }
       ]
     ]
