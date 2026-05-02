@@ -1,26 +1,32 @@
-import { continueRender, delayRender } from "remotion";
+import { continueRender, delayRender, staticFile } from "remotion";
 
 /**
- * Loads Inter + Noto Sans JP from Google Fonts before Remotion renders any frame.
- * Called at module level so it runs once per Remotion evaluation context.
+ * Loads Noto Sans JP from the bundled public/fonts/ TTF files.
+ * Uses delayRender so Remotion waits for the font before rendering any frame.
  */
-export const FONT = "'Inter', 'Noto Sans JP', sans-serif";
+export const FONT = "'Noto Sans JP', sans-serif";
 
 if (typeof document !== "undefined") {
-  const handle = delayRender("Loading Inter + Noto Sans JP");
+  const handle = delayRender("Loading Noto Sans JP");
 
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href =
-    "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700;800&display=block";
+  const loadFonts = async () => {
+    const [f400, f700] = await Promise.all([
+      new FontFace(
+        "Noto Sans JP",
+        `url(${staticFile("fonts/NotoSansJP-400.ttf")}) format("truetype")`,
+        { weight: "400", style: "normal" }
+      ).load(),
+      new FontFace(
+        "Noto Sans JP",
+        `url(${staticFile("fonts/NotoSansJP-700.ttf")}) format("truetype")`,
+        { weight: "700", style: "normal" }
+      ).load(),
+    ]);
+    document.fonts.add(f400);
+    document.fonts.add(f700);
+  };
 
-  const done = () => continueRender(handle);
-  link.addEventListener("load", done);
-  link.addEventListener("error", done); // never block render on font failure
-
-  document.head.appendChild(link);
-
-  // Fallback: also wait for document.fonts.ready in case link.onload fires
-  // before the font bytes are parsed.
-  document.fonts.ready.then(done).catch(done);
+  loadFonts()
+    .catch((e) => console.warn("Font load failed, falling back:", e))
+    .finally(() => continueRender(handle));
 }
