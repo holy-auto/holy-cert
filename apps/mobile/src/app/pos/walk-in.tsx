@@ -100,7 +100,6 @@ export default function WalkInCheckoutScreen() {
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [qrSessionId, setQrSessionId] = useState<string | null>(null);
   const [qrPolling, setQrPolling] = useState(false);
-  const [paymentId, setPaymentId] = useState<string | null>(null);
 
   // Stripe Terminal（iPhone）
   const {
@@ -117,15 +116,39 @@ export default function WalkInCheckoutScreen() {
     if (isIPhone) initTerminal();
   }, [isIPhone]);
 
-  const onQrPaid = useCallback(() => {
+  const onQrPaid = useCallback(async () => {
     setQrPolling(false);
     resetPayment();
-    if (paymentId) {
-      router.replace(`/pos/receipt-standalone/${paymentId}`);
-    } else {
-      router.replace("/(tabs)");
+
+    // Stripe側で決済成功 → DBにも payments/documents を記録
+    try {
+      const itemsJson = cart.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        amount: item.unitPrice * item.quantity,
+      }));
+      const { data, error } = await supabase.rpc("pos_checkout", {
+        p_tenant_id: user!.tenantId,
+        p_store_id: selectedStore!.id,
+        p_payment_method: "card",
+        p_amount: total,
+        p_received_amount: total,
+        p_items_json: itemsJson,
+        p_user_id: user!.id,
+      });
+      if (error) throw error;
+      const result = typeof data === "string" ? JSON.parse(data) : data;
+      const pId = result?.payment_id;
+      if (pId) {
+        router.replace(`/pos/receipt-standalone/${pId}`);
+        return;
+      }
+    } catch (err) {
+      setSnackbar(err instanceof Error ? err.message : "決済記録に失敗しました");
     }
-  }, [paymentId, resetPayment]);
+    router.replace("/(tabs)");
+  }, [cart, total, user, selectedStore, resetPayment]);
 
   useQrPaymentPoller(qrPolling ? qrSessionId : null, onQrPaid);
 
@@ -232,8 +255,11 @@ export default function WalkInCheckoutScreen() {
         }
       }
 
-      // Android/iPad QR決済
-      if ((isAndroid || isIPad) && paymentMethod === "card") {
+      // QR決済（iPad/Android「カード」 or iPhone「QR」）
+      const isQrFlow =
+        ((isAndroid || isIPad) && paymentMethod === "card") ||
+        (isIPhone && paymentMethod === "qr");
+      if (isQrFlow) {
         const res = await mobileApi<{ url: string; session_id: string }>(
           "/pos/checkout/qr-session",
           {
@@ -325,6 +351,7 @@ export default function WalkInCheckoutScreen() {
       return "Tap to Pay で決済";
     }
     if ((isAndroid || isIPad) && paymentMethod === "card") return "QRコードを表示";
+    if (isIPhone && paymentMethod === "qr") return "QRコードを表示";
     return "決済確定";
   })();
 
@@ -449,7 +476,9 @@ export default function WalkInCheckoutScreen() {
         )}
 
         {/* QRコード表示 */}
-        {(isAndroid || isIPad) && paymentMethod === "card" && qrUrl && (
+        {(((isAndroid || isIPad) && paymentMethod === "card") ||
+          (isIPhone && paymentMethod === "qr")) &&
+          qrUrl && (
           <Card style={[styles.card, { backgroundColor: "#f0fdf4" }]} mode="outlined">
             <Card.Content style={{ alignItems: "center", paddingVertical: 16 }}>
               <Text variant="titleMedium" style={{ fontWeight: "700", color: "#15803d", marginBottom: 12 }}>

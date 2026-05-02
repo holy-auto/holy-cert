@@ -215,10 +215,14 @@ export default function PosCheckoutScreen() {
       }
 
       // ────────────────────────────────────────────────────────
-      // B. iPad / Android: QRコード決済（Stripe Checkout）
-      //    iPad は Tap to Pay 非対応のため QR で代替
+      // B. QRコード決済（Stripe Checkout）
+      //    iPad/Android: 「カード」ボタン（Tap to Pay 非対応のためQRで代替）
+      //    iPhone:       「QR」ボタン
       // ────────────────────────────────────────────────────────
-      if ((isAndroid || isIPad) && paymentMethod === "card") {
+      const isQrFlow =
+        ((isAndroid || isIPad) && paymentMethod === "card") ||
+        (isIPhone && paymentMethod === "qr");
+      if (isQrFlow) {
         const res = await mobileApi<{ url: string; session_id: string }>(
           "/pos/checkout/qr-session",
           {
@@ -259,7 +263,11 @@ export default function PosCheckoutScreen() {
       if (error) throw error;
     },
     onSuccess: () => {
-      if ((isAndroid || isIPad) && paymentMethod === "card") return; // QR はポーリング側で遷移
+      // QRフロー（iPad/Android「カード」or iPhone「QR」）はポーリング側で遷移
+      const isQrFlow =
+        ((isAndroid || isIPad) && paymentMethod === "card") ||
+        (isIPhone && paymentMethod === "qr");
+      if (isQrFlow) return;
       resetPayment();
       router.replace(`/pos/receipt/${id}`);
     },
@@ -332,6 +340,7 @@ export default function PosCheckoutScreen() {
       return "Tap to Pay で決済";
     }
     if ((isAndroid || isIPad) && paymentMethod === "card") return "QRコードを表示";
+    if (isIPhone && paymentMethod === "qr") return "QRコードを表示";
     return "決済確定";
   })();
 
@@ -464,8 +473,10 @@ export default function PosCheckoutScreen() {
           </Card>
         )}
 
-        {/* ── Android/iPad: QRコード表示エリア ──────────────────── */}
-        {(isAndroid || isIPad) && paymentMethod === "card" && qrUrl && (
+        {/* ── QRコード表示エリア（iPad/Android「カード」 or iPhone「QR」） ──── */}
+        {(((isAndroid || isIPad) && paymentMethod === "card") ||
+          (isIPhone && paymentMethod === "qr")) &&
+          qrUrl && (
           <Card
             style={[styles.card, { backgroundColor: "#f0fdf4" }]}
             mode="outlined"

@@ -46,8 +46,13 @@ export const posCheckoutSessionSchema = z.object({
 
 export const posQrSessionSchema = z.object({
   amount: z.coerce.number().int().min(1, "invalid_amount").max(999_999_999, "invalid_amount"),
-  reservation_id: z.string().uuid("reservation_id and tenant_id are required"),
-  tenant_id: z.string().uuid("reservation_id and tenant_id are required"),
+  // 予約からの会計では予約IDが付くが、ウォークイン会計では未指定。
+  reservation_id: z
+    .string()
+    .uuid()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  tenant_id: z.string().uuid("tenant_id is required"),
   store_id: z
     .string()
     .uuid()
