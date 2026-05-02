@@ -77,11 +77,9 @@
       [
         "react-native-nfc-manager",
         {
-          "nfcPermission": "Ledraは証明書NFCタグの読み取りと書き込みに使用します",
-          "includeNdefEntitlement": false
+          "nfcPermission": "Ledraは証明書NFCタグの読み取りと書き込みに使用します"
         }
-      ],
-      "./plugins/withRemoveNfcNdefEntitlement"
+      ]
     ]
   }
 }
