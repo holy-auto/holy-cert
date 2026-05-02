@@ -24,39 +24,49 @@ interface ScreenshotSlideProps {
   highlights?: HighlightBox[];
 }
 
+const placeholder = (file: string, style?: React.CSSProperties) => (
+  <div style={{
+    width: "100%",
+    height: "100%",
+    minHeight: 500,
+    background: "rgba(255,255,255,0.04)",
+    border: "1px dashed rgba(255,255,255,0.15)",
+    borderRadius: 12,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+    ...style,
+  }}>
+    <div style={{ fontSize: 48, opacity: 0.3 }}>📸</div>
+    <div style={{ fontFamily: "monospace", fontSize: 16, color: "rgba(255,255,255,0.3)" }}>
+      {file}
+    </div>
+    <div style={{ fontSize: 14, color: "rgba(255,255,255,0.2)" }}>
+      npx tsx scripts/capture-screenshots.ts
+    </div>
+  </div>
+);
+
 class ImgFallback extends React.Component<
   { src: string; style?: React.CSSProperties; file: string },
   { hasError: boolean }
 > {
   state = { hasError: false };
   static getDerivedStateFromError() { return { hasError: true }; }
+  handleError = () => { this.setState({ hasError: true }); };
   render() {
     if (this.state.hasError) {
-      return (
-        <div style={{
-          width: "100%",
-          height: 620,
-          background: "rgba(255,255,255,0.04)",
-          border: "1px dashed rgba(255,255,255,0.15)",
-          borderRadius: 12,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 16,
-          ...this.props.style,
-        }}>
-          <div style={{ fontSize: 48, opacity: 0.3 }}>📸</div>
-          <div style={{ fontFamily: "monospace", fontSize: 16, color: "rgba(255,255,255,0.3)" }}>
-            {this.props.file}
-          </div>
-          <div style={{ fontSize: 14, color: "rgba(255,255,255,0.2)" }}>
-            Run: npx tsx scripts/capture-screenshots.ts
-          </div>
-        </div>
-      );
+      return placeholder(this.props.file, this.props.style);
     }
-    return <Img src={this.props.src} style={this.props.style} />;
+    return (
+      <Img
+        src={this.props.src}
+        style={this.props.style}
+        onError={this.handleError}
+      />
+    );
   }
 }
 

@@ -267,12 +267,12 @@ async function main() {
   console.log("📸 Capturing screenshots from", BASE_URL);
   const browser = await chromium.launch({ headless: true });
 
-  await captureAdmin(browser);
-  await captureInsurer(browser);
-  await captureAgent(browser);
+  await captureAdmin(browser).catch((e) => console.warn("⚠ Admin capture failed:", e.message));
+  await captureInsurer(browser).catch((e) => console.warn("⚠ Insurer capture failed:", e.message));
+  await captureAgent(browser).catch((e) => console.warn("⚠ Agent capture failed:", e.message));
 
   await browser.close();
-  console.log("✅ All screenshots saved to public/screenshots/");
+  console.log("✅ Screenshots saved to public/screenshots/");
 }
 
 main().catch((err) => {
