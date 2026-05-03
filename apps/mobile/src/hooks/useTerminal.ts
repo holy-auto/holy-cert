@@ -47,16 +47,32 @@ export function useTerminal() {
         tapToPayDiscoveryRef.current = null;
       }
     },
+    // Apple Tap to Pay 要件 3.9.1: 設定進捗インジケータ
+    // PaymentCardReader.Event.updateProgress 相当
+    onDidReportReaderSoftwareUpdateProgress: (progress) => {
+      store.setConfigurationProgress(progress);
+    },
   });
 
   // ── 初期化（共通） ────────────────────────────────────────────────
   // SDK 0.0.1-beta.29: initialize() は引数を取らない。
   // connection token は StripeTerminalProvider の tokenProvider prop で渡す。
+  // Apple TTP 要件 1.4: osVersionNotSupported は専用にハンドル。
   const initTerminal = useCallback(async () => {
     try {
       const result = await initialize();
       if (result.error) {
+        const code = (result.error as { code?: string }).code;
+        if (code === "OS_VERSION_NOT_SUPPORTED" || code === "osVersionNotSupported") {
+          store.setOsVersionSupported(false);
+          store.setReaderError(
+            "iOS のバージョンが古いため Tap to Pay を利用できません。設定アプリから iOS を最新版に更新してください"
+          );
+          return;
+        }
         store.setReaderError(`初期化失敗: ${result.error.message}`);
+      } else {
+        store.setOsVersionSupported(true);
       }
     } catch (e) {
       store.setReaderError(`初期化失敗: ${e}`);
@@ -280,6 +296,9 @@ export function useTerminal() {
     paymentStatus: store.paymentStatus,
     paymentError: store.paymentError,
     lastReceiptData: store.lastReceiptData,
+    osVersionSupported: store.osVersionSupported,
+    configurationProgress: store.configurationProgress,
+    termsAccepted: store.termsAccepted,
     // アクション（共通）
     initTerminal,
     processCardPayment,

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import {
   Text,
@@ -5,6 +6,7 @@ import {
   Button,
   Divider,
   ActivityIndicator,
+  Snackbar,
 } from "react-native-paper";
 import { useLocalSearchParams, router, Stack } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { mobileApi } from "@/lib/api";
+import { ReceiptShareDialog } from "@/components/ReceiptShareDialog";
 
 interface Payment {
   id: string;
@@ -50,6 +53,8 @@ interface TenantInvoiceInfo {
 export default function PosReceiptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
+  const [shareOpen, setShareOpen] = useState(false);
+  const [snack, setSnack] = useState("");
 
   // 適格請求書発行事業者登録番号 (T+13桁) と発行者情報
   const { data: tenant } = useQuery<TenantInvoiceInfo | null>({
@@ -288,19 +293,28 @@ export default function PosReceiptScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
+          {/* Apple TTP 要件 5.10: デジタルレシート送信 */}
           <Button
             mode="contained"
+            icon="email-outline"
+            onPress={() => setShareOpen(true)}
+            style={styles.actionButton}
+            buttonColor="#1a1a2e"
+          >
+            レシートを送る
+          </Button>
+          <Button
+            mode="outlined"
             icon="certificate"
             onPress={() =>
               router.push(`/certificates/new?reservationId=${id}`)
             }
             style={styles.actionButton}
-            buttonColor="#1a1a2e"
           >
             証明書を作成
           </Button>
           <Button
-            mode="outlined"
+            mode="text"
             icon="home"
             onPress={() => router.replace("/(tabs)")}
             style={styles.actionButton}
@@ -311,6 +325,16 @@ export default function PosReceiptScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <ReceiptShareDialog
+        visible={shareOpen}
+        receiptUrl={`https://app.cartrust.co.jp/c/${id}`}
+        onDismiss={() => setShareOpen(false)}
+        onSent={() => setSnack("レシートを送信しました")}
+      />
+      <Snackbar visible={!!snack} onDismiss={() => setSnack("")} duration={2500}>
+        {snack}
+      </Snackbar>
     </>
   );
 }

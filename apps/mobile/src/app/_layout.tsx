@@ -15,8 +15,19 @@ import { initSentry, setSentryUser } from "@/lib/sentry";
 import { useAuthStore } from "@/stores/authStore";
 import { ToastProvider } from "@/components/ToastProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useTapToPayWarmup } from "@/hooks/useTapToPayWarmup";
 
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * useTapToPayWarmup は useStripeTerminal を内部で呼ぶため
+ * StripeTerminalProvider の内側で動かす必要がある。
+ * 表示要素は持たず副作用のみ。
+ */
+function TapToPayWarmupGate() {
+  useTapToPayWarmup();
+  return null;
+}
 
 // 401 受信時のグローバルハンドラ: store を初期化して /login へリダイレクト
 bindUnauthorizedHandler(() => {
@@ -59,6 +70,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <StripeTerminalProvider tokenProvider={fetchTokenProvider}>
+          <TapToPayWarmupGate />
           <PaperProvider theme={theme}>
             <ToastProvider>
               <StatusBar style="dark" />

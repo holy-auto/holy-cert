@@ -144,7 +144,7 @@ export default function StoreDashboardScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "店舗ダッシュボード" }} />
+      <Stack.Screen options={{ title: "店舗ダッシュボード", headerShown: true }} />
       <ScrollView
         style={styles.container}
         refreshControl={

@@ -14,17 +14,23 @@ export default function TabsLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: "#ffffff" },
         headerTintColor: "#1a1a2e",
-        tabBarActiveTintColor: "#1a1a2e",
-        tabBarInactiveTintColor: "#a1a1aa",
+        tabBarActiveTintColor: "#3b82f6",
+        tabBarInactiveTintColor: "#71717a",
         tabBarStyle: {
           backgroundColor: "#ffffff",
           borderTopColor: "#e4e4e7",
-          height: 60,
-          paddingBottom: 8,
+          borderTopWidth: 1,
+          height: 84,
+          paddingTop: 10,
+          paddingBottom: 28,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
+          fontSize: 12,
+          fontWeight: "700",
+          marginTop: 2,
+        },
+        tabBarIconStyle: {
+          marginBottom: 0,
         },
       }}
     >
@@ -32,8 +38,12 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "ホーム",
-          tabBarIcon: ({ color, size }) => (
-            <Icon source="home-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Icon
+              source={focused ? "home" : "home-outline"}
+              size={28}
+              color={color}
+            />
           ),
         }}
       />
@@ -42,8 +52,12 @@ export default function TabsLayout() {
         options={{
           title: "予約",
           headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Icon source="calendar-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Icon
+              source={focused ? "calendar" : "calendar-outline"}
+              size={28}
+              color={color}
+            />
           ),
         }}
       />
@@ -52,8 +66,12 @@ export default function TabsLayout() {
         options={{
           title: "作業",
           headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Icon source="wrench-outline" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Icon
+              source={focused ? "wrench" : "wrench-outline"}
+              size={28}
+              color={color}
+            />
           ),
         }}
       />
@@ -62,8 +80,8 @@ export default function TabsLayout() {
         options={{
           title: "会計",
           headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Icon source="cash-register" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Icon source="cash-register" size={28} color={color} />
           ),
         }}
       />
@@ -72,8 +90,8 @@ export default function TabsLayout() {
         options={{
           title: "その他",
           headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Icon source="dots-horizontal" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Icon source="dots-horizontal-circle-outline" size={28} color={color} />
           ),
         }}
       />
