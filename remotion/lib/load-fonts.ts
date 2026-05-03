@@ -1,13 +1,15 @@
 import { continueRender, delayRender, staticFile } from "remotion";
 
-/**
- * Loads Noto Sans JP from the bundled public/fonts/ TTF files.
- * Uses delayRender so Remotion waits for the font before rendering any frame.
- */
 export const FONT = "'Noto Sans JP', sans-serif";
 
 if (typeof document !== "undefined") {
   const handle = delayRender("Loading Noto Sans JP");
+
+  // Safety timeout — always release render within 8s regardless of font load result
+  const timer = setTimeout(() => {
+    console.warn("[load-fonts] timeout — rendering without custom font");
+    continueRender(handle);
+  }, 8000);
 
   const loadFonts = async () => {
     const [f400, f700] = await Promise.all([
@@ -27,6 +29,9 @@ if (typeof document !== "undefined") {
   };
 
   loadFonts()
-    .catch((e) => console.warn("Font load failed, falling back:", e))
-    .finally(() => continueRender(handle));
+    .catch((e) => console.warn("[load-fonts] load failed:", e))
+    .finally(() => {
+      clearTimeout(timer);
+      continueRender(handle);
+    });
 }
