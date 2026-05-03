@@ -73,6 +73,31 @@ const aiLimiter = () => {
 };
 
 /**
+ * プリセット: ファイルアップロード (10 req / 60s)。
+ *
+ * 画像 / PDF アップロード route 用。ストレージ DoS と画像処理 (sharp / OCR)
+ * の CPU 爆発を抑止する。general (60/min) より厳しい上限を意図的にかけ、
+ * 1 セッションが大量ファイルで Storage を埋め尽くすシナリオを防ぐ。
+ */
+const uploadLimiter = () => {
+  const r = getRedis();
+  if (!r) return null;
+  return new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(10, "60 s"), prefix: "rl:upload" });
+};
+
+/**
+ * プリセット: 機微フロー (5 req / 300s)。
+ *
+ * OTP / パスワードリセット / メール送信を伴うフローのブルートフォース対策。
+ * アカウント列挙攻撃の精度も同時に下げる。
+ */
+const sensitiveLimiter = () => {
+  const r = getRedis();
+  if (!r) return null;
+  return new Ratelimit({ redis: r, limiter: Ratelimit.slidingWindow(5, "300 s"), prefix: "rl:sensitive" });
+};
+
+/**
  * プリセット: middleware 層の blanket limit (300 req / 60s)。
  *
  * proxy.ts から /api/* に対して第一線の IP ベース防御として適用する。
@@ -108,7 +133,9 @@ export type RateLimitPreset =
   | "mobile_terminal"
   | "middleware_default"
   | "admin_write"
-  | "ai";
+  | "ai"
+  | "upload"
+  | "sensitive";
 
 const presets: Record<RateLimitPreset, () => Ratelimit | null> = {
   general: generalLimiter,
@@ -119,6 +146,8 @@ const presets: Record<RateLimitPreset, () => Ratelimit | null> = {
   middleware_default: middlewareDefaultLimiter,
   admin_write: adminWriteLimiter,
   ai: aiLimiter,
+  upload: uploadLimiter,
+  sensitive: sensitiveLimiter,
 };
 
 /**
@@ -147,9 +176,16 @@ export async function checkRateLimit(
   /** カスタム識別子（userId など）。省略時は IP アドレスを使用 */
   identifier?: string,
 ) {
+  // Fail-closed mode: when RATE_LIMIT_FAIL_CLOSED=1 and Redis is unreachable,
+  // reject requests with 503 instead of silently allowing them. Recommended
+  // for high-security deployments where DDoS exposure during a Redis outage
+  // is worse than a brief availability hit. Defaults to fail-open to match
+  // historical behavior — opt in explicitly.
+  const failClosed = process.env.RATE_LIMIT_FAIL_CLOSED === "1";
+
   const limiter = presets[preset]();
   if (!limiter) {
-    // Redis 未設定 — Sentry に報告して通過させる（アップロードをブロックしない）
+    // Redis 未設定 — fail-closed なら 503、そうでなければ Sentry 報告のみで通過。
     const msg =
       "[rateLimit] Upstash Redis is not configured (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN missing). Rate limiting is disabled.";
     if (process.env.NODE_ENV === "production") {
@@ -157,6 +193,13 @@ export async function checkRateLimit(
       import("@sentry/nextjs").then((Sentry) => Sentry.captureMessage(msg, "error")).catch(() => {});
     } else {
       console.warn(msg);
+    }
+    if (failClosed) {
+      return apiError({
+        code: "rate_limit_unavailable",
+        message: "レート制限サービスが利用できません。しばらく経ってから再度お試しください。",
+        status: 503,
+      });
     }
     return null;
   }
@@ -167,9 +210,16 @@ export async function checkRateLimit(
   try {
     result = await limiter.limit(id);
   } catch (limiterErr) {
-    // Redis 接続エラー — Sentry に報告して通過させる（アップロードをブロックしない）
+    // Redis 接続エラー — fail-closed なら 503、そうでなければ Sentry 報告のみで通過。
     console.error("[rateLimit] Redis error during limit check:", limiterErr);
     import("@sentry/nextjs").then((Sentry) => Sentry.captureException(limiterErr)).catch(() => {});
+    if (failClosed) {
+      return apiError({
+        code: "rate_limit_unavailable",
+        message: "レート制限サービスが利用できません。しばらく経ってから再度お試しください。",
+        status: 503,
+      });
+    }
     return null;
   }
 
