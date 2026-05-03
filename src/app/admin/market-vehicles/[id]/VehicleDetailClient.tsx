@@ -558,7 +558,13 @@ export default function VehicleDetailClient({ vehicleId }: { vehicleId: string }
                         onClick={() => setMainIdx(idx)}
                         className={`w-16 h-16 rounded-lg overflow-hidden border-2 ${idx === mainIdx ? "border-accent" : "border-transparent"}`}
                       >
-                        <img src={img.storage_path} alt="" className="w-full h-full object-cover" />
+                        <Image
+                          src={img.storage_path}
+                          alt=""
+                          width={64}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
                       </button>
                       <button
                         type="button"

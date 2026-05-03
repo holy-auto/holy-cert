@@ -6,14 +6,10 @@
  */
 import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { createPlatformScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiUnauthorized, apiForbidden, apiInternalError, apiNotFound } from "@/lib/api/response";
-import {
-  renderAcademyCertificate,
-  CATEGORY_LABEL,
-  CERTIFICATE_THRESHOLD,
-} from "@/lib/academy/certificate";
+import { renderAcademyCertificate, CATEGORY_LABEL, CERTIFICATE_THRESHOLD } from "@/lib/academy/certificate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,10 +22,7 @@ function makeCertNumber(userId: string, category: string, issueDate: string): st
   return `LDRA-${cat}-${ym}-${prefix}`;
 }
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ category: string }> },
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ category: string }> }) {
   try {
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
@@ -68,12 +61,8 @@ export async function GET(
     }
 
     // テナント名を取得
-    const admin = createServiceRoleAdmin("academy/certificates: tenant name 取得");
-    const { data: tenant } = await admin
-      .from("tenants")
-      .select("name")
-      .eq("id", caller.tenantId)
-      .maybeSingle();
+    const admin = createPlatformScopedAdmin("academy/certificates: tenant name 取得");
+    const { data: tenant } = await admin.from("tenants").select("name").eq("id", caller.tenantId).maybeSingle();
 
     const tenantName = (tenant?.name as string | null) ?? "加盟店";
     const issueDate = new Date().toISOString().slice(0, 10);

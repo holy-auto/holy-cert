@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizeRole, type Role } from "@/lib/auth/roles";
 import { normalizePlanTier, type PlanTier } from "@/lib/billing/planFeatures";
+import { setSentryUserAndTenant } from "@/lib/sentryContext";
 
 const ACTIVE_TENANT_COOKIE = "active_tenant_id";
 
@@ -81,10 +82,14 @@ export async function resolveCallerFull(
 
   const { data: tenant } = await supabase.from("tenants").select("plan_tier").eq("id", mem.tenant_id).single();
 
-  return {
+  const ctx: CallerContext = {
     userId: userRes.user.id,
     tenantId: mem.tenant_id as string,
     role: normalizeRole(mem.role),
     planTier: normalizePlanTier(tenant?.plan_tier),
   };
+
+  setSentryUserAndTenant(ctx);
+
+  return ctx;
 }

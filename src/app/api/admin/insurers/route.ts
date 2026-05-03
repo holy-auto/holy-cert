@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleAdmin, createTenantScopedAdmin } from "@/lib/supabase/admin";
+import { createPlatformScopedAdmin, createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
 import { getClientIp } from "@/lib/rateLimit";
@@ -50,7 +50,7 @@ async function logAdminAction(params: {
   ip?: string;
   userAgent?: string;
 }) {
-  const admin = createServiceRoleAdmin("admin audit log — writes platform-wide admin_audit_logs (no tenant scope)");
+  const admin = createPlatformScopedAdmin("admin audit log — writes platform-wide admin_audit_logs (no tenant scope)");
   await admin
     .from("admin_audit_logs")
     .insert({

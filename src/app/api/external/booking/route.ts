@@ -7,6 +7,7 @@ import { checkOverlap } from "@/lib/reservations/overlap";
 import { syncCreateEvent } from "@/lib/gcal/client";
 import { sendBookingConfirmation } from "@/lib/line/client";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+import { logger } from "@/lib/logger";
 
 const externalBookingSchema = z.object({
   tenant_slug: z
@@ -280,7 +281,13 @@ export async function POST(req: NextRequest) {
       end_time: reservation.end_time,
       note: reservation.note,
       customer_name: customerName,
-    }).catch(() => {});
+    }).catch((error) => {
+      logger.warn("google calendar sync failed (non-blocking)", {
+        error,
+        tenantId: tenant.id,
+        reservationId: reservation.id,
+      });
+    });
 
     // ── LINE 予約確認通知（非ブロッキング） ──
     if (body.line_user_id) {
@@ -290,7 +297,13 @@ export async function POST(req: NextRequest) {
         start_time: reservation.start_time,
         end_time: reservation.end_time,
         tenant_name: tenant.name,
-      }).catch(() => {});
+      }).catch((error) => {
+        logger.warn("LINE booking confirmation failed (non-blocking)", {
+          error,
+          tenantId: tenant.id,
+          reservationId: reservation.id,
+        });
+      });
     }
 
     return apiOk({

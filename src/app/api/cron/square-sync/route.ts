@@ -4,6 +4,7 @@ import { apiOk, apiUnauthorized, apiInternalError, apiError } from "@/lib/api/re
 import { verifyCronRequest } from "@/lib/cronAuth";
 import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { buildSecretWrite, readSecret } from "@/lib/crypto/tenantSecrets";
+import type { SquareApiOrder, SquareSearchOrdersResponse } from "@/types/square";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -64,8 +65,8 @@ async function fetchAllOrders(
   locationIds: string[],
   from: string,
   to: string,
-): Promise<{ orders: any[]; error?: string }> {
-  const allOrders: any[] = [];
+): Promise<{ orders: SquareApiOrder[]; error?: string }> {
+  const allOrders: SquareApiOrder[] = [];
   let cursor: string | undefined;
 
   do {
@@ -108,7 +109,7 @@ async function fetchAllOrders(
       return { orders: allOrders, error: `square_api_error_${res.status}` };
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as SquareSearchOrdersResponse;
     if (data.orders) {
       allOrders.push(...data.orders);
     }
@@ -260,7 +261,7 @@ export async function GET(req: NextRequest) {
 
         if (orders.length > 0) {
           // Batch fetch existing order IDs
-          const squareOrderIds = orders.map((o: any) => o.id);
+          const squareOrderIds = orders.map((o) => o.id);
           const { data: existingOrders } = await admin
             .from("square_orders")
             .select("square_order_id")
@@ -269,7 +270,7 @@ export async function GET(req: NextRequest) {
 
           const existingSet = new Set((existingOrders ?? []).map((e) => e.square_order_id));
 
-          const newOrders = orders.filter((o: any) => !existingSet.has(o.id));
+          const newOrders = orders.filter((o) => !existingSet.has(o.id));
           skipped = orders.length - newOrders.length;
 
           // Batch insert new orders in chunks of 50
@@ -281,13 +282,13 @@ export async function GET(req: NextRequest) {
             }
 
             const chunk = newOrders.slice(i, i + CHUNK_SIZE);
-            const rows = chunk.map((order: any) => {
+            const rows = chunk.map((order) => {
               const totalMoney = order.total_money?.amount ?? 0;
               const taxMoney = order.total_tax_money?.amount ?? 0;
               const discountMoney = order.total_discount_money?.amount ?? 0;
               const tipMoney = order.total_tip_money?.amount ?? 0;
-              const paymentMethods: string[] = (order.tenders ?? []).map((t: any) => t.type ?? "UNKNOWN");
-              const receiptUrl = (order.tenders ?? []).find((t: any) => t.receipt_url)?.receipt_url ?? null;
+              const paymentMethods: string[] = (order.tenders ?? []).map((t) => t.type ?? "UNKNOWN");
+              const receiptUrl = (order.tenders ?? []).find((t) => t.receipt_url)?.receipt_url ?? null;
 
               return {
                 tenant_id: tenantId,

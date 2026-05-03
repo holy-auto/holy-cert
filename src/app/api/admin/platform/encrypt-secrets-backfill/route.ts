@@ -7,7 +7,7 @@
  * 認証: platform admin (PLATFORM_TENANT_ID の owner / admin) のみ。
  * メソッド: POST のみ (副作用があるため)。
  */
-import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { createPlatformScopedAdmin } from "@/lib/supabase/admin";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { isPlatformAdmin } from "@/lib/auth/platformAdmin";
@@ -39,8 +39,8 @@ export async function POST() {
       });
     }
 
-    const admin = createServiceRoleAdmin(
-      "platform admin: encrypt-secrets-backfill — encrypts plaintext tenant secrets across every tenant",
+    const admin = createPlatformScopedAdmin(
+      "encrypt-secrets-backfill — encrypts plaintext tenant secrets across every tenant",
     );
 
     const result = await withCronLock(admin, "encrypt-secrets-backfill", LOCK_TTL_SECONDS, async () => {

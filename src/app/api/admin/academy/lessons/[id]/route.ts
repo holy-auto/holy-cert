@@ -7,9 +7,16 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { apiOk, apiUnauthorized, apiInternalError, apiValidationError, apiNotFound, apiForbidden } from "@/lib/api/response";
+import {
+  apiOk,
+  apiUnauthorized,
+  apiInternalError,
+  apiValidationError,
+  apiNotFound,
+  apiForbidden,
+} from "@/lib/api/response";
 import { canUseFeature } from "@/lib/billing/planFeatures";
-import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { createPlatformScopedAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +67,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 
     // view_count をインクリメント (公開レッスンを他者が閲覧したときのみ)
     if (isPublished && !isAuthor) {
-      const admin = createServiceRoleAdmin("academy lessons: increment view_count cross-tenant");
+      const admin = createPlatformScopedAdmin("academy lessons: increment view_count cross-tenant");
       await admin
         .from("academy_lessons")
         .update({ view_count: (data.view_count ?? 0) + 1 })
@@ -138,16 +145,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     }
 
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    for (const k of [
-      "title",
-      "summary",
-      "body",
-      "category",
-      "level",
-      "difficulty",
-      "tags",
-      "status",
-    ] as const) {
+    for (const k of ["title", "summary", "body", "category", "level", "difficulty", "tags", "status"] as const) {
       if (v[k] !== undefined) update[k] = v[k];
     }
     if (v.video_url !== undefined) update.video_url = v.video_url || null;

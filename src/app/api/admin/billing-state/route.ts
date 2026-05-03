@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { billingStateSchema } from "@/lib/validations/stripe";
 import { apiJson, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound } from "@/lib/api/response";
-import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { createPlatformScopedAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 
 export const runtime = "nodejs";
@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { access_token } = parsed.data;
-    const admin = createServiceRoleAdmin(
-      "admin billing-state — validates caller's access_token then resolves their tenant, pre-resolution",
+    const admin = createPlatformScopedAdmin(
+      "billing-state — validates caller's access_token then resolves their tenant, pre-resolution",
     );
 
     // access_token を検証して user_id を確定

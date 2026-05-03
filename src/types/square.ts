@@ -49,3 +49,54 @@ export type SquareSyncRun = {
   orders_skipped: number;
   errors_json: any[];
 };
+
+/**
+ * Subset of the Square Orders API response shape used during sync.
+ * Reference: https://developer.squareup.com/reference/square/orders-api/search-orders
+ *
+ * Kept narrow on purpose — we read the documented fields below and pass
+ * `tenders` / `line_items` opaquely through to JSONB columns. Extend only
+ * when we start decoding more.
+ */
+export interface SquareApiMoney {
+  amount?: number;
+  currency?: string;
+}
+
+export interface SquareApiTender {
+  id?: string;
+  type?: string;
+  receipt_url?: string;
+  amount_money?: SquareApiMoney;
+  [key: string]: unknown;
+}
+
+export interface SquareApiLineItem {
+  uid?: string;
+  name?: string;
+  quantity?: string;
+  base_price_money?: SquareApiMoney;
+  total_money?: SquareApiMoney;
+  [key: string]: unknown;
+}
+
+export interface SquareApiOrder {
+  id: string;
+  location_id?: string;
+  state?: string;
+  total_money?: SquareApiMoney;
+  total_tax_money?: SquareApiMoney;
+  total_discount_money?: SquareApiMoney;
+  total_tip_money?: SquareApiMoney;
+  tenders?: SquareApiTender[];
+  line_items?: SquareApiLineItem[];
+  customer_id?: string | null;
+  created_at?: string;
+  closed_at?: string | null;
+  [key: string]: unknown;
+}
+
+export interface SquareSearchOrdersResponse {
+  orders?: SquareApiOrder[];
+  cursor?: string;
+}

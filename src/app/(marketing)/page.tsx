@@ -28,6 +28,30 @@ import { QuickStartReliabilityBar } from "@/components/marketing/QuickStartRelia
 import { PLANS } from "@/lib/marketing/pricing";
 import Link from "next/link";
 import { Suspense } from "react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Ledra | WEB施工証明書SaaS",
+  description:
+    "施工証明をデジタルで。施工店・代理店・保険会社をつなぐマルチテナント SaaS。" +
+    "ブロックチェーン・アンカリング・電子署名・QR 公開・モバイル NFC 連携を一本化。",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Ledra | WEB施工証明書SaaS",
+    description:
+      "施工店・代理店・保険会社をつなぐマルチテナント SaaS。" +
+      "ブロックチェーン・アンカリング、電子署名、QR、NFC を一本化。",
+    url: "/",
+    siteName: "Ledra",
+    locale: "ja_JP",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ledra | WEB施工証明書SaaS",
+    description: "施工証明をデジタルで。施工店と保険会社をつなぐ WEB SaaS。",
+  },
+};
 
 export default async function HomePage() {
   return (

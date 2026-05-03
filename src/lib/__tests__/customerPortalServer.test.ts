@@ -128,8 +128,8 @@ describe("constants", () => {
     expect(CUSTOMER_COOKIE).toBe("hc_cs");
   });
 
-  it("OTP_TTL_MIN is 10", () => {
-    expect(OTP_TTL_MIN).toBe(10);
+  it("OTP_TTL_MIN is 5", () => {
+    expect(OTP_TTL_MIN).toBe(5);
   });
 
   it("SESSION_TTL_DAYS is 30", () => {

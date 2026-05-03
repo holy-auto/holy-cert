@@ -129,3 +129,41 @@ export function createInsurerScopedAdmin(insurerId: string) {
   }
   return { admin: getSupabaseAdmin(), insurerId };
 }
+
+/**
+ * Platform-admin scoped client for routes that legitimately span all tenants
+ * (e.g. /api/admin/insurers, /api/admin/billing-state). Caller MUST already
+ * have verified `requirePlatformAdmin()` upstream.
+ *
+ * This is a thin, intent-recording wrapper around `createServiceRoleAdmin()`
+ * that exists for **two** reasons:
+ *
+ * 1. **Documentation**: The function name says "platform-admin only",
+ *    matching the upstream auth check, instead of the generic
+ *    `createServiceRoleAdmin` whose name applies equally to cron and
+ *    webhook contexts.
+ * 2. **Discoverability**: ESLint can `prefer` this helper inside
+ *    `src/app/api/admin/**` so that platform admin routes never silently
+ *    drift onto the generic helper.
+ *
+ * @security **CRITICAL** — Bypasses RLS for every tenant. The caller MUST
+ * have validated platform-admin role with `requirePlatformAdmin()` before
+ * calling this. Do NOT use in tenant- or insurer-scoped routes.
+ *
+ * @example
+ * ```ts
+ * await requirePlatformAdmin(req);
+ * const admin = createPlatformScopedAdmin("admin/insurers list — platform-wide audit");
+ * ```
+ *
+ * @throws {Error} if reason is falsy or empty
+ */
+export function createPlatformScopedAdmin(reason: string): AnySupabaseClient {
+  if (!reason || typeof reason !== "string" || reason.trim() === "") {
+    throw new Error(
+      "[security] createPlatformScopedAdmin requires a non-empty reason string. " +
+        "Document why this platform-admin route needs RLS-bypassing access here.",
+    );
+  }
+  return createServiceRoleAdmin(`platform-admin: ${reason}`);
+}

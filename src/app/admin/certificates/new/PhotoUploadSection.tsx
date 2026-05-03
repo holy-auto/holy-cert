@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRef, useState, useCallback, forwardRef, useImperativeHandle, useEffect } from "react";
 
 export type PhotoUploadHandle = {
@@ -169,9 +170,15 @@ const PhotoUploadSection = forwardRef<PhotoUploadHandle, Props>(function PhotoUp
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
             {previews.map((p) => (
               <div key={p.id} className="group relative">
-                <div className="aspect-square overflow-hidden rounded-xl border border-border-default bg-inset">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.objectUrl} alt={p.file.name} className="h-full w-full object-cover" />
+                <div className="relative aspect-square overflow-hidden rounded-xl border border-border-default bg-inset">
+                  <Image
+                    src={p.objectUrl}
+                    alt={p.file.name}
+                    fill
+                    sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 20vw"
+                    unoptimized
+                    className="object-cover"
+                  />
                 </div>
                 <button
                   type="button"
