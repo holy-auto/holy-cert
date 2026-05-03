@@ -18,6 +18,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { mobileApi } from "@/lib/api";
 import { useTerminal } from "@/hooks/useTerminal";
+import { TapToPayButton } from "@/components/TapToPayButton";
+import { ReceiptShareDialog } from "@/components/ReceiptShareDialog";
 
 // ─────────────────────────────────────────────────────────────
 // 端末種別の判定
@@ -107,6 +109,10 @@ export default function PosCheckoutScreen() {
     useState<PaymentMethod>(defaultMethod);
   const [receivedAmount, setReceivedAmount] = useState("");
   const [snackbar, setSnackbar] = useState("");
+  const [receiptDialog, setReceiptDialog] = useState<{
+    visible: boolean;
+    url: string;
+  }>({ visible: false, url: "" });
 
   // QR決済用（Android）
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -296,8 +302,8 @@ export default function PosCheckoutScreen() {
       ];
     }
     if (isIPhone) {
-      // iPhone: Tap to Pay は Apple Distribution 承認待ちで現状動作不可のため
-      // カード選択肢は除外し、QR (Stripe Checkout) に統一する
+      // iPhone: Tap to Pay (カード) は専用ボタンで上部に配置（要件 5.2）
+      // SegmentedButtons は補助的な選択肢のみ表示
       return [
         { value: "cash", label: "現金" },
         { value: "qr", label: "QR" },
@@ -434,6 +440,31 @@ export default function PosCheckoutScreen() {
             </View>
           </Card.Content>
         </Card>
+
+        {/* ── iPhone: Tap to Pay 専用ボタン（要件 5.1〜5.5） ───────
+             決済方法リストの最上位に常時可視で配置、グレーアウト禁止。
+             T&C 未同意なら押下時に同意フローへ遷移する設計。 */}
+        {isIPhone && !qrPolling && (
+          <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
+            <TapToPayButton
+              amountLabel={`¥${total.toLocaleString()}`}
+              state={
+                paymentStatus === "collecting"
+                  ? "collecting"
+                  : isProcessing
+                    ? "processing"
+                    : readerStatus === "connecting"
+                      ? "initializing"
+                      : "idle"
+              }
+              disabled={checkoutMutation.isPending}
+              onPress={() => {
+                setPaymentMethod("card");
+                checkoutMutation.mutate();
+              }}
+            />
+          </View>
+        )}
 
         {/* ── iPhone: Tap to Pay ステータス ────────────────────── */}
         {isIPhone && paymentMethod === "card" && isProcessing && (
@@ -643,6 +674,13 @@ export default function PosCheckoutScreen() {
       >
         {snackbar}
       </Snackbar>
+
+      <ReceiptShareDialog
+        visible={receiptDialog.visible}
+        receiptUrl={receiptDialog.url}
+        onDismiss={() => setReceiptDialog({ visible: false, url: "" })}
+        onSent={() => setSnackbar("レシートを送信しました")}
+      />
     </>
   );
 }
