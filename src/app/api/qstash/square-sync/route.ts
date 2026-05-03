@@ -5,6 +5,7 @@ import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { Client } from "@upstash/qstash";
 import { buildSecretWrite, readSecret } from "@/lib/crypto/tenantSecrets";
+import type { SquareApiOrder, SquareSearchOrdersResponse } from "@/types/square";
 
 const squareSyncSchema = z.object({
   job_id: z.string().uuid(),
@@ -186,8 +187,8 @@ async function handler(req: NextRequest) {
       throw new Error(`Square API error: ${res.status}`);
     }
 
-    const data = await res.json();
-    const orders: any[] = data.orders ?? [];
+    const data = (await res.json()) as SquareSearchOrdersResponse;
+    const orders: SquareApiOrder[] = data.orders ?? [];
     const nextCursor: string | undefined = data.cursor;
 
     // 新規オーダーを batch insert（既存のロジックをそのまま維持）
@@ -195,7 +196,7 @@ async function handler(req: NextRequest) {
     let skipped = 0;
 
     if (orders.length > 0) {
-      const squareOrderIds = orders.map((o: any) => o.id);
+      const squareOrderIds = orders.map((o) => o.id);
       const { data: existingOrders } = await admin
         .from("square_orders")
         .select("square_order_id")
@@ -203,19 +204,19 @@ async function handler(req: NextRequest) {
         .in("square_order_id", squareOrderIds);
 
       const existingSet = new Set((existingOrders ?? []).map((e) => e.square_order_id));
-      const newOrders = orders.filter((o: any) => !existingSet.has(o.id));
+      const newOrders = orders.filter((o) => !existingSet.has(o.id));
       skipped = orders.length - newOrders.length;
 
       const CHUNK_SIZE = 50;
       for (let i = 0; i < newOrders.length; i += CHUNK_SIZE) {
         const chunk = newOrders.slice(i, i + CHUNK_SIZE);
-        const rows = chunk.map((order: any) => {
+        const rows = chunk.map((order) => {
           const totalMoney = order.total_money?.amount ?? 0;
           const taxMoney = order.total_tax_money?.amount ?? 0;
           const discountMoney = order.total_discount_money?.amount ?? 0;
           const tipMoney = order.total_tip_money?.amount ?? 0;
-          const paymentMethods: string[] = (order.tenders ?? []).map((t: any) => t.type ?? "UNKNOWN");
-          const receiptUrl = (order.tenders ?? []).find((t: any) => t.receipt_url)?.receipt_url ?? null;
+          const paymentMethods: string[] = (order.tenders ?? []).map((t) => t.type ?? "UNKNOWN");
+          const receiptUrl = (order.tenders ?? []).find((t) => t.receipt_url)?.receipt_url ?? null;
 
           return {
             tenant_id,

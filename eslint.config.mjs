@@ -45,7 +45,32 @@ const eslintConfig = defineConfig([
               message:
                 "Raw admin clients bypass RLS across every tenant. " +
                 "Use createTenantScopedAdmin(tenantId), createInsurerScopedAdmin(insurerId), " +
-                "or createServiceRoleAdmin(reason) for platform-wide cases.",
+                "createPlatformScopedAdmin(reason) for /api/admin platform routes, " +
+                "or createServiceRoleAdmin(reason) for cron/webhook contexts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Inside /api/admin/** prefer the explicit createPlatformScopedAdmin
+    // wrapper over the generic createServiceRoleAdmin. Both compile to the
+    // same client, but the platform-specific name documents the upstream
+    // requirePlatformAdmin() check and shows up in code review grep.
+    files: ["src/app/api/admin/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/supabase/admin",
+              importNames: ["getSupabaseAdmin", "createAdminClient", "supabaseAdmin", "createServiceRoleAdmin"],
+              message:
+                "Inside /api/admin/** use createPlatformScopedAdmin(reason) to make the " +
+                "platform-admin contract explicit. createServiceRoleAdmin is reserved for " +
+                "cron/webhook contexts.",
             },
           ],
         },

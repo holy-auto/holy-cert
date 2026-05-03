@@ -10,6 +10,7 @@ import {
   otpCodeHash,
   phoneLast4Hash,
   CUSTOMER_COOKIE,
+  OTP_MAX_ATTEMPTS,
 } from "@/lib/customerPortalServer";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { apiJson, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
@@ -82,7 +83,7 @@ export async function POST(req: Request) {
     if (expected !== row.code_hash) {
       const nextAttempts = (row.attempts ?? 0) + 1;
       await markCodeAttempt(row.id, nextAttempts);
-      if (nextAttempts >= 5) {
+      if (nextAttempts >= OTP_MAX_ATTEMPTS) {
         await markCodeUsed(row.id);
         return apiJson(
           { error: "too_many_attempts", message: "試行回数の上限に達しました。再度コードを送信してください。" },

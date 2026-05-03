@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import type { InsurerPlanTier, InsurerRole } from "@/types/insurer";
 import { normalizeInsurerPlanTier, normalizeInsurerRole, INSURER_PLAN_RANK } from "@/types/insurer";
+import { setSentryInsurerContext } from "@/lib/sentryContext";
 
 const ACTIVE_INSURER_COOKIE = "active_insurer_id";
 
@@ -85,7 +86,7 @@ async function resolveInsurerContext(
 
   if (insErr || !insurer) return null;
 
-  return {
+  const ctx: InsurerCallerContext = {
     userId,
     insurerId: iu.insurer_id,
     insurerUserId: iu.id,
@@ -93,6 +94,10 @@ async function resolveInsurerContext(
     planTier: normalizeInsurerPlanTier(insurer.plan_tier),
     insurerStatus: insurer.status as InsurerStatus,
   };
+
+  setSentryInsurerContext({ userId, insurerId: iu.insurer_id });
+
+  return ctx;
 }
 
 /**

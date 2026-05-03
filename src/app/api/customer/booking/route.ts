@@ -6,6 +6,7 @@ import { checkOverlap } from "@/lib/reservations/overlap";
 import { syncCreateEvent } from "@/lib/gcal/client";
 import { sendBookingConfirmation } from "@/lib/line/client";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+import { logger } from "@/lib/logger";
 
 const customerBookingSchema = z.object({
   tenant_slug: z.string().trim().min(1).max(100),
@@ -243,7 +244,13 @@ export async function POST(req: NextRequest) {
       end_time: reservation.end_time,
       note: reservation.note,
       customer_name: customerName,
-    }).catch(() => {});
+    }).catch((error) => {
+      logger.warn("google calendar sync failed (non-blocking)", {
+        error,
+        tenantId: tenant.id,
+        reservationId: reservation.id,
+      });
+    });
 
     return apiOk({
       reservation_id: reservation.id,

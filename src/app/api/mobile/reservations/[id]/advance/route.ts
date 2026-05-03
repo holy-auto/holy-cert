@@ -10,6 +10,7 @@ import {
   apiInternalError,
 } from "@/lib/api/response";
 import { sendProgressUpdate } from "@/lib/line/client";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -214,7 +215,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             totalSteps,
             estimatedCompletionTime: nextStep ? calcEstimatedCompletion(steps, nextOrder) : undefined,
             portalUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/customer/${caller.tenantId}`,
-          }).catch(() => {});
+          }).catch((error) => {
+            logger.warn("LINE progress notification failed (non-blocking)", {
+              error,
+              tenantId: caller.tenantId,
+            });
+          });
         }
       }
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -218,8 +219,14 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {lesson.cover_image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={lesson.cover_image_url} alt={lesson.title} className="w-full rounded-xl mb-6 border border-border-subtle" />
+        <Image
+          src={lesson.cover_image_url}
+          alt={lesson.title}
+          width={1200}
+          height={630}
+          unoptimized
+          className="w-full h-auto rounded-xl mb-6 border border-border-subtle"
+        />
       )}
 
       {lesson.summary && (
@@ -301,9 +308,7 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
               <span className="text-secondary">
                 ベスト: {myQuizBest.score} / {myQuizBest.total}
               </span>
-              <span className="text-muted">
-                {new Date(myQuizBest.attempted_at).toLocaleDateString()}
-              </span>
+              <span className="text-muted">{new Date(myQuizBest.attempted_at).toLocaleDateString()}</span>
             </div>
           )}
         </div>
@@ -369,9 +374,7 @@ export default function AcademyLessonDetailPage({ params }: { params: Promise<{ 
             className="w-full text-sm bg-inset border border-border-subtle rounded-lg px-3 py-2 text-primary focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
           <div className="flex items-center justify-between mt-3">
-            <span className="text-xs text-muted">
-              {myRating ? "更新します" : "送信すると平均評価に反映されます"}
-            </span>
+            <span className="text-xs text-muted">{myRating ? "更新します" : "送信すると平均評価に反映されます"}</span>
             <button
               onClick={submitRating}
               disabled={ratingValue < 1 || submittingRating}

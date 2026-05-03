@@ -8,6 +8,7 @@ import {
   normalizeEmail,
   phoneLast4Hash,
   tenantHasPhoneHash,
+  OTP_TTL_MIN,
 } from "@/lib/customerPortalServer";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { escapeHtml } from "@/lib/sanitize";
@@ -106,7 +107,7 @@ export async function POST(req: Request) {
     if (!ok) return apiNotFound("no matching certificates");
 
     const code = genCode6();
-    const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10分
+    const expires = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000).toISOString();
     await createLoginCode(tenantId, email, phoneHash, code, expires);
 
     const baseUrl = resolveBaseUrl({ req });
@@ -122,7 +123,7 @@ export async function POST(req: Request) {
     const safeUrl = escapeHtml(loginUrl);
     const safeCode = escapeHtml(code);
     const html =
-      `<p>以下のコードをログイン画面で入力してください（10分以内に有効）。</p>` +
+      `<p>以下のコードをログイン画面で入力してください（${OTP_TTL_MIN}分以内に有効）。</p>` +
       `<div style="text-align: center; margin: 24px 0;">` +
       `<span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; font-family: monospace;">${safeCode}</span>` +
       `</div>` +

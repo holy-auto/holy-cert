@@ -4,6 +4,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { sendProgressUpdate } from "@/lib/line/client";
 import { apiJson, apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { logger } from "@/lib/logger";
 
 const advanceSchema = z.object({
   note: z.string().trim().max(2000).nullable().optional(),
@@ -238,7 +239,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             totalSteps,
             estimatedCompletionTime: estimatedCompletion,
             portalUrl,
-          }).catch(() => {});
+          }).catch((error) => {
+            logger.warn("LINE progress notification failed (non-blocking)", {
+              error,
+              tenantId: caller.tenantId,
+              customerId: reservation.customer_id,
+            });
+          });
         }
       }
     }

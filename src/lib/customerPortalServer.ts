@@ -4,7 +4,19 @@ import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 const PEPPER = process.env.CUSTOMER_AUTH_PEPPER!;
 
 export const CUSTOMER_COOKIE = "hc_cs";
-export const OTP_TTL_MIN = 10;
+/**
+ * OTP lifetime in minutes. Shortened from 10 → 5 to reduce the window an
+ * attacker has to use a leaked code (e.g. via shared inbox, email forwarding
+ * misconfiguration). Resend latency is well under 30s in practice so 5 min
+ * remains user-friendly.
+ */
+export const OTP_TTL_MIN = 5;
+/**
+ * Max OTP guesses before the row is locked. Tightened from 5 → 3 to defend
+ * against a 6-digit code attacker who has email access but is rate-limited
+ * elsewhere. With 3 attempts the brute-force success probability is 3/10^6.
+ */
+export const OTP_MAX_ATTEMPTS = 3;
 export const SESSION_TTL_DAYS = 30;
 
 function assertEnv() {

@@ -247,5 +247,43 @@
 
 ---
 
+## 8. 2026-05-03 実施内容
+
+本監査と同じブランチで Tier 1 全項目 + Tier 2 の概ね全項目を実施した。
+
+### Tier 1 — 完了
+
+| # | タスク | 対象 |
+|---|------|------|
+| T1-1 | Sentry user/tenant context 注入 | `src/lib/sentryContext.ts`（新規）+ `src/lib/api/auth.ts` / `src/lib/api/insurerAuth.ts` |
+| T1-2 | 顧客ポータル OTP 強化 | `OTP_TTL_MIN: 10→5` 分、`OTP_MAX_ATTEMPTS: 5→3` (`src/lib/customerPortalServer.ts`) |
+| T1-3 | API route integration test 5本 | `cronAuth` / `sentryContext` / `contact` / `customer/request-code` / `customer/verify-code` |
+| T1-4 | CodeQL を CI 追加 | `.github/workflows/codeql.yml` (security-extended クエリ + 週次定期) |
+| T1-5 | `createPlatformScopedAdmin` 導入 | `src/lib/supabase/admin.ts` + ESLint で `/api/admin/**` を強制誘導、6 ルート移行済 |
+
+### Tier 2 — 完了
+
+| # | タスク | 対象 |
+|---|------|------|
+| T2-6 | `<img>` → `<Image>` 4 箇所 | success / PhotoUploadSection / VehicleDetailClient / academy/learn |
+| T2-7 | マーケ home に generateMetadata | `src/app/(marketing)/page.tsx` (canonical + OG + Twitter) |
+| T2-8 | `.catch(()=>{})` を logger 化 | customer/booking, admin & mobile reservations advance, external/booking |
+| T2-9 | Square cron の any 削減 | `src/types/square.ts` に API レスポンス型を追加、`/api/cron/square-sync` と `/api/qstash/square-sync` から any を除去 |
+
+### 検証結果
+
+- `npx tsc --noEmit`: **0 errors**
+- `npm run test`: **1077 passed** (68 files)
+- `npm run lint`: **0 errors / 792 warnings** (既存の warning 件数。新規導入なし)
+
+### Tier 3 — 別途 scope 分割
+
+Tier 3 (アカデミー本実装、モバイル App Store 配布、SSO/SAML、GDPR データ
+エクスポート、POS 在庫管理) は各 1〜6 ヶ月の規模であり、本監査 1 セッション
+では実装できない。各項目を個別の Epic として切り出し、優先度とビジネス文脈
+に基づいてスケジュール化することを推奨する。
+
+---
+
 *本レポートは 2026-05-03 時点のコードベース静的解析と前回監査との差分検証に
 基づく。動的テスト・ペネトレーション・負荷試験は別途推奨。*
