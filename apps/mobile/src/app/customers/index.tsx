@@ -99,7 +99,9 @@ export default function CustomersIndexScreen() {
       )}
       <FAB
         icon="plus"
+        label="新規"
         style={styles.fab}
+        color="#ffffff"
         onPress={() => router.push("/customers/new")}
       />
     </View>
@@ -119,7 +121,12 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: 16,
-    bottom: 16,
-    backgroundColor: "#1a1a2e",
+    bottom: 24,
+    backgroundColor: "#3b82f6",
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
 });

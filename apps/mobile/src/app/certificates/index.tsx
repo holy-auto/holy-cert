@@ -11,13 +11,16 @@ type CertStatus = "active" | "draft" | "void" | "expired";
 
 interface Certificate {
   id: string;
-  certificate_no: string;
+  certificate_no: string | null;
   customer_name: string | null;
-  vehicle_maker: string | null;
-  vehicle_model: string | null;
-  plate_display: string | null;
   status: string;
-  issued_date: string | null;
+  service_type: string | null;
+  created_at: string;
+  vehicle: {
+    plate_display: string | null;
+    maker: string | null;
+    model: string | null;
+  } | null;
 }
 
 const STATUS_OPTIONS = [
@@ -37,14 +40,15 @@ export default function CertificatesIndexScreen() {
       const { data, error } = await supabase
         .from("certificates")
         .select(
-          "id, certificate_no, customer_name, vehicle_maker, vehicle_model, plate_display, status, issued_date"
+          `id, certificate_no, customer_name, status, service_type, created_at,
+           vehicle:vehicles(plate_display, maker, model)`
         )
         .eq("tenant_id", user!.tenantId)
         .eq("status", statusFilter)
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data as Certificate[];
+      return (data ?? []) as unknown as Certificate[];
     },
     enabled: !!user?.tenantId,
   });
@@ -59,7 +63,7 @@ export default function CertificatesIndexScreen() {
         <Card.Content>
           <View style={styles.row}>
             <Text variant="titleSmall" style={styles.certNo}>
-              {item.certificate_no}
+              {item.certificate_no ?? "(番号未設定)"}
             </Text>
             <StatusBadge status={item.status} />
           </View>
@@ -69,15 +73,13 @@ export default function CertificatesIndexScreen() {
             </Text>
           )}
           <Text variant="bodySmall" style={styles.sub}>
-            {[item.vehicle_maker, item.vehicle_model, item.plate_display]
+            {[item.vehicle?.maker, item.vehicle?.model, item.vehicle?.plate_display]
               .filter(Boolean)
               .join(" ")}
           </Text>
-          {item.issued_date && (
-            <Text variant="bodySmall" style={styles.sub}>
-              発行日: {item.issued_date}
-            </Text>
-          )}
+          <Text variant="bodySmall" style={styles.sub}>
+            発行日: {new Date(item.created_at).toLocaleDateString("ja-JP")}
+          </Text>
         </Card.Content>
       </Card>
     ),
