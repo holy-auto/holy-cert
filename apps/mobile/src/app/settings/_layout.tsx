@@ -9,6 +9,7 @@ export default function SettingsLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: "設定" }} />
+      <Stack.Screen name="tap-to-pay" options={{ title: "Tap to Pay" }} />
     </Stack>
   );
 }

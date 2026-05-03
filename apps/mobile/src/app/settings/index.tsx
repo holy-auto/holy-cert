@@ -96,6 +96,16 @@ export default function SettingsIndexScreen() {
       <View style={styles.actions}>
         <Button
           mode="outlined"
+          icon="apple"
+          onPress={() => router.push("/settings/tap-to-pay")}
+          style={styles.actionButton}
+          textColor="#1a1a2e"
+        >
+          Tap to Pay 設定
+        </Button>
+
+        <Button
+          mode="outlined"
           icon="store"
           onPress={handleSwitchStore}
           style={styles.actionButton}
