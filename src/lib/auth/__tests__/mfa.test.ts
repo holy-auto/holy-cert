@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { enrollTotp, verifyEnroll, unenrollFactor, isAal2Verified } from "@/lib/auth/mfa";
+import { enrollTotp, verifyEnroll, unenrollFactor, isAal2Verified, listFactors } from "@/lib/auth/mfa";
 
 function fakeMfa(overrides: Record<string, unknown> = {}) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,6 +67,45 @@ describe("unenrollFactor", () => {
   it("returns ok on success", async () => {
     const r = await unenrollFactor(fakeMfa({ unenroll: vi.fn().mockResolvedValue({ data: {}, error: null }) }), "f1");
     expect(r.ok).toBe(true);
+  });
+});
+
+describe("listFactors", () => {
+  it("returns mfa_unsupported_supabase_version when listFactors missing", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = await listFactors({ auth: { mfa: {} } } as any);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toBe("mfa_unsupported_supabase_version");
+  });
+
+  it("normalises totp factor list", async () => {
+    const r = await listFactors(
+      fakeMfa({
+        listFactors: vi.fn().mockResolvedValue({
+          data: {
+            totp: [
+              { id: "f1", factor_type: "totp", friendly_name: "Phone", status: "verified", created_at: "2026-05-03" },
+              { id: "f2" },
+            ],
+          },
+          error: null,
+        }),
+      }),
+    );
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.data).toHaveLength(2);
+      expect(r.data[0]).toMatchObject({ id: "f1", friendly_name: "Phone", status: "verified" });
+      expect(r.data[1]).toMatchObject({ id: "f2", factor_type: "totp", status: "unknown", friendly_name: null });
+    }
+  });
+
+  it("propagates supabase error", async () => {
+    const r = await listFactors(
+      fakeMfa({ listFactors: vi.fn().mockResolvedValue({ data: null, error: { message: "rate_limited" } }) }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toBe("rate_limited");
   });
 });
 

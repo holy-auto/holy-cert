@@ -85,6 +85,43 @@ export async function unenrollFactor(supabase: Db, factorId: string): Promise<Mf
   return { ok: true, data: undefined };
 }
 
+export interface MfaFactorSummary {
+  id: string;
+  factor_type: string;
+  friendly_name: string | null;
+  status: string;
+  created_at: string | null;
+}
+
+/** List all MFA factors registered for the current user. */
+export async function listFactors(supabase: Db): Promise<MfaResult<MfaFactorSummary[]>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mfa = (supabase.auth as any)?.mfa;
+  if (!mfa || typeof mfa.listFactors !== "function") {
+    return { ok: false, error: "mfa_unsupported_supabase_version" };
+  }
+  const res = await mfa.listFactors();
+  if (res.error) return { ok: false, error: res.error.message ?? "mfa_list_failed" };
+
+  const totp = (res.data?.totp ?? []) as Array<{
+    id: string;
+    factor_type?: string;
+    friendly_name?: string | null;
+    status?: string;
+    created_at?: string;
+  }>;
+  return {
+    ok: true,
+    data: totp.map((f) => ({
+      id: f.id,
+      factor_type: f.factor_type ?? "totp",
+      friendly_name: f.friendly_name ?? null,
+      status: f.status ?? "unknown",
+      created_at: f.created_at ?? null,
+    })),
+  };
+}
+
 /**
  * 現在のセッションが MFA verified (aal2) かどうか。route handler で
  * admin / super_admin が叩いた route は aal2 を要求する想定。
