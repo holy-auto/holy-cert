@@ -120,5 +120,8 @@ export function serializeCsp(directives: Record<string, string[]>): string {
 
 /** Convenience: build + serialize in one call. */
 export function buildCspHeader(options: CspOptions): string {
-  return serializeCsp(buildCsp(options));
+  // Append `report-uri` (legacy spec, widely supported) directing violations
+  // to /api/csp-report. The `report-to` header would require the page also
+  // sending a `Report-To` header — keep `report-uri` for breadth of coverage.
+  return `${serializeCsp(buildCsp(options))}; report-uri /api/csp-report`;
 }
