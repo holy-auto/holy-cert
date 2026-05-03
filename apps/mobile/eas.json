@@ -20,7 +20,11 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://cahybswpduchptvyvdkk.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhaHlic3dwZHVjaHB0dnl2ZGtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMzEzNzEsImV4cCI6MjA4NzYwNzM3MX0.Yq2X9giELhEjoHp1FEjETYTWCjYkeRv0AdNJIF8FE70",
+        "EXPO_PUBLIC_API_URL": "https://app.cartrust.co.jp",
+        "EXPO_PUBLIC_CERTIFICATE_BASE_URL": "https://app.cartrust.co.jp/c"
       }
     }
   },

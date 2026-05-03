@@ -300,7 +300,14 @@ export default function WalkInCheckoutScreen() {
         router.replace("/(tabs)");
       }
     } catch (err) {
-      setSnackbar(err instanceof Error ? err.message : "決済に失敗しました");
+      const msg =
+        err instanceof Error
+          ? err.message
+          : (err as { message?: string })?.message ||
+            (err as { details?: string })?.details ||
+            JSON.stringify(err) ||
+            "決済に失敗しました";
+      setSnackbar(msg);
     } finally {
       setProcessing(false);
     }
@@ -315,9 +322,9 @@ export default function WalkInCheckoutScreen() {
       ];
     }
     if (isIPhone) {
+      // iPhone: Tap to Pay 承認待ちのためカード選択肢は除外
       return [
         { value: "cash", label: "現金" },
-        { value: "card", label: "カード" },
         { value: "qr", label: "QR" },
         { value: "bank_transfer", label: "振込" },
       ];

@@ -272,7 +272,16 @@ export default function PosCheckoutScreen() {
       router.replace(`/pos/receipt/${id}`);
     },
     onError: (err) => {
-      setSnackbar(err instanceof Error ? err.message : "決済に失敗しました");
+      // Supabase の PostgrestError 等は Error インスタンスでないため
+      // 個別に message を取り出して表示
+      const msg =
+        err instanceof Error
+          ? err.message
+          : (err as { message?: string })?.message ||
+            (err as { details?: string })?.details ||
+            JSON.stringify(err) ||
+            "決済に失敗しました";
+      setSnackbar(msg);
     },
   });
 
@@ -287,9 +296,10 @@ export default function PosCheckoutScreen() {
       ];
     }
     if (isIPhone) {
+      // iPhone: Tap to Pay は Apple Distribution 承認待ちで現状動作不可のため
+      // カード選択肢は除外し、QR (Stripe Checkout) に統一する
       return [
         { value: "cash", label: "現金" },
-        { value: "card", label: "カード" },
         { value: "qr", label: "QR" },
         { value: "bank_transfer", label: "振込" },
       ];
