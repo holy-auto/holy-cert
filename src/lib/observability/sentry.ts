@@ -13,7 +13,14 @@
 export type SecurityEventType =
   | "webhook_signature_failed"
   | "webhook_idempotency_claim_failed"
-  | "rate_limit_unavailable";
+  | "rate_limit_unavailable"
+  | "auth_failed"
+  | "auth_role_denied"
+  | "csrf_blocked"
+  | "idempotency_conflict"
+  | "suspicious_input"
+  | "tenant_isolation_violation"
+  | "secret_decryption_failed";
 
 /** Capture a security-relevant non-exception event. */
 export function captureSecurityEvent(type: SecurityEventType, context: Record<string, unknown> = {}): void {

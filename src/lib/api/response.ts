@@ -34,7 +34,10 @@ type ErrorCode =
   | "plan_limit"
   | "db_error"
   | "auth_error"
-  | "internal_error";
+  | "internal_error"
+  | "invalid_idempotency_key"
+  | "idempotency_conflict"
+  | "idempotency_in_flight";
 
 interface ApiErrorOptions {
   /** クライアントに表示するメッセージ */
