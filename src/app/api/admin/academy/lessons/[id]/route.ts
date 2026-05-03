@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/response";
 import { canUseFeature } from "@/lib/billing/planFeatures";
 import { createPlatformScopedAdmin } from "@/lib/supabase/admin";
+import { resolveLessonPlayback, type LessonVideoFields } from "@/lib/video/resolveLessonPlayback";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     const { data, error } = await supabase
       .from("academy_lessons")
       .select(
-        "id, tenant_id, author_user_id, category, level, difficulty, title, summary, body, video_url, cover_image_url, tags, status, published_at, view_count, rating_avg, rating_count, created_at, updated_at",
+        "id, tenant_id, author_user_id, category, level, difficulty, title, summary, body, video_url, video_provider, video_asset_id, video_playback_id, video_status, video_duration_sec, video_provider_metadata, cover_image_url, tags, status, published_at, view_count, rating_avg, rating_count, created_at, updated_at",
       )
       .eq("id", id)
       .maybeSingle();
@@ -107,8 +108,11 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       .limit(1)
       .maybeSingle();
 
+    const video = resolveLessonPlayback(data as LessonVideoFields);
+
     return apiOk({
       lesson: data,
+      video,
       my_rating: myRating ?? null,
       my_completion: myCompletion ?? null,
       quiz_question_count: quizQuestionCount ?? 0,
