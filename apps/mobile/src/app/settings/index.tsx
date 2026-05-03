@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, ScrollView, StyleSheet, Platform, Alert } from "react-native";
+import { View, ScrollView, StyleSheet, Platform, Alert, Linking } from "react-native";
 import {
   Text,
   Card,
@@ -18,6 +18,10 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 
 const ENV = process.env.EXPO_PUBLIC_ENV ?? "development";
+const WEB_APP_URL =
+  process.env.EXPO_PUBLIC_WEB_URL ??
+  process.env.EXPO_PUBLIC_API_URL ??
+  "https://app.cartrust.co.jp";
 
 const ENV_BADGE: Record<string, { label: string; bg: string; fg: string }> = {
   development: { label: "DEV", bg: "#fef3c7", fg: "#92400e" },
@@ -60,6 +64,18 @@ export default function SettingsIndexScreen() {
     setClearVisible(false);
     queryClient.clear();
     setSnackbar("キャッシュを削除しました");
+  }
+
+  async function handleOpenWeb() {
+    try {
+      const supported = await Linking.canOpenURL(WEB_APP_URL);
+      if (!supported) throw new Error("ブラウザを開けません");
+      await Linking.openURL(WEB_APP_URL);
+    } catch (e) {
+      setSnackbar(
+        e instanceof Error ? e.message : "Web版を開けませんでした"
+      );
+    }
   }
 
   return (
@@ -112,6 +128,16 @@ export default function SettingsIndexScreen() {
           textColor="#1a1a2e"
         >
           店舗切替
+        </Button>
+
+        <Button
+          mode="outlined"
+          icon="open-in-new"
+          onPress={handleOpenWeb}
+          style={styles.actionButton}
+          textColor="#1a1a2e"
+        >
+          Web版を開く
         </Button>
 
         <Button
