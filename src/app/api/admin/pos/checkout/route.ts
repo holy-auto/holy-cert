@@ -4,6 +4,7 @@ import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { posCheckoutSchema } from "@/lib/validations/pos";
+import { deductInventoryForPosItems } from "@/lib/pos/inventoryDeduction";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,14 @@ export async function POST(req: NextRequest) {
       return apiInternalError(error, "pos/checkout");
     }
 
-    return apiJson({ ok: true, result: data });
+    // 在庫紐付け商品があれば減算 (best-effort: 失敗してもレシートは確定)
+    const result = data as { payment_id?: string | null } | null;
+    const inventory = await deductInventoryForPosItems(supabase, data2.items_json, {
+      tenantId: caller.tenantId,
+      paymentId: result?.payment_id ?? null,
+    });
+
+    return apiJson({ ok: true, result: data, inventory });
   } catch (e: unknown) {
     return apiInternalError(e, "pos/checkout");
   }
