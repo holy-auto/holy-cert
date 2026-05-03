@@ -78,6 +78,72 @@ function hardenAuthCookie<T extends { secure?: boolean; httpOnly?: boolean; same
 }
 
 /**
+ * Content-Type ガード: JSON API への mutation で application/json でない
+ * Content-Type を弾く。CSRF token を持たない `<form>` POST が JSON エン
+ * ドポイントに当たる "form-action CSRF" と、誤って multipart で送られた
+ * JSON body の不整合をまとめて防ぐ。
+ *
+ * 例外:
+ *   - GET / HEAD / OPTIONS  : body 無し
+ *   - /api/webhooks/* / /api/stripe/webhook / /api/line/webhook
+ *     : 外部サービスは独自の Content-Type を使う
+ *   - /api/cron/*           : cron は body を持たないことが多い
+ *   - multipart/form-data を許可するファイルアップロード route
+ *     : /api/admin/certificates/images/upload など。Content-Length の
+ *       チェックは route 側で別途行う。
+ */
+const MULTIPART_ALLOWED_PREFIXES = [
+  "/api/admin/certificates/images/",
+  "/api/admin/uploads/",
+  "/api/admin/insurer-logo/",
+  "/api/uploads/",
+  "/api/agent-sign/", // 同意フォームは multipart 可能性あり
+];
+
+function contentTypeGuard(request: NextRequest): NextResponse | null {
+  const { method, nextUrl } = request;
+  if (!nextUrl.pathname.startsWith("/api/")) return null;
+  if (["GET", "HEAD", "OPTIONS"].includes(method)) return null;
+  if (
+    nextUrl.pathname.startsWith("/api/webhooks/") ||
+    nextUrl.pathname.startsWith("/api/stripe/webhook") ||
+    nextUrl.pathname.startsWith("/api/line/webhook") ||
+    nextUrl.pathname.startsWith("/api/cron/") ||
+    nextUrl.pathname.startsWith("/api/qstash/") ||
+    nextUrl.pathname.startsWith("/api/csp-report")
+  ) {
+    return null;
+  }
+
+  const ct = (request.headers.get("content-type") ?? "").toLowerCase().split(";")[0].trim();
+
+  // body 無しの mutation (DELETE 等) は許可
+  const contentLength = request.headers.get("content-length");
+  if (!ct && (!contentLength || contentLength === "0")) return null;
+
+  if (ct === "application/json") return null;
+
+  // ファイルアップロードを許可する route は multipart / octet-stream を通す
+  if (MULTIPART_ALLOWED_PREFIXES.some((p) => nextUrl.pathname.startsWith(p))) {
+    if (
+      ct === "multipart/form-data" ||
+      ct === "application/octet-stream" ||
+      ct === "image/jpeg" ||
+      ct === "image/png" ||
+      ct === "image/webp" ||
+      ct === "application/pdf"
+    ) {
+      return null;
+    }
+  }
+
+  return NextResponse.json(
+    { error: "unsupported_media_type", message: "Content-Type must be application/json." },
+    { status: 415 },
+  );
+}
+
+/**
  * CSRF protection for API mutation routes.
  * Returns a 403 response if the request is cross-origin, or null to continue.
  */
@@ -192,6 +258,13 @@ export async function proxy(request: NextRequest) {
       limited.headers.set("x-request-id", requestId);
       return limited;
     }
+  }
+
+  // Content-Type ガード (CSRF より先に判定して 415 を早期返却)
+  const ctResponse = contentTypeGuard(request);
+  if (ctResponse) {
+    ctResponse.headers.set("x-request-id", requestId);
+    return ctResponse;
   }
 
   // CSRF protection for API mutations
