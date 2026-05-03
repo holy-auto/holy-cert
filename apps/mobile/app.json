@@ -75,7 +75,7 @@
       ],
       "./plugins/withRemoveTapToPayEntitlement",
       [
-        "react-native-nfc-manager",
+        "./plugins/withNfcLocal",
         {
           "nfcPermission": "Ledraは証明書NFCタグの読み取りと書き込みに使用します"
         }
