@@ -93,6 +93,21 @@ describe("buildCsp", () => {
     expect(csp["img-src"]).toContain("blob:");
     expect(csp["img-src"]).toContain("data:");
   });
+
+  it("emits report-uri and report-to for CSP violation reporting", () => {
+    const csp = buildCsp({ nonce: NONCE, isDev: false });
+    expect(csp["report-uri"]).toEqual(["/api/csp-report"]);
+    expect(csp["report-to"]).toEqual(["csp-endpoint"]);
+  });
+
+  it("includes upgrade-insecure-requests as a boolean directive", () => {
+    const csp = buildCsp({ nonce: NONCE, isDev: false });
+    expect(csp["upgrade-insecure-requests"]).toEqual([]);
+    const header = buildCspHeader({ nonce: NONCE, isDev: false });
+    expect(header).toContain("upgrade-insecure-requests");
+    // Boolean directive should NOT have any sources after its name.
+    expect(header).toMatch(/upgrade-insecure-requests(;|$)/);
+  });
 });
 
 describe("serializeCsp", () => {

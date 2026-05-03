@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { resolveRequestId } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/api/rateLimit";
-import { buildCspHeader } from "@/lib/security/csp";
+import { buildCspHeader, REPORTING_ENDPOINTS_HEADER } from "@/lib/security/csp";
 
 /**
  * Generate a cryptographically random nonce for CSP script-src.
@@ -45,6 +45,37 @@ const MARKETING_PATHS = [
 
 /** Unreleased feature routes — redirect to /admin until ready for launch */
 const HIDDEN_ADMIN_PREFIXES = ["/admin/price-stats", "/admin/insurers"];
+
+/**
+ * Open-redirect ガード。/login?next=... に渡す pathname を内部相対パスに
+ * 限定する。Next.js は通常の routing で外部 URL を pathname に載せないが、
+ * バックスラッシュやプロトコル相対の細工を念のため弾く。
+ */
+function sanitizeNextPath(value: string): string {
+  if (!value || !value.startsWith("/")) return "/";
+  if (value.startsWith("//") || value.startsWith("/\\")) return "/";
+  return value;
+}
+
+/**
+ * Supabase auth cookie のセキュリティ属性を本番で必ず強制する。
+ * `@supabase/ssr` は既に lax/httpOnly を付けるが、`secure` がプロキシ
+ * 構成によって落ちる事例があるため明示的に補強する。
+ */
+function hardenAuthCookie<T extends { secure?: boolean; httpOnly?: boolean; sameSite?: unknown; path?: string }>(
+  name: string,
+  options: T,
+): T {
+  const isProd = process.env.NODE_ENV === "production";
+  const isAuth = name.includes("auth-token") || name.includes("supabase");
+  return {
+    ...options,
+    secure: options.secure ?? isProd,
+    httpOnly: options.httpOnly ?? isAuth,
+    sameSite: (options.sameSite ?? "lax") as T["sameSite"],
+    path: options.path ?? "/",
+  };
+}
 
 /**
  * CSRF protection for API mutation routes.
@@ -199,6 +230,9 @@ export async function proxy(request: NextRequest) {
 
   response.headers.set("x-request-id", requestId);
   response.headers.set("Content-Security-Policy", cspHeader);
+  // Bind the `report-to` group declared in CSP to a concrete endpoint.
+  // Required for CSP Level 3 reporting in Chrome / Edge / Firefox.
+  response.headers.set("Reporting-Endpoints", REPORTING_ENDPOINTS_HEADER);
 
   // Defense-in-depth for raw binary responses (PDF / CSV exports) that do
   // not go through apiOk/apiError/apiJson helpers. Safe to always add
@@ -268,7 +302,7 @@ async function refreshSession(request: NextRequest) {
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
           request.cookies.set(name, value);
-          response.cookies.set(name, value, options);
+          response.cookies.set(name, value, hardenAuthCookie(name, options));
         });
       },
     },
@@ -301,7 +335,7 @@ async function refreshSessionAndProtect(request: NextRequest) {
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
           request.cookies.set(name, value);
-          response.cookies.set(name, value, options);
+          response.cookies.set(name, value, hardenAuthCookie(name, options));
         });
       },
     },
@@ -315,7 +349,10 @@ async function refreshSessionAndProtect(request: NextRequest) {
     if (pathname.startsWith("/admin")) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
-      redirectUrl.searchParams.set("next", pathname);
+      // pathname は Next の正規化済みだが、protocol-relative ("/\\evil")
+      // / 二重スラッシュ ("//evil") を念のためサニタイズしてから next に
+      // 載せる。一切の外部リダイレクトを許さない。
+      redirectUrl.searchParams.set("next", sanitizeNextPath(pathname));
       return NextResponse.redirect(redirectUrl);
     }
     if (pathname.startsWith("/insurer")) {

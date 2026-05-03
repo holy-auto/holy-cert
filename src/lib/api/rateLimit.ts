@@ -224,12 +224,22 @@ export async function checkRateLimit(
   }
 
   if (!result.success) {
+    const retryAfter = Math.ceil((result.reset - Date.now()) / 1000);
     return apiError({
       code: "rate_limited",
       message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
       status: 429,
-      data: {
-        retry_after: Math.ceil((result.reset - Date.now()) / 1000),
+      data: { retry_after: retryAfter },
+      // RFC 6585 / IETF draft-polli-ratelimit-headers — クライアントが
+      // 自律的にバックオフできるよう標準ヘッダで残量を露出する。
+      headers: {
+        "Retry-After": String(retryAfter),
+        "RateLimit-Limit": String(result.limit),
+        "RateLimit-Remaining": "0",
+        "RateLimit-Reset": String(retryAfter),
+        "X-RateLimit-Limit": String(result.limit),
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": String(Math.ceil(result.reset / 1000)),
       },
     });
   }

@@ -34,7 +34,10 @@ type CspDirective =
   | "form-action"
   | "frame-ancestors"
   | "worker-src"
-  | "manifest-src";
+  | "manifest-src"
+  | "report-uri"
+  | "report-to"
+  | "upgrade-insecure-requests";
 
 export type CspOptions = {
   /** Per-request nonce for script-src. Required. */
@@ -108,15 +111,35 @@ export function buildCsp(options: CspOptions): Record<CspDirective, string[]> {
     // PWA manifest at /manifest.json (same-origin). Without this it falls
     // back to default-src 'self' which is also fine; included for clarity.
     "manifest-src": ["'self'"],
+    // CSP violations are POST'd to /api/csp-report and forwarded to Sentry.
+    // `report-uri` is CSP Level 2 (legacy but still supported by Safari);
+    // `report-to` is CSP Level 3 (Chrome / Edge / Firefox) and uses the
+    // `Reporting-Endpoints` header to bind the group name. proxy.ts emits
+    // both headers in lockstep.
+    "report-uri": ["/api/csp-report"],
+    "report-to": ["csp-endpoint"],
+    // Mixed-content guard: any http:// asset that slips into the source tree
+    // is auto-upgraded to https:// instead of being blocked silently.
+    "upgrade-insecure-requests": [],
   };
 }
 
 /** Serialize the directive map to the canonical header value. */
 export function serializeCsp(directives: Record<string, string[]>): string {
   return Object.entries(directives)
-    .map(([directive, sources]) => `${directive} ${sources.join(" ")}`)
+    .map(([directive, sources]) => {
+      // Boolean directives like `upgrade-insecure-requests` have no value.
+      if (sources.length === 0) return directive;
+      return `${directive} ${sources.join(" ")}`;
+    })
     .join("; ");
 }
+
+/**
+ * Reporting-Endpoints header value pair with the CSP report-to group name.
+ * Browsers (CSP Level 3) bind this group to the report-to directive.
+ */
+export const REPORTING_ENDPOINTS_HEADER = `csp-endpoint="/api/csp-report"`;
 
 /** Convenience: build + serialize in one call. */
 export function buildCspHeader(options: CspOptions): string {
