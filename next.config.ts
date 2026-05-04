@@ -55,6 +55,26 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  async rewrites() {
+    return [
+      // Honeypot: 攻撃者が探索しがちな legacy パスを Sentry 計測の
+      // honeypot route に向ける。実体は存在せず常に 404 を返すが、
+      // ヒットは "honeypot_hit" として記録され bot 検知に使える。
+      { source: "/wp-admin", destination: "/api/.honeypot/wp-admin" },
+      { source: "/wp-admin/:path*", destination: "/api/.honeypot/wp-admin" },
+      { source: "/wp-login.php", destination: "/api/.honeypot/wp-admin" },
+      { source: "/wp-config.php", destination: "/api/.honeypot/wp-admin" },
+      { source: "/.env", destination: "/api/.honeypot/wp-admin" },
+      { source: "/.env.:path*", destination: "/api/.honeypot/wp-admin" },
+      { source: "/.git/:path*", destination: "/api/.honeypot/wp-admin" },
+      { source: "/phpmyadmin", destination: "/api/.honeypot/wp-admin" },
+      { source: "/phpmyadmin/:path*", destination: "/api/.honeypot/wp-admin" },
+      { source: "/admin.php", destination: "/api/.honeypot/wp-admin" },
+      { source: "/xmlrpc.php", destination: "/api/.honeypot/wp-admin" },
+      { source: "/server-status", destination: "/api/.honeypot/wp-admin" },
+    ];
+  },
+
   async headers() {
     // NOTE: Content-Security-Policy is set per-request in `src/proxy.ts` so
     // that it can include a per-request nonce for `script-src`. Setting it
