@@ -19,9 +19,7 @@ import { useAuthStore } from "@/stores/authStore";
 
 const ENV = process.env.EXPO_PUBLIC_ENV ?? "development";
 const WEB_APP_URL =
-  process.env.EXPO_PUBLIC_WEB_URL ??
-  process.env.EXPO_PUBLIC_API_URL ??
-  "https://app.cartrust.co.jp";
+  process.env.EXPO_PUBLIC_WEB_URL ?? "https://app.ledra.co.jp";
 
 const ENV_BADGE: Record<string, { label: string; bg: string; fg: string }> = {
   development: { label: "DEV", bg: "#fef3c7", fg: "#92400e" },
