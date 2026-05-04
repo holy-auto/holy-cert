@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔐 脆弱性の報告 (Security disclosure)
+    url: https://ledra.co.jp/security
+    about: |
+      セキュリティ脆弱性は GitHub の public issue に書かないでください。
+      security@ledra.co.jp 宛に報告いただくか、private security advisory
+      機能 (リポジトリ Security タブ → Report a vulnerability) を
+      使ってください。詳しくは SECURITY.md を参照。
+
+  - name: 💬 質問・相談
+    url: https://ledra.co.jp/contact
+    about: 技術的でない一般の問い合わせはこちら。

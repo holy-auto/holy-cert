@@ -1,0 +1,51 @@
+# CODEOWNERS — 自動レビュー要求設定
+#
+# このファイルは GitHub の CODEOWNERS 機能を使い、特定パスへの変更が
+# あった PR で自動的にセキュリティレビュー担当者をレビュアー登録する。
+# `Settings → Branches → main → Require review from Code Owners` を
+# ON にすることで、レビューなしのマージを物理的に防げる。
+#
+# 形式: <pattern> <space> @owner1 @owner2 ...
+# 最後にマッチした行が優先される。
+#
+# 当面は CTO (@founder) が単一の security owner として登録。チーム拡大
+# 時は `@holy-auto/security` のような team handle を作って差し替える。
+
+# ─── デフォルト ─────────────────────────────────────────
+*       @founder
+
+# ─── セキュリティ・暗号系 (必須レビュー) ───────────────
+/src/lib/security/                  @founder
+/src/lib/crypto/                    @founder
+/src/lib/api/auth.ts                @founder
+/src/lib/api/rateLimit.ts           @founder
+/src/lib/api/idempotency.ts         @founder
+/src/lib/api/securityAudit.ts       @founder
+/src/lib/auth/                      @founder
+/src/lib/cronAuth.ts                @founder
+/src/lib/envValidation.ts           @founder
+/src/proxy.ts                       @founder
+/src/middleware.ts                  @founder
+
+# ─── Webhook 署名検証 (改ざんが致命的) ─────────────────
+/src/app/api/stripe/webhook/        @founder
+/src/app/api/webhooks/              @founder
+/src/app/api/line/webhook/          @founder
+/src/app/api/cron/                  @founder
+/src/app/api/qstash/                @founder
+
+# ─── インフラ / CI / 設定 ──────────────────────────────
+/.github/                           @founder
+/next.config.ts                     @founder
+/vercel.json                        @founder
+/package.json                       @founder
+/package-lock.json                  @founder
+/sentry.*.config.ts                 @founder
+/instrumentation.ts                 @founder
+
+# ─── DB スキーマ / RLS ─────────────────────────────────
+/supabase/migrations/               @founder
+
+# ─── ドキュメント (運用 / セキュリティ仕様) ────────────
+/SECURITY.md                        @founder
+/docs/operations/                   @founder

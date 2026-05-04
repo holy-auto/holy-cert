@@ -1,0 +1,112 @@
+name: Weekly Security Report
+
+on:
+  schedule:
+    # Every Monday 09:00 JST = 00:00 UTC
+    - cron: "0 0 * * 1"
+  workflow_dispatch: # 手動実行も許可
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  security-report:
+    name: Generate weekly security report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # gitleaks 等で全履歴を見るため
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 1. 依存パッケージの脆弱性
+      - name: npm audit summary
+        id: audit
+        run: |
+          npm audit --json > audit.json || true
+          critical=$(jq '.metadata.vulnerabilities.critical // 0' audit.json)
+          high=$(jq '.metadata.vulnerabilities.high // 0' audit.json)
+          moderate=$(jq '.metadata.vulnerabilities.moderate // 0' audit.json)
+          low=$(jq '.metadata.vulnerabilities.low // 0' audit.json)
+          {
+            echo "critical=$critical"
+            echo "high=$high"
+            echo "moderate=$moderate"
+            echo "low=$low"
+          } >> "$GITHUB_OUTPUT"
+
+      # 2. 古いパッケージ
+      - name: Outdated packages count
+        id: outdated
+        run: |
+          count=$(npm outdated --json | jq 'length' || echo "0")
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      # 3. 直近 7 日のマージ済 PR 数 (CODEOWNERS 経由のセキュリティレビュー数)
+      - name: PR counts
+        id: prs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          since=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          merged=$(gh pr list --state merged --search "merged:>$since" --json number | jq 'length')
+          echo "merged_last_week=$merged" >> "$GITHUB_OUTPUT"
+
+      # 4. オープン issue (security ラベル)
+      - name: Security issues count
+        id: issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          open=$(gh issue list --label security --state open --json number | jq 'length')
+          echo "open_security=$open" >> "$GITHUB_OUTPUT"
+
+      # 5. 結果を issue として投稿 (毎週新規 issue を作る → 履歴になる)
+      - name: Create weekly report issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          week=$(date +%G-W%V)
+          gh issue create \
+            --title "Security weekly report — $week" \
+            --label "security,report,automated" \
+            --body "$(cat <<EOF
+          # Weekly Security Report — $week
+
+          ## 依存パッケージ脆弱性 (npm audit)
+
+          | 深刻度 | 件数 |
+          |---|---|
+          | Critical | ${{ steps.audit.outputs.critical }} |
+          | High     | ${{ steps.audit.outputs.high }} |
+          | Moderate | ${{ steps.audit.outputs.moderate }} |
+          | Low      | ${{ steps.audit.outputs.low }} |
+
+          ## その他
+
+          - 古い依存パッケージ: ${{ steps.outdated.outputs.count }}
+          - 過去 7 日のマージ済 PR: ${{ steps.prs.outputs.merged_last_week }}
+          - オープン中の \`security\` issue: ${{ steps.issues.outputs.open_security }}
+
+          ## 対応すべき項目
+
+          - Critical / High が 1 件以上あれば 7 日以内に対応
+          - 古いパッケージが 30 件以上あれば月次まとめアップデートを検討
+          - オープン \`security\` issue が 5 件以上あれば優先度見直し
+
+          ## 関連リンク
+
+          - [CodeQL alerts](../../security/code-scanning)
+          - [Dependabot alerts](../../security/dependabot)
+          - [Secret scanning alerts](../../security/secret-scanning)
+          - [Sentry security events](https://sentry.io)
+          - [SECURITY.md](../../blob/main/SECURITY.md)
+          EOF
+          )"
