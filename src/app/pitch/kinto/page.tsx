@@ -16,7 +16,7 @@ function S({
       style={{ fontFamily: "var(--font-noto), var(--font-noto-sans), sans-serif" }}
     >
       <div className="h-[3px] w-full bg-gradient-to-r from-purple-500 to-violet-400 shrink-0" />
-      <div className="flex-1 overflow-hidden">{children}</div>
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">{children}</div>
       <div className="px-10 py-2.5 flex items-center justify-between border-t border-white/[0.06] shrink-0">
         <span className="text-white/30 text-[11px] tracking-wide">Ledra — Confidential · 2026年4月</span>
         <span className="text-white/25 text-[11px] font-mono">{n}/{total}</span>
@@ -54,7 +54,7 @@ function Chip({
 const S1 = (
   <S n={1}>
     {/* Cover */}
-    <div className="flex flex-col items-center justify-center h-full text-center px-10 gap-5">
+    <div className="flex flex-col items-center justify-center flex-1 text-center px-10 gap-5">
       <div className="flex gap-2 flex-wrap justify-center">
         <Chip>KINTO</Chip>
         <Chip color="violet">プロダクト / 事業開発</Chip>
@@ -85,7 +85,7 @@ const S1 = (
 const S2 = (
   <S n={2}>
     {/* Resonance with KINTO SBT */}
-    <div className="flex flex-col h-full px-10 pt-8 pb-2 gap-5">
+    <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">
           共鳴ポイント
@@ -131,7 +131,7 @@ const S2 = (
 const S3 = (
   <S n={3}>
     {/* Integration Flow */}
-    <div className="flex flex-col h-full px-10 pt-8 pb-2 gap-5">
+    <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">
           連携フロー
@@ -200,7 +200,7 @@ const S3 = (
 const S4 = (
   <S n={4}>
     {/* Business Value */}
-    <div className="flex flex-col h-full px-10 pt-8 pb-2 gap-5">
+    <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">
           ビジネス価値
@@ -253,7 +253,7 @@ const S4 = (
 const S5 = (
   <S n={5}>
     {/* PoC Proposal */}
-    <div className="flex flex-col h-full px-10 pt-8 pb-2 gap-5">
+    <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">
           PoC提案
@@ -316,7 +316,7 @@ const S5 = (
 const S6 = (
   <S n={6}>
     {/* Next Step */}
-    <div className="flex flex-col items-center justify-center h-full text-center px-10 gap-6">
+    <div className="flex flex-col items-center justify-center flex-1 text-center px-10 gap-6">
       <Chip>Next Step</Chip>
       <h2 className="text-3xl font-extrabold text-white leading-snug">
         まず 15分、話しませんか
