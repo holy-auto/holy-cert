@@ -61,6 +61,10 @@
     {
       "path": "/api/cron/outbox-flush",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/onboarding-followup",
+      "schedule": "30 10 * * *"
     }
   ]
 }
