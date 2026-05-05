@@ -53,6 +53,10 @@
     {
       "path": "/api/cron/low-stock-alerts",
       "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/onboarding-followup",
+      "schedule": "30 10 * * *"
     }
   ]
 }

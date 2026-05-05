@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Badge from "@/components/ui/Badge";
+import OnboardingFunnelSection from "./OnboardingFunnelSection";
 
 // ── Types ──
 type SystemHealth = {
@@ -196,7 +197,9 @@ export default function PlatformOperationsClient() {
       <div className="glass-card p-6 text-center space-y-3">
         <div className="text-danger font-semibold">エラーが発生しました</div>
         <div className="text-sm text-muted">{error}</div>
-        <button onClick={fetchData} className="btn-primary">再試行</button>
+        <button onClick={fetchData} className="btn-primary">
+          再試行
+        </button>
       </div>
     );
   }
@@ -208,16 +211,16 @@ export default function PlatformOperationsClient() {
       {/* Refresh bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className={`inline-flex h-2.5 w-2.5 rounded-full ${data.systemHealth.status === "healthy" ? "bg-success" : data.systemHealth.status === "warning" ? "bg-warning" : "bg-danger"}`} />
+          <span
+            className={`inline-flex h-2.5 w-2.5 rounded-full ${data.systemHealth.status === "healthy" ? "bg-success" : data.systemHealth.status === "warning" ? "bg-warning" : "bg-danger"}`}
+          />
           <span className={`text-sm font-semibold ${healthColor(data.systemHealth.status)}`}>
             システム: {healthLabel(data.systemHealth.status)}
           </span>
         </div>
         <div className="flex items-center gap-3">
           {lastRefresh && (
-            <span className="text-xs text-muted">
-              最終更新: {lastRefresh.toLocaleTimeString("ja-JP")}
-            </span>
+            <span className="text-xs text-muted">最終更新: {lastRefresh.toLocaleTimeString("ja-JP")}</span>
           )}
           <button onClick={fetchData} disabled={loading} className="btn-secondary text-xs px-3 py-1.5">
             {loading ? "更新中..." : "更新"}
@@ -235,8 +238,8 @@ export default function PlatformOperationsClient() {
                 alert.level === "error"
                   ? "border-danger"
                   : alert.level === "warning"
-                  ? "border-warning"
-                  : "border-accent"
+                    ? "border-warning"
+                    : "border-accent"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -260,9 +263,7 @@ export default function PlatformOperationsClient() {
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === tab.key
-                ? "border-accent text-accent"
-                : "border-transparent text-muted hover:text-primary"
+              activeTab === tab.key ? "border-accent text-accent" : "border-transparent text-muted hover:text-primary"
             }`}
           >
             {tab.label}
@@ -287,10 +288,30 @@ function OverviewTab({ data }: { data: OperationsData }) {
     <div className="space-y-6">
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="テナント数" value={data.tenants.total} sub={`アクティブ: ${data.tenants.active}`} color="text-primary" />
-        <StatCard label="ユーザー数" value={data.users.totalMembers} sub={`保険会社: ${data.users.totalInsurers}`} color="text-accent" />
-        <StatCard label="証明書 (全体)" value={data.certificates.total} sub={`24h: +${data.certificates.last24h}`} color="text-success" />
-        <StatCard label="Webhook (24h)" value={data.systemHealth.webhooks24h} sub={`DB: ${data.systemHealth.database}`} color="text-violet-text" />
+        <StatCard
+          label="テナント数"
+          value={data.tenants.total}
+          sub={`アクティブ: ${data.tenants.active}`}
+          color="text-primary"
+        />
+        <StatCard
+          label="ユーザー数"
+          value={data.users.totalMembers}
+          sub={`保険会社: ${data.users.totalInsurers}`}
+          color="text-accent"
+        />
+        <StatCard
+          label="証明書 (全体)"
+          value={data.certificates.total}
+          sub={`24h: +${data.certificates.last24h}`}
+          color="text-success"
+        />
+        <StatCard
+          label="Webhook (24h)"
+          value={data.systemHealth.webhooks24h}
+          sub={`DB: ${data.systemHealth.database}`}
+          color="text-violet-text"
+        />
       </div>
 
       {/* Tenant metrics */}
@@ -325,11 +346,27 @@ function OverviewTab({ data }: { data: OperationsData }) {
           <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-1">運営サマリー</div>
           <div className="text-base font-semibold text-primary mb-4">システム状況</div>
           <div className="space-y-3">
-            <QuickStat label="非アクティブテナント" value={data.tenants.inactive} variant={data.tenants.inactive > 0 ? "warning" : "default"} />
+            <QuickStat
+              label="非アクティブテナント"
+              value={data.tenants.inactive}
+              variant={data.tenants.inactive > 0 ? "warning" : "default"}
+            />
             <QuickStat label="今週の新規テナント" value={data.tenants.recentSignups} variant="default" />
-            <QuickStat label="代理店申請 (承認待ち)" value={data.users.pendingAgents} variant={data.users.pendingAgents > 0 ? "warning" : "default"} />
-            <QuickStat label="課金不整合" value={data.billing.issues.length} variant={data.billing.issues.length > 0 ? "danger" : "default"} />
-            <QuickStat label="高アクセス保険会社" value={data.security.heavyAccessors.length} variant={data.security.heavyAccessors.length > 0 ? "warning" : "default"} />
+            <QuickStat
+              label="代理店申請 (承認待ち)"
+              value={data.users.pendingAgents}
+              variant={data.users.pendingAgents > 0 ? "warning" : "default"}
+            />
+            <QuickStat
+              label="課金不整合"
+              value={data.billing.issues.length}
+              variant={data.billing.issues.length > 0 ? "danger" : "default"}
+            />
+            <QuickStat
+              label="高アクセス保険会社"
+              value={data.security.heavyAccessors.length}
+              variant={data.security.heavyAccessors.length > 0 ? "warning" : "default"}
+            />
           </div>
         </div>
       </div>
@@ -355,6 +392,9 @@ function OverviewTab({ data }: { data: OperationsData }) {
           </div>
         </div>
       )}
+
+      {/* Onboarding funnel */}
+      <OnboardingFunnelSection />
 
       {/* Recent activity */}
       <div className="glass-card">
@@ -418,7 +458,9 @@ function TenantsTab() {
     }
   }, [search, statusFilter, page]);
 
-  useEffect(() => { fetchTenants(); }, [fetchTenants]);
+  useEffect(() => {
+    fetchTenants();
+  }, [fetchTenants]);
 
   return (
     <div className="space-y-4">
@@ -430,7 +472,10 @@ function TenantsTab() {
             <input
               type="text"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               placeholder="名前で検索..."
               className="input-field"
             />
@@ -439,7 +484,10 @@ function TenantsTab() {
             <label className="text-xs text-muted">ステータス</label>
             <select
               value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
               className="input-field"
             >
               <option value="">すべて</option>
@@ -447,7 +495,9 @@ function TenantsTab() {
               <option value="inactive">非アクティブ</option>
             </select>
           </div>
-          <button onClick={fetchTenants} className="btn-primary">検索</button>
+          <button onClick={fetchTenants} className="btn-primary">
+            検索
+          </button>
         </div>
       </div>
 
@@ -549,9 +599,7 @@ function TenantRow({ tenant, onRefresh }: { tenant: TenantDetail; onRefresh: () 
         </Badge>
       </td>
       <td className="px-4 py-3 text-center">
-        <Badge variant={tenant.is_active ? "success" : "danger"}>
-          {tenant.is_active ? "有効" : "無効"}
-        </Badge>
+        <Badge variant={tenant.is_active ? "success" : "danger"}>{tenant.is_active ? "有効" : "無効"}</Badge>
       </td>
       <td className="px-4 py-3 text-right font-mono">{tenant.memberCount}</td>
       <td className="px-4 py-3 text-right font-mono">{tenant.certCount}</td>
@@ -610,7 +658,9 @@ function SecurityTab() {
     }
   }, [days]);
 
-  useEffect(() => { fetchSecurity(); }, [fetchSecurity]);
+  useEffect(() => {
+    fetchSecurity();
+  }, [fetchSecurity]);
 
   if (loading && !data) return <LoadingSkeleton />;
   if (!data) return <div className="text-sm text-muted">データの取得に失敗しました</div>;
@@ -661,9 +711,7 @@ function SecurityTab() {
       {/* Top accessors */}
       <div className="glass-card p-5">
         <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-1">アクセスランキング</div>
-        <div className="text-base font-semibold text-primary mb-4">
-          保険会社アクセス上位
-        </div>
+        <div className="text-base font-semibold text-primary mb-4">保険会社アクセス上位</div>
         {data.access.topAccessors.length === 0 ? (
           <div className="text-sm text-muted">データがありません</div>
         ) : (
@@ -687,9 +735,7 @@ function SecurityTab() {
       {Object.keys(data.webhooks.typeDistribution).length > 0 && (
         <div className="glass-card p-5">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-1">Stripe</div>
-          <div className="text-base font-semibold text-primary mb-4">
-            Webhookイベント種別
-          </div>
+          <div className="text-base font-semibold text-primary mb-4">Webhookイベント種別</div>
           <div className="space-y-2">
             {Object.entries(data.webhooks.typeDistribution)
               .sort((a, b) => b[1] - a[1])
@@ -779,8 +825,20 @@ function ActionsTab() {
     <div className="space-y-6">
       <div className="glass-card p-5 border-l-4 border-warning">
         <div className="flex items-start gap-3">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-warning shrink-0 mt-0.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          <svg
+            width="20"
+            height="20"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            className="text-warning shrink-0 mt-0.5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+            />
           </svg>
           <div>
             <div className="text-sm font-semibold text-warning">遠隔操作エリア</div>
@@ -842,17 +900,15 @@ function ActionsTab() {
         )}
 
         <div className="pt-2 flex items-center gap-3">
-          <button
-            onClick={handleExecute}
-            disabled={executing}
-            className="btn-primary"
-          >
+          <button onClick={handleExecute} disabled={executing} className="btn-primary">
             {executing ? "実行中..." : "実行"}
           </button>
         </div>
 
         {result && (
-          <div className={`p-3 rounded-lg text-sm ${result.startsWith("成功") ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
+          <div
+            className={`p-3 rounded-lg text-sm ${result.startsWith("成功") ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}
+          >
             {result}
           </div>
         )}
@@ -878,7 +934,9 @@ function StatCard({
   return (
     <div className="glass-card p-5">
       <div className="text-xs font-semibold tracking-[0.18em] text-muted">{label}</div>
-      <div className={`mt-2 text-3xl font-bold ${color}`}>{typeof value === "number" ? value.toLocaleString() : value}</div>
+      <div className={`mt-2 text-3xl font-bold ${color}`}>
+        {typeof value === "number" ? value.toLocaleString() : value}
+      </div>
       <div className="mt-1 text-xs text-muted">{sub}</div>
     </div>
   );
@@ -893,8 +951,7 @@ function QuickStat({
   value: number;
   variant?: "default" | "warning" | "danger";
 }) {
-  const color =
-    variant === "danger" ? "text-danger" : variant === "warning" ? "text-warning" : "text-primary";
+  const color = variant === "danger" ? "text-danger" : variant === "warning" ? "text-warning" : "text-primary";
   return (
     <div className="flex items-center justify-between p-3 rounded-lg bg-surface-hover">
       <span className="text-sm text-secondary">{label}</span>

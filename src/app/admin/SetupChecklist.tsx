@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { logger } from "@/lib/logger";
+import SampleDataActions from "./SampleDataActions";
 
 type ChecklistItem = {
   id: string;
@@ -221,6 +222,8 @@ export default async function SetupChecklist({ tenantId }: { tenantId: string })
           );
         })}
       </ol>
+
+      <SampleDataActions />
 
       <div className="mt-4 pt-4 border-t border-border-subtle flex items-center justify-between gap-3 flex-wrap">
         <p className="text-xs text-muted">
