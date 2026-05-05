@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 import ShakenshoScanner from "@/components/vehicles/ShakenshoScanner";
 
 type Customer = { id: string; name: string; phone: string | null };
@@ -69,7 +71,10 @@ export default function AdminVehicleNewPage() {
     if (x.year) setYear(String(x.year));
     if (x.vin_code) setVinCode(x.vin_code);
     if (x.plate_display) setPlateDisplay(x.plate_display);
-    if (x.size_class) { setSizeClass(x.size_class); setSizeAuto(false); }
+    if (x.size_class) {
+      setSizeClass(x.size_class);
+      setSizeAuto(false);
+    }
   }
 
   // メーカー/車種からサイズ自動判定
@@ -79,27 +84,42 @@ export default function AdminVehicleNewPage() {
     if (sizeDebounceRef.current) clearTimeout(sizeDebounceRef.current);
     sizeDebounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/admin/vehicle-size?maker=${encodeURIComponent(maker)}&model=${encodeURIComponent(model)}`);
+        const res = await fetch(
+          `/api/admin/vehicle-size?maker=${encodeURIComponent(maker)}&model=${encodeURIComponent(model)}`,
+        );
         const j = await res.json();
-        if (j?.size_class) { setSizeClass(j.size_class); setSizeAuto(true); }
-      } catch { /* ignore */ }
+        if (j?.size_class) {
+          setSizeClass(j.size_class);
+          setSizeAuto(true);
+        }
+      } catch {
+        /* ignore */
+      }
     }, 500);
   }, [maker, model]);
 
   useEffect(() => {
-    if (!customerSearch.trim()) { setCustomerResults([]); return; }
+    if (!customerSearch.trim()) {
+      setCustomerResults([]);
+      return;
+    }
     if (customerDebounceRef.current) clearTimeout(customerDebounceRef.current);
     customerDebounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/admin/customers?q=${encodeURIComponent(customerSearch)}&limit=8`);
         const j = await res.json();
         setCustomerResults(j.customers ?? []);
-      } catch { setCustomerResults([]); }
+      } catch {
+        setCustomerResults([]);
+      }
     }, 300);
   }, [customerSearch]);
 
   async function handleInlineCreateCustomer() {
-    if (!newCustName.trim()) { setCustCreateErr("顧客名を入力してください"); return; }
+    if (!newCustName.trim()) {
+      setCustCreateErr("顧客名を入力してください");
+      return;
+    }
     setCustCreateBusy(true);
     setCustCreateErr(null);
     try {
@@ -113,7 +133,10 @@ export default function AdminVehicleNewPage() {
         }),
       });
       const j = await res.json();
-      if (!res.ok) { setCustCreateErr(j?.message || "顧客の作成に失敗しました"); return; }
+      if (!res.ok) {
+        setCustCreateErr(j?.message || "顧客の作成に失敗しました");
+        return;
+      }
       const created: Customer = j.customer;
       setCustomerId(created.id);
       setCustomerName(created.name);
@@ -149,8 +172,14 @@ export default function AdminVehicleNewPage() {
         }),
       });
       const j = await res.json();
-      if (!res.ok) { setErr(j?.message || "保存に失敗しました。"); return; }
-      if (j?.id && returnTo === "/admin/vehicles") { router.push(`/admin/vehicles/${j.id}`); return; }
+      if (!res.ok) {
+        setErr(j?.message || "保存に失敗しました。");
+        return;
+      }
+      if (j?.id && returnTo === "/admin/vehicles") {
+        router.push(`/admin/vehicles/${j.id}`);
+        return;
+      }
       router.push(returnTo);
     } catch (e: unknown) {
       setErr(String((e as Error)?.message ?? e));
@@ -169,7 +198,10 @@ export default function AdminVehicleNewPage() {
       fd.append("file", file);
       const res = await fetch("/api/vehicles/parse-shakken", { method: "POST", body: fd });
       const j = await res.json();
-      if (!res.ok) { setErr(j?.message || "車検証の読み取りに失敗しました。"); return; }
+      if (!res.ok) {
+        setErr(j?.message || "車検証の読み取りに失敗しました。");
+        return;
+      }
       applyExtracted(j.extracted);
     } catch (e: unknown) {
       setErr(String((e as Error)?.message ?? e));
@@ -190,7 +222,10 @@ export default function AdminVehicleNewPage() {
         body: JSON.stringify({ raw }),
       });
       const j = await res.json();
-      if (!res.ok) { setErr(j?.message || "二次元コードの解析に失敗しました。画像アップロードをお試しください。"); return; }
+      if (!res.ok) {
+        setErr(j?.message || "二次元コードの解析に失敗しました。画像アップロードをお試しください。");
+        return;
+      }
       applyExtracted(j.extracted);
     } catch (e: unknown) {
       setErr(String((e as Error)?.message ?? e));
@@ -208,6 +243,28 @@ export default function AdminVehicleNewPage() {
           <h1 className="text-2xl font-bold text-primary">車両を登録</h1>
           <p className="text-sm text-muted">Ledra RECORD の車両マスターを登録します。</p>
         </div>
+
+        <FirstUseInlineGuide
+          storageKey="vehicles_new"
+          title="車両を登録するには"
+          description="登録した車両は証明書発行・予約・サービス履歴の起点になります。"
+          steps={[
+            {
+              title: "車検証OCRで自動入力",
+              description:
+                "電子車検証の二次元コードをカメラで読むか画像をアップロードすると、メーカー・車種・年式・車体番号などを自動入力します。",
+            },
+            {
+              title: "顧客と紐付け",
+              description:
+                "既存顧客から検索するか、その場で新規顧客を作成できます。任意ですが、紐付けると顧客詳細から車両履歴を辿れます。",
+            },
+            {
+              title: "登録 → 証明書発行へ",
+              description: "登録後の車両詳細から「証明書発行」をワンクリックで起動できます。",
+            },
+          ]}
+        />
 
         {/* 車検証 OCR */}
         <div className="glass-card p-5">
@@ -249,29 +306,59 @@ export default function AdminVehicleNewPage() {
 
             <label className="space-y-2">
               <div className="text-sm font-medium text-primary">年式</div>
-              <input value={year} onChange={(e) => setYear(e.target.value)} className={inputCls} inputMode="numeric" placeholder="例: 2022" />
+              <input
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className={inputCls}
+                inputMode="numeric"
+                placeholder="例: 2022"
+              />
             </label>
 
             <label className="space-y-2">
               <div className="text-sm font-medium text-primary">ナンバー表示</div>
-              <input value={plateDisplay} onChange={(e) => setPlateDisplay(e.target.value)} className={inputCls} placeholder="水戸 300 あ 12-34" />
+              <input
+                value={plateDisplay}
+                onChange={(e) => setPlateDisplay(e.target.value)}
+                className={inputCls}
+                placeholder="水戸 300 あ 12-34"
+              />
             </label>
 
             <label className="space-y-2 md:col-span-2">
-              <div className="text-sm font-medium text-primary">車体番号（VINコード）</div>
-              <input value={vinCode} onChange={(e) => setVinCode(e.target.value)} className={`${inputCls} font-mono`} placeholder="例: JF1GP7LD7EG000001" maxLength={50} />
+              <div className="text-sm font-medium text-primary flex items-center gap-1.5">
+                車体番号（VINコード）
+                <HelpTooltip>
+                  車検証の右上に記載される17桁の英数字（または車台番号）。証明書の真正性確認や保険会社の照会に使われます。任意ですが入力推奨。
+                </HelpTooltip>
+              </div>
+              <input
+                value={vinCode}
+                onChange={(e) => setVinCode(e.target.value)}
+                className={`${inputCls} font-mono`}
+                placeholder="例: JF1GP7LD7EG000001"
+                maxLength={50}
+              />
             </label>
           </div>
 
           {/* 車両サイズ */}
           <div className="space-y-2">
-            <div className="text-sm font-medium text-primary">車両サイズ</div>
+            <div className="text-sm font-medium text-primary flex items-center gap-1.5">
+              車両サイズ
+              <HelpTooltip side="bottom">
+                施工料金の自動計算や統計に使われる体積区分です。メーカー・車種を入力すると自動判定されることがあります。手動で上書きも可能。
+              </HelpTooltip>
+            </div>
             <div className="flex gap-2 flex-wrap">
               {["SS", "S", "M", "L", "LL", "XL"].map((s) => (
                 <button
                   key={s}
                   type="button"
-                  onClick={() => { setSizeClass(s); setSizeAuto(false); }}
+                  onClick={() => {
+                    setSizeClass(s);
+                    setSizeAuto(false);
+                  }}
                   className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                     sizeClass === s
                       ? "border-accent bg-accent text-white"
@@ -282,15 +369,26 @@ export default function AdminVehicleNewPage() {
                 </button>
               ))}
               {sizeClass && (
-                <button type="button" onClick={() => { setSizeClass(""); setSizeAuto(false); }} className="text-xs text-muted hover:text-red-500 ml-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSizeClass("");
+                    setSizeAuto(false);
+                  }}
+                  className="text-xs text-muted hover:text-red-500 ml-2"
+                >
                   クリア
                 </button>
               )}
             </div>
             {sizeAuto && sizeClass && (
-              <p className="text-[11px] text-success-text">✓ {maker} {model} → {sizeClass}（マスタから自動判定）</p>
+              <p className="text-[11px] text-success-text">
+                ✓ {maker} {model} → {sizeClass}（マスタから自動判定）
+              </p>
             )}
-            <p className="text-[11px] text-muted">SS=~8㎥, S=8~10㎥, M=10~12㎥, L=12~14㎥, LL=14~16㎥, XL=16㎥~（体積基準）</p>
+            <p className="text-[11px] text-muted">
+              SS=~8㎥, S=8~10㎥, M=10~12㎥, L=12~14㎥, LL=14~16㎥, XL=16㎥~（体積基準）
+            </p>
           </div>
 
           {/* 顧客紐付け */}
@@ -307,7 +405,9 @@ export default function AdminVehicleNewPage() {
                   setCustomerDropdownOpen(true);
                   setInlineCreate(false);
                 }}
-                onFocus={() => { if (customerSearch) setCustomerDropdownOpen(true); }}
+                onFocus={() => {
+                  if (customerSearch) setCustomerDropdownOpen(true);
+                }}
                 onBlur={() => setTimeout(() => setCustomerDropdownOpen(false), 200)}
                 className={inputCls}
                 placeholder="顧客名で検索..."
@@ -361,7 +461,11 @@ export default function AdminVehicleNewPage() {
               {customerId && (
                 <button
                   type="button"
-                  onClick={() => { setCustomerId(null); setCustomerSearch(""); setCustomerName(""); }}
+                  onClick={() => {
+                    setCustomerId(null);
+                    setCustomerSearch("");
+                    setCustomerName("");
+                  }}
                   className="mt-1 text-xs text-red-500 hover:underline"
                 >
                   紐付けを解除
@@ -405,14 +509,22 @@ export default function AdminVehicleNewPage() {
                     />
                   </label>
                 </div>
-                {custCreateErr && (
-                  <p className="text-xs text-danger">{custCreateErr}</p>
-                )}
+                {custCreateErr && <p className="text-xs text-danger">{custCreateErr}</p>}
                 <div className="flex gap-2">
                   <Button type="button" loading={custCreateBusy} onClick={handleInlineCreateCustomer}>
                     登録して紐付ける
                   </Button>
-                  <Button type="button" variant="secondary" onClick={() => { setInlineCreate(false); setNewCustName(""); setNewCustPhone(""); setNewCustEmail(""); setCustCreateErr(null); }}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setInlineCreate(false);
+                      setNewCustName("");
+                      setNewCustPhone("");
+                      setNewCustEmail("");
+                      setCustCreateErr(null);
+                    }}
+                  >
                     キャンセル
                   </Button>
                 </div>
@@ -424,7 +536,11 @@ export default function AdminVehicleNewPage() {
 
           <label className="space-y-2 block">
             <div className="text-sm font-medium text-primary">メモ</div>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="input-field min-h-[120px] w-full" />
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="input-field min-h-[120px] w-full"
+            />
           </label>
 
           {err && (
@@ -434,8 +550,12 @@ export default function AdminVehicleNewPage() {
           )}
 
           <div className="flex gap-3">
-            <Button type="submit" loading={busy}>保存する</Button>
-            <Button type="button" variant="secondary" onClick={() => router.push(returnTo)}>キャンセル</Button>
+            <Button type="submit" loading={busy}>
+              保存する
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => router.push(returnTo)}>
+              キャンセル
+            </Button>
           </div>
         </form>
       </div>

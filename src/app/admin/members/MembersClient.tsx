@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 import { formatDate } from "@/lib/format";
 import { ROLE_LABELS, ASSIGNABLE_ROLES, type Role } from "@/lib/auth/roles";
 
@@ -149,6 +151,26 @@ export default function MembersClient() {
         description="テナントに所属するメンバーの追加・削除を行います。"
       />
 
+      <FirstUseInlineGuide
+        storageKey="members"
+        title="スタッフを招待するには"
+        description="他のスタッフを招待してチームで運用できます。プランごとに招待可能人数の上限があります。"
+        steps={[
+          {
+            title: "メールアドレスを入力",
+            description: "招待先のメールアドレスと表示名を入れます。同じドメインじゃなくてもOK。",
+          },
+          {
+            title: "ロールを選択",
+            description: "管理者・スタッフなどの役割を選びます。後から変更できます。",
+          },
+          {
+            title: "追加 → 招待先がパスワードを設定",
+            description: "招待されたユーザーは案内に従ってサインアップしログインできます。",
+          },
+        ]}
+      />
+
       {loading && <div className="text-sm text-muted">読み込み中…</div>}
       {err && <div className="glass-card p-4 text-sm text-red-500">{err}</div>}
 
@@ -225,7 +247,12 @@ export default function MembersClient() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-muted">ロール</label>
+                <label className="text-xs text-muted flex items-center gap-1.5">
+                  ロール
+                  <HelpTooltip>
+                    管理者は店舗設定・メンバー管理を含む全機能、スタッフは日常業務（証明書発行・予約・顧客管理）を扱えます。後から変更可能。
+                  </HelpTooltip>
+                </label>
                 <select
                   value={addRole}
                   onChange={(e) => setAddRole(e.target.value as Role)}

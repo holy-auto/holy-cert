@@ -2,6 +2,7 @@
 import { parseJsonSafe } from "@/lib/api/safeJson";
 
 import { useTransition, useState, useCallback } from "react";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 import { updateTenantSettingsAction } from "./actions";
 
 type BankInfo = {
@@ -124,7 +125,12 @@ export default function SettingsForm({
           </label>
 
           <div className="border-t border-[var(--border-default)] pt-5 mt-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">インボイス設定</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-3 flex items-center gap-1.5">
+              インボイス設定
+              <HelpTooltip>
+                適格請求書（インボイス）発行事業者の登録番号を設定すると、発行する請求書に自動表示されます。未登録の場合は空欄でOK。
+              </HelpTooltip>
+            </div>
             <label className={labelCls}>
               <span className={labelTextCls}>適格請求書発行事業者登録番号</span>
               <input
@@ -140,7 +146,12 @@ export default function SettingsForm({
           </div>
 
           <div className="border-t border-[var(--border-default)] pt-5 mt-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">口座情報</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-3 flex items-center gap-1.5">
+              口座情報
+              <HelpTooltip>
+                請求書PDFの振込先欄に自動印字されます。複数口座は使い分けできないため、メインの入金口座を登録してください。
+              </HelpTooltip>
+            </div>
             <div className="space-y-4">
               <label className={labelCls}>
                 <span className={labelTextCls}>銀行名</span>
@@ -215,7 +226,13 @@ export default function SettingsForm({
       {/* Stripe Connect Section */}
       {columnsExist && (
         <div className="border-t border-[var(--border-default)] pt-5 mt-5">
-          <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">STRIPE CONNECT</div>
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-3 flex items-center gap-1.5">
+            STRIPE CONNECT
+            <HelpTooltip>
+              顧客にオンライン決済リンクを送るための機能です。連携すると請求書から「決済リンクを作成」が利用でき、クレジットカード入金が自動で計上されます。連携には
+              Stripe の本人確認手続きが必要です。
+            </HelpTooltip>
+          </div>
           <StripeConnectSection connectStatus={connectStatus ?? null} />
         </div>
       )}
