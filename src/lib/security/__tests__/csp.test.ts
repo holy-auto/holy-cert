@@ -121,4 +121,9 @@ describe("buildCspHeader", () => {
     expect(dev).toContain("'unsafe-eval'");
     expect(prod).not.toContain("'unsafe-eval'");
   });
+
+  it("appends report-uri so violations land at /api/csp-report", () => {
+    const header = buildCspHeader({ nonce: NONCE, isDev: false });
+    expect(header).toContain("report-uri /api/csp-report");
+  });
 });

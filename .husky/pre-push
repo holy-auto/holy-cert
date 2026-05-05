@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+# Run vitest on changed files before pushing. Catches regressions cheaper
+# than waiting for CI. Skip when only docs/* changed (covered by lint).
+#
+# Override: SKIP_PREPUSH=1 git push   # use sparingly (e.g. emergency revert)
+
+if [ "$SKIP_PREPUSH" = "1" ]; then
+  echo "[pre-push] skipped via SKIP_PREPUSH"
+  exit 0
+fi
+
+# Detect doc-only push and skip
+if git diff --name-only HEAD @{push} 2>/dev/null | grep -qvE '^(docs/|README\.md|CHANGELOG\.md|.*\.md)$'; then
+  npx vitest run --changed @{push} || {
+    echo ""
+    echo "[pre-push] vitest --changed failed. Override with SKIP_PREPUSH=1 only if you understand why."
+    exit 1
+  }
+else
+  echo "[pre-push] doc-only push, skipping vitest"
+fi

@@ -276,12 +276,18 @@
 - `npm run test`: **1077 passed** (68 files)
 - `npm run lint`: **0 errors / 792 warnings** (既存の warning 件数。新規導入なし)
 
-### Tier 3 — 別途 scope 分割
+### Tier 3 — MVP / Foundation を着手 (続編で完成)
 
-Tier 3 (アカデミー本実装、モバイル App Store 配布、SSO/SAML、GDPR データ
-エクスポート、POS 在庫管理) は各 1〜6 ヶ月の規模であり、本監査 1 セッション
-では実装できない。各項目を個別の Epic として切り出し、優先度とビジネス文脈
-に基づいてスケジュール化することを推奨する。
+| # | タスク | 本セッション完了 | 残作業 |
+|---|------|----------------|--------|
+| T3-1 | GDPR データエクスポート | `/api/customer/data-export` (顧客ポータル経由 JSON download) + UI 配線 + テスト 5 ケース | admin / agent / insurer 向けエクスポート、署名付き URL 経由の非同期生成、削除リクエスト ワークフロー |
+| T3-2 | POS↔在庫 連携 | `deductInventoryForPosItems()` ヘルパ + `pos_checkout` 後の自動減算 + テスト 5 ケース | 在庫不足時のソフトブロック、自動発注リードタイム計算、ロット/有効期限管理 |
+| T3-3 | アカデミー クイズ | **既に実装済 (`/api/admin/academy/lessons/[id]/quiz/attempt`)** — 監査で過小評価していた | 動画ストリーミング基盤、修了証 NFT 化、ディスカッションフォーラム |
+| T3-4 | SSO / SAML | `startSsoSignIn()` ヘルパ + テスト 4 ケース + `docs/sso-setup.md` (Supabase Pro 配線手順) | ログイン UI ボタン配線、tenants.sso_required flag、SCIM 自動プロビジョニング |
+| T3-5 | モバイル App Store / Play 配布 | `docs/mobile-distribution.md` (チェックリスト + EAS Build/Submit 手順 + ロールバック) | Tap to Pay 申請完了、Push 通知本番証明書、生体認証 オプトイン |
+
+各 MVP は本番運用に直行可能だが、上記「残作業」は別 PR / 別 Epic として
+継続実装が必要。
 
 ---
 

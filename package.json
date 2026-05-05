@@ -23,7 +23,9 @@
     "demo:reset-tenant": "tsx scripts/setup-demo-tenant.ts --reset",
     "video:studio": "remotion studio remotion/index.tsx",
     "video:render": "remotion render remotion/index.tsx LedraIntro out/LedraIntro.mp4",
-    "screenshots:capture": "tsx scripts/capture-screenshots.ts"
+    "screenshots:capture": "tsx scripts/capture-screenshots.ts",
+    "check:secrets-age": "tsx scripts/check-secrets-age.ts",
+    "db:typegen": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID --schema public > src/types/db.generated.ts"
   },
   "overrides": {
     "picomatch": "^4.0.4"

@@ -1,0 +1,50 @@
+name: DB types regenerate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  typegen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Generate DB types
+        env:
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          mkdir -p src/types
+          supabase gen types typescript \
+            --project-id "$SUPABASE_PROJECT_ID" \
+            --schema public \
+            > src/types/db.generated.ts
+
+      - name: Open PR if types changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore(db): regenerate Supabase types"
+          title: "chore(db): regenerate Supabase types"
+          body: |
+            自動生成された Supabase 型定義の更新です。
+            `supabase/migrations/*` の変更を反映しています。
+          branch: chore/db-typegen-${{ github.run_id }}
+          delete-branch: true

@@ -311,6 +311,13 @@ export default function CustomerListPage() {
             >
               加盟店を切り替える
             </button>
+            <a
+              href={`/api/customer/data-export?tenant=${encodeURIComponent(tenant)}`}
+              className="rounded-2xl border border-border-default bg-surface px-4 py-3 text-sm font-semibold text-primary hover:bg-surface-hover"
+              title="個人情報保護法 / GDPR 第15条に基づき、お客様に紐付くデータを JSON でダウンロードします。"
+            >
+              データをダウンロード
+            </a>
             <button
               onClick={logout}
               className="rounded-2xl border border-border-default bg-surface px-4 py-3 text-sm font-semibold text-primary hover:bg-surface-hover"

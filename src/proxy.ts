@@ -71,6 +71,11 @@ function csrfCheck(request: NextRequest): NextResponse | null {
   // Cron は外部スケジューラからの server-to-server コールのため CSRF チェック不要
   if (nextUrl.pathname.startsWith("/api/cron/")) return null;
 
+  // CSP violation report は browser から自動 POST されるが Origin が
+  // 違反元ページの origin になるため、CSRF チェックを通すと弾かれる。
+  // 認証不要・副作用なしなのでここでスキップする。
+  if (nextUrl.pathname === "/api/csp-report") return null;
+
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
 
