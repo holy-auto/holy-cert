@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 
 type CoverageRow = {
   id: number;
-  panel: string;       // preset code or "custom"
+  panel: string; // preset code or "custom"
   customPanel: string; // free text when panel === "custom"
   coverage: "full" | "partial";
   partial_note: string;
@@ -43,7 +44,17 @@ const QUICK_SETS = [
   },
   {
     label: "フロントフル",
-    panels: ["front_bumper", "hood", "front_fenders", "side_mirrors", "a_pillars", "headlights", "fog_lights", "door_edges", "door_cups"],
+    panels: [
+      "front_bumper",
+      "hood",
+      "front_fenders",
+      "side_mirrors",
+      "a_pillars",
+      "headlights",
+      "fog_lights",
+      "door_edges",
+      "door_cups",
+    ],
   },
   {
     label: "フルボディ",
@@ -71,14 +82,11 @@ export default function PpfCoverageSection() {
   const [rows, setRows] = useState<CoverageRow[]>([newRow()]);
 
   const update = (id: number, field: keyof CoverageRow, value: string) =>
-    setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
-    );
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
 
   const addRow = () => setRows((prev) => [...prev, newRow()]);
 
-  const removeRow = (id: number) =>
-    setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+  const removeRow = (id: number) => setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
 
   const applyQuickSet = (panelCodes: readonly string[]) => {
     const newRows = panelCodes.map((code) => ({
@@ -103,10 +111,8 @@ export default function PpfCoverageSection() {
     validRows.map((r) => ({
       panel: r.panel === "custom" ? r.customPanel.trim() : r.panel,
       coverage: r.coverage,
-      ...(r.coverage === "partial" && r.partial_note.trim()
-        ? { partial_note: r.partial_note.trim() }
-        : {}),
-    }))
+      ...(r.coverage === "partial" && r.partial_note.trim() ? { partial_note: r.partial_note.trim() } : {}),
+    })),
   );
 
   return (
@@ -114,15 +120,15 @@ export default function PpfCoverageSection() {
       <input type="hidden" name="ppf_coverage_json" value={jsonValue} />
 
       <div>
-        <div className="text-xs font-semibold tracking-[0.18em] text-muted">
-          PPF COVERAGE
-        </div>
-        <div className="mt-0.5 text-base font-semibold text-primary">
+        <div className="text-xs font-semibold tracking-[0.18em] text-muted">PPF COVERAGE</div>
+        <div className="mt-0.5 text-base font-semibold text-primary flex items-center gap-1.5">
           PPF施工範囲
+          <HelpTooltip>
+            PPF (ペイントプロテクションフィルム) を施工した部位を、フルコート /
+            部分コートで記録します。「カスタム」で自由入力可能。施工費用の根拠や保証範囲の明確化に使われます。
+          </HelpTooltip>
         </div>
-        <p className="mt-1 text-xs text-muted">
-          施工したパネルを選択し、フル施工か部分施工かを指定してください。
-        </p>
+        <p className="mt-1 text-xs text-muted">施工したパネルを選択し、フル施工か部分施工かを指定してください。</p>
       </div>
 
       {/* クイック選択ボタン */}
@@ -154,14 +160,8 @@ export default function PpfCoverageSection() {
         >
           {/* パネル選択 */}
           <div>
-            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">
-              パネル
-            </span>
-            <select
-              value={row.panel}
-              onChange={(e) => update(row.id, "panel", e.target.value)}
-              className={selectCls}
-            >
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">パネル</span>
+            <select value={row.panel} onChange={(e) => update(row.id, "panel", e.target.value)} className={selectCls}>
               <option value="">パネルを選択</option>
               {PPF_PANEL_PRESETS.map((p) => (
                 <option
@@ -170,9 +170,7 @@ export default function PpfCoverageSection() {
                   disabled={p.code !== "custom" && p.code !== row.panel && usedPanels.has(p.code)}
                 >
                   {p.label}
-                  {p.code !== "custom" && p.code !== row.panel && usedPanels.has(p.code)
-                    ? " (選択済)"
-                    : ""}
+                  {p.code !== "custom" && p.code !== row.panel && usedPanels.has(p.code) ? " (選択済)" : ""}
                 </option>
               ))}
             </select>
@@ -188,9 +186,7 @@ export default function PpfCoverageSection() {
 
           {/* フル/パーシャル */}
           <div>
-            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">
-              施工範囲
-            </span>
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">施工範囲</span>
             <select
               value={row.coverage}
               onChange={(e) => update(row.id, "coverage", e.target.value)}
@@ -203,9 +199,7 @@ export default function PpfCoverageSection() {
 
           {/* 部分施工時の備考 */}
           <div>
-            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">
-              備考
-            </span>
+            <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">備考</span>
             <input
               value={row.partial_note}
               onChange={(e) => update(row.id, "partial_note", e.target.value)}
@@ -237,9 +231,8 @@ export default function PpfCoverageSection() {
 
       {validRows.length > 0 && (
         <div className="rounded-xl border border-border-default bg-inset p-2.5 text-xs text-muted">
-          {validRows.length} パネルを記録します
-          （フル: {validRows.filter((r) => r.coverage === "full").length}、
-          部分: {validRows.filter((r) => r.coverage === "partial").length}）
+          {validRows.length} パネルを記録します （フル: {validRows.filter((r) => r.coverage === "full").length}、 部分:{" "}
+          {validRows.filter((r) => r.coverage === "partial").length}）
         </div>
       )}
     </div>

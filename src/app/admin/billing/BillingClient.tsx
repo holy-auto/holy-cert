@@ -4,6 +4,7 @@ import { parseJsonSafe } from "@/lib/api/safeJson";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import PageHeader from "@/components/ui/PageHeader";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 
 const PLANS = [
   {
@@ -460,6 +461,27 @@ export default function BillingPage() {
   return (
     <div className="space-y-6">
       <PageHeader tag="課金管理" title="請求・プラン" />
+
+      <FirstUseInlineGuide
+        storageKey="billing"
+        title="プラン管理について"
+        description="Ledra の利用プランは Stripe を通じて月額課金されます。プランごとに証明書発行可能数・利用機能・写真上限が異なります。"
+        steps={[
+          {
+            title: "プランを比較",
+            description: "下のプラン表で各プランの内容を比較。現在のプランは緑バッジで表示されます。",
+          },
+          {
+            title: "アップグレード",
+            description:
+              "希望するプランの「このプランに変更」を押すと Stripe Checkout に遷移。決済完了で即時切り替わります。",
+          },
+          {
+            title: "支払い方法・領収書",
+            description: "Stripe カスタマーポータルから支払い方法の変更、過去の領収書ダウンロード、解約が可能です。",
+          },
+        ]}
+      />
 
       {status && (
         <div

@@ -11,6 +11,7 @@ import NexPTGConnectSection from "./NexPTGConnectSection";
 import RestartTourButton from "./RestartTourButton";
 import BillingTimingSection from "./BillingTimingSection";
 import PageHeader from "@/components/ui/PageHeader";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -246,7 +247,13 @@ export default async function AdminSettingsPage() {
       <section className="glass-card p-5">
         <div className="mb-5">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">外部連携</div>
-          <div className="mt-1 text-base font-semibold text-primary">Square連携</div>
+          <div className="mt-1 text-base font-semibold text-primary inline-flex items-center gap-1.5">
+            Square連携
+            <HelpTooltip>
+              既に Square で POS 会計を運用している施工店向けの連携です。OAuth で接続すると、Square
+              側の注文データが自動で Ledra に取り込まれ、経営分析・売上突合に使えます。
+            </HelpTooltip>
+          </div>
           <p className="mt-1 text-xs text-muted">SquareのPOS売上データをLedraに取り込みます。</p>
         </div>
         <SquareConnectSection />
@@ -256,7 +263,13 @@ export default async function AdminSettingsPage() {
       <section className="glass-card p-5">
         <div className="mb-5">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">外部連携</div>
-          <div className="mt-1 text-base font-semibold text-primary">LINE連携</div>
+          <div className="mt-1 text-base font-semibold text-primary inline-flex items-center gap-1.5">
+            LINE連携
+            <HelpTooltip>
+              LINE 公式アカウントと連携すると、予約確認・施工完了通知・証明書共有を LINE
+              で自動配信できます。顧客とのコミュニケーション接点を増やしリピート率向上に寄与します。
+            </HelpTooltip>
+          </div>
           <p className="mt-1 text-xs text-muted">
             LINE公式アカウントと連携し、予約通知・リマインダー・書類送付を自動化します。
           </p>
@@ -268,7 +281,14 @@ export default async function AdminSettingsPage() {
       <section className="glass-card p-5">
         <div className="mb-5">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">外部連携</div>
-          <div className="mt-1 text-base font-semibold text-primary">NexPTG（膜厚計）連携</div>
+          <div className="mt-1 text-base font-semibold text-primary inline-flex items-center gap-1.5">
+            NexPTG（膜厚計）連携
+            <HelpTooltip>
+              NexPTG は塗装の膜厚を測る計測機 + アプリです。Ledra に API
+              キーを設定しておくと、アプリで測定した膜厚データが自動的に Ledra
+              の証明書「膜厚計測」セクションに同期されます。
+            </HelpTooltip>
+          </div>
           <p className="mt-1 text-xs text-muted">
             NexPTGアプリで測定した膜厚データをLedraへ自動同期します。APIキーを発行してアプリに設定してください。
           </p>
@@ -292,7 +312,13 @@ export default async function AdminSettingsPage() {
       <section className="glass-card p-5">
         <div className="mb-5">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">フォロー</div>
-          <div className="mt-1 text-base font-semibold text-primary">顧客フォロー設定</div>
+          <div className="mt-1 text-base font-semibold text-primary inline-flex items-center gap-1.5">
+            顧客フォロー設定
+            <HelpTooltip>
+              施工後 6/12
+              ヶ月でメンテナンスリマインダーを自動送信したり、証明書の有効期限が近づいた顧客に通知を送る機能です。リピート率と顧客満足度の向上に直結します。
+            </HelpTooltip>
+          </div>
           <p className="mt-1 text-xs text-muted">有効期限リマインダーや施工後フォローの自動送信を設定します。</p>
         </div>
         <FollowUpSettings />

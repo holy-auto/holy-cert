@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import PageHeader from "@/components/ui/PageHeader";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 import JobStatusPanel from "./JobStatusPanel";
 import JobTabsLoader from "./JobTabsLoader";
 import type { JobCustomer, JobReservation, JobVehicle } from "./types";
@@ -107,6 +108,27 @@ export default async function JobWorkflowPage({ params }: { params: Promise<{ id
             予約一覧へ
           </Link>
         }
+      />
+
+      <FirstUseInlineGuide
+        storageKey="jobs_detail"
+        title="案件ワークフローの使い方"
+        description="1件のお客様の予約 → 作業 → 証明書 → 請求 までを、画面遷移せずにこの1画面で完結できます。"
+        steps={[
+          {
+            title: "ステッパーで進捗を進める",
+            description: "上部の「予約確定 → 来店 → 作業中 → 完了」を順にクリックすると、現在の状態が更新されます。",
+          },
+          {
+            title: "次アクションで作業を起動",
+            description:
+              "ステータスに応じて「🪪 証明書を発行」「💰 請求書を作成」などのボタンが表示されます。車両IDと顧客IDが自動で引き継がれます。",
+          },
+          {
+            title: "タブで関連情報を一覧",
+            description: "サマリ / 顧客・車両 / 証明書 / 請求 のタブで、この案件に紐付くデータをまとめて確認できます。",
+          },
+        ]}
       />
 
       {/* ステッパー + 次アクション: 軽量データのみで即時描画 (店頭モードでは非表示) */}

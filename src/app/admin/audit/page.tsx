@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import PageHeader from "@/components/ui/PageHeader";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 import { formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +48,9 @@ export default async function AdminAuditPage({
   const filterTo = params.to ?? "";
 
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/admin/audit");
 
   const { data: membership } = await supabase
@@ -95,8 +98,7 @@ export default async function AdminAuditPage({
       .select("id,maker,model,year,plate_display,customer_name")
       .in("id", vehicleIds as string[]);
     for (const v of vRows ?? []) {
-      const label = [v.maker, v.model, v.year ? String(v.year) : null]
-        .filter(Boolean).join(" ") || "車両";
+      const label = [v.maker, v.model, v.year ? String(v.year) : null].filter(Boolean).join(" ") || "車両";
       vehicleMap[v.id] = v.plate_display ? `${label} / ${v.plate_display}` : label;
     }
   }
@@ -105,113 +107,126 @@ export default async function AdminAuditPage({
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        tag="監査ログ"
+        title="操作履歴"
+        description="車両・証明書に関する操作履歴を時系列で表示します。"
+        actions={
+          <Link href="/admin" className="btn-secondary">
+            ダッシュボード
+          </Link>
+        }
+      />
 
-        <PageHeader
-          tag="監査ログ"
-          title="操作履歴"
-          description="車両・証明書に関する操作履歴を時系列で表示します。"
-          actions={
-            <Link
-              href="/admin"
-              className="btn-secondary"
-            >
-              ダッシュボード
-            </Link>
-          }
-        />
+      <FirstUseInlineGuide
+        storageKey="audit"
+        title="操作履歴の見方"
+        description="証明書の発行・無効化、車両情報の変更など、重要な操作の履歴を時系列で確認できます。トラブル時の原因究明やコンプライアンス対応に役立ちます。"
+        steps={[
+          {
+            title: "イベントタイプで色分け",
+            description: "証明書発行 / 無効化 / 車両編集 などがバッジ色で識別できます。",
+          },
+          {
+            title: "実行者を確認",
+            description: "誰がいつどの操作を行ったかが記録されます。スタッフ別の操作分析も可能。",
+          },
+          {
+            title: "詳細を開く",
+            description: "各行をクリックすると関連する証明書・車両の詳細ページに即遷移できます。",
+          },
+        ]}
+      />
 
-        {/* Stats */}
-        <section className="grid gap-4 sm:grid-cols-2">
-          <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計イベント</div>
-            <div className="mt-2 text-2xl font-bold text-primary">{rows.length}</div>
-            <div className="mt-1 text-xs text-muted">直近 200 件を表示</div>
+      {/* Stats */}
+      <section className="grid gap-4 sm:grid-cols-2">
+        <div className="glass-card p-5">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計イベント</div>
+          <div className="mt-2 text-2xl font-bold text-primary">{rows.length}</div>
+          <div className="mt-1 text-xs text-muted">直近 200 件を表示</div>
+        </div>
+        <div className="glass-card p-5">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">発行済証明書</div>
+          <div className="mt-2 text-2xl font-bold text-primary">
+            {rows.filter((r) => r.type === "certificate_issued").length}
           </div>
-          <div className="glass-card p-5">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">発行済証明書</div>
-            <div className="mt-2 text-2xl font-bold text-primary">
-              {rows.filter((r) => r.type === "certificate_issued").length}
-            </div>
-            <div className="mt-1 text-xs text-muted">証明書発行イベント数</div>
+          <div className="mt-1 text-xs text-muted">証明書発行イベント数</div>
+        </div>
+      </section>
+
+      {/* Filters */}
+      <section className="glass-card p-5">
+        <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">フィルター</div>
+        <form className="flex gap-3 items-end flex-wrap">
+          <div className="min-w-[160px] space-y-1">
+            <label className="text-xs text-muted">イベントタイプ</label>
+            <select name="type" defaultValue={filterType} className="input-field">
+              <option value="">すべて</option>
+              {Object.entries(TYPE_LABELS).map(([key, val]) => (
+                <option key={key} value={key}>
+                  {val.label}
+                </option>
+              ))}
+            </select>
           </div>
-        </section>
-
-        {/* Filters */}
-        <section className="glass-card p-5">
-          <div className="text-xs font-semibold tracking-[0.18em] text-muted mb-3">フィルター</div>
-          <form className="flex gap-3 items-end flex-wrap">
-            <div className="min-w-[160px] space-y-1">
-              <label className="text-xs text-muted">イベントタイプ</label>
-              <select name="type" defaultValue={filterType} className="input-field">
-                <option value="">すべて</option>
-                {Object.entries(TYPE_LABELS).map(([key, val]) => (
-                  <option key={key} value={key}>{val.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="min-w-[140px] space-y-1">
-              <label className="text-xs text-muted">開始日</label>
-              <input type="date" name="from" defaultValue={filterFrom} className="input-field" />
-            </div>
-            <div className="min-w-[140px] space-y-1">
-              <label className="text-xs text-muted">終了日</label>
-              <input type="date" name="to" defaultValue={filterTo} className="input-field" />
-            </div>
-            <button type="submit" className="btn-primary">絞り込み</button>
-            <a href="/admin/audit" className="btn-secondary">リセット</a>
-          </form>
-        </section>
-
-        {/* Log list */}
-        <section className="glass-card">
-          <div className="p-5 border-b border-border-subtle">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">イベント</div>
-            <div className="mt-1 text-base font-semibold text-primary">操作イベント一覧</div>
+          <div className="min-w-[140px] space-y-1">
+            <label className="text-xs text-muted">開始日</label>
+            <input type="date" name="from" defaultValue={filterFrom} className="input-field" />
           </div>
+          <div className="min-w-[140px] space-y-1">
+            <label className="text-xs text-muted">終了日</label>
+            <input type="date" name="to" defaultValue={filterTo} className="input-field" />
+          </div>
+          <button type="submit" className="btn-primary">
+            絞り込み
+          </button>
+          <a href="/admin/audit" className="btn-secondary">
+            リセット
+          </a>
+        </form>
+      </section>
 
-          {rows.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted">
-              操作履歴がありません。
-            </div>
-          ) : (
-            <div className="divide-y divide-border-subtle">
-              {rows.map((h) => (
-                <div key={h.id} className="p-4 hover:bg-surface-hover transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 shrink-0">
-                      <TypeBadge type={h.type ?? ""} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <span className="text-sm font-semibold text-primary">
-                          {h.title ?? h.type}
-                        </span>
-                        {h.vehicle_id && vehicleMap[h.vehicle_id] && (
-                          <Link
-                            href={`/admin/vehicles/${h.vehicle_id}`}
-                            className="text-xs text-muted hover:text-primary hover:underline"
-                          >
-                            {vehicleMap[h.vehicle_id]}
-                          </Link>
-                        )}
-                        {h.certificate_id && (
-                          <span className="text-xs text-muted">
-                            cert: {String(h.certificate_id).slice(0, 8)}…
-                          </span>
-                        )}
-                      </div>
-                      {h.description && (
-                        <p className="mt-1 text-xs text-muted break-all">{h.description}</p>
+      {/* Log list */}
+      <section className="glass-card">
+        <div className="p-5 border-b border-border-subtle">
+          <div className="text-xs font-semibold tracking-[0.18em] text-muted">イベント</div>
+          <div className="mt-1 text-base font-semibold text-primary">操作イベント一覧</div>
+        </div>
+
+        {rows.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted">操作履歴がありません。</div>
+        ) : (
+          <div className="divide-y divide-border-subtle">
+            {rows.map((h) => (
+              <div key={h.id} className="p-4 hover:bg-surface-hover transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 shrink-0">
+                    <TypeBadge type={h.type ?? ""} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="text-sm font-semibold text-primary">{h.title ?? h.type}</span>
+                      {h.vehicle_id && vehicleMap[h.vehicle_id] && (
+                        <Link
+                          href={`/admin/vehicles/${h.vehicle_id}`}
+                          className="text-xs text-muted hover:text-primary hover:underline"
+                        >
+                          {vehicleMap[h.vehicle_id]}
+                        </Link>
                       )}
-                      <p className="mt-1 text-[11px] text-muted">{formatDateTime(h.performed_at ?? h.created_at)}</p>
+                      {h.certificate_id && (
+                        <span className="text-xs text-muted">cert: {String(h.certificate_id).slice(0, 8)}…</span>
+                      )}
                     </div>
+                    {h.description && <p className="mt-1 text-xs text-muted break-all">{h.description}</p>}
+                    <p className="mt-1 text-[11px] text-muted">{formatDateTime(h.performed_at ?? h.created_at)}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

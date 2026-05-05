@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 import {
   REPAIR_TYPE_OPTIONS,
   REPAIR_PANEL_OPTIONS,
@@ -54,8 +55,7 @@ export default function BodyRepairDetailsSection() {
     }));
   };
 
-  const update = (field: keyof BodyRepairData, value: string) =>
-    setData((prev) => ({ ...prev, [field]: value }));
+  const update = (field: keyof BodyRepairData, value: string) => setData((prev) => ({ ...prev, [field]: value }));
 
   const jsonValue = JSON.stringify({
     repair_type: data.repair_type || null,
@@ -73,37 +73,33 @@ export default function BodyRepairDetailsSection() {
       <input type="hidden" name="body_repair_json" value={jsonValue} />
 
       <div>
-        <div className="text-xs font-semibold tracking-[0.18em] text-muted">
-          BODY REPAIR DETAILS
-        </div>
-        <div className="mt-0.5 text-base font-semibold text-primary">
+        <div className="text-xs font-semibold tracking-[0.18em] text-muted">BODY REPAIR DETAILS</div>
+        <div className="mt-0.5 text-base font-semibold text-primary flex items-center gap-1.5">
           鈑金塗装内容
+          <HelpTooltip>
+            修理内容 (修理タイプ・対象パネル・塗料種別・修理方法)
+            を記録します。保険会社の査定で「何をどう直したか」の根拠になるため、できる限り詳細に。
+          </HelpTooltip>
         </div>
-        <p className="mt-1 text-xs text-muted">
-          実施した鈑金・塗装の内容を記録します。
-        </p>
+        <p className="mt-1 text-xs text-muted">実施した鈑金・塗装の内容を記録します。</p>
       </div>
 
       {/* 修理種別 */}
       <label className="block space-y-1.5">
         <span className="text-sm font-medium text-secondary">修理種別</span>
-        <select
-          value={data.repair_type}
-          onChange={(e) => update("repair_type", e.target.value)}
-          className={selectCls}
-        >
+        <select value={data.repair_type} onChange={(e) => update("repair_type", e.target.value)} className={selectCls}>
           <option value="">選択してください</option>
           {REPAIR_TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
         </select>
       </label>
 
       {/* 修理箇所（複数選択） */}
       <div>
-        <label className="block text-sm font-medium text-secondary mb-2">
-          修理箇所（複数選択可）
-        </label>
+        <label className="block text-sm font-medium text-secondary mb-2">修理箇所（複数選択可）</label>
         <div className="flex flex-wrap gap-2">
           {REPAIR_PANEL_OPTIONS.map((opt) => (
             <button
@@ -121,9 +117,7 @@ export default function BodyRepairDetailsSection() {
           ))}
         </div>
         {data.affected_panels.length > 0 && (
-          <div className="mt-2 text-xs text-muted">
-            {data.affected_panels.length} 箇所を選択中
-          </div>
+          <div className="mt-2 text-xs text-muted">{data.affected_panels.length} 箇所を選択中</div>
         )}
       </div>
 
@@ -141,23 +135,19 @@ export default function BodyRepairDetailsSection() {
       {/* 塗装タイプ */}
       <label className="block space-y-1.5">
         <span className="text-sm font-medium text-secondary">塗装タイプ</span>
-        <select
-          value={data.paint_type}
-          onChange={(e) => update("paint_type", e.target.value)}
-          className={selectCls}
-        >
+        <select value={data.paint_type} onChange={(e) => update("paint_type", e.target.value)} className={selectCls}>
           <option value="">選択してください</option>
           {PAINT_TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
         </select>
       </label>
 
       {/* 修理方法（複数選択） */}
       <div>
-        <label className="block text-sm font-medium text-secondary mb-2">
-          修理方法（複数選択可）
-        </label>
+        <label className="block text-sm font-medium text-secondary mb-2">修理方法（複数選択可）</label>
         <div className="flex flex-wrap gap-2">
           {REPAIR_METHOD_OPTIONS.map((opt) => (
             <button
@@ -175,9 +165,7 @@ export default function BodyRepairDetailsSection() {
           ))}
         </div>
         {data.repair_methods.length > 0 && (
-          <div className="mt-2 text-xs text-muted">
-            {data.repair_methods.length} 方法を選択中
-          </div>
+          <div className="mt-2 text-xs text-muted">{data.repair_methods.length} 方法を選択中</div>
         )}
       </div>
 

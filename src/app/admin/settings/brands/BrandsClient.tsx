@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Button from "@/components/ui/Button";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 
 type Product = {
   id: string;
@@ -53,15 +54,27 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
       const res = await fetch("/api/admin/brands", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newBrandName, description: newBrandDesc || null, website_url: newBrandUrl || null }),
+        body: JSON.stringify({
+          name: newBrandName,
+          description: newBrandDesc || null,
+          website_url: newBrandUrl || null,
+        }),
       });
       const j = await res.json();
-      if (!res.ok) { setBrandErr(j.message || "登録に失敗しました。"); return; }
+      if (!res.ok) {
+        setBrandErr(j.message || "登録に失敗しました。");
+        return;
+      }
       setBrands((prev) => [...prev, { ...j.brand, coating_products: [] }]);
-      setNewBrandName(""); setNewBrandDesc(""); setNewBrandUrl("");
+      setNewBrandName("");
+      setNewBrandDesc("");
+      setNewBrandUrl("");
       setShowNewBrand(false);
-    } catch { setBrandErr("登録に失敗しました。"); }
-    finally { setAddingBrand(false); }
+    } catch {
+      setBrandErr("登録に失敗しました。");
+    } finally {
+      setAddingBrand(false);
+    }
   }
 
   async function deleteBrand(id: string) {
@@ -72,7 +85,10 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
       body: JSON.stringify({ id }),
     });
     const j = await res.json();
-    if (!res.ok) { alert(j.message || "削除できませんでした。"); return; }
+    if (!res.ok) {
+      alert(j.message || "削除できませんでした。");
+      return;
+    }
     setBrands((prev) => prev.filter((b) => b.id !== id));
   }
 
@@ -84,21 +100,29 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
       const res = await fetch(`/api/admin/brands/${brandId}/products`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newProductName, product_code: newProductCode || null, description: newProductDesc || null }),
+        body: JSON.stringify({
+          name: newProductName,
+          product_code: newProductCode || null,
+          description: newProductDesc || null,
+        }),
       });
       const j = await res.json();
-      if (!res.ok) { setProductErr(j.message || "登録に失敗しました。"); return; }
+      if (!res.ok) {
+        setProductErr(j.message || "登録に失敗しました。");
+        return;
+      }
       setBrands((prev) =>
-        prev.map((b) =>
-          b.id === brandId
-            ? { ...b, coating_products: [...b.coating_products, j.product] }
-            : b
-        )
+        prev.map((b) => (b.id === brandId ? { ...b, coating_products: [...b.coating_products, j.product] } : b)),
       );
-      setNewProductName(""); setNewProductCode(""); setNewProductDesc("");
+      setNewProductName("");
+      setNewProductCode("");
+      setNewProductDesc("");
       setAddingProductFor(null);
-    } catch { setProductErr("登録に失敗しました。"); }
-    finally { setSavingProduct(false); }
+    } catch {
+      setProductErr("登録に失敗しました。");
+    } finally {
+      setSavingProduct(false);
+    }
   }
 
   async function deleteProduct(brandId: string, productId: string) {
@@ -108,22 +132,45 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: productId }),
     });
-    if (!res.ok) { alert("削除できませんでした。"); return; }
+    if (!res.ok) {
+      alert("削除できませんでした。");
+      return;
+    }
     setBrands((prev) =>
       prev.map((b) =>
-        b.id === brandId
-          ? { ...b, coating_products: b.coating_products.filter((p) => p.id !== productId) }
-          : b
-      )
+        b.id === brandId ? { ...b, coating_products: b.coating_products.filter((p) => p.id !== productId) } : b,
+      ),
     );
   }
 
   return (
     <div className="space-y-4">
+      <FirstUseInlineGuide
+        storageKey="settings_brands"
+        title="コーティング剤マスターとは"
+        description="証明書発行画面で選択肢に出てくるコーティング剤・PPFフィルムの一覧です。ブランド配下に製品を登録する2階層構造になっています。"
+        steps={[
+          {
+            title: "ブランドを追加",
+            description: "「+ ブランドを追加」から CARPRO / GYEON / GLARE などのメーカー名を登録します。",
+          },
+          {
+            title: "ブランドを開いて製品を追加",
+            description: "ブランドカードを展開し「+ 製品を追加」で製品名 (例: CQuartz UK 3.0) と製品コードを登録。",
+          },
+          {
+            title: "証明書発行で自動表示",
+            description: "コーティング・PPFテンプレートでの証明書発行時、登録済み製品が選択肢に表示されます。",
+          },
+        ]}
+      />
+
       {/* Brand list */}
       {brands.length === 0 ? (
         <div className="glass-card p-8 text-center">
-          <p className="text-sm text-muted">ブランドが登録されていません。</p>
+          <p className="text-sm text-muted">
+            ブランドが登録されていません。下の「+ ブランドを追加」から登録を始めましょう。
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -140,12 +187,8 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
                         <span className="rounded-full bg-surface-hover px-2 py-0.5 text-[11px] text-muted">共通</span>
                       )}
                     </div>
-                    {brand.description && (
-                      <div className="text-xs text-muted mt-0.5">{brand.description}</div>
-                    )}
-                    <div className="text-xs text-muted mt-0.5">
-                      {brand.coating_products.length} 製品
-                    </div>
+                    {brand.description && <div className="text-xs text-muted mt-0.5">{brand.description}</div>}
+                    <div className="text-xs text-muted mt-0.5">{brand.coating_products.length} 製品</div>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button
@@ -206,23 +249,53 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
 
                     {/* Add product form */}
                     {addingProductFor === brand.id ? (
-                      <form onSubmit={(e) => addProduct(brand.id, e)} className="rounded-xl border border-border-default bg-inset p-4 space-y-3 mt-3">
+                      <form
+                        onSubmit={(e) => addProduct(brand.id, e)}
+                        className="rounded-xl border border-border-default bg-inset p-4 space-y-3 mt-3"
+                      >
                         <div className="text-xs font-semibold text-primary">製品を追加</div>
                         <div className="grid gap-3 sm:grid-cols-2">
-                          <input value={newProductName} onChange={(e) => setNewProductName(e.target.value)} placeholder="製品名 *" required className={inputCls} />
-                          <input value={newProductCode} onChange={(e) => setNewProductCode(e.target.value)} placeholder="品番（任意）" className={inputCls} />
-                          <input value={newProductDesc} onChange={(e) => setNewProductDesc(e.target.value)} placeholder="説明（任意）" className={`${inputCls} sm:col-span-2`} />
+                          <input
+                            value={newProductName}
+                            onChange={(e) => setNewProductName(e.target.value)}
+                            placeholder="製品名 *"
+                            required
+                            className={inputCls}
+                          />
+                          <input
+                            value={newProductCode}
+                            onChange={(e) => setNewProductCode(e.target.value)}
+                            placeholder="品番（任意）"
+                            className={inputCls}
+                          />
+                          <input
+                            value={newProductDesc}
+                            onChange={(e) => setNewProductDesc(e.target.value)}
+                            placeholder="説明（任意）"
+                            className={`${inputCls} sm:col-span-2`}
+                          />
                         </div>
                         {productErr && <p className="text-xs text-red-500">{productErr}</p>}
                         <div className="flex gap-2">
-                          <Button type="submit" size="sm" loading={savingProduct}>追加する</Button>
-                          <button type="button" onClick={() => setAddingProductFor(null)} className="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-xs text-secondary hover:bg-surface-hover">キャンセル</button>
+                          <Button type="submit" size="sm" loading={savingProduct}>
+                            追加する
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => setAddingProductFor(null)}
+                            className="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-xs text-secondary hover:bg-surface-hover"
+                          >
+                            キャンセル
+                          </button>
                         </div>
                       </form>
                     ) : (
                       <button
                         type="button"
-                        onClick={() => { setAddingProductFor(brand.id); setProductErr(null); }}
+                        onClick={() => {
+                          setAddingProductFor(brand.id);
+                          setProductErr(null);
+                        }}
                         className="rounded-lg border border-dashed border-border-default px-4 py-2 text-xs text-muted hover:border-border-strong hover:text-primary"
                       >
                         ＋ 製品を追加
@@ -241,14 +314,41 @@ export default function BrandsClient({ initialBrands }: { initialBrands: Brand[]
         <form onSubmit={addBrand} className="glass-card p-5 space-y-4">
           <div className="text-sm font-semibold text-primary">新しいブランドを追加</div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <input value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} placeholder="ブランド名 *" required className={`${inputCls} sm:col-span-2`} />
-            <input value={newBrandUrl} onChange={(e) => setNewBrandUrl(e.target.value)} placeholder="Webサイト URL（任意）" className={inputCls} />
-            <input value={newBrandDesc} onChange={(e) => setNewBrandDesc(e.target.value)} placeholder="説明（任意）" className={inputCls} />
+            <input
+              value={newBrandName}
+              onChange={(e) => setNewBrandName(e.target.value)}
+              placeholder="ブランド名 *"
+              required
+              className={`${inputCls} sm:col-span-2`}
+            />
+            <input
+              value={newBrandUrl}
+              onChange={(e) => setNewBrandUrl(e.target.value)}
+              placeholder="Webサイト URL（任意）"
+              className={inputCls}
+            />
+            <input
+              value={newBrandDesc}
+              onChange={(e) => setNewBrandDesc(e.target.value)}
+              placeholder="説明（任意）"
+              className={inputCls}
+            />
           </div>
           {brandErr && <p className="text-sm text-red-500">{brandErr}</p>}
           <div className="flex gap-3">
-            <Button type="submit" loading={addingBrand}>追加する</Button>
-            <Button type="button" variant="secondary" onClick={() => { setShowNewBrand(false); setBrandErr(null); }}>キャンセル</Button>
+            <Button type="submit" loading={addingBrand}>
+              追加する
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setShowNewBrand(false);
+                setBrandErr(null);
+              }}
+            >
+              キャンセル
+            </Button>
           </div>
         </form>
       ) : (

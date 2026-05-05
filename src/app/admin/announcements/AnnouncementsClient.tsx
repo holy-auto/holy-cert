@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 
 interface Announcement {
   id: string;
@@ -37,7 +38,9 @@ export default function AnnouncementsClient() {
       const res = await fetch("/api/announcements", { cache: "no-store" });
       const j = await res.json();
       if (res.ok) setAnnouncements(j.announcements ?? []);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setLoading(false);
   }, []);
 
@@ -52,10 +55,10 @@ export default function AnnouncementsClient() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ announcement_id: id }),
       });
-      setAnnouncements((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, is_read: true } : a))
-      );
-    } catch { /* ignore */ }
+      setAnnouncements((prev) => prev.map((a) => (a.id === id ? { ...a, is_read: true } : a)));
+    } catch {
+      /* ignore */
+    }
   };
 
   const toggleExpand = (id: string) => {
@@ -68,9 +71,8 @@ export default function AnnouncementsClient() {
     }
   };
 
-  const filtered = categoryFilter === "all"
-    ? announcements
-    : announcements.filter((a) => a.category === categoryFilter);
+  const filtered =
+    categoryFilter === "all" ? announcements : announcements.filter((a) => a.category === categoryFilter);
 
   const unreadCount = announcements.filter((a) => !a.is_read).length;
 
@@ -78,6 +80,23 @@ export default function AnnouncementsClient() {
 
   return (
     <div className="space-y-6">
+      <FirstUseInlineGuide
+        storageKey="announcements"
+        title="お知らせとは"
+        description="Ledra 運営チームから配信される、新機能・メンテナンス・重要なお知らせの一覧です。未読バッジはサイドバーにも表示されます。"
+        steps={[
+          {
+            title: "カテゴリで識別",
+            description: "「お知らせ / アップデート / メンテナンス / 重要」のバッジ色で重要度がわかります。",
+          },
+          {
+            title: "クリックで本文を表示",
+            description: "未読は太字。クリックすると既読になり、未読カウンタが減ります。",
+          },
+          { title: "重要なお知らせは見逃さない", description: "「重要」カテゴリは赤で強調表示されます。" },
+        ]}
+      />
+
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="glass-card p-5">
@@ -117,9 +136,7 @@ export default function AnnouncementsClient() {
 
       {/* Announcements List */}
       {filtered.length === 0 ? (
-        <div className="glass-card p-8 text-center text-muted">
-          お知らせはありません
-        </div>
+        <div className="glass-card p-8 text-center text-muted">お知らせはありません</div>
       ) : (
         <div className="space-y-3">
           {filtered.map((ann) => {
@@ -133,12 +150,12 @@ export default function AnnouncementsClient() {
                 className={`w-full text-left glass-card border ${config.border} ${isExpanded ? config.bg : ""} p-5 transition-all hover:shadow-sm`}
               >
                 <div className="flex items-start gap-3">
-                  {!ann.is_read && (
-                    <span className="mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-accent" />
-                  )}
+                  {!ann.is_read && <span className="mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-accent" />}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${config.color} ${config.bg}`}>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${config.color} ${config.bg}`}
+                      >
                         {config.label}
                       </span>
                       <span className="text-xs text-muted">
@@ -149,9 +166,7 @@ export default function AnnouncementsClient() {
                         })}
                       </span>
                     </div>
-                    <div className="text-sm font-semibold text-primary leading-tight">
-                      {ann.title}
-                    </div>
+                    <div className="text-sm font-semibold text-primary leading-tight">{ann.title}</div>
                     {isExpanded && (
                       <div className="mt-3 text-sm text-secondary whitespace-pre-wrap leading-relaxed border-t border-border-subtle pt-3">
                         {ann.body}

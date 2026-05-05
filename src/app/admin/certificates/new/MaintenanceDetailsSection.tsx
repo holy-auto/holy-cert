@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 import { WORK_TYPE_OPTIONS } from "@/lib/maintenance/constants";
 
 type MaintenanceData = {
@@ -36,8 +37,7 @@ export default function MaintenanceDetailsSection() {
     }));
   };
 
-  const update = (field: keyof MaintenanceData, value: string) =>
-    setData((prev) => ({ ...prev, [field]: value }));
+  const update = (field: keyof MaintenanceData, value: string) => setData((prev) => ({ ...prev, [field]: value }));
 
   const jsonValue = JSON.stringify({
     work_types: data.work_types,
@@ -53,22 +53,20 @@ export default function MaintenanceDetailsSection() {
       <input type="hidden" name="maintenance_json" value={jsonValue} />
 
       <div>
-        <div className="text-xs font-semibold tracking-[0.18em] text-muted">
-          MAINTENANCE DETAILS
-        </div>
-        <div className="mt-0.5 text-base font-semibold text-primary">
+        <div className="text-xs font-semibold tracking-[0.18em] text-muted">MAINTENANCE DETAILS</div>
+        <div className="mt-0.5 text-base font-semibold text-primary flex items-center gap-1.5">
           整備内容
+          <HelpTooltip>
+            実施した整備項目 (オイル交換 / ブレーキパッド / 車検等)
+            を選択。走行距離や交換部品も記録すると、次回整備時期の判定や保険査定で活用できます。
+          </HelpTooltip>
         </div>
-        <p className="mt-1 text-xs text-muted">
-          実施した整備の内容を記録します。
-        </p>
+        <p className="mt-1 text-xs text-muted">実施した整備の内容を記録します。</p>
       </div>
 
       {/* 作業種別（複数選択） */}
       <div>
-        <label className="block text-sm font-medium text-secondary mb-2">
-          作業種別（複数選択可）
-        </label>
+        <label className="block text-sm font-medium text-secondary mb-2">作業種別（複数選択可）</label>
         <div className="flex flex-wrap gap-2">
           {WORK_TYPE_OPTIONS.map((opt) => (
             <button
@@ -86,9 +84,7 @@ export default function MaintenanceDetailsSection() {
           ))}
         </div>
         {data.work_types.length > 0 && (
-          <div className="mt-2 text-xs text-muted">
-            {data.work_types.length} 項目を選択中
-          </div>
+          <div className="mt-2 text-xs text-muted">{data.work_types.length} 項目を選択中</div>
         )}
       </div>
 
