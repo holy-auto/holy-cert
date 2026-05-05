@@ -85,9 +85,9 @@ export default function AgentMaterialsPage() {
     try {
       const res = await fetch("/api/agent/materials");
       if (!res.ok) throw new Error("資料の取得に失敗しました");
-        const json = await res.json();
-        setCategories(json.categories ?? []);
-        setMaterials(json.materials ?? []);
+      const json = await res.json();
+      setCategories(json.categories ?? []);
+      setMaterials(json.materials ?? []);
     } catch (e: any) {
       setError(e?.message ?? "資料の取得に失敗しました");
     } finally {
@@ -130,23 +130,44 @@ export default function AgentMaterialsPage() {
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
       {/* Header */}
       <div>
         <div className="inline-flex rounded-full border border-border-default bg-surface px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-secondary">
           MATERIALS
         </div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary">
-          営業資料
-        </h1>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary">営業資料</h1>
         <p className="mt-1 text-sm text-muted">
           本部から共有されたパンフレット・契約書・マニュアル等の資料をダウンロードできます。
         </p>
       </div>
+
+      {/* Operation Guide banner — built-in onboarding doc */}
+      <a
+        href="/agent/operation-guide"
+        className="block rounded-2xl border border-accent/30 bg-accent-dim/20 p-5 hover:border-accent/50 hover:bg-accent-dim/30 transition-colors"
+      >
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent text-white text-2xl">
+            📘
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold tracking-[0.18em] text-accent">BUILT-IN GUIDE</span>
+              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">NEW</span>
+            </div>
+            <div className="mt-1 text-base font-semibold text-primary">Ledra 操作ガイド</div>
+            <p className="mt-1 text-sm text-secondary leading-relaxed">
+              施工店様向けの公式操作ガイド。商談時の説明資料・導入後フォローにご利用ください。 公開URL{" "}
+              <code className="rounded bg-surface-hover px-1 py-0.5 text-[11px]">/guide</code>{" "}
+              をそのまま施工店様に共有することもできます。
+            </p>
+          </div>
+          <span aria-hidden className="shrink-0 text-muted text-lg">
+            →
+          </span>
+        </div>
+      </a>
 
       {/* Search + Category filters */}
       <div className="rounded-2xl border border-border-default bg-surface p-4 shadow-sm space-y-3">
@@ -197,13 +218,27 @@ export default function AgentMaterialsPage() {
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-border-default bg-surface p-12 text-center shadow-sm">
           <div className="text-4xl mb-3 text-muted">
-            <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} className="mx-auto">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+            <svg
+              width="48"
+              height="48"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1}
+              className="mx-auto"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+              />
             </svg>
           </div>
           <div className="text-sm font-medium text-secondary">資料がありません</div>
           <p className="mt-1 text-xs text-muted">
-            {searchQuery ? `「${searchQuery}」に一致する資料が見つかりません。` : "本部が資料をアップロードするまでお待ちください。"}
+            {searchQuery
+              ? `「${searchQuery}」に一致する資料が見つかりません。`
+              : "本部が資料をアップロードするまでお待ちください。"}
           </p>
         </div>
       ) : (
@@ -211,9 +246,7 @@ export default function AgentMaterialsPage() {
           {/* Pinned materials */}
           {pinned.length > 0 && (
             <div className="space-y-2">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">
-                PINNED
-              </div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">PINNED</div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {pinned.map((m) => (
                   <MaterialCard
@@ -230,19 +263,10 @@ export default function AgentMaterialsPage() {
 
           {/* Regular materials */}
           <div className="space-y-2">
-            {pinned.length > 0 && (
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">
-                ALL FILES
-              </div>
-            )}
+            {pinned.length > 0 && <div className="text-xs font-semibold tracking-[0.18em] text-muted">ALL FILES</div>}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {regular.map((m) => (
-                <MaterialCard
-                  key={m.id}
-                  material={m}
-                  onDownload={handleDownload}
-                  downloading={downloading === m.id}
-                />
+                <MaterialCard key={m.id} material={m} onDownload={handleDownload} downloading={downloading === m.id} />
               ))}
             </div>
           </div>
@@ -284,7 +308,9 @@ function MaterialCard({
     >
       <div className="flex gap-3">
         {/* File type icon */}
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${iconColor}`}>
+        <div
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${iconColor}`}
+        >
           {icon}
         </div>
 
@@ -302,9 +328,7 @@ function MaterialCard({
                 )}
                 {material.title}
               </h3>
-              {material.description && (
-                <p className="mt-0.5 truncate text-xs text-muted">{material.description}</p>
-              )}
+              {material.description && <p className="mt-0.5 truncate text-xs text-muted">{material.description}</p>}
             </div>
           </div>
 
@@ -341,7 +365,15 @@ function MaterialCard({
               {downloading ? (
                 <span className="flex items-center gap-1">
                   <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                   取得中
@@ -349,7 +381,11 @@ function MaterialCard({
               ) : (
                 <span className="flex items-center gap-1">
                   <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+                    />
                   </svg>
                   ダウンロード
                 </span>
