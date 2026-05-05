@@ -36,8 +36,25 @@ const { withEntitlementsPlist } = require("expo/config-plugins");
 const TAP_TO_PAY_ENTITLEMENT =
   "com.apple.developer.proximity-reader.payment.acceptance";
 
+/**
+ * 2026-05 update:
+ *   Apple から Development Distribution Entitlement が付与されたため、
+ *   development / preview プロファイル のビルドではこの plugin を
+ *   スキップ（entitlement を残したまま）にする。
+ *   production プロファイル（App Store配布）は publishing entitlement
+ *   が下りるまで引き続き除去する。
+ *
+ *   EAS Build は EAS_BUILD_PROFILE 環境変数にプロファイル名を入れる。
+ */
 module.exports = function withRemoveTapToPayEntitlement(config) {
+  const profile = process.env.EAS_BUILD_PROFILE;
+  const shouldKeep = profile === "development" || profile === "preview";
+
   return withEntitlementsPlist(config, (mod) => {
+    if (shouldKeep) {
+      // 開発/プレビューでは entitlement を残し、Tap to Pay を実機で動作させる
+      return mod;
+    }
     if (mod.modResults && TAP_TO_PAY_ENTITLEMENT in mod.modResults) {
       delete mod.modResults[TAP_TO_PAY_ENTITLEMENT];
     }

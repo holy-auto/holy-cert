@@ -322,9 +322,10 @@ export default function WalkInCheckoutScreen() {
       ];
     }
     if (isIPhone) {
-      // iPhone: Tap to Pay 承認待ちのためカード選択肢は除外
+      // iPhone: Tap to Pay は専用ボタン (TapToPayButton) で上部に表示
       return [
         { value: "cash", label: "現金" },
+        { value: "card", label: "カード" },
         { value: "qr", label: "QR" },
         { value: "bank_transfer", label: "振込" },
       ];

@@ -1,0 +1,85 @@
+import { NextRequest } from "next/server";
+import Stripe from "stripe";
+import { apiForbidden, apiInternalError, apiJson, apiUnauthorized } from "@/lib/api/response";
+import { checkRateLimit } from "@/lib/api/rateLimit";
+import { requireMinRole } from "@/lib/auth/checkRole";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
+import { createMobileClient, resolveMobileCaller } from "@/lib/supabase/mobile";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/mobile/pos/terminal/location
+ *
+ * Stripe Terminal の location_id をテナントごとに払い出す。
+ * Tap to Pay では `discoverReaders` 直後の `connectReader` で必須。
+ *
+ * 動作:
+ *   1) テナントの Stripe Connect アカウントに既存ロケーションがあれば
+ *      最初の1件を返す
+ *   2) 無ければ簡易な「店舗名」+「日本住所」で1件作成して返す
+ *
+ * 将来の拡張ポイント:
+ *   - 店舗 (stores) ごとに 1 location を持たせる
+ *   - 住所をテナント設定から自動投入
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const limited = await checkRateLimit(req, "mobile_terminal");
+    if (limited) return limited;
+
+    const { client, accessToken } = createMobileClient(req);
+    if (!client) return apiUnauthorized();
+
+    const caller = await resolveMobileCaller(client, accessToken);
+    if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
+
+    // テナントの Stripe Connect アカウントを取得
+    const { admin } = createTenantScopedAdmin(caller.tenantId);
+    const { data: tenant } = await admin
+      .from("tenants")
+      .select("name, stripe_connect_account_id, stripe_connect_onboarded, address")
+      .eq("id", caller.tenantId)
+      .single();
+
+    const connectAccountId = tenant?.stripe_connect_account_id as string | null;
+    const isOnboarded = tenant?.stripe_connect_onboarded as boolean | null;
+    const stripeOptions = connectAccountId && isOnboarded ? { stripeAccount: connectAccountId } : undefined;
+
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      return apiInternalError(new Error("stripe not configured"), "mobile/pos/terminal/location");
+    }
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: "2026-02-25.clover" as Stripe.LatestApiVersion,
+    });
+
+    // 1) 既存ロケーションを検索
+    const list = await stripe.terminal.locations.list({ limit: 1 }, stripeOptions);
+    if (list.data.length > 0) {
+      return apiJson({ location_id: list.data[0].id });
+    }
+
+    // 2) 無ければ作成 (最低限の住所で OK)
+    const name = (tenant?.name as string | null) ?? "Ledra Store";
+    const address = (tenant?.address as Record<string, string> | null) ?? {};
+    const created = await stripe.terminal.locations.create(
+      {
+        display_name: name.slice(0, 100),
+        address: {
+          line1: address.line1 ?? "1-1-1",
+          city: address.city ?? "Tokyo",
+          state: address.state ?? "Tokyo",
+          postal_code: address.postal_code ?? "1000001",
+          country: "JP",
+        },
+      },
+      stripeOptions,
+    );
+
+    return apiJson({ location_id: created.id });
+  } catch (e: unknown) {
+    return apiInternalError(e, "mobile/pos/terminal/location");
+  }
+}

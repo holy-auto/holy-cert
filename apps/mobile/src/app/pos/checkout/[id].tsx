@@ -302,10 +302,11 @@ export default function PosCheckoutScreen() {
       ];
     }
     if (isIPhone) {
-      // iPhone: Tap to Pay (カード) は専用ボタンで上部に配置（要件 5.2）
-      // SegmentedButtons は補助的な選択肢のみ表示
+      // iPhone: Tap to Pay は専用ボタンで上部に常時表示（要件 5.1〜5.5）。
+      // SegmentedButtons は他の選択肢を提供。
       return [
         { value: "cash", label: "現金" },
+        { value: "card", label: "カード" },
         { value: "qr", label: "QR" },
         { value: "bank_transfer", label: "振込" },
       ];

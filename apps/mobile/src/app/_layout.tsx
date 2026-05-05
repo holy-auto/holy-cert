@@ -56,10 +56,11 @@ export default function RootLayout() {
 
   // Stripe Terminal の connection token 取得
   // SDK 0.0.1-beta.29 では initialize() 経由ではなく Provider 経由で渡す
+  // API側は POST のみ受付なので必ず POST で叩く
   const fetchTokenProvider = useCallback(async () => {
     const res = await mobileApi<{ secret: string }>(
       "/pos/terminal/connection-token",
-      { method: "GET" }
+      { method: "POST" }
     );
     return res.secret;
   }, []);
