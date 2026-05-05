@@ -328,7 +328,7 @@ export default function PosReceiptScreen() {
 
       <ReceiptShareDialog
         visible={shareOpen}
-        receiptUrl={`https://app.cartrust.co.jp/c/${id}`}
+        receiptUrl={`https://app.ledra.co.jp/c/${id}`}
         onDismiss={() => setShareOpen(false)}
         onSent={() => setSnack("レシートを送信しました")}
       />
