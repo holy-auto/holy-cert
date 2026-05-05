@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
+import EmptyStateGuide from "@/components/ui/EmptyStateGuide";
 import { formatDate, formatJpy } from "@/lib/format";
 import { fetcher } from "@/lib/swr";
 
@@ -484,26 +485,54 @@ export default function InvoicesClient() {
       {loading && <div className="text-sm text-muted">読み込み中…</div>}
       {err && <div className="glass-card p-4 text-sm text-red-500">{err}</div>}
 
+      {data && data.stats.total === 0 && !showForm && (
+        <EmptyStateGuide
+          icon="🧾"
+          title="最初の請求書を作成しましょう"
+          description="請求書はPDFと共有URLで顧客に送れます。証明書から金額を引き継いだり、品目マスタから簡単に追加できます。"
+          steps={[
+            { title: "「新規作成」をクリック", description: "右上または下のボタンから入力フォームを開きます。" },
+            {
+              title: "顧客と品目を入力",
+              description: "顧客と品目（メニュー）を選択。証明書から金額を引き継ぐこともできます。",
+            },
+            {
+              title: "発行 → PDF/共有リンクで送信",
+              description: "発行後はPDFダウンロードや共有リンクの作成、入金ステータス管理が可能です。",
+            },
+          ]}
+          primaryAction={{
+            label: "+ 最初の請求書を作成",
+            onClick: () => {
+              setShowForm(true);
+              setSaveMsg(null);
+            },
+          }}
+        />
+      )}
+
       {data && (
         <>
           {/* Stats */}
-          <section className="grid gap-4 sm:grid-cols-3">
-            <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
-              <div className="mt-2 text-2xl font-bold text-primary">{data.stats.total}</div>
-              <div className="mt-1 text-xs text-muted">総請求書数</div>
-            </div>
-            <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">未入金</div>
-              <div className="mt-2 text-2xl font-bold text-primary">{formatJpy(data.stats.unpaid_amount)}</div>
-              <div className="mt-1 text-xs text-muted">未入金額</div>
-            </div>
-            <div className="glass-card p-5">
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted">今月</div>
-              <div className="mt-2 text-2xl font-bold text-primary">{data.stats.this_month_issued}</div>
-              <div className="mt-1 text-xs text-muted">今月発行</div>
-            </div>
-          </section>
+          {data.stats.total > 0 && (
+            <section className="grid gap-4 sm:grid-cols-3">
+              <div className="glass-card p-5">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">合計</div>
+                <div className="mt-2 text-2xl font-bold text-primary">{data.stats.total}</div>
+                <div className="mt-1 text-xs text-muted">総請求書数</div>
+              </div>
+              <div className="glass-card p-5">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">未入金</div>
+                <div className="mt-2 text-2xl font-bold text-primary">{formatJpy(data.stats.unpaid_amount)}</div>
+                <div className="mt-1 text-xs text-muted">未入金額</div>
+              </div>
+              <div className="glass-card p-5">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">今月</div>
+                <div className="mt-2 text-2xl font-bold text-primary">{data.stats.this_month_issued}</div>
+                <div className="mt-1 text-xs text-muted">今月発行</div>
+              </div>
+            </section>
+          )}
 
           {/* Aging Analysis */}
           {(() => {

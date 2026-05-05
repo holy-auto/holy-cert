@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import SettingsForm from "./SettingsForm";
+import SettingsProgressCard from "./SettingsProgressCard";
 import FollowUpSettings from "./FollowUpSettings";
 import SquareConnectSection from "./SquareConnectSection";
 import LineConnectSection from "./LineConnectSection";
@@ -121,6 +122,12 @@ export default async function AdminSettingsPage() {
   const { error: detectErr } = await admin.from("tenants").select("contact_email").eq("id", tenantId).limit(1).single();
   const columnsExist = !detectErr || !detectErr.message.includes("does not exist");
 
+  const hasContact = columnsExist && !!(ext.contact_email || ext.contact_phone);
+  const hasAddress = columnsExist && !!ext.address;
+  const hasInvoiceNumber = columnsExist && !!ext.registration_number;
+  const hasBankInfo = columnsExist && !!(ext.bank_info?.bank_name && ext.bank_info?.account_number);
+  const hasStripeConnect = columnsExist && !!ext.stripe_connect_onboarded;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -132,6 +139,16 @@ export default async function AdminSettingsPage() {
             ダッシュボード
           </Link>
         }
+      />
+
+      <SettingsProgressCard
+        hasShopName={!!name}
+        hasContact={hasContact}
+        hasAddress={hasAddress}
+        hasLogo={hasLogo}
+        hasInvoiceNumber={hasInvoiceNumber}
+        hasBankInfo={hasBankInfo}
+        hasStripeConnect={hasStripeConnect}
       />
 
       {/* Plan info */}

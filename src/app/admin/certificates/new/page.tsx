@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import PageHeader from "@/components/ui/PageHeader";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 import CertNewFormWrapper, { type Template, type TemplateSchema } from "./CertNewFormWrapper";
 import { normalizePlanTier } from "@/lib/billing/planFeatures";
 import type { PlanTier } from "@/lib/billing/planFeatures";
@@ -57,7 +58,9 @@ export default async function Page({
         .returns<TemplateRow[]>(),
       supabase
         .from("vehicles")
-        .select("id, maker, model, year, plate_display, vin_code, size_class, customer_id, customer:customers(id, name)")
+        .select(
+          "id, maker, model, year, plate_display, vin_code, size_class, customer_id, customer:customers(id, name)",
+        )
         .eq("tenant_id", tenantId)
         .order("created_at", { ascending: false })
         .limit(300)
@@ -118,6 +121,26 @@ export default async function Page({
             </Link>
           </div>
         }
+      />
+
+      <FirstUseInlineGuide
+        storageKey="certificates_new"
+        title="証明書を発行するには"
+        description="施工内容と写真を記録して、QRコード付きのデジタル証明書を発行します。"
+        steps={[
+          {
+            title: "車両を選択",
+            description: "登録済みの車両から選択するか、その場で新規追加できます。",
+          },
+          {
+            title: "施工内容・写真を入力",
+            description: "メニュー・コーティング剤・施工写真をアップロード。テンプレートで入力項目が変わります。",
+          },
+          {
+            title: "発行 → 顧客に共有",
+            description: "QRコードと公開URLが生成され、顧客にそのまま渡せます。",
+          },
+        ]}
       />
 
       {hasBrandedTemplate && (
