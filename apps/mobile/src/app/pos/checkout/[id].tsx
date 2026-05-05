@@ -208,8 +208,10 @@ export default function PosCheckoutScreen() {
         }));
         const { error } = await supabase.rpc("pos_checkout", {
           p_tenant_id: user!.tenantId,
-          p_reservation_id: id,
+          p_reservation_id: id || null,
+          p_customer_id: null,
           p_store_id: selectedStore!.id,
+          p_register_session_id: null,
           p_payment_method: "card",
           p_amount: total,
           p_received_amount: total,
@@ -256,10 +258,14 @@ export default function PosCheckoutScreen() {
         unit_price: it.unit_price,
         amount: it.quantity * it.unit_price,
       }));
+      // 任意UUIDは明示的に null を渡す（空文字列だと PG が
+      // "invalid input syntax for type uuid" で落ちる）
       const { error } = await supabase.rpc("pos_checkout", {
         p_tenant_id: user!.tenantId,
-        p_reservation_id: id,
+        p_reservation_id: id || null,
+        p_customer_id: null,
         p_store_id: selectedStore!.id,
+        p_register_session_id: null,
         p_payment_method: paymentMethod,
         p_amount: total,
         p_received_amount: paymentMethod === "cash" ? received : total,
