@@ -57,7 +57,7 @@ export default function CmdKHintToast() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-5 right-5 z-40 max-w-xs rounded-2xl border border-accent/30 bg-surface shadow-lg backdrop-blur-md p-4 animate-fade-in"
+      className="fixed bottom-20 right-5 z-40 max-w-xs rounded-2xl border border-accent/30 bg-surface shadow-lg backdrop-blur-md p-4 animate-fade-in"
       style={{ animation: "fade-in 320ms cubic-bezier(0.4, 0, 0.2, 1)" }}
     >
       <div className="flex items-start justify-between gap-3">

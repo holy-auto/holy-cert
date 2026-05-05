@@ -4,6 +4,7 @@ import BillingGate from "./BillingGate";
 import AdminRouteGuard from "./AdminRouteGuard";
 import BillingFetchGuard from "./BillingFetchGuard";
 import IdleAutoLogout from "./IdleAutoLogout";
+import HelpFab from "./HelpFab";
 import CommandPalette from "@/components/ui/CommandPalette";
 import NavigationProgress from "@/components/ui/NavigationProgress";
 import { ViewModeProvider } from "@/lib/view-mode/ViewModeContext";
@@ -28,6 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <BillingGate />
       <IdleAutoLogout />
       <CommandPalette />
+      <HelpFab />
       <div className="flex min-h-screen">
         <Sidebar />
         <main id="main-content" className="flex-1 p-4 sm:p-6 pt-16 lg:ml-60 lg:pt-6">
