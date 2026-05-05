@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 
 type Brand = {
   id: string;
@@ -16,14 +17,14 @@ type Product = {
 
 type Row = {
   id: number;
-  area: string;       // preset key or "custom"
+  area: string; // preset key or "custom"
   customArea: string; // free text when area === "custom"
   brand_id: string;
   brand_name: string;
   product_id: string;
   product_name: string;
   lot_number: string; // ロット番号
-  film_type: string;  // PPF用: gloss | matte | satin | color | ""
+  film_type: string; // PPF用: gloss | matte | satin | color | ""
 };
 
 // PPFフィルムタイプ選択肢
@@ -115,12 +116,11 @@ export default function CoatingProductsSection({ serviceType }: Props) {
           return { ...r, product_id: value, product_name: product?.name ?? "" };
         }
         return { ...r, [field]: value };
-      })
+      }),
     );
 
   const addRow = () => setRows((prev) => [...prev, newRow()]);
-  const removeRow = (id: number) =>
-    setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+  const removeRow = (id: number) => setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
 
   const validRows = rows.filter((r) => {
     const location = r.area === "custom" ? r.customArea.trim() : r.area;
@@ -136,7 +136,7 @@ export default function CoatingProductsSection({ serviceType }: Props) {
       product_name: r.product_name || null,
       lot_number: r.lot_number?.trim() || null,
       ...(isPpf && r.film_type ? { film_type: r.film_type } : {}),
-    }))
+    })),
   );
 
   return (
@@ -147,8 +147,13 @@ export default function CoatingProductsSection({ serviceType }: Props) {
         <div className="text-xs font-semibold tracking-[0.18em] text-muted">
           {isPpf ? "PPF FILM" : "COATING PRODUCTS"}
         </div>
-        <div className="mt-0.5 text-base font-semibold text-primary">
+        <div className="mt-0.5 text-base font-semibold text-primary inline-flex items-center gap-1.5 flex-wrap">
           {isPpf ? "使用フィルム" : "コーティング剤"}
+          <HelpTooltip>
+            {isPpf
+              ? "使用したPPFフィルムの製品名・部位・ロット番号を記録します。製品はコーティング剤マスター（設定→ブランド管理）で事前登録した中から選択できます。"
+              : "施工に使ったコーティング剤を記録します。複数製品の併用 (下地+トップ等) も追加可能。製品名はマスター登録から選択でき、ロット番号も残せるためトラブル時の遡及調査に役立ちます。"}
+          </HelpTooltip>
           <span className="ml-2 text-xs font-normal text-muted">任意</span>
         </div>
         <p className="mt-1 text-xs text-muted">
@@ -171,7 +176,9 @@ export default function CoatingProductsSection({ serviceType }: Props) {
       ) : null}
 
       {/* ヘッダー行 */}
-      <div className={`hidden sm:grid gap-2 px-1 ${isPpf ? "sm:grid-cols-[1.5fr_2fr_2fr_1.5fr_1.5fr_auto]" : "sm:grid-cols-[2fr_2fr_2fr_1.5fr_auto]"}`}>
+      <div
+        className={`hidden sm:grid gap-2 px-1 ${isPpf ? "sm:grid-cols-[1.5fr_2fr_2fr_1.5fr_1.5fr_auto]" : "sm:grid-cols-[2fr_2fr_2fr_1.5fr_auto]"}`}
+      >
         <span className="text-[11px] font-semibold text-muted uppercase">{isPpf ? "部位" : "部位"}</span>
         <span className="text-[11px] font-semibold text-muted uppercase">ブランド</span>
         <span className="text-[11px] font-semibold text-muted uppercase">製品</span>
@@ -190,14 +197,12 @@ export default function CoatingProductsSection({ serviceType }: Props) {
             {/* 部位 */}
             <div>
               <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">部位</span>
-              <select
-                value={row.area}
-                onChange={(e) => update(row.id, "area", e.target.value)}
-                className={selectCls}
-              >
+              <select value={row.area} onChange={(e) => update(row.id, "area", e.target.value)} className={selectCls}>
                 <option value="">部位を選択</option>
                 {AREA_PRESETS.map((p) => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
                 ))}
               </select>
               {row.area === "custom" && (
@@ -221,7 +226,9 @@ export default function CoatingProductsSection({ serviceType }: Props) {
               >
                 <option value="">選択</option>
                 {brands.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -238,7 +245,8 @@ export default function CoatingProductsSection({ serviceType }: Props) {
                 <option value="">選択</option>
                 {brandProducts.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}{p.product_code ? ` (${p.product_code})` : ""}
+                    {p.name}
+                    {p.product_code ? ` (${p.product_code})` : ""}
                   </option>
                 ))}
               </select>
@@ -254,7 +262,9 @@ export default function CoatingProductsSection({ serviceType }: Props) {
                   className={selectCls}
                 >
                   {FILM_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
                   ))}
                 </select>
               </div>

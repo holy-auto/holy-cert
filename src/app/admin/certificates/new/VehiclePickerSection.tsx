@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 
 const ShakenshoScanner = dynamic(() => import("@/components/vehicles/ShakenshoScanner"), {
   ssr: false,
@@ -314,8 +315,16 @@ export default function VehiclePickerSection({
               strokeWidth={1.5}
               aria-hidden="true"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"
+              />
             </svg>
             カメラでスキャン
           </button>
@@ -334,7 +343,11 @@ export default function VehiclePickerSection({
               strokeWidth={1.5}
               aria-hidden="true"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+              />
             </svg>
             画像をアップロード
           </button>
@@ -377,26 +390,25 @@ export default function VehiclePickerSection({
         {sizeClass && (
           <div className="flex items-center gap-2 text-xs text-muted">
             <span>サイズ判定:</span>
-            <span className="rounded-md bg-accent-dim px-2 py-0.5 text-xs font-semibold text-accent">
-              {sizeClass}
-            </span>
+            <span className="rounded-md bg-accent-dim px-2 py-0.5 text-xs font-semibold text-accent">{sizeClass}</span>
             <span className="text-[11px]">（証明書の料金計算に使用されます）</span>
           </div>
         )}
       </div>
 
       {/* Scanner modal (dynamically loaded) */}
-      <ShakenshoScanner
-        open={scannerOpen}
-        onResult={handleQrResult}
-        onClose={() => setScannerOpen(false)}
-      />
+      <ShakenshoScanner open={scannerOpen} onResult={handleQrResult} onClose={() => setScannerOpen(false)} />
 
       {/* Vehicle info section */}
       <div>
         <div className="mb-4">
           <div className="text-xs font-semibold tracking-[0.18em] text-muted">VEHICLE INFO</div>
-          <div className="mt-1 text-base font-semibold text-primary">車両情報</div>
+          <div className="mt-1 text-base font-semibold text-primary inline-flex items-center gap-1.5">
+            車両情報
+            <HelpTooltip>
+              既存車両を検索して選ぶか、車検証OCR・手入力で新規登録できます。証明書発行と同時に車両マスタにも保存されるため、次回以降は検索だけで呼び出せます。
+            </HelpTooltip>
+          </div>
           <p className="mt-0.5 text-xs text-muted">車両マスタから選択、または手入力してください</p>
         </div>
 

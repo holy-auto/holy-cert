@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 
 type Row = {
   id: number;
@@ -28,19 +29,19 @@ const LOCATION_PRESETS = [
 
 // 車展開図の部位→座標マッピング（トップダウンビュー）
 const DIAGRAM_POSITIONS: Record<string, { x: number; y: number }> = {
-  "ボンネット":       { x: 150, y: 55 },
-  "ルーフ":           { x: 150, y: 155 },
-  "右フロントフェンダー": { x: 255, y: 75 },
-  "左フロントフェンダー": { x: 45, y: 75 },
-  "右フロントドア":   { x: 265, y: 135 },
-  "左フロントドア":   { x: 35, y: 135 },
-  "右リアドア":       { x: 265, y: 195 },
-  "左リアドア":       { x: 35, y: 195 },
-  "右リアフェンダー": { x: 255, y: 245 },
-  "左リアフェンダー": { x: 45, y: 245 },
+  ボンネット: { x: 150, y: 55 },
+  ルーフ: { x: 150, y: 155 },
+  右フロントフェンダー: { x: 255, y: 75 },
+  左フロントフェンダー: { x: 45, y: 75 },
+  右フロントドア: { x: 265, y: 135 },
+  左フロントドア: { x: 35, y: 135 },
+  右リアドア: { x: 265, y: 195 },
+  左リアドア: { x: 35, y: 195 },
+  右リアフェンダー: { x: 255, y: 245 },
+  左リアフェンダー: { x: 45, y: 245 },
   "トランク/リアゲート": { x: 150, y: 275 },
-  "右サイドステップ": { x: 275, y: 165 },
-  "左サイドステップ": { x: 25, y: 165 },
+  右サイドステップ: { x: 275, y: 165 },
+  左サイドステップ: { x: 25, y: 165 },
 };
 
 let nextId = 1;
@@ -91,31 +92,13 @@ function CarDiagramSvg({ rows }: { rows: Row[] }) {
             <g key={loc}>
               {val ? (
                 <>
-                  <rect
-                    x={pos.x - 18}
-                    y={pos.y - 8}
-                    width="36"
-                    height="16"
-                    rx="3"
-                    fill="#059669"
-                    opacity="0.9"
-                  />
-                  <text
-                    x={pos.x}
-                    y={pos.y + 4}
-                    textAnchor="middle"
-                    className="text-[9px] font-bold fill-white"
-                  >
+                  <rect x={pos.x - 18} y={pos.y - 8} width="36" height="16" rx="3" fill="#059669" opacity="0.9" />
+                  <text x={pos.x} y={pos.y + 4} textAnchor="middle" className="text-[9px] font-bold fill-white">
                     {val}μm
                   </text>
                 </>
               ) : (
-                <text
-                  x={pos.x}
-                  y={pos.y + 3}
-                  textAnchor="middle"
-                  className="text-[7px] fill-neutral-400"
-                >
+                <text x={pos.x} y={pos.y + 3} textAnchor="middle" className="text-[7px] fill-neutral-400">
                   ―
                 </text>
               )}
@@ -124,8 +107,12 @@ function CarDiagramSvg({ rows }: { rows: Row[] }) {
         })}
 
         {/* 方向表示 */}
-        <text x="150" y="14" textAnchor="middle" className="text-[8px] fill-neutral-400 font-medium">▲ フロント</text>
-        <text x="150" y="326" textAnchor="middle" className="text-[8px] fill-neutral-400 font-medium">▼ リア</text>
+        <text x="150" y="14" textAnchor="middle" className="text-[8px] fill-neutral-400 font-medium">
+          ▲ フロント
+        </text>
+        <text x="150" y="326" textAnchor="middle" className="text-[8px] fill-neutral-400 font-medium">
+          ▼ リア
+        </text>
       </svg>
     </div>
   );
@@ -138,8 +125,7 @@ export default function FilmThicknessSection() {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
 
   const addRow = () => setRows((prev) => [...prev, newRow()]);
-  const removeRow = (id: number) =>
-    setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+  const removeRow = (id: number) => setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
 
   const validRows = rows.filter((r) => r.location.trim() || r.before_um || r.after_um);
   const jsonValue = JSON.stringify(
@@ -148,7 +134,7 @@ export default function FilmThicknessSection() {
       before_um: r.before_um ? Number(r.before_um) : null,
       after_um: r.after_um ? Number(r.after_um) : null,
       notes: r.notes.trim(),
-    }))
+    })),
   );
 
   const hasAnyValue = rows.some((r) => r.after_um || r.before_um);
@@ -159,9 +145,13 @@ export default function FilmThicknessSection() {
 
       <div>
         <div className="text-xs font-semibold tracking-[0.18em] text-muted">FILM THICKNESS</div>
-        <div className="mt-0.5 text-base font-semibold text-primary">
+        <div className="mt-0.5 text-base font-semibold text-primary flex items-center gap-1.5 flex-wrap">
           膜厚計測
-          <span className="ml-2 text-xs font-normal text-muted">任意</span>
+          <span className="text-xs font-normal text-muted">任意</span>
+          <HelpTooltip>
+            塗装の厚さを部位別に記録します。施工前 /
+            施工後の数値を残すことで、コーティング層の存在を客観的に示せます。NexPTG等の膜厚計と連携すれば自動取り込みも可能。
+          </HelpTooltip>
         </div>
         <p className="mt-1 text-xs text-muted">各部位の施工前後の膜厚（μm）を記録します。</p>
       </div>
@@ -179,7 +169,10 @@ export default function FilmThicknessSection() {
       </div>
 
       {rows.map((row) => (
-        <div key={row.id} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 items-start rounded-xl border border-border-subtle bg-inset p-3 sm:p-0 sm:bg-transparent sm:border-0">
+        <div
+          key={row.id}
+          className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1.5fr_auto] gap-2 items-start rounded-xl border border-border-subtle bg-inset p-3 sm:p-0 sm:bg-transparent sm:border-0"
+        >
           <div>
             <span className="sm:hidden text-[11px] font-semibold text-muted uppercase mb-1 block">部位</span>
             <input

@@ -3,6 +3,7 @@ import { parseJsonSafe } from "@/lib/api/safeJson";
 
 import { useCallback, useEffect, useState } from "react";
 import PageHeader from "@/components/ui/PageHeader";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 import Badge from "@/components/ui/Badge";
 
 interface NewsItem {
@@ -108,6 +109,26 @@ export default function NewsClient() {
         tag="業界ニュース"
         title="業界ニュース"
         description={`自動車業界の最新ニュースをRSSフィードから自動取得（${feedCount}サイト・保存済み${savedCount}件）毎朝7時に自動収集`}
+      />
+
+      <FirstUseInlineGuide
+        storageKey="news"
+        title="業界ニュースの使い方"
+        description="自動車業界 (コーティング・PPF・板金等) の最新ニュースを自動収集して表示します。商談トークの引き出し・トレンド把握・SNS共有のネタ集めにご活用ください。"
+        steps={[
+          {
+            title: "毎朝7時に自動収集",
+            description: "RSS フィード経由で複数サイトから記事を自動取得します。手動でも更新可能。",
+          },
+          {
+            title: "カテゴリ・ソースで絞り込み",
+            description: "上部のフィルタで関心のあるカテゴリ・ニュースサイトだけ表示できます。",
+          },
+          {
+            title: "気になる記事を保存",
+            description: "「保存」ボタンで後から読み返したい記事をブックマーク可能。SNS シェアもできます。",
+          },
+        ]}
       />
 
       {loading && (

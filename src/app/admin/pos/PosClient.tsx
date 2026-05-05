@@ -8,6 +8,7 @@ import { formatJpy, formatDate } from "@/lib/format";
 import Badge from "@/components/ui/Badge";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 
 /* ────────────────────────────────────────────── */
 /*  Types                                         */
@@ -108,7 +109,10 @@ const PAYMENT_METHODS = [
   { value: "other", label: "\u305D\u306E\u4ED6", icon: "\uD83D\uDCCB" },
 ] as const;
 
-const RESERVATION_STATUS_MAP: Record<string, { variant: "default" | "success" | "warning" | "danger" | "info" | "violet"; label: string }> = {
+const RESERVATION_STATUS_MAP: Record<
+  string,
+  { variant: "default" | "success" | "warning" | "danger" | "info" | "violet"; label: string }
+> = {
   confirmed: { variant: "info", label: "\u78BA\u5B9A" },
   arrived: { variant: "violet", label: "\u6765\u5E97" },
   in_progress: { variant: "warning", label: "\u4F5C\u696D\u4E2D" },
@@ -116,7 +120,10 @@ const RESERVATION_STATUS_MAP: Record<string, { variant: "default" | "success" | 
   cancelled: { variant: "default", label: "\u53D6\u6D88" },
 };
 
-const PAYMENT_STATUS_MAP: Record<string, { variant: "default" | "success" | "warning" | "danger" | "info" | "violet"; label: string }> = {
+const PAYMENT_STATUS_MAP: Record<
+  string,
+  { variant: "default" | "success" | "warning" | "danger" | "info" | "violet"; label: string }
+> = {
   unpaid: { variant: "default", label: "\u672A\u4F1A\u8A08" },
   paid: { variant: "success", label: "\u4F1A\u8A08\u6E08" },
   partial: { variant: "warning", label: "\u4E00\u90E8" },
@@ -145,10 +152,7 @@ export default function PosClient() {
     [reservations],
   );
 
-  const paidReservations = useMemo(
-    () => reservations.filter((r) => r.payment_status === "paid"),
-    [reservations],
-  );
+  const paidReservations = useMemo(() => reservations.filter((r) => r.payment_status === "paid"), [reservations]);
 
   // ── Data fetch: Menu items (walk-in) ──
   const { data: menuData, isLoading: menuLoading } = useSWR<MenuItemsData>(
@@ -157,10 +161,7 @@ export default function PosClient() {
     { revalidateOnFocus: false, keepPreviousData: true },
   );
 
-  const masterMenuItems = useMemo(
-    () => (menuData?.items ?? []).filter((mi) => mi.is_active),
-    [menuData],
-  );
+  const masterMenuItems = useMemo(() => (menuData?.items ?? []).filter((mi) => mi.is_active), [menuData]);
 
   // ── State ──
   const [selected, setSelected] = useState<Reservation | null>(null);
@@ -254,9 +255,7 @@ export default function PosClient() {
       const existing = prev.find((c) => c.id === mi.id);
       if (existing) {
         return prev.map((c) =>
-          c.id === mi.id
-            ? { ...c, quantity: c.quantity + 1, amount: (c.quantity + 1) * c.unit_price }
-            : c,
+          c.id === mi.id ? { ...c, quantity: c.quantity + 1, amount: (c.quantity + 1) * c.unit_price } : c,
         );
       }
       return [...prev, { id: mi.id, name: mi.name, unit_price: mi.unit_price, quantity: 1, amount: mi.unit_price }];
@@ -264,15 +263,16 @@ export default function PosClient() {
   }, []);
 
   const updateCartQty = useCallback((id: string, delta: number) => {
-    setCart((prev) =>
-      prev
-        .map((c) => {
-          if (c.id !== id) return c;
-          const newQty = c.quantity + delta;
-          if (newQty <= 0) return null;
-          return { ...c, quantity: newQty, amount: newQty * c.unit_price };
-        })
-        .filter(Boolean) as CartItem[],
+    setCart(
+      (prev) =>
+        prev
+          .map((c) => {
+            if (c.id !== id) return c;
+            const newQty = c.quantity + delta;
+            if (newQty <= 0) return null;
+            return { ...c, quantity: newQty, amount: newQty * c.unit_price };
+          })
+          .filter(Boolean) as CartItem[],
     );
   }, []);
 
@@ -315,8 +315,7 @@ export default function PosClient() {
 
   const received = receivedAmount ? parseInt(receivedAmount, 10) : amount;
   const change = paymentMethod === "cash" ? Math.max(0, received - amount) : 0;
-  const hasSelection =
-    mode === "reservation" ? !!selected : mode === "invoice" ? !!loadedInvoice : cart.length > 0;
+  const hasSelection = mode === "reservation" ? !!selected : mode === "invoice" ? !!loadedInvoice : cart.length > 0;
   const canCheckout = amount > 0 && !processing && (paymentMethod !== "cash" || received >= amount);
 
   // Reset form when selection changes (reservation mode)
@@ -353,7 +352,10 @@ export default function PosClient() {
 
     try {
       // 1. Checkout Session 作成
-      const description = checkoutItems.map((i) => i.description).join(", ") || (mode === "reservation" ? selected?.title : "\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08") || "POS\u4F1A\u8A08";
+      const description =
+        checkoutItems.map((i) => i.description).join(", ") ||
+        (mode === "reservation" ? selected?.title : "\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08") ||
+        "POS\u4F1A\u8A08";
       const res = await fetch("/api/admin/pos/checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -371,7 +373,8 @@ export default function PosClient() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Checkout Session \u306E\u4F5C\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
+      if (!res.ok)
+        throw new Error(data?.error ?? "Checkout Session \u306E\u4F5C\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
 
       const sessionId = data.session_id as string;
       const checkoutUrl = data.url as string;
@@ -396,7 +399,9 @@ export default function PosClient() {
         if (attempts > maxAttempts) {
           if (pollingRef.current) clearInterval(pollingRef.current);
           pollingRef.current = null;
-          setQrError("\u6C7A\u6E08\u304C\u30BF\u30A4\u30E0\u30A2\u30A6\u30C8\u3057\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002");
+          setQrError(
+            "\u6C7A\u6E08\u304C\u30BF\u30A4\u30E0\u30A2\u30A6\u30C8\u3057\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+          );
           setQrStep("error");
           return;
         }
@@ -434,7 +439,10 @@ export default function PosClient() {
               }),
             });
             const checkoutData = await checkoutRes.json();
-            if (!checkoutRes.ok) throw new Error(checkoutData?.error ?? "\u6C7A\u6E08\u306E\u8A18\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
+            if (!checkoutRes.ok)
+              throw new Error(
+                checkoutData?.error ?? "\u6C7A\u6E08\u306E\u8A18\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+              );
 
             setResult(checkoutData);
             if (mode === "invoice" && loadedInvoice) {
@@ -453,7 +461,9 @@ export default function PosClient() {
           } else if (statusData.status === "expired") {
             if (pollingRef.current) clearInterval(pollingRef.current);
             pollingRef.current = null;
-            setQrError("\u30BB\u30C3\u30B7\u30E7\u30F3\u304C\u671F\u9650\u5207\u308C\u306B\u306A\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002");
+            setQrError(
+              "\u30BB\u30C3\u30B7\u30E7\u30F3\u304C\u671F\u9650\u5207\u308C\u306B\u306A\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+            );
             setQrStep("error");
           }
         } catch {
@@ -461,7 +471,11 @@ export default function PosClient() {
         }
       }, 2000);
     } catch (e) {
-      setQrError(e instanceof Error ? e.message : "QR\u30B3\u30FC\u30C9\u306E\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
+      setQrError(
+        e instanceof Error
+          ? e.message
+          : "QR\u30B3\u30FC\u30C9\u306E\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+      );
       setQrStep("error");
     }
   }, [selected, loadedInvoice, amount, checkoutItems, note, mutate, mode]);
@@ -536,12 +550,52 @@ export default function PosClient() {
     } finally {
       setProcessing(false);
     }
-  }, [hasSelection, processing, paymentMethod, amount, received, checkoutItems, note, mutate, mode, selected, loadedInvoice, handleCardPaymentQr]);
+  }, [
+    hasSelection,
+    processing,
+    paymentMethod,
+    amount,
+    received,
+    checkoutItems,
+    note,
+    mutate,
+    mode,
+    selected,
+    loadedInvoice,
+    handleCardPaymentQr,
+  ]);
 
   // ── Render ──
   return (
     <div className="space-y-6">
-      <PageHeader title="POS \u4F1A\u8A08" tag="POS" description="\u4E88\u7D04\u306E\u4F1A\u8A08\u51E6\u7406\u30FB\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08\u3092\u884C\u3044\u307E\u3059" />
+      <PageHeader
+        title="POS \u4F1A\u8A08"
+        tag="POS"
+        description="\u4E88\u7D04\u306E\u4F1A\u8A08\u51E6\u7406\u30FB\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08\u3092\u884C\u3044\u307E\u3059"
+      />
+
+      <FirstUseInlineGuide
+        storageKey="pos"
+        title="POS\u4F1A\u8A08\u306E\u4F7F\u3044\u65B9"
+        description="\u5E97\u982D\u3067\u306E\u73FE\u91D1\u30FB\u30AB\u30FC\u30C9\u4F1A\u8A08\u3092 Ledra \u4E0A\u3067\u5B8C\u7D50\u3055\u305B\u308B\u6A5F\u80FD\u3067\u3059\u3002Stripe Terminal \u3092\u63A5\u7D9A\u3059\u308B\u3068\u30AB\u30FC\u30C9\u6C7A\u6E08\u306E\u96FB\u5B50\u5316\u3082\u3067\u304D\u307E\u3059\u3002"
+        steps={[
+          {
+            title: "\u30EC\u30B8\u3092\u958B\u5C40",
+            description:
+              "1\u65E5\u306E\u55B6\u696D\u958B\u59CB\u6642\u306B\u300C\u30EC\u30B8\u3092\u958B\u5C40\u300D\u3092\u62BC\u3057\u3001\u958B\u59CB\u6642\u306E\u73FE\u91D1\u6B8B\u9AD8\u3092\u5165\u529B\u3002\u9589\u5C40\u6642\u306B\u58F2\u4E0A\u7A81\u5408\u3057\u307E\u3059\u3002",
+          },
+          {
+            title: "\u4F1A\u8A08\u5BFE\u8C61\u3092\u9078\u3076",
+            description:
+              "\u672A\u4F1A\u8A08\u306E\u4E88\u7D04\u4E00\u89A7\u304B\u3089\u5BFE\u8C61\u3092\u30AF\u30EA\u30C3\u30AF\u3001\u3082\u3057\u304F\u306F\u300C\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08\u300D\u3067\u305D\u306E\u5834\u3067\u54C1\u76EE\u5165\u529B\u3067\u304D\u307E\u3059\u3002",
+          },
+          {
+            title: "\u6C7A\u6E08\u65B9\u6CD5\u3092\u9078\u629E\u3057\u3066\u5B8C\u4E86",
+            description:
+              "\u73FE\u91D1\u30FB\u30AB\u30FC\u30C9 (Stripe Terminal) \u30FBQR\u30FB\u9280\u884C\u632F\u8FBC\u304B\u3089\u9078\u629E\u3002\u5B8C\u4E86\u5F8C\u306F\u9818\u53CE\u66F8\u304C\u30E1\u30FC\u30EB\u9001\u4FE1\u3067\u304D\u307E\u3059\u3002",
+          },
+        ]}
+      />
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -549,9 +603,7 @@ export default function PosClient() {
         <StatCard label="\u672C\u65E5\u4F1A\u8A08\u6E08" value={paidReservations.length} />
         <StatCard
           label="\u672C\u65E5\u58F2\u4E0A"
-          value={formatJpy(
-            paidReservations.reduce((s, r) => s + (r.estimated_amount ?? 0), 0),
-          )}
+          value={formatJpy(paidReservations.reduce((s, r) => s + (r.estimated_amount ?? 0), 0))}
         />
       </div>
 
@@ -561,9 +613,7 @@ export default function PosClient() {
           type="button"
           onClick={() => handleModeSwitch("reservation")}
           className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-            mode === "reservation"
-              ? "bg-surface text-primary shadow-sm"
-              : "text-secondary hover:text-primary"
+            mode === "reservation" ? "bg-surface text-primary shadow-sm" : "text-secondary hover:text-primary"
           }`}
         >
           {"\u4E88\u7D04\u304B\u3089\u4F1A\u8A08"}
@@ -572,9 +622,7 @@ export default function PosClient() {
           type="button"
           onClick={() => handleModeSwitch("walkin")}
           className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-            mode === "walkin"
-              ? "bg-surface text-primary shadow-sm"
-              : "text-secondary hover:text-primary"
+            mode === "walkin" ? "bg-surface text-primary shadow-sm" : "text-secondary hover:text-primary"
           }`}
         >
           {"\u4E88\u7D04\u306A\u3057\u4F1A\u8A08"}
@@ -583,9 +631,7 @@ export default function PosClient() {
           type="button"
           onClick={() => handleModeSwitch("invoice")}
           className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-            mode === "invoice"
-              ? "bg-surface text-primary shadow-sm"
-              : "text-secondary hover:text-primary"
+            mode === "invoice" ? "bg-surface text-primary shadow-sm" : "text-secondary hover:text-primary"
           }`}
         >
           {"\u8ACB\u6C42\u66F8\u304B\u3089\u4F1A\u8A08"}
@@ -614,7 +660,10 @@ export default function PosClient() {
                 <div className="space-y-2">
                   {unpaidReservations.map((r) => {
                     const isSelected = selected?.id === r.id;
-                    const statusEntry = RESERVATION_STATUS_MAP[r.status] ?? { variant: "default" as const, label: r.status };
+                    const statusEntry = RESERVATION_STATUS_MAP[r.status] ?? {
+                      variant: "default" as const,
+                      label: r.status,
+                    };
                     return (
                       <button
                         key={r.id}
@@ -630,14 +679,18 @@ export default function PosClient() {
                           <span className="text-sm font-medium text-primary">{r.title || "\u7121\u984C"}</span>
                           <div className="flex items-center gap-2">
                             <Badge variant={statusEntry.variant}>{statusEntry.label}</Badge>
-                            <span className="text-sm font-semibold text-primary">
-                              {formatJpy(r.estimated_amount)}
-                            </span>
+                            <span className="text-sm font-semibold text-primary">{formatJpy(r.estimated_amount)}</span>
                           </div>
                         </div>
                         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary">
                           {r.scheduled_date && <span>{formatDate(r.scheduled_date)}</span>}
-                          {r.start_time && <span>{r.start_time}{"\u301C"}{r.end_time ?? ""}</span>}
+                          {r.start_time && (
+                            <span>
+                              {r.start_time}
+                              {"\u301C"}
+                              {r.end_time ?? ""}
+                            </span>
+                          )}
                           {r.customer_name && <span>{r.customer_name}</span>}
                           {r.vehicle_info && <span>{r.vehicle_info}</span>}
                         </div>
@@ -650,14 +703,18 @@ export default function PosClient() {
           ) : mode === "invoice" ? (
             /* ── Invoice lookup ── */
             <>
-              <h2 className="text-sm font-semibold text-secondary">{"\u8ACB\u6C42\u66F8\u756A\u53F7\u3067\u8AAD\u307F\u8FBC\u3080"}</h2>
+              <h2 className="text-sm font-semibold text-secondary">
+                {"\u8ACB\u6C42\u66F8\u756A\u53F7\u3067\u8AAD\u307F\u8FBC\u3080"}
+              </h2>
 
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={invoiceSearch}
                   onChange={(e) => setInvoiceSearch(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleInvoiceSearch(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleInvoiceSearch();
+                  }}
                   placeholder="\u4F8B: INV-202604-001"
                   className="flex-1 rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
@@ -683,7 +740,10 @@ export default function PosClient() {
                     <span className="text-xs font-semibold tracking-wider text-muted">{"\u8ACB\u6C42\u66F8"}</span>
                     <button
                       type="button"
-                      onClick={() => { setLoadedInvoice(null); setInvoiceSearch(""); }}
+                      onClick={() => {
+                        setLoadedInvoice(null);
+                        setInvoiceSearch("");
+                      }}
                       className="text-xs text-muted hover:text-danger-text"
                     >
                       {"\u30AF\u30EA\u30A2"}
@@ -719,11 +779,7 @@ export default function PosClient() {
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-secondary">{"\u54C1\u76EE\u3092\u9078\u629E"}</h2>
                 {cart.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={clearCart}
-                    className="text-xs text-danger-text hover:underline"
-                  >
+                  <button type="button" onClick={clearCart} className="text-xs text-danger-text hover:underline">
                     {"\u30AB\u30FC\u30C8\u3092\u7A7A\u306B\u3059\u308B"}
                   </button>
                 )}
@@ -741,7 +797,9 @@ export default function PosClient() {
               {/* Cart summary */}
               {cart.length > 0 && (
                 <div className="space-y-1 rounded-xl border border-accent bg-accent-dim p-3">
-                  <span className="text-xs font-medium text-accent">{"\u30AB\u30FC\u30C8"} ({cart.length} {"\u54C1\u76EE"})</span>
+                  <span className="text-xs font-medium text-accent">
+                    {"\u30AB\u30FC\u30C8"} ({cart.length} {"\u54C1\u76EE"})
+                  </span>
                   {cart.map((c) => (
                     <div key={c.id} className="flex items-center justify-between text-sm">
                       <span className="text-primary">{c.name}</span>
@@ -781,7 +839,9 @@ export default function PosClient() {
                 </div>
               ) : filteredMenuItems.length === 0 ? (
                 <div className="rounded-xl border border-border-subtle bg-surface p-8 text-center text-sm text-muted">
-                  {menuSearch ? "\u8A72\u5F53\u3059\u308B\u54C1\u76EE\u304C\u3042\u308A\u307E\u305B\u3093" : "\u54C1\u76EE\u30DE\u30B9\u30BF\u304C\u767B\u9332\u3055\u308C\u3066\u3044\u307E\u305B\u3093"}
+                  {menuSearch
+                    ? "\u8A72\u5F53\u3059\u308B\u54C1\u76EE\u304C\u3042\u308A\u307E\u305B\u3093"
+                    : "\u54C1\u76EE\u30DE\u30B9\u30BF\u304C\u767B\u9332\u3055\u308C\u3066\u3044\u307E\u305B\u3093"}
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
@@ -793,9 +853,7 @@ export default function PosClient() {
                         type="button"
                         onClick={() => addToCart(mi)}
                         className={`relative rounded-xl border p-3 text-left transition-all hover:shadow-sm ${
-                          inCart
-                            ? "border-accent bg-accent-dim"
-                            : "border-border-subtle bg-surface hover:border-border"
+                          inCart ? "border-accent bg-accent-dim" : "border-border-subtle bg-surface hover:border-border"
                         }`}
                       >
                         <div className="text-sm font-medium text-primary leading-tight">{mi.name}</div>
@@ -822,13 +880,25 @@ export default function PosClient() {
               <div className="glass-card space-y-4 rounded-2xl p-6">
                 <div className="text-center">
                   <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-success-dim">
-                    <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-success-text">
+                    <svg
+                      width="28"
+                      height="28"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      className="text-success-text"
+                    >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
                   </div>
                   <h3 className="text-lg font-semibold text-primary">{"\u4F1A\u8A08\u5B8C\u4E86"}</h3>
                   <p className="mt-1 text-sm text-secondary">
-                    {result.doc_number && <>{"\u9818\u53CE\u66F8"}: {result.doc_number}</>}
+                    {result.doc_number && (
+                      <>
+                        {"\u9818\u53CE\u66F8"}: {result.doc_number}
+                      </>
+                    )}
                   </p>
                 </div>
 
@@ -863,9 +933,7 @@ export default function PosClient() {
                 {(qrStep === "showing" || qrStep === "paid" || qrStep === "recording") && (
                   <div className="text-center space-y-4">
                     {/* Amount */}
-                    <div className="text-3xl font-bold text-primary">
-                      {formatJpy(amount)}
-                    </div>
+                    <div className="text-3xl font-bold text-primary">{formatJpy(amount)}</div>
 
                     {qrStep === "showing" && qrDataUrl ? (
                       <>
@@ -883,7 +951,9 @@ export default function PosClient() {
 
                         {/* Instructions */}
                         <p className="text-sm font-semibold text-primary">
-                          {"\u304A\u5BA2\u69D8\u306E\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u3067\u30B9\u30AD\u30E3\u30F3\u3057\u3066\u304A\u652F\u6255\u3044\u304F\u3060\u3055\u3044"}
+                          {
+                            "\u304A\u5BA2\u69D8\u306E\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u3067\u30B9\u30AD\u30E3\u30F3\u3057\u3066\u304A\u652F\u6255\u3044\u304F\u3060\u3055\u3044"
+                          }
                         </p>
                         <p className="text-xs text-secondary">
                           {"\u30AB\u30FC\u30C9 / Apple Pay / Google Pay \u304C\u4F7F\u3048\u307E\u3059"}
@@ -904,11 +974,19 @@ export default function PosClient() {
                           {"\u30AD\u30E3\u30F3\u30BB\u30EB"}
                         </button>
                       </>
-                    ) : (qrStep === "paid" || qrStep === "recording") ? (
+                    ) : qrStep === "paid" || qrStep === "recording" ? (
                       <>
                         {/* Payment success */}
                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success-dim">
-                          <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-success-text">
+                          <svg
+                            width="32"
+                            height="32"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            className="text-success-text"
+                          >
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                           </svg>
                         </div>
@@ -925,14 +1003,24 @@ export default function PosClient() {
                 {qrStep === "creating" && (
                   <div className="flex flex-col items-center justify-center py-8 space-y-3">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-info-text border-t-transparent" />
-                    <p className="text-sm font-medium text-info-text">{"QR\u30B3\u30FC\u30C9\u3092\u751F\u6210\u4E2D..."}</p>
+                    <p className="text-sm font-medium text-info-text">
+                      {"QR\u30B3\u30FC\u30C9\u3092\u751F\u6210\u4E2D..."}
+                    </p>
                   </div>
                 )}
 
                 {qrStep === "error" && (
                   <div className="space-y-3 text-center py-4">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger-dim">
-                      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-danger-text">
+                      <svg
+                        width="24"
+                        height="24"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        className="text-danger-text"
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </div>
@@ -963,7 +1051,11 @@ export default function PosClient() {
               <div className="glass-card space-y-5 rounded-2xl p-6">
                 <div>
                   <h3 className="text-base font-semibold text-primary">
-                    {mode === "reservation" ? (selected?.title || "\u7121\u984C") : mode === "invoice" ? (loadedInvoice?.doc_number || "\u8ACB\u6C42\u66F8") : "\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08"}
+                    {mode === "reservation"
+                      ? selected?.title || "\u7121\u984C"
+                      : mode === "invoice"
+                        ? loadedInvoice?.doc_number || "\u8ACB\u6C42\u66F8"
+                        : "\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08"}
                   </h3>
                   {mode === "reservation" && selected?.customer_name && (
                     <p className="mt-0.5 text-xs text-secondary">{selected.customer_name}</p>
@@ -982,9 +1074,7 @@ export default function PosClient() {
                         <div key={i} className="flex items-center justify-between text-sm">
                           <span className="text-primary">
                             {item.description}
-                            {item.quantity > 1 && (
-                              <span className="ml-1 text-xs text-secondary">x{item.quantity}</span>
-                            )}
+                            {item.quantity > 1 && <span className="ml-1 text-xs text-secondary">x{item.quantity}</span>}
                           </span>
                           <span className="font-medium">{formatJpy(item.amount)}</span>
                         </div>
@@ -1075,11 +1165,7 @@ export default function PosClient() {
                 </div>
 
                 {/* Error */}
-                {error && (
-                  <div className="rounded-xl bg-danger-dim px-4 py-2.5 text-sm text-danger-text">
-                    {error}
-                  </div>
-                )}
+                {error && <div className="rounded-xl bg-danger-dim px-4 py-2.5 text-sm text-danger-text">{error}</div>}
 
                 {/* Submit */}
                 <button
@@ -1092,7 +1178,11 @@ export default function PosClient() {
                     <span className="flex items-center justify-center gap-2">
                       <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
                       </svg>
                       {"\u51E6\u7406\u4E2D..."}
                     </span>
@@ -1107,8 +1197,20 @@ export default function PosClient() {
               /* ── No selection ── */
               <div className="glass-card flex min-h-[300px] items-center justify-center rounded-2xl p-6 text-center">
                 <div>
-                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} className="mx-auto mb-3 text-muted">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
+                  <svg
+                    width="48"
+                    height="48"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1}
+                    className="mx-auto mb-3 text-muted"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"
+                    />
                   </svg>
                   <p className="text-sm text-muted">
                     {mode === "reservation"

@@ -146,6 +146,46 @@ const GUIDE_GROUPS: GuideGroup[] = [
           },
         ],
       },
+      {
+        id: "job_workflow",
+        icon: "🧭",
+        title: "案件ワークフローで業務を進める",
+        steps: [
+          {
+            title: "予約 / 案件詳細を開く",
+            description: "予約一覧から「案件ワークフローを開く」ボタン、または /admin/jobs/[id] へ移動します。",
+          },
+          {
+            title: "ステッパーで進捗を更新",
+            description: "「予約確定 → 来店 → 作業中 → 完了」を1クリックで進められます。",
+          },
+          {
+            title: "次アクションから1クリック起動",
+            description:
+              "ステータスに応じて証明書発行・請求書作成のボタンが表示。車両ID・顧客IDが自動引き継ぎされます。",
+          },
+        ],
+      },
+      {
+        id: "pos_register",
+        icon: "🧮",
+        title: "POSレジで会計する",
+        href: "/admin/pos",
+        steps: [
+          {
+            title: "レジを開局",
+            description: "営業開始時に開局し、開始時の現金残高を入力。閉局時に売上突合が出来ます。",
+          },
+          {
+            title: "予約 or ウォークインで会計",
+            description: "予約一覧から会計対象を選択、もしくは「ウォークイン会計」でその場入力。",
+          },
+          {
+            title: "決済方法を選んで完了",
+            description: "現金 / Stripe Terminal / QR / 銀行振込から選択。完了で領収書送信もできます。",
+          },
+        ],
+      },
     ],
   },
   {
@@ -246,6 +286,86 @@ const GUIDE_GROUPS: GuideGroup[] = [
           {
             title: "招待先がパスワードを設定",
             description: "招待されたユーザーは案内に従ってサインアップしログインできます。",
+          },
+        ],
+      },
+      {
+        id: "menu_items_master",
+        icon: "📋",
+        title: "品目マスタを登録する",
+        href: "/admin/menu-items",
+        steps: [
+          {
+            title: "新規登録 or CSVインポート",
+            description: "施工メニュー名・単価・税率区分を入力。CSV見本もダウンロード可能。",
+          },
+          {
+            title: "請求書作成で呼び出し",
+            description: "請求書フォームの品目欄から登録済みメニューをワンクリックで追加できます。",
+          },
+          {
+            title: "値上げ・廃止の管理",
+            description: "編集で価格変更、無効化で履歴を残しつつ非表示に。新旧の請求書整合性を保てます。",
+          },
+        ],
+      },
+      {
+        id: "coating_brands_master",
+        icon: "🧴",
+        title: "コーティング剤マスターを登録する",
+        href: "/admin/settings/brands",
+        steps: [
+          {
+            title: "ブランドを追加",
+            description: "CARPRO / GYEON / GLARE などの製造元・ブランド名を登録します。",
+          },
+          {
+            title: "ブランド配下に製品を追加",
+            description: "ブランドカードを展開し、製品名 (例: CQuartz UK 3.0) と製品コードを登録。",
+          },
+          {
+            title: "証明書発行で自動表示",
+            description: "コーティング・PPFテンプレートでの証明書発行時、登録済み製品が選択肢に表示されます。",
+          },
+        ],
+      },
+      {
+        id: "two_factor_auth",
+        icon: "🔐",
+        title: "2要素認証 (2FA) を有効にする",
+        href: "/admin/settings/security",
+        steps: [
+          {
+            title: "認証アプリを準備",
+            description: "Google Authenticator / 1Password / Authy などをスマホにインストール。",
+          },
+          {
+            title: "QRコードを読み込み",
+            description: "Ledra に表示される QR を認証アプリで読み取り、6桁コードを入力して有効化。",
+          },
+          {
+            title: "次回ログインから利用",
+            description: "メール+パスワードに加えて6桁コードが必要に。保険会社向けの信頼性が上がります。",
+          },
+        ],
+      },
+      {
+        id: "billing_plan",
+        icon: "💳",
+        title: "プランを変更・解約する",
+        href: "/admin/billing",
+        steps: [
+          {
+            title: "プラン比較表を確認",
+            description: "月の発行可能数・利用可能機能・写真上限などを比較できます。",
+          },
+          {
+            title: "「このプランに変更」",
+            description: "Stripe Checkout に遷移して決済。完了で即日切り替わります。",
+          },
+          {
+            title: "支払い方法・領収書",
+            description: "Stripe カスタマーポータルから支払い方法変更・領収書ダウンロード・解約が可能。",
           },
         ],
       },

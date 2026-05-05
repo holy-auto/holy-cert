@@ -5,6 +5,8 @@ import { useRef, useState } from "react";
 import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
+import EmptyStateGuide from "@/components/ui/EmptyStateGuide";
+import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 import { formatJpy } from "@/lib/format";
 import { fetcher } from "@/lib/swr";
 
@@ -237,6 +239,59 @@ export default function MenuItemsClient() {
 
       {loading && <div className="text-sm text-muted">読み込み中…</div>}
       {err && <div className="glass-card p-4 text-sm text-red-500">{err}</div>}
+
+      <FirstUseInlineGuide
+        storageKey="menu_items"
+        title="品目マスタとは"
+        description="請求書・見積書を作るときに「品目」として呼び出せるメニュー一覧です。よく使う施工メニューを登録しておくと、毎回手入力する必要がなくなります。"
+        steps={[
+          {
+            title: "「新規登録」または CSV インポート",
+            description: "施工メニュー名・単価・税率区分を入力。CSVテンプレもダウンロード可能。",
+          },
+          {
+            title: "請求書作成時に呼び出し",
+            description: "請求書フォームの品目欄から登録済みメニューをワンクリックで追加できます。",
+          },
+          {
+            title: "後から無効化・編集も可能",
+            description: "値上げ等で価格を変える場合は編集、廃止する場合は無効化で履歴を残せます。",
+          },
+        ]}
+      />
+
+      {data && data.stats.total === 0 && !showForm && !showCsv && (
+        <EmptyStateGuide
+          icon="📋"
+          title="最初の品目を登録しましょう"
+          description="よく使う施工メニュー (例: ガラスコーティング、PPF施工、ヘッドライト磨きなど) を登録すると、請求書作成が劇的に速くなります。"
+          steps={[
+            { title: "「新規登録」をクリック", description: "右上のボタンから登録フォームを開きます。" },
+            {
+              title: "品目名・単価・税率区分を入力",
+              description: "税率区分は標準10%か軽減8%。後から編集できます。",
+            },
+            {
+              title: "CSV で一括登録もOK",
+              description: "見本CSVをダウンロード → 編集 → アップロードで複数品目を一度に登録できます。",
+            },
+          ]}
+          primaryAction={{
+            label: "+ 最初の品目を登録",
+            onClick: () => {
+              setShowForm(true);
+              setSaveMsg(null);
+            },
+          }}
+          secondaryAction={{
+            label: "CSV で一括登録",
+            onClick: () => {
+              setShowCsv(true);
+              setCsvMsg(null);
+            },
+          }}
+        />
+      )}
 
       {data && (
         <>
