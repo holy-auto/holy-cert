@@ -7,6 +7,7 @@ import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import EmptyStateGuide from "@/components/ui/EmptyStateGuide";
 import dynamic from "next/dynamic";
 
 const CalendarView = dynamic(() => import("./CalendarView"), {
@@ -577,6 +578,31 @@ export default function ReservationsClient() {
 
       {err && (
         <div className="rounded-xl border border-danger/20 bg-danger-dim p-3 text-sm text-danger-text">{err}</div>
+      )}
+
+      {stats?.total === 0 && !showForm && (
+        <EmptyStateGuide
+          icon="📅"
+          title="最初の予約を登録しましょう"
+          description="予約を登録すると、来店時のチェックイン・作業進捗・証明書発行・請求までを1つの案件として一気通貫で管理できます。"
+          steps={[
+            {
+              title: "「+ 新規予約」をクリック",
+              description: "右上のボタンから入力フォームを開きます。",
+            },
+            {
+              title: "日時・顧客・車両を入力",
+              description: "日時、顧客、車両、施工メニューを設定。Googleカレンダーとも連携できます。",
+            },
+            {
+              title: "予約 → 案件ワークフローへ",
+              description:
+                "予約から「案件ワークフロー」を開くと、チェックイン → 作業 → 完了 → 請求までを案内に沿って進められます。",
+            },
+          ]}
+          primaryAction={{ label: "+ 最初の予約を登録", onClick: openCreateForm }}
+          secondaryAction={{ label: "🏃 飛び込み案件で開始", href: "/admin/jobs/new" }}
+        />
       )}
 
       {/* ── Stats cards ── */}

@@ -41,7 +41,7 @@ export default function OnboardingTour(): null {
         popoverClass: "ledra-tour-popover",
         nextBtnText: "次へ",
         prevBtnText: "戻る",
-        doneBtnText: "完了",
+        doneBtnText: "はじめる",
         progressText: "{{current}} / {{total}}",
         onDestroyStarted: () => {
           localStorage.setItem(TOUR_DONE_KEY, "1");
@@ -50,50 +50,44 @@ export default function OnboardingTour(): null {
         steps: [
           {
             popover: {
-              title: "Ledraへようこそ！",
-              description: "施工証明書の発行・管理を簡単に行えるプラットフォームです。主な機能をご紹介します。",
+              title: "Ledra へようこそ！",
+              description:
+                "施工証明書の発行・管理を簡単に行えるプラットフォームです。最短で使い始めるための流れを、30 秒でご案内します。",
             },
           },
           {
-            element: "nav ul",
+            element: "[data-tour='setup-checklist']",
             popover: {
-              title: "サイドバーナビゲーション",
+              title: "1. ここから順に進めましょう",
               description:
-                "ここから各機能にアクセスできます。証明書、車両管理、顧客管理など、すべての操作はここから始まります。",
-              side: "right",
+                "設定〜最初の証明書発行までの必要なステップが、実際の進捗に合わせて自動でチェックされます。各行のボタンを押すだけで対応する画面に進めます。",
+              side: "bottom",
               align: "start",
             },
           },
           {
-            element: 'a[href="/admin/certificates"]',
+            element: "[data-tour='quick-actions']",
             popover: {
-              title: "証明書一覧",
+              title: "2. 主要な操作はここから",
               description:
-                "発行済みの施工証明書を一覧で確認・検索できます。ステータスの管理やPDF出力もここから行えます。",
-              side: "right",
+                "証明書発行・飛び込み案件・顧客追加など、よく使う作業はクイックアクションから1クリックで起動できます。",
+              side: "bottom",
+              align: "start",
             },
           },
           {
-            element: 'a[href="/admin/vehicles"]',
             popover: {
-              title: "車両管理",
-              description: "顧客の車両情報を登録・管理します。証明書の発行には車両の登録が必要です。",
-              side: "right",
-            },
-          },
-          {
-            element: 'a[href="/admin/settings"]',
-            popover: {
-              title: "店舗設定",
-              description: "店舗名やロゴなど、基本情報を設定できます。まずはここで店舗情報を登録しましょう。",
-              side: "right",
+              title: "3. 素早く検索・移動するには",
+              description:
+                "画面のどこでも Cmd+K (Mac) / Ctrl+K (Win) を押すとコマンドパレットが開きます。ページ名や顧客名で素早く移動できます。",
             },
           },
           {
             element: 'a[href="/admin/support"]',
             popover: {
-              title: "サポート",
-              description: "ご不明な点があれば、ここから運営チームにお問い合わせいただけます。お気軽にご連絡ください。",
+              title: "困ったときは",
+              description:
+                "ご不明な点があれば、サポートから運営チームへ直接お問い合わせいただけます。チャット感覚でご利用ください。",
               side: "right",
             },
           },

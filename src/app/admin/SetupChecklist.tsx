@@ -148,7 +148,7 @@ export default async function SetupChecklist({ tenantId }: { tenantId: string })
   const nextItem = items.find((i) => !i.done);
 
   return (
-    <section className="glass-card p-5 border-l-4 border-accent">
+    <section data-tour="setup-checklist" className="glass-card p-5 border-l-4 border-accent">
       <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
         <div className="min-w-0">
           <div className="text-xs font-semibold tracking-[0.18em] text-accent">セットアップ</div>

@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import PageHeader from "@/components/ui/PageHeader";
 import DashboardCharts from "./DashboardCharts";
 import OnboardingTour from "./OnboardingTour";
+import CmdKHintToast from "./CmdKHintToast";
 import DashboardModeSwitch from "./DashboardModeSwitch";
 import TodayTasksWidget, { TodayTasksWidgetSkeleton } from "./TodayTasksWidget";
 import SetupChecklist, { SetupChecklistSkeleton } from "./SetupChecklist";
@@ -427,7 +428,7 @@ export default async function AdminHome() {
       )}
 
       {/* Quick Actions - 2段目 */}
-      <div>
+      <div data-tour="quick-actions">
         <h2 className="text-sm font-semibold tracking-[0.18em] text-muted mb-3">クイックアクション</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link
@@ -622,6 +623,7 @@ export default async function AdminHome() {
   return (
     <div className="space-y-6">
       <OnboardingTour />
+      <CmdKHintToast />
       <PageHeader tag="管理画面" title="ダッシュボード" description="施工証明書の管理状況を一目で確認" />
       <DashboardModeSwitch adminContent={adminContent} />
     </div>

@@ -13,6 +13,7 @@ import MaintenanceDetailsSection from "./MaintenanceDetailsSection";
 import BodyRepairDetailsSection from "./BodyRepairDetailsSection";
 import PhotoUploadSection, { type PhotoUploadHandle } from "./PhotoUploadSection";
 import Button from "@/components/ui/Button";
+import HelpTooltip from "@/components/ui/HelpTooltip";
 import type { PlanTier } from "@/lib/billing/planFeatures";
 import { PHOTO_LIMITS, canUseFeature } from "@/lib/billing/planFeatures";
 
@@ -483,7 +484,12 @@ export default function CertNewFormWrapper({
         <section className="border-t border-border-subtle py-6 space-y-4">
           <div className={sectionHeaderCls}>
             <div className={sectionTagCls}>EXPIRY & WARRANTY</div>
-            <div className={sectionTitleCls}>有効期限・保証期間</div>
+            <div className={`${sectionTitleCls} flex items-center gap-1.5`}>
+              有効期限・保証期間
+              <HelpTooltip>
+                証明書PDFと公開ページに表示されます。「半年ごとにメンテ推奨」など条件文と、年月日の有効期限・保証終了日を別々に設定できます。空欄でも発行可能。
+              </HelpTooltip>
+            </div>
           </div>
           <label className={labelCls}>
             <span className={labelTextCls}>有効条件（テキスト）</span>
@@ -508,6 +514,12 @@ export default function CertNewFormWrapper({
 
         {/* ━━━ 4. 施工写真 ━━━ */}
         <section className="border-t border-border-subtle py-6 space-y-4">
+          <div className="flex items-center gap-1.5 -mb-2">
+            <span className="text-xs font-semibold tracking-[0.18em] text-muted">PHOTOS</span>
+            <HelpTooltip>
+              施工前後の写真をアップロードします。証明書の信頼性が大きく上がるため、最低でも施工後1枚を推奨。プランごとに枚数上限が異なります。
+            </HelpTooltip>
+          </div>
           <PhotoUploadSection
             ref={photoRef}
             maxPhotos={maxPhotos}
@@ -542,7 +554,13 @@ export default function CertNewFormWrapper({
         <section className="border-t border-border-subtle py-6 space-y-4">
           <div className={sectionHeaderCls}>
             <div className={sectionTagCls}>WORK DETAILS</div>
-            <div className={sectionTitleCls}>詳細な施工内容</div>
+            <div className={`${sectionTitleCls} flex items-center gap-1.5`}>
+              詳細な施工内容
+              <HelpTooltip>
+                自由記述の施工メモです。Standard 以上では音声入力や AI
+                下書き生成も使えます。証明書PDFには簡潔に印字されるため、長すぎる場合は要点をまとめて。
+              </HelpTooltip>
+            </div>
           </div>
 
           {/* AI下書き生成パネル（Standard以上） */}
@@ -592,7 +610,12 @@ export default function CertNewFormWrapper({
         <section className="border-t border-border-subtle py-6 space-y-4">
           <div className={sectionHeaderCls}>
             <div className={sectionTagCls}>WARRANTY EXCLUSIONS</div>
-            <div className={sectionTitleCls}>保証除外内容</div>
+            <div className={`${sectionTitleCls} flex items-center gap-1.5`}>
+              保証除外内容
+              <HelpTooltip>
+                保証の対象外になる条件を明記する欄です。トラブル防止のために重要。一度入力した内容は店舗のデフォルトとして保存・流用できます。
+              </HelpTooltip>
+            </div>
           </div>
           <label className={`${labelCls} block`}>
             <span className={labelTextCls}>保証対象外となる条件・注意事項</span>
