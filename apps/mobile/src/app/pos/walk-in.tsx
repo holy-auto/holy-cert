@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { mobileApi } from "@/lib/api";
 import { useTerminal } from "@/hooks/useTerminal";
+import { useTerminalStore } from "@/stores/terminalStore";
 
 interface MenuItem {
   id: string;
@@ -104,6 +105,7 @@ export default function WalkInCheckoutScreen() {
   // Stripe Terminal（iPhone）
   const {
     readerStatus,
+    readerError,
     paymentStatus,
     connectTapToPay,
     initTerminal,
@@ -241,7 +243,13 @@ export default function WalkInCheckoutScreen() {
       if (isIPhone && paymentMethod === "card") {
         if (readerStatus !== "connected") {
           const ok = await connectTapToPay();
-          if (!ok) throw new Error("Tap to Pay の準備ができませんでした");
+          if (!ok) {
+            const latestErr =
+              useTerminalStore.getState().readerError ?? readerError;
+            throw new Error(
+              latestErr ?? "Tap to Pay の準備ができませんでした"
+            );
+          }
         }
         const result = await processCardPayment({
           amountJpy: total,
