@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { View, StyleSheet, FlatList } from "react-native";
 import { Text, Card, Button, ActivityIndicator } from "react-native-paper";
 import { router } from "expo-router";
@@ -17,6 +17,14 @@ export default function SelectStoreScreen() {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, setSelectedStore } = useAuthStore();
+
+  const handleSelect = useCallback(
+    (store: Store) => {
+      setSelectedStore({ id: store.id, name: store.name });
+      router.replace("/(tabs)");
+    },
+    [setSelectedStore]
+  );
 
   useEffect(() => {
     async function loadStores() {
@@ -47,12 +55,7 @@ export default function SelectStoreScreen() {
     }
 
     loadStores();
-  }, [user?.tenantId]);
-
-  function handleSelect(store: Store) {
-    setSelectedStore({ id: store.id, name: store.name });
-    router.replace("/(tabs)");
-  }
+  }, [user?.tenantId, handleSelect]);
 
   if (loading) {
     return (

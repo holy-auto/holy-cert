@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -51,7 +51,7 @@ export default function HomeScreen() {
   );
   const [refreshing, setRefreshing] = useState(false);
 
-  async function loadStats() {
+  const loadStats = useCallback(async () => {
     if (!user?.tenantId || !selectedStore?.id) return;
 
     const today = new Date().toISOString().split("T")[0];
@@ -123,11 +123,11 @@ export default function HomeScreen() {
       }
     }
     setSalesSeries(dateRange.map((date) => ({ date, amount: buckets[date] })));
-  }
+  }, [user, selectedStore]);
 
   useEffect(() => {
     loadStats();
-  }, [user?.tenantId, selectedStore?.id]);
+  }, [loadStats]);
 
   async function onRefresh() {
     setRefreshing(true);

@@ -12,6 +12,7 @@
  * app.json の plugins 配列で "react-native-nfc-manager" の代わりに
  * "./plugins/withNfcLocal" を指定して使う。
  */
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require -- Expo config plugins are loaded via CommonJS require()
 const {
   AndroidConfig,
   withInfoPlist,
