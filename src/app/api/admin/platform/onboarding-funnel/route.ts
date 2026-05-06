@@ -81,11 +81,17 @@ async function computeFunnel(
   const tenantIds = list.map((t) => t.id);
 
   // 並列でカウント類を取得
+  // documents は invoice と consolidated_invoice の両方を「請求書」として扱う
+  // (一括請求のみ作成しているテナントを取りこぼさないため)
   const [vehicleData, customerData, certData, invoiceData] = await Promise.all([
     admin.from("vehicles").select("tenant_id").in("tenant_id", tenantIds),
     admin.from("customers").select("tenant_id").in("tenant_id", tenantIds),
     admin.from("certificates").select("tenant_id").in("tenant_id", tenantIds),
-    admin.from("documents").select("tenant_id").eq("doc_type", "invoice").in("tenant_id", tenantIds),
+    admin
+      .from("documents")
+      .select("tenant_id")
+      .in("doc_type", ["invoice", "consolidated_invoice"])
+      .in("tenant_id", tenantIds),
   ]);
 
   const tenantsWithVehicle = new Set((vehicleData.data ?? []).map((r) => r.tenant_id as string));
@@ -93,6 +99,9 @@ async function computeFunnel(
   const tenantsWithCert = new Set((certData.data ?? []).map((r) => r.tenant_id as string));
   const tenantsWithInvoice = new Set((invoiceData.data ?? []).map((r) => r.tenant_id as string));
 
+  // 累積条件で各段階に到達したテナントを数える。
+  // 各段階は「前段階の条件を満たした上で、この段階の条件も満たす」ことを要求する
+  // ことで、ファネルが厳密に単調減少になり drop_pct が常に有効値になる。
   let shopInfoCount = 0;
   let logoCount = 0;
   let firstRecordCount = 0;
@@ -100,11 +109,25 @@ async function computeFunnel(
   let firstInvoiceCount = 0;
 
   for (const t of list) {
-    if (t.contact_email || t.contact_phone || t.address) shopInfoCount++;
-    if (t.logo_asset_path) logoCount++;
-    if (tenantsWithVehicle.has(t.id) || tenantsWithCustomer.has(t.id)) firstRecordCount++;
-    if (tenantsWithCert.has(t.id)) firstCertCount++;
-    if (tenantsWithInvoice.has(t.id)) firstInvoiceCount++;
+    const hasShopInfo = !!(t.contact_email || t.contact_phone || t.address);
+    if (!hasShopInfo) continue;
+    shopInfoCount++;
+
+    const hasLogo = !!t.logo_asset_path;
+    if (!hasLogo) continue;
+    logoCount++;
+
+    const hasRecord = tenantsWithVehicle.has(t.id) || tenantsWithCustomer.has(t.id);
+    if (!hasRecord) continue;
+    firstRecordCount++;
+
+    const hasCert = tenantsWithCert.has(t.id);
+    if (!hasCert) continue;
+    firstCertCount++;
+
+    const hasInvoice = tenantsWithInvoice.has(t.id);
+    if (!hasInvoice) continue;
+    firstInvoiceCount++;
   }
 
   const counts = [total, shopInfoCount, logoCount, firstRecordCount, firstCertCount, firstInvoiceCount];
