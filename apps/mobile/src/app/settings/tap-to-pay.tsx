@@ -13,6 +13,7 @@ import { Stack } from "expo-router";
 
 import { useAuthStore } from "@/stores/authStore";
 import { useTerminal } from "@/hooks/useTerminal";
+import { useTerminalStore } from "@/stores/terminalStore";
 
 /**
  * Apple Tap to Pay 要件:
@@ -52,7 +53,10 @@ export default function TapToPaySettingsScreen() {
       if (ok) {
         setSnackbar("Tap to Pay の準備が完了しました");
       } else {
-        setSnackbar(readerError ?? "Tap to Pay の有効化に失敗しました");
+        // closure の readerError は古いことがあるので store から最新を取る
+        const latestErr =
+          useTerminalStore.getState().readerError ?? readerError;
+        setSnackbar(latestErr ?? "Tap to Pay の有効化に失敗しました");
       }
     } finally {
       setBusy(false);

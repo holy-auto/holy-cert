@@ -18,6 +18,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { mobileApi } from "@/lib/api";
 import { useTerminal } from "@/hooks/useTerminal";
+import { useTerminalStore } from "@/stores/terminalStore";
 import { TapToPayButton } from "@/components/TapToPayButton";
 import { ReceiptShareDialog } from "@/components/ReceiptShareDialog";
 
@@ -122,6 +123,7 @@ export default function PosCheckoutScreen() {
   // Stripe Terminal（iPhone専用）
   const {
     readerStatus,
+    readerError,
     paymentStatus,
     connectTapToPay,
     initTerminal,
@@ -186,7 +188,15 @@ export default function PosCheckoutScreen() {
         // Tap to Pay 未接続なら接続
         if (readerStatus !== "connected") {
           const ok = await connectTapToPay();
-          if (!ok) throw new Error("Tap to Pay の準備ができませんでした");
+          if (!ok) {
+            // connectTapToPay が store にセットした最新の readerError を投げる
+            // (closure の readerError は古いことがあるので getState で取る)
+            const latestErr =
+              useTerminalStore.getState().readerError ?? readerError;
+            throw new Error(
+              latestErr ?? "Tap to Pay の準備ができませんでした"
+            );
+          }
         }
         const result = await processCardPayment({
           amountJpy: total,

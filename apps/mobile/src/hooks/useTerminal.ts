@@ -87,16 +87,40 @@ export function useTerminal() {
     store.setReaderStatus("connecting");
     store.setReaderError(null);
 
+    // location 取得 (失敗時の原因切り分けのため try を分割)
+    let locationId: string;
     try {
       const locRes = await mobileApi<{ location_id: string }>(
         "/pos/terminal/location",
         { method: "GET" }
       );
-      const locationId = locRes.location_id;
+      locationId = locRes.location_id;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      store.setReaderStatus("disconnected");
+      store.setReaderError(`location 取得失敗: ${msg}`);
+      return false;
+    }
 
+    try {
       // 1) Tap to Pay リーダーを発見
+      // onUpdateDiscoveredReaders が一定時間内に発火しない場合に
+      // 永続待ちにならないよう 15s で reject する。
+      // 多くの場合、entitlement 不足や SDK 初期化未完了で
+      // discoverReaders が success を返したまま callback が来ない。
       const readerPromise = new Promise<Reader.Type>((resolve, reject) => {
         tapToPayDiscoveryRef.current = { resolve, reject };
+        setTimeout(() => {
+          if (tapToPayDiscoveryRef.current) {
+            tapToPayDiscoveryRef.current = null;
+            reject(
+              new Error(
+                "Tap to Pay リーダーが検出されませんでした (15s timeout)。" +
+                  "entitlement 未付与 / iOS 16.4 未満 / 端末未対応 / Stripe Terminal 初期化未完了 のいずれかが疑われます"
+              )
+            );
+          }
+        }, 15000);
       });
 
       const { error: discoverError } = await discoverReaders({
@@ -132,7 +156,8 @@ export function useTerminal() {
     } catch (e) {
       tapToPayDiscoveryRef.current = null;
       store.setReaderStatus("disconnected");
-      store.setReaderError(`Tap to Pay 初期化失敗: ${e}`);
+      const msg = e instanceof Error ? e.message : String(e);
+      store.setReaderError(`Tap to Pay 接続失敗: ${msg}`);
       return false;
     }
   }, [discoverReaders, sdkConnectReader]);
