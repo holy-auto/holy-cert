@@ -160,7 +160,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
     features: [
       {
         title: "モバイル最適化UI",
-        description: "現場スタッフ向けのタブレット・スマホ前提のUI。撮影→証明書発行の最短動線。",
+        description: "現場スタッフ向けのタブレット・スマホ前提のUI。撮影＞証明書発行の最短動線。",
       },
       {
         title: "Tap to Pay（iPhone）",

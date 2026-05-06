@@ -257,19 +257,19 @@ function Page2Problems() {
       </Text>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>① 伝わらない摩擦</Text>
+        <Text style={styles.cardTitle}>1. 伝わらない摩擦</Text>
         <Text style={styles.cardDesc}>
           紙・個人スマホ・Excel に散在する施工記録。同じ精度で顧客・保険会社・次の担当者に届ける共通フォーマットがない。
         </Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>② 消える摩擦</Text>
+        <Text style={styles.cardTitle}>2. 消える摩擦</Text>
         <Text style={styles.cardDesc}>
           紙はなくなり、担当者は変わる。3年後に「この車両に何の施工をしたか」を確実に答えられる記録が残っていない。
         </Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>③ 疑われる摩擦</Text>
+        <Text style={styles.cardTitle}>3. 疑われる摩擦</Text>
         <Text style={styles.cardDesc}>
           事故や事後対応の場面で、「本当にその時の写真か」「あとから直していないか」という不信に、紙やスマホ写真では十分答えられない。
         </Text>
@@ -1220,7 +1220,7 @@ function SecurityDataLifecycle() {
       </View>
 
       <Text style={styles.h2}>データ削除・エクスポート</Text>
-      <Text style={styles.bullet}>• 退会時はテナント単位で論理削除 → 30 日後に物理削除。</Text>
+      <Text style={styles.bullet}>• 退会時はテナント単位で論理削除 ＞ 30 日後に物理削除。</Text>
       <Text style={styles.bullet}>• 個別の顧客情報削除依頼は、本人確認後 30 日以内に対応。</Text>
       <Text style={styles.bullet}>• 全データの CSV / JSON エクスポートは、Admin 権限者がいつでも取得可能。</Text>
 
@@ -1507,7 +1507,7 @@ function CasesIndustryPatternPage({
       </View>
 
       <Text style={[styles.cardDesc, { marginTop: 14 }]}>
-        ※ 上記はパイロット設計段階での想定パターンです。実数値は実施企業様ごとに異なります。
+        * 上記はパイロット設計段階での想定パターンです。実数値は実施企業様ごとに異なります。
       </Text>
 
       <Footer pageLabel={`${index + 3} / ${pageTotal}`} />
@@ -1806,7 +1806,7 @@ function RoiFormula() {
       </View>
 
       <Text style={[styles.cardDesc, { marginTop: 8 }]}>
-        ※ Ledra 導入後の1件あたり事務時間は {ROI_AFTER_MIN_PER_CERT} 分として固定（他社平均）。 ※ 再発行削減係数 0.8
+        * Ledra 導入後の1件あたり事務時間は {ROI_AFTER_MIN_PER_CERT} 分として固定（他社平均）。* 再発行削減係数 0.8
         は、顧客ポータル・QR による自己解決率の実績値を保守的に適用。
       </Text>
 
@@ -1971,7 +1971,7 @@ function RoiReferenceTable() {
       </Text>
 
       <Text style={[styles.cardDesc, { marginTop: 14 }]}>
-        ※ 数値はすべて、本資料の計算式および前提条件に基づく推定です。実効果は業態・既存業務・人員構成により変動します。
+        * 数値はすべて、本資料の計算式および前提条件に基づく推定です。実効果は業態・既存業務・人員構成により変動します。
       </Text>
 
       <Footer pageLabel={`5 / ${ROI_PAGE_TOTAL}`} />
