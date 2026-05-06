@@ -36,6 +36,22 @@ const LOGIN_BUTTON =
 const EMAIL_INPUT  = 'input[name="email"], input[type="email"], input[placeholder*="email"]';
 const PASSWORD_INPUT = 'input[name="password"], input[type="password"]';
 
+// Pre-mark every onboarding flag so the OnboardingTour modal, CmdK hint toast,
+// and all FirstUseInlineGuide cards are treated as "already seen" before any
+// page JS runs. Without this, the captured admin screenshots are dominated by
+// "Ledra へようこそ！" overlays from src/app/admin/OnboardingTour.tsx.
+const SUPPRESS_POPUPS_INIT = `
+  try {
+    localStorage.setItem("ledra_tour_done", "1");
+    localStorage.setItem("ledra_cmdk_hint_shown", "1");
+    const _origGet = Storage.prototype.getItem;
+    Storage.prototype.getItem = function (key) {
+      if (typeof key === "string" && key.startsWith("ledra_guide_")) return "1";
+      return _origGet.call(this, key);
+    };
+  } catch (_e) {}
+`;
+
 async function go(page: Page, url: string) {
   await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(800);
@@ -95,6 +111,7 @@ async function captureAdmin(browser: ReturnType<typeof chromium.launch> extends 
     viewport: { width: 1920, height: 1080 },
     deviceScaleFactor: 1,
   });
+  await ctx.addInitScript(SUPPRESS_POPUPS_INIT);
   const page = await ctx.newPage();
 
   // Login page (pre-auth)
@@ -194,6 +211,7 @@ async function captureInsurer(browser: ReturnType<typeof chromium.launch> extend
     viewport: { width: 1920, height: 1080 },
     deviceScaleFactor: 1,
   });
+  await ctx.addInitScript(SUPPRESS_POPUPS_INIT);
   const page = await ctx.newPage();
 
   // Login page
@@ -202,6 +220,15 @@ async function captureInsurer(browser: ReturnType<typeof chromium.launch> extend
 
   // Authenticate
   await login(page, INSURER_EMAIL, INSURER_PASSWORD, "/insurer/login");
+
+  // Dismiss the OnboardingWizard. Unlike admin's tour (localStorage-driven)
+  // this one is server-side: src/app/insurer/OnboardingWizard.tsx fetches
+  // /api/insurer/onboarding and renders until POST marks it complete.
+  await page
+    .evaluate(() => fetch("/api/insurer/onboarding", { method: "POST" }).then(() => undefined))
+    .catch(() => {});
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
 
   // Dashboard
   await shot(page, "insurer/dashboard.png");
@@ -256,6 +283,7 @@ async function captureAgent(browser: ReturnType<typeof chromium.launch> extends 
     viewport: { width: 1920, height: 1080 },
     deviceScaleFactor: 1,
   });
+  await ctx.addInitScript(SUPPRESS_POPUPS_INIT);
   const page = await ctx.newPage();
 
   // Login page
