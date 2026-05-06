@@ -132,7 +132,9 @@ export default async function Page({
         <form action={signIn} className="space-y-4">
           <input name="email" type="email" placeholder="Email" className="input-field w-full" required />
           <input name="password" type="password" placeholder="Password" className="input-field w-full" required />
-          <button className="btn-primary w-full">ログイン</button>
+          <button type="submit" className="btn-primary w-full">
+            ログイン
+          </button>
         </form>
 
         <div className="text-center space-y-2">

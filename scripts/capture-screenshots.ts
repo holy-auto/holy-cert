@@ -13,14 +13,28 @@ import fs from "fs";
 
 const BASE_URL = process.env.E2E_BASE_URL?.replace(/\/$/, "") || "http://localhost:3000";
 
-const ADMIN_EMAIL    = process.env.DEMO_ADMIN_EMAIL    || "demo@ledra-motors.example";
-const ADMIN_PASSWORD = process.env.DEMO_ADMIN_PASSWORD || "Demo1234!";
-const INSURER_EMAIL    = process.env.DEMO_INSURER_EMAIL    || "";
-const INSURER_PASSWORD = process.env.DEMO_INSURER_PASSWORD || "";
-const AGENT_EMAIL    = process.env.DEMO_AGENT_EMAIL    || "";
-const AGENT_PASSWORD = process.env.DEMO_AGENT_PASSWORD || "";
+// Defaults match the seed scripts (setup-demo-tenant-user / setup-demo-insurer /
+// setup-demo-agent). Without these fallbacks, missing CI secrets caused entire
+// portals to silently skip and slides rendered as 📸 placeholders.
+const ADMIN_EMAIL      = process.env.DEMO_ADMIN_EMAIL    || "demo@ledra-motors.example";
+const ADMIN_PASSWORD   = process.env.DEMO_ADMIN_PASSWORD || "Demo1234!";
+const INSURER_EMAIL    = process.env.DEMO_INSURER_EMAIL    || "demo@insurer.ledra.test";
+const INSURER_PASSWORD = process.env.DEMO_INSURER_PASSWORD || "Demo1234!";
+const AGENT_EMAIL      = process.env.DEMO_AGENT_EMAIL    || "demo@agent.ledra.test";
+const AGENT_PASSWORD   = process.env.DEMO_AGENT_PASSWORD || "Demo1234!";
 
 const OUT = path.join(process.cwd(), "public", "screenshots");
+
+// Login button has no explicit type="submit" attribute on any portal (admin uses
+// form-default submit, insurer/agent use onClick). CSS attribute selectors don't
+// match implicit defaults, so we fall back to text + class.
+const LOGIN_BUTTON =
+  'button[type="submit"], form button.btn-primary, button.btn-primary:has-text("ログイン")';
+
+// Agent login email input has neither name nor type="email" — match by type or
+// by being the only non-password input in the form.
+const EMAIL_INPUT  = 'input[name="email"], input[type="email"], input[placeholder*="email"]';
+const PASSWORD_INPUT = 'input[name="password"], input[type="password"]';
 
 async function go(page: Page, url: string) {
   await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
@@ -32,6 +46,48 @@ async function shot(page: Page, file: string) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   await page.screenshot({ path: dest, fullPage: false });
   console.log("✓", file);
+}
+
+async function login(page: Page, email: string, password: string, loginPath: string) {
+  // Resolve email input: prefer name/type matchers, fall back to first non-password
+  // input on the page (covers agent login which has neither name nor type="email").
+  const emailLocator = page.locator(EMAIL_INPUT).first();
+  if ((await emailLocator.count()) > 0) {
+    await emailLocator.fill(email);
+  } else {
+    await page
+      .locator('input:not([type="password"]):not([type="hidden"]):not([type="submit"])')
+      .first()
+      .fill(email);
+  }
+  await page.locator(PASSWORD_INPUT).first().fill(password);
+
+  const submit = page.locator(LOGIN_BUTTON).first();
+  if ((await submit.count()) === 0) {
+    throw new Error(`Login button not found on ${loginPath}`);
+  }
+  await submit.click();
+
+  // Wait until we leave the login page (redirect destination varies per portal).
+  try {
+    await page.waitForFunction(
+      (p: string) => !window.location.pathname.startsWith(p),
+      loginPath,
+      { timeout: 25000 },
+    );
+  } catch {
+    // Capture a debug screenshot so we can see what state the page is in
+    // (often: empty form, validation error, or stuck on a spinner).
+    const debugPath = path.join(OUT, `_debug-login-${loginPath.replace(/\//g, "_")}.png`);
+    fs.mkdirSync(path.dirname(debugPath), { recursive: true });
+    await page.screenshot({ path: debugPath, fullPage: true }).catch(() => {});
+    const url = page.url();
+    throw new Error(
+      `Login redirect timed out on ${loginPath} (current URL: ${url}). Debug shot: ${debugPath}`,
+    );
+  }
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(1500);
 }
 
 async function captureAdmin(browser: ReturnType<typeof chromium.launch> extends Promise<infer T> ? T : never) {
@@ -46,13 +102,7 @@ async function captureAdmin(browser: ReturnType<typeof chromium.launch> extends 
   await shot(page, "admin/login.png");
 
   // Authenticate
-  await page.locator('input[name="email"]').fill(ADMIN_EMAIL);
-  await page.locator('input[name="password"]').fill(ADMIN_PASSWORD);
-  await page.locator('button[type="submit"]').click();
-  // Wait until we leave the login page (redirect can go to any URL)
-  await page.waitForFunction(() => !window.location.pathname.startsWith("/login"), { timeout: 25000 });
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(1500);
+  await login(page, ADMIN_EMAIL, ADMIN_PASSWORD, "/login");
 
   // Dashboard
   await go(page, `${BASE_URL}/admin`);
@@ -140,11 +190,6 @@ async function captureAdmin(browser: ReturnType<typeof chromium.launch> extends 
 }
 
 async function captureInsurer(browser: ReturnType<typeof chromium.launch> extends Promise<infer T> ? T : never) {
-  if (!INSURER_EMAIL) {
-    console.warn("⚠ DEMO_INSURER_EMAIL not set — skipping insurer screenshots");
-    return;
-  }
-
   const ctx = await browser.newContext({
     viewport: { width: 1920, height: 1080 },
     deviceScaleFactor: 1,
@@ -156,12 +201,7 @@ async function captureInsurer(browser: ReturnType<typeof chromium.launch> extend
   await shot(page, "insurer/login.png");
 
   // Authenticate
-  await page.locator('input[name="email"], input[type="email"]').fill(INSURER_EMAIL);
-  await page.locator('input[name="password"], input[type="password"]').fill(INSURER_PASSWORD);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForFunction(() => !window.location.pathname.startsWith("/insurer/login"), { timeout: 25000 });
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(1500);
+  await login(page, INSURER_EMAIL, INSURER_PASSWORD, "/insurer/login");
 
   // Dashboard
   await shot(page, "insurer/dashboard.png");
@@ -212,11 +252,6 @@ async function captureInsurer(browser: ReturnType<typeof chromium.launch> extend
 }
 
 async function captureAgent(browser: ReturnType<typeof chromium.launch> extends Promise<infer T> ? T : never) {
-  if (!AGENT_EMAIL) {
-    console.warn("⚠ DEMO_AGENT_EMAIL not set — skipping agent screenshots");
-    return;
-  }
-
   const ctx = await browser.newContext({
     viewport: { width: 1920, height: 1080 },
     deviceScaleFactor: 1,
@@ -228,12 +263,7 @@ async function captureAgent(browser: ReturnType<typeof chromium.launch> extends 
   await shot(page, "agent/login.png");
 
   // Authenticate
-  await page.locator('input[name="email"], input[type="email"]').fill(AGENT_EMAIL);
-  await page.locator('input[name="password"], input[type="password"]').fill(AGENT_PASSWORD);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForFunction(() => !window.location.pathname.startsWith("/agent/login"), { timeout: 25000 });
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(1500);
+  await login(page, AGENT_EMAIL, AGENT_PASSWORD, "/agent/login");
 
   // Dashboard
   await shot(page, "agent/dashboard.png");
@@ -270,12 +300,30 @@ async function captureAgent(browser: ReturnType<typeof chromium.launch> extends 
 async function main() {
   console.log("📸 Capturing screenshots from", BASE_URL);
   const browser = await chromium.launch({ headless: true });
+  const failures: string[] = [];
 
-  await captureAdmin(browser).catch((e) => console.warn("⚠ Admin capture failed:", e.message));
-  await captureInsurer(browser).catch((e) => console.warn("⚠ Insurer capture failed:", e.message));
-  await captureAgent(browser).catch((e) => console.warn("⚠ Agent capture failed:", e.message));
+  await captureAdmin(browser).catch((e) => {
+    console.warn("⚠ Admin capture failed:", e.message);
+    failures.push(`admin: ${e.message}`);
+  });
+  await captureInsurer(browser).catch((e) => {
+    console.warn("⚠ Insurer capture failed:", e.message);
+    failures.push(`insurer: ${e.message}`);
+  });
+  await captureAgent(browser).catch((e) => {
+    console.warn("⚠ Agent capture failed:", e.message);
+    failures.push(`agent: ${e.message}`);
+  });
 
   await browser.close();
+
+  if (failures.length > 0) {
+    console.error(`\n❌ ${failures.length} portal(s) failed to capture:`);
+    failures.forEach((f) => console.error(`   - ${f}`));
+    console.error("\nDebug screenshots are in public/screenshots/_debug-*.png");
+    process.exit(1);
+  }
+
   console.log("✅ Screenshots saved to public/screenshots/");
 }
 

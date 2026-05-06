@@ -44,6 +44,8 @@ export default function AgentLoginPage() {
           <label>
             <div className="text-sm text-secondary mb-1">メールアドレス</div>
             <input
+              name="email"
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && onLogin()}
@@ -55,6 +57,7 @@ export default function AgentLoginPage() {
           <label>
             <div className="text-sm text-secondary mb-1">パスワード</div>
             <input
+              name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
