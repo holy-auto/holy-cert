@@ -130,7 +130,10 @@ export default function WalkInCheckoutScreen() {
       }));
       const { data, error } = await supabase.rpc("pos_checkout", {
         p_tenant_id: user!.tenantId,
+        p_reservation_id: null,
+        p_customer_id: null,
         p_store_id: selectedStore!.id,
+        p_register_session_id: null,
         p_payment_method: "card",
         p_amount: total,
         p_received_amount: total,
@@ -281,7 +284,10 @@ export default function WalkInCheckoutScreen() {
       // pos_checkout RPC呼び出し（予約なし）
       const { data, error } = await supabase.rpc("pos_checkout", {
         p_tenant_id: user!.tenantId,
+        p_reservation_id: null,
+        p_customer_id: null,
         p_store_id: selectedStore!.id,
+        p_register_session_id: null,
         p_payment_method: paymentMethod,
         p_amount: total,
         p_received_amount: paymentMethod === "cash" ? received : total,
