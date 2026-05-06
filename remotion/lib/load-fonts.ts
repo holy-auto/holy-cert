@@ -1,37 +1,42 @@
 import { continueRender, delayRender, staticFile } from "remotion";
 
-export const FONT = "'Noto Sans JP', sans-serif";
+export const FONT = "'Noto Sans JP', 'Noto Sans CJK JP', sans-serif";
 
 if (typeof document !== "undefined") {
-  const handle = delayRender("Loading Noto Sans JP");
+  // A browser-side setTimeout safety net is unreliable here: the Remotion
+  // render worker can pause page execution while waiting on delayRender to
+  // clear, so timers don't fire. Use Remotion's built-in timeout/retries
+  // instead — each retry gets a fresh page, which clears any stuck state.
+  const handle = delayRender("Loading Noto Sans JP", {
+    timeoutInMilliseconds: 30000,
+    retries: 3,
+  });
 
-  // Safety timeout — always release render within 8s regardless of font load result
-  const timer = setTimeout(() => {
-    console.warn("[load-fonts] timeout — rendering without custom font");
-    continueRender(handle);
-  }, 8000);
-
-  const loadFonts = async () => {
-    const [f400, f700] = await Promise.all([
-      new FontFace(
-        "Noto Sans JP",
-        `url(${staticFile("fonts/NotoSansJP-400.ttf")}) format("truetype")`,
-        { weight: "400", style: "normal" }
-      ).load(),
-      new FontFace(
-        "Noto Sans JP",
-        `url(${staticFile("fonts/NotoSansJP-700.ttf")}) format("truetype")`,
-        { weight: "700", style: "normal" }
-      ).load(),
-    ]);
-    document.fonts.add(f400);
-    document.fonts.add(f700);
+  // Fetch the bytes ourselves and pass them to FontFace as an ArrayBuffer.
+  // FontFace.load() against a URL has been observed to hang silently inside
+  // the render worker; doing the fetch explicitly surfaces network errors
+  // immediately so .finally() always runs.
+  const loadOne = async (url: string, weight: "400" | "700") => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
+    const buffer = await res.arrayBuffer();
+    const face = new FontFace("Noto Sans JP", buffer, {
+      weight,
+      style: "normal",
+    });
+    await face.load();
+    document.fonts.add(face);
   };
 
-  loadFonts()
-    .catch((e) => console.warn("[load-fonts] load failed:", e))
-    .finally(() => {
-      clearTimeout(timer);
-      continueRender(handle);
-    });
+  Promise.allSettled([
+    loadOne(staticFile("fonts/NotoSansJP-400.ttf"), "400"),
+    loadOne(staticFile("fonts/NotoSansJP-700.ttf"), "700"),
+  ]).then((results) => {
+    for (const r of results) {
+      if (r.status === "rejected") {
+        console.warn("[load-fonts] load failed, falling back:", r.reason);
+      }
+    }
+    continueRender(handle);
+  });
 }
