@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - claude/create-ledra-video-YinpF
+      - claude/fix-font-loading-timeout-exDjH
     paths:
       - "remotion/**"
+      - ".github/workflows/render-video.yml"
   workflow_dispatch:
     inputs:
       composition:
