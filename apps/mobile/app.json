@@ -20,9 +20,6 @@
         "NSCameraUsageDescription": "Ledraは施工写真の撮影に使用します",
         "ITSAppUsesNonExemptEncryption": false,
         "UIRequiredDeviceCapabilities": ["arm64", "iphone-ipad-minimum-performance-a12"]
-      },
-      "entitlements": {
-        "com.apple.developer.proximity-reader.payment.acceptance": true
       }
     },
     "android": {
