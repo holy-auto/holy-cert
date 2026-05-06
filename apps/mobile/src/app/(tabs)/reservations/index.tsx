@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Text, Card, Chip, FAB, IconButton } from "react-native-paper";
 import { router } from "expo-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { supabase } from "@/lib/supabase";
@@ -61,7 +61,6 @@ const FILTER_OPTIONS: { key: string; label: string }[] = [
 
 export default function ReservationsScreen() {
   const { user, selectedStore } = useAuthStore();
-  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");

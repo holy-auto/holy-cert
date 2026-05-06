@@ -154,6 +154,7 @@ export default function CertificateDetailScreen() {
                 source={{ uri: url }}
                 style={styles.image}
                 resizeMode="cover"
+                accessibilityLabel={`証明書画像 ${i + 1}`}
               />
             ))}
           </ScrollView>

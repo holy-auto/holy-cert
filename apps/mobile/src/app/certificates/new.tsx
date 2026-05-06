@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
-import { TextInput, Button, HelperText, Menu, List, Chip } from "react-native-paper";
+import { TextInput, Button, HelperText, Menu, Chip } from "react-native-paper";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
-import { mobileApi } from "@/lib/api";
 
 interface Vehicle {
   id: string;
@@ -61,15 +60,16 @@ export default function CertificateNewScreen() {
   });
 
   // If reservationId provided, load reservation to pre-fill vehicle
+  const tenantId = user?.tenantId;
   useEffect(() => {
-    if (!reservationId || !user?.tenantId) return;
+    if (!reservationId || !tenantId) return;
 
     async function loadReservation() {
       const { data } = await supabase
         .from("reservations")
         .select("vehicle_id")
         .eq("id", reservationId)
-        .eq("tenant_id", user!.tenantId)
+        .eq("tenant_id", tenantId!)
         .single();
 
       if (data?.vehicle_id) {
@@ -96,7 +96,7 @@ export default function CertificateNewScreen() {
     }
 
     loadReservation();
-  }, [reservationId, user?.tenantId]);
+  }, [reservationId, tenantId]);
 
   const mutation = useMutation({
     mutationFn: async () => {

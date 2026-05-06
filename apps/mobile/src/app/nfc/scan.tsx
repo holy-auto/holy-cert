@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, StyleSheet, Platform } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Text, Button, Card, ActivityIndicator, Icon } from "react-native-paper";
 import { router } from "expo-router";
 import NfcManager, { NfcTech, Ndef } from "react-native-nfc-manager";

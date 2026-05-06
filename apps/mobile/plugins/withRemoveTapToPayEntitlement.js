@@ -31,6 +31,7 @@
  *
  * 詳細は docs/mobile-release-tap-to-pay.md を参照。
  */
+// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require -- Expo config plugins are loaded via CommonJS require()
 const { withEntitlementsPlist } = require("expo/config-plugins");
 
 const TAP_TO_PAY_ENTITLEMENT =
