@@ -121,3 +121,17 @@ export function setSentryUser(user: { id?: string; tenantId?: string } | null) {
     /* noop */
   }
 }
+
+export function addBreadcrumb(b: {
+  category?: string;
+  message?: string;
+  level?: "info" | "warning" | "error" | "debug";
+  data?: Record<string, unknown>;
+}) {
+  if (!sentry) return;
+  try {
+    sentry.addBreadcrumb(b);
+  } catch {
+    /* noop */
+  }
+}

@@ -6,6 +6,23 @@ import {
 } from "@stripe/stripe-terminal-react-native";
 import { mobileApi } from "@/lib/api";
 import { useTerminalStore } from "@/stores/terminalStore";
+import { addBreadcrumb, captureException, captureMessage } from "@/lib/sentry";
+
+/**
+ * 診断ログヘルパー: console + Sentry breadcrumb の両方に書く。
+ * Tap to Pay は実機でしか動かないため、リモートデバッグの足跡が要る。
+ */
+function ttpLog(step: string, data?: Record<string, unknown>) {
+  const msg = `[TTP] ${step}`;
+  // eslint-disable-next-line no-console
+  console.log(msg, data ?? "");
+  addBreadcrumb({
+    category: "tap-to-pay",
+    message: step,
+    level: "info",
+    data,
+  });
+}
 
 /**
  * Stripe Terminal のリーダー接続・決済処理を束ねたフック
@@ -40,6 +57,11 @@ export function useTerminal() {
     retrievePaymentIntent,
   } = useStripeTerminal({
     onUpdateDiscoveredReaders: (readers) => {
+      ttpLog("onUpdateDiscoveredReaders", {
+        count: readers.length,
+        readerSerials: readers.map((r) => r.serialNumber),
+        waiting: !!tapToPayDiscoveryRef.current,
+      });
       store.setDiscoveredReaders(readers);
       // Tap to Pay 待機中なら最初のリーダーで Promise を解決
       if (tapToPayDiscoveryRef.current && readers.length > 0) {
@@ -50,6 +72,7 @@ export function useTerminal() {
     // Apple Tap to Pay 要件 3.9.1: 設定進捗インジケータ
     // PaymentCardReader.Event.updateProgress 相当
     onDidReportReaderSoftwareUpdateProgress: (progress) => {
+      ttpLog("onDidReportReaderSoftwareUpdateProgress", { progress });
       store.setConfigurationProgress(progress);
     },
   });
@@ -59,8 +82,14 @@ export function useTerminal() {
   // connection token は StripeTerminalProvider の tokenProvider prop で渡す。
   // Apple TTP 要件 1.4: osVersionNotSupported は専用にハンドル。
   const initTerminal = useCallback(async () => {
+    ttpLog("initTerminal:start");
     try {
       const result = await initialize();
+      ttpLog("initTerminal:result", {
+        hasError: !!result.error,
+        errorCode: (result.error as { code?: string } | undefined)?.code,
+        errorMessage: result.error?.message,
+      });
       if (result.error) {
         const code = (result.error as { code?: string }).code;
         if (code === "OS_VERSION_NOT_SUPPORTED" || code === "osVersionNotSupported") {
@@ -68,13 +97,17 @@ export function useTerminal() {
           store.setReaderError(
             "iOS のバージョンが古いため Tap to Pay を利用できません。設定アプリから iOS を最新版に更新してください"
           );
+          captureMessage("TTP osVersionNotSupported", "warning");
           return;
         }
         store.setReaderError(`初期化失敗: ${result.error.message}`);
+        captureException(result.error, { tags: { ttp_step: "initialize" } });
       } else {
         store.setOsVersionSupported(true);
       }
     } catch (e) {
+      ttpLog("initTerminal:exception", { error: String(e) });
+      captureException(e, { tags: { ttp_step: "initialize" } });
       store.setReaderError(`初期化失敗: ${e}`);
     }
   }, [initialize]);
@@ -84,19 +117,24 @@ export function useTerminal() {
   // Entitlement: com.apple.developer.proximity-reader.payment.acceptance
   // 新仕様: discoverReaders → onUpdateDiscoveredReaders → connectReader の二段階
   const connectTapToPay = useCallback(async () => {
+    ttpLog("connectTapToPay:start");
     store.setReaderStatus("connecting");
     store.setReaderError(null);
 
     // location 取得 (失敗時の原因切り分けのため try を分割)
     let locationId: string;
     try {
+      ttpLog("connectTapToPay:fetch-location");
       const locRes = await mobileApi<{ location_id: string }>(
         "/pos/terminal/location",
         { method: "GET" }
       );
       locationId = locRes.location_id;
+      ttpLog("connectTapToPay:location-ok", { locationId });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      ttpLog("connectTapToPay:location-failed", { error: msg });
+      captureException(e, { tags: { ttp_step: "fetch-location" } });
       store.setReaderStatus("disconnected");
       store.setReaderError(`location 取得失敗: ${msg}`);
       return false;
@@ -113,6 +151,8 @@ export function useTerminal() {
         setTimeout(() => {
           if (tapToPayDiscoveryRef.current) {
             tapToPayDiscoveryRef.current = null;
+            ttpLog("connectTapToPay:discover-timeout");
+            captureMessage("TTP discoverReaders timeout (15s)", "warning");
             reject(
               new Error(
                 "Tap to Pay リーダーが検出されませんでした (15s timeout)。" +
@@ -123,28 +163,51 @@ export function useTerminal() {
         }, 15000);
       });
 
+      ttpLog("connectTapToPay:discoverReaders-call");
       const { error: discoverError } = await discoverReaders({
         discoveryMethod: "tapToPay",
         simulated: false,
       });
+      ttpLog("connectTapToPay:discoverReaders-return", {
+        hasError: !!discoverError,
+        errorMessage: discoverError?.message,
+        errorCode: (discoverError as { code?: string } | undefined)?.code,
+      });
 
       if (discoverError) {
         tapToPayDiscoveryRef.current = null;
+        captureException(discoverError, {
+          tags: { ttp_step: "discoverReaders" },
+        });
         store.setReaderStatus("disconnected");
         store.setReaderError(`Tap to Pay 検索失敗: ${discoverError.message}`);
         return false;
       }
 
       const reader = await readerPromise;
+      ttpLog("connectTapToPay:reader-ready", {
+        serial: reader.serialNumber,
+        deviceType: reader.deviceType,
+      });
 
       // 2) connectReader にリーダーを渡して接続
+      ttpLog("connectTapToPay:connectReader-call");
       const { reader: connected, error: connectError } = await sdkConnectReader({
         discoveryMethod: "tapToPay",
         reader,
         locationId,
       });
+      ttpLog("connectTapToPay:connectReader-return", {
+        hasError: !!connectError,
+        errorMessage: connectError?.message,
+        errorCode: (connectError as { code?: string } | undefined)?.code,
+        connected: !!connected,
+      });
 
       if (connectError) {
+        captureException(connectError, {
+          tags: { ttp_step: "connectReader" },
+        });
         store.setReaderStatus("disconnected");
         store.setReaderError(`Tap to Pay 接続失敗: ${connectError.message}`);
         return false;
@@ -152,11 +215,14 @@ export function useTerminal() {
 
       store.setReaderStatus("connected");
       store.setConnectedReader(connected ?? null);
+      ttpLog("connectTapToPay:success");
       return true;
     } catch (e) {
       tapToPayDiscoveryRef.current = null;
-      store.setReaderStatus("disconnected");
       const msg = e instanceof Error ? e.message : String(e);
+      ttpLog("connectTapToPay:exception", { error: msg });
+      captureException(e, { tags: { ttp_step: "connectTapToPay" } });
+      store.setReaderStatus("disconnected");
       store.setReaderError(`Tap to Pay 接続失敗: ${msg}`);
       return false;
     }
