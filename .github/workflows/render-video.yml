@@ -5,8 +5,13 @@ on:
     branches:
       - claude/create-ledra-video-YinpF
       - claude/fix-font-loading-timeout-exDjH
+      - claude/fix-ledra-screenshot-KHIt2
     paths:
       - "remotion/**"
+      - "scripts/capture-screenshots.ts"
+      - "src/app/login/**"
+      - "src/app/insurer/login/**"
+      - "src/app/agent/login/**"
       - ".github/workflows/render-video.yml"
   workflow_dispatch:
     inputs:
@@ -65,10 +70,28 @@ jobs:
         run: sudo apt-get install -y fonts-noto-cjk
 
       # ─── Screenshot capture (only for V2 compositions) ───────────────────
+      - name: Resolve composition
+        id: comp
+        run: |
+          # workflow_dispatch passes composition explicitly. push events get
+          # LedraIntro by default, except on the screenshot-fix branch which
+          # exercises the V2 capture path so the fix can actually be verified.
+          INPUT="${{ inputs.composition }}"
+          BRANCH="${{ github.ref_name }}"
+          if [[ -n "$INPUT" ]]; then
+            RESOLVED="$INPUT"
+          elif [[ "$BRANCH" == "claude/fix-ledra-screenshot-KHIt2" ]]; then
+            RESOLVED="AdminOnboardingV2"
+          else
+            RESOLVED="LedraIntro"
+          fi
+          echo "🎬 Composition: $RESOLVED (event=${{ github.event_name }} branch=$BRANCH input=$INPUT)"
+          echo "resolved=$RESOLVED" >> $GITHUB_OUTPUT
+
       - name: Detect if screenshots are needed
         id: need_shots
         run: |
-          COMP="${{ inputs.composition || 'LedraIntro' }}"
+          COMP="${{ steps.comp.outputs.resolved }}"
           if [[ "$COMP" == *"V2"* ]] || [[ "$COMP" == "ALL_V2" ]] || [[ "$COMP" == "ALL" ]]; then
             echo "needed=true" >> $GITHUB_OUTPUT
           else
@@ -81,6 +104,7 @@ jobs:
           npm run demo:setup-tenant
           npm run demo:setup-tenant-user
           npm run demo:setup || true
+          npm run demo:setup-insurer || true
         env:
           NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -134,21 +158,30 @@ jobs:
         run: |
           if [ -n "$NEXTJS_PID" ]; then kill "$NEXTJS_PID" 2>/dev/null || true; fi
 
+      - name: Upload captured screenshots (debug)
+        if: steps.need_shots.outputs.needed == 'true' && always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ledra-screenshots-${{ steps.comp.outputs.resolved }}
+          path: public/screenshots/**/*.png
+          retention-days: 14
+          if-no-files-found: warn
+
       # ─── Remotion render ─────────────────────────────────────────────────
       - name: Install Chrome for Remotion
         run: npx remotion browser ensure
 
       - name: Render — single video
-        if: ${{ github.event_name == 'push' || (inputs.composition != 'ALL' && inputs.composition != 'ALL_V2') }}
+        if: ${{ steps.comp.outputs.resolved != 'ALL' && steps.comp.outputs.resolved != 'ALL_V2' }}
         run: |
-          COMP="${{ inputs.composition || 'LedraIntro' }}"
+          COMP="${{ steps.comp.outputs.resolved }}"
           mkdir -p out
           npx remotion render remotion/index.tsx "$COMP" "out/${COMP}.mp4" \
             --codec=h264 \
             --concurrency=2
 
       - name: Render — ALL videos
-        if: ${{ inputs.composition == 'ALL' }}
+        if: ${{ steps.comp.outputs.resolved == 'ALL' }}
         run: |
           mkdir -p out
           for COMP in LedraIntro AdminOnboarding InsurerOnboarding AgentOnboarding CertificateDeepDive WorkflowDeepDive AdminFullGuide InsurerFullGuide AgentFullGuide AdminOnboardingV2 InsurerOnboardingV2 AgentOnboardingV2; do
@@ -159,7 +192,7 @@ jobs:
           done
 
       - name: Render — ALL_V2 videos (screenshot-based)
-        if: ${{ inputs.composition == 'ALL_V2' }}
+        if: ${{ steps.comp.outputs.resolved == 'ALL_V2' }}
         run: |
           mkdir -p out
           for COMP in AdminOnboardingV2 InsurerOnboardingV2 AgentOnboardingV2; do
@@ -172,6 +205,6 @@ jobs:
       - name: Upload MP4(s)
         uses: actions/upload-artifact@v7
         with:
-          name: ledra-videos-${{ inputs.composition || 'LedraIntro' }}
+          name: ledra-videos-${{ steps.comp.outputs.resolved }}
           path: out/*.mp4
           retention-days: 30
