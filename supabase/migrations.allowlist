@@ -145,3 +145,15 @@
 # 別マイグレーションで NOT VALID + VALIDATE に分割することも可能だが、運用リスクに比して効果が薄い。
 20260429000000_follow_up_maintenance_reminders.sql
 20260429000001_fix_maintenance_months_constraint.sql
+
+# documents.tax_breakdown は jsonb 形状の軽量チェック (NULL or array) のみで
+# スキャンコストが小さく、運用上 ACCESS EXCLUSIVE の保持時間も短い。
+# NOT VALID + VALIDATE 分割は可能だが、効果に対して運用ステップが増えすぎる。
+20260429000002_qualified_invoice_compliance.sql
+
+# academy_lessons の video_* カラム追加は ALTER TABLE で完了し、続く CREATE INDEX
+# は新規追加カラム (video_provider, video_status) に対する partial index のため
+# 走査対象が NULL 行のみ＝ほぼ即時で完了する。Supabase はマイグレーションを
+# トランザクションで包むため CONCURRENTLY を使うには別ファイル分割が必要だが、
+# 既存行への影響が無視できる本ケースでは分割の運用負荷が見合わない。
+20260503000000_academy_video_provider.sql
