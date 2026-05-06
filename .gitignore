@@ -3,6 +3,9 @@
 # dependencies
 /node_modules
 /.pnp
+
+# scratch / temporary files (e.g. generated PDFs for review)
+/tmp/
 .pnp.*
 .yarn/*
 !.yarn/patches
