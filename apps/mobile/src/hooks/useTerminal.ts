@@ -19,6 +19,72 @@ import { useTerminalStore } from "@/stores/terminalStore";
  * Connection token は StripeTerminalProvider 経由で
  * /pos/terminal/connection-token から取得する（root _layout.tsx 参照）。
  */
+
+// SDK は process グローバルなシングルトンで動くため、
+// initialize の二重呼び出しを防ぐためのモジュールスコープフラグ。
+// useTerminal が複数箇所で同時にマウントされても 1 回だけ初期化する。
+let __ttpInitInflight: Promise<void> | null = null;
+let __ttpInitialized = false;
+
+/**
+ * SDK エラーメッセージから具体的な失敗カテゴリを判別する。
+ * 「インストールできません」「Operation not permitted」「Cancelled」など、
+ * ユーザーが取れるアクションが異なるためメッセージを分岐する。
+ */
+function categorizeReaderError(raw: string, code?: string): string {
+  const m = (raw ?? "").toLowerCase();
+  const c = (code ?? "").toLowerCase();
+
+  // Apple Tap to Pay の OS 側セットアップ (Account/T&C/Region) 失敗
+  if (
+    m.includes("インストール") ||
+    m.includes("install") ||
+    m.includes("could not install") ||
+    m.includes("setup") ||
+    c.includes("readeraccountreference") ||
+    c.includes("account") ||
+    c.includes("setup")
+  ) {
+    return (
+      "Tap to Pay のセットアップに失敗しました。" +
+      "iPhone の Apple ID にサインインし、Apple Pay の地域が日本になっているかをご確認ください。" +
+      "（しばらく時間をおいてから再度お試しください）"
+    );
+  }
+
+  // Entitlement 不足
+  if (
+    /not permitted|entitlement|application bundle is valid/i.test(raw) ||
+    c.includes("entitlement")
+  ) {
+    return (
+      "Tap to Pay の権限 (entitlement) がこのアプリビルドに付与されていません。" +
+      "最新のビルドに更新するか、管理者にお問い合わせください。"
+    );
+  }
+
+  // ユーザーキャンセル
+  if (m.includes("cancel") || c === "canceled") {
+    return "Tap to Pay がキャンセルされました";
+  }
+
+  // 既に discovering / connecting 中
+  if (m.includes("already") || m.includes("in progress")) {
+    return (
+      "前回の Tap to Pay 処理が残っているため再試行できません。" +
+      "アプリを一度終了して再起動してください。"
+    );
+  }
+
+  // OS バージョン
+  if (m.includes("os version") || c.includes("osversion")) {
+    return "iOS のバージョンが古いため Tap to Pay を利用できません。設定アプリから iOS を最新版に更新してください";
+  }
+
+  // それ以外は SDK の生メッセージをそのまま
+  return raw || "Tap to Pay 処理に失敗しました";
+}
+
 export function useTerminal() {
   const store = useTerminalStore();
 
@@ -27,6 +93,7 @@ export function useTerminal() {
   const tapToPayDiscoveryRef = useRef<{
     resolve: (reader: Reader.Type) => void;
     reject: (err: Error) => void;
+    timeoutId: ReturnType<typeof setTimeout> | null;
   } | null>(null);
 
   const {
@@ -42,9 +109,11 @@ export function useTerminal() {
     onUpdateDiscoveredReaders: (readers) => {
       store.setDiscoveredReaders(readers);
       // Tap to Pay 待機中なら最初のリーダーで Promise を解決
-      if (tapToPayDiscoveryRef.current && readers.length > 0) {
-        tapToPayDiscoveryRef.current.resolve(readers[0]);
+      const ref = tapToPayDiscoveryRef.current;
+      if (ref && readers.length > 0) {
+        if (ref.timeoutId) clearTimeout(ref.timeoutId);
         tapToPayDiscoveryRef.current = null;
+        ref.resolve(readers[0]);
       }
     },
     // Apple Tap to Pay 要件 3.9.1: 設定進捗インジケータ
@@ -58,24 +127,45 @@ export function useTerminal() {
   // SDK 0.0.1-beta.29: initialize() は引数を取らない。
   // connection token は StripeTerminalProvider の tokenProvider prop で渡す。
   // Apple TTP 要件 1.4: osVersionNotSupported は専用にハンドル。
+  //
+  // モジュールスコープの __ttpInitInflight / __ttpInitialized で
+  // 二重初期化を回避する。warmup と settings 画面の同時マウントで
+  // initialize() が並走すると SDK が 「Couldn't fetch connection token」
+  // 状態になりやすいため。
   const initTerminal = useCallback(async () => {
-    try {
-      const result = await initialize();
-      if (result.error) {
-        const code = (result.error as { code?: string }).code;
-        if (code === "OS_VERSION_NOT_SUPPORTED" || code === "osVersionNotSupported") {
-          store.setOsVersionSupported(false);
-          store.setReaderError(
-            "iOS のバージョンが古いため Tap to Pay を利用できません。設定アプリから iOS を最新版に更新してください"
-          );
+    if (__ttpInitialized) return;
+    if (__ttpInitInflight) {
+      await __ttpInitInflight;
+      return;
+    }
+    __ttpInitInflight = (async () => {
+      try {
+        const result = await initialize();
+        if (result.error) {
+          const code = (result.error as { code?: string }).code;
+          if (
+            code === "OS_VERSION_NOT_SUPPORTED" ||
+            code === "osVersionNotSupported"
+          ) {
+            store.setOsVersionSupported(false);
+            store.setReaderError(
+              "iOS のバージョンが古いため Tap to Pay を利用できません。設定アプリから iOS を最新版に更新してください"
+            );
+            return;
+          }
+          store.setReaderError(`初期化失敗: ${result.error.message}`);
           return;
         }
-        store.setReaderError(`初期化失敗: ${result.error.message}`);
-      } else {
         store.setOsVersionSupported(true);
+        __ttpInitialized = true;
+      } catch (e) {
+        store.setReaderError(`初期化失敗: ${e instanceof Error ? e.message : String(e)}`);
       }
-    } catch (e) {
-      store.setReaderError(`初期化失敗: ${e}`);
+    })();
+    try {
+      await __ttpInitInflight;
+    } finally {
+      __ttpInitInflight = null;
     }
   }, [initialize]);
 
@@ -86,6 +176,27 @@ export function useTerminal() {
   const connectTapToPay = useCallback(async () => {
     store.setReaderStatus("connecting");
     store.setReaderError(null);
+
+    // 前回の試行で残った状態を完全クリア（cyclical failure 対策）。
+    //   - 前回の discovery ref / timeout が残っていれば破棄
+    //   - 接続済みリーダーがあれば disconnect
+    // これをやらないと「1回成功→次失敗→次成功→...」の交互パターンになる。
+    if (tapToPayDiscoveryRef.current?.timeoutId) {
+      clearTimeout(tapToPayDiscoveryRef.current.timeoutId);
+    }
+    tapToPayDiscoveryRef.current = null;
+    try {
+      await disconnectReader();
+    } catch {
+      // 既に切断済みなら no-op
+    }
+    store.setConnectedReader(null);
+    store.setDiscoveredReaders([]);
+
+    // SDK が未初期化なら先に init
+    if (!__ttpInitialized) {
+      await initTerminal();
+    }
 
     // location 取得 (失敗時の原因切り分けのため try を分割)
     let locationId: string;
@@ -106,11 +217,9 @@ export function useTerminal() {
       // 1) Tap to Pay リーダーを発見
       // onUpdateDiscoveredReaders が一定時間内に発火しない場合に
       // 永続待ちにならないよう 15s で reject する。
-      // 多くの場合、entitlement 不足や SDK 初期化未完了で
-      // discoverReaders が success を返したまま callback が来ない。
+      // timeoutId を ref に保持し、resolve/reject 時に clearTimeout する。
       const readerPromise = new Promise<Reader.Type>((resolve, reject) => {
-        tapToPayDiscoveryRef.current = { resolve, reject };
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           if (tapToPayDiscoveryRef.current) {
             tapToPayDiscoveryRef.current = null;
             reject(
@@ -121,6 +230,7 @@ export function useTerminal() {
             );
           }
         }, 15000);
+        tapToPayDiscoveryRef.current = { resolve, reject, timeoutId };
       });
 
       const { error: discoverError } = await discoverReaders({
@@ -129,25 +239,23 @@ export function useTerminal() {
       });
 
       if (discoverError) {
+        // discoverReaders が同期的にエラーを返した → ref / timeout を片付ける
+        const ref = tapToPayDiscoveryRef.current;
+        if (ref?.timeoutId) clearTimeout(ref.timeoutId);
         tapToPayDiscoveryRef.current = null;
         store.setReaderStatus("disconnected");
-        // "Operation not permitted" は entitlement 不足が原因。
-        // 現在ビルドに com.apple.developer.proximity-reader.payment.acceptance
-        // が含まれていない / Apple から発行されていないケース。
-        // 一般スタッフ向けに分かりやすい文言に置き換える。
-        const raw = discoverError.message ?? "";
-        const isEntitlementError =
-          /not permitted|entitlement|bundle|application bundle is valid/i.test(raw);
-        const friendly = isEntitlementError
-          ? "Tap to Pay の権限 (entitlement) がこのアプリビルドに付与されていません。最新のビルドに更新するか、管理者にお問い合わせください。"
-          : `Tap to Pay 検索失敗: ${raw}`;
-        store.setReaderError(friendly);
+        const code = (discoverError as { code?: string }).code;
+        store.setReaderError(
+          categorizeReaderError(discoverError.message ?? "", code)
+        );
         return false;
       }
 
       const reader = await readerPromise;
 
       // 2) connectReader にリーダーを渡して接続
+      // ここで iOS が Tap to Pay の "インストール" UI を出す。
+      // entitlement 付与済みかつ Apple ID/地域 OK なら成功する。
       const { reader: connected, error: connectError } = await sdkConnectReader({
         discoveryMethod: "tapToPay",
         reader,
@@ -156,7 +264,10 @@ export function useTerminal() {
 
       if (connectError) {
         store.setReaderStatus("disconnected");
-        store.setReaderError(`Tap to Pay 接続失敗: ${connectError.message}`);
+        const code = (connectError as { code?: string }).code;
+        store.setReaderError(
+          categorizeReaderError(connectError.message ?? "", code)
+        );
         return false;
       }
 
@@ -164,13 +275,16 @@ export function useTerminal() {
       store.setConnectedReader(connected ?? null);
       return true;
     } catch (e) {
+      // タイムアウト / その他例外
+      const ref = tapToPayDiscoveryRef.current;
+      if (ref?.timeoutId) clearTimeout(ref.timeoutId);
       tapToPayDiscoveryRef.current = null;
       store.setReaderStatus("disconnected");
       const msg = e instanceof Error ? e.message : String(e);
-      store.setReaderError(`Tap to Pay 接続失敗: ${msg}`);
+      store.setReaderError(categorizeReaderError(msg));
       return false;
     }
-  }, [discoverReaders, sdkConnectReader]);
+  }, [discoverReaders, sdkConnectReader, disconnectReader, initTerminal]);
 
   // ── Bluetooth リーダー検索（将来のオリジナル端末向け） ────────────
   const startDiscovery = useCallback(async () => {
