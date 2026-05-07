@@ -2,8 +2,9 @@ name: Weekly Claude Code Review
 
 on:
   schedule:
-    # Every Monday at 04:00 UTC (13:00 JST). Runs after the CodeQL weekly
-    # scan so any CVE findings are already filed when this audit starts.
+    # Every Monday at 04:00 UTC (13:00 JST). Runs in parallel with the
+    # CodeQL weekly scan; this audit performs an independent review and
+    # does not consume CodeQL alerts as input, so ordering is not required.
     - cron: "0 4 * * 1"
   workflow_dispatch:
     inputs:

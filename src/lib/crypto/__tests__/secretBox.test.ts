@@ -64,8 +64,13 @@ describe("secretBox", () => {
 
   it("rejects a tampered ciphertext (GCM auth tag mismatch)", async () => {
     const envelope = await encryptSecret("integrity-check");
-    // 末尾を 1 文字変えると auth tag が崩れる
-    const tampered = envelope.slice(0, -1) + (envelope.endsWith("A") ? "B" : "A");
+    // ciphertext 部分の先頭 1 文字を書き換える。末尾を書き換える方法だと
+    // base64url の padding ビット (ciphertext 長 mod 3 が 0 でない場合の末尾 2-4 bit)
+    // しか変わらないケースがあり、GCM tag が崩れず flaky になる。先頭は
+    // 必ず実バイトを変えるので auth tag が確実に mismatch する。
+    const [version, iv, ct] = envelope.split(".");
+    const tamperedCt = (ct[0] === "A" ? "B" : "A") + ct.slice(1);
+    const tampered = `${version}.${iv}.${tamperedCt}`;
     await expect(decryptSecret(tampered)).rejects.toThrow();
   });
 
