@@ -37,6 +37,13 @@ yarn-error.*
 # Google Play サービスアカウントキー（機密情報）
 google-play-service-account.json
 
+# EAS local credentials (Apple Development cert + provisioning profile + p12 password)
+# TTP の development entitlement は Apple Development profile にしか入らず、
+# EAS のリモート (Distribution cert 強制) では扱えないため local モードに切り替え。
+# credentials.json には .p12 password が直書きされるので必ず ignore。
+credentials.json
+ttp-creds/
+
 # typescript
 *.tsbuildinfo
 
