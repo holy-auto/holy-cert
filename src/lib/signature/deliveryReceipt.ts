@@ -48,6 +48,37 @@ export function computeConsentTextHash(text: string = CONSENT_TEXT_BODY): string
   return createHash("sha256").update(text, "utf8").digest("hex");
 }
 
+/**
+ * バージョン → 文言本体 の凍結マップ。
+ *
+ * 受領サインの依頼を発行した時点でセッションには `consent_version` と
+ * `consent_text_hash` が記録され、署名ペイロードにも binding されている。
+ * その後コード上の文言定数を編集して新しいバージョンに上げた場合でも、
+ * 在中の (pending) 古いリンクには「依頼時点の文言」を提示する必要がある。
+ * そうしないと、ユーザが見る文言と署名対象になっているハッシュが乖離し、
+ * 監査・法的整合性を欠く (Codex P2 指摘)。
+ *
+ * 不変条件:
+ *   - 既存エントリの値は **絶対に書き換えない** (既発行リンクが壊れる)。
+ *   - 文言を変更したいときは新しいキー ("delivery-receipt-v2") を追加し、
+ *     CONSENT_VERSION 定数を新キーに切り替える。
+ */
+export const CONSENT_TEXTS: Readonly<Record<string, string>> = Object.freeze({
+  "delivery-receipt-v1": CONSENT_TEXT_BODY,
+});
+
+/**
+ * 指定バージョンに紐づく同意文言を返す。未知のバージョンなら null。
+ *
+ * 呼び出し側は、返ってきた文言をそのままユーザに見せると
+ * セッション側の hash と乖離する可能性があるので、
+ * 必要なら `computeConsentTextHash(text) === storedHash` で整合性を確認すること。
+ */
+export function getConsentTextByVersion(version: string | null | undefined): string | null {
+  if (!version) return null;
+  return CONSENT_TEXTS[version] ?? null;
+}
+
 // ============================================================
 // 受領サイン用 署名ペイロード (v2)
 // ============================================================

@@ -45,13 +45,18 @@ COMMENT ON COLUMN signature_sessions.consent_version IS
 COMMENT ON COLUMN signature_sessions.consent_text_hash IS
   '顧客が同意した正規化済み文言の SHA-256 ハッシュ。署名ペイロードに含まれる。';
 
--- monitoring index
-CREATE INDEX IF NOT EXISTS idx_signature_sessions_purpose
-  ON signature_sessions(purpose);
+-- 監視用 purpose インデックスは意図的に作らない:
+--   1. CONCURRENTLY 必須だが Supabase が migration 全体を tx で囲むため不可。
+--      別 migration に分割して CONCURRENTLY 化することは可能だが、
+--   2. 主要クエリは (token) / (certificate_id) / (purpose, token) で既存 index
+--      がほぼ効くため、purpose 単独 index の効果は小さい。
+--   将来 purpose 別の集計クエリが頻発した場合に別 migration で追加する。
 
 -- ============================================================
 -- 2. signature_audit_logs.event の CHECK 制約を拡張
---    受領サイン特有のイベントを追加
+--    受領サイン特有のイベントを追加。NOT VALID で追加し、その後
+--    VALIDATE CONSTRAINT で検証することで ACCESS EXCLUSIVE を回避する
+--    (既存行はもともと拡張前の許容値なので必ず通る)。
 -- ============================================================
 ALTER TABLE signature_audit_logs DROP CONSTRAINT IF EXISTS signature_audit_logs_event_check;
 
@@ -73,7 +78,10 @@ ALTER TABLE signature_audit_logs
     'consent_displayed',        -- 同意文言表示
     'receipt_pdf_generated',    -- 受領証 PDF 生成
     'receipt_anchored'          -- Polygon アンカリング完了
-  ));
+  )) NOT VALID;
+
+ALTER TABLE signature_audit_logs
+  VALIDATE CONSTRAINT signature_audit_logs_event_check;
 
 -- ============================================================
 -- 3. delivery_receipts テーブル

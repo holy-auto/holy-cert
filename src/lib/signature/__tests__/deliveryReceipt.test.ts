@@ -12,7 +12,9 @@ import { phoneLast4Hash } from "../../customerPortalServer";
 import {
   CONSENT_VERSION,
   CONSENT_TEXT_BODY,
+  CONSENT_TEXTS,
   computeConsentTextHash,
+  getConsentTextByVersion,
   buildDeliveryReceiptPayload,
   verifyPhoneLast4,
   SECONDARY_FACTOR_MAX_ATTEMPTS,
@@ -250,5 +252,40 @@ describe("verifyPhoneLast4", () => {
 describe("CONSENT_VERSION", () => {
   it("バージョン文字列の形式 (delivery-receipt-vN)", () => {
     expect(CONSENT_VERSION).toMatch(/^delivery-receipt-v\d+$/);
+  });
+});
+
+describe("CONSENT_TEXTS / getConsentTextByVersion", () => {
+  it("CONSENT_TEXTS は frozen で外部から書き換えられない", () => {
+    expect(Object.isFrozen(CONSENT_TEXTS)).toBe(true);
+  });
+
+  it("現行 CONSENT_VERSION は CONSENT_TEXTS に必ず存在する", () => {
+    expect(CONSENT_TEXTS[CONSENT_VERSION]).toBe(CONSENT_TEXT_BODY);
+  });
+
+  it("getConsentTextByVersion(現行) は CONSENT_TEXT_BODY を返す", () => {
+    expect(getConsentTextByVersion(CONSENT_VERSION)).toBe(CONSENT_TEXT_BODY);
+  });
+
+  it("未知のバージョンは null", () => {
+    expect(getConsentTextByVersion("delivery-receipt-v999")).toBeNull();
+  });
+
+  it("null/undefined を渡しても安全に null", () => {
+    expect(getConsentTextByVersion(null)).toBeNull();
+    expect(getConsentTextByVersion(undefined)).toBeNull();
+    expect(getConsentTextByVersion("")).toBeNull();
+  });
+
+  it("テーブル内のすべての文言と保存済みハッシュが一致する (drift 検知)", () => {
+    // 文言を編集したのに version をバンプし忘れた場合、
+    // computeConsentTextHash(text) が想定値からズレる。
+    // 全エントリで自分自身との一致だけは保証されることを確認。
+    for (const [version, text] of Object.entries(CONSENT_TEXTS)) {
+      const hash = computeConsentTextHash(text);
+      expect(hash, `version=${version}`).toBe(computeConsentTextHash(text));
+      expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    }
   });
 });

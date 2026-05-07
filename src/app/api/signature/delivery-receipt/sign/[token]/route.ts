@@ -35,7 +35,9 @@ import { anchorToPolygon } from "@/lib/anchoring/providers/polygon";
 
 export const dynamic = "force-dynamic";
 
-const VERIFY_BASE_URL = process.env.NEXT_PUBLIC_VERIFY_BASE_URL ?? "/verify";
+// 受領サインの検証ページは証明書本体の検証ページ (signature_sessions.id 起点) と
+// 別物のため、URL prefix を分けておく。検証 API は delivery_receipts.id を ID 引数に取る。
+const VERIFY_RECEIPT_BASE_URL = process.env.NEXT_PUBLIC_RECEIPT_VERIFY_BASE_URL ?? "/verify/receipt";
 
 const signSchema = z.object({
   signer_email: z
@@ -230,10 +232,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     }
 
     // delivery_receipts 更新 + receipt_payload_json に signed_at を追記
-    const existingPayload = (session as unknown as { receipt_payload_json?: ReceiptPayloadSnapshot })
-      .receipt_payload_json;
-    void existingPayload; // 型補助 (signature_sessions 側にこのフィールドはない)
-
     const { data: receiptRow } = await admin
       .from("delivery_receipts")
       .select("id, receipt_payload_json")
@@ -277,7 +275,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       },
     });
 
-    const verifyUrl = `${VERIFY_BASE_URL}/${session.id}`;
+    // verify_url は delivery_receipts.id を使う (検証 API
+    // /api/signature/delivery-receipt/verify/[id] が delivery_receipts.id で
+    // 解決するため。session.id は誤り)。受領レコードは sign 開始時点で必ず
+    // 作成されているはずなので、見つからない場合はデータ整合性異常として 500。
+    if (!receiptRow?.id) {
+      console.error("[delivery-receipt/sign] missing delivery_receipts row for session", session.id);
+      return apiError({ code: "internal_error", message: "受領レコードが見つかりません", status: 500 });
+    }
+    const verifyUrl = `${VERIFY_RECEIPT_BASE_URL}/${receiptRow.id}`;
 
     // Polygon アンカリング (非同期 - レスポンスをブロックしない)
     void (async () => {

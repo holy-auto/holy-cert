@@ -14,7 +14,7 @@ import { NextRequest } from "next/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiOk, apiError, apiInternalError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
-import { CONSENT_TEXT_BODY, CONSENT_VERSION } from "@/lib/signature/deliveryReceipt";
+import { computeConsentTextHash, getConsentTextByVersion } from "@/lib/signature/deliveryReceipt";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +44,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
         secondary_factor_required,
         secondary_factor_verified,
         secondary_factor_attempts,
+        consent_version,
+        consent_text_hash,
         certificate_id,
         certificates (
           id,
@@ -111,6 +113,39 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
       stores: { name: string } | null;
     } | null;
 
+    // 同意文言は依頼発行時点でセッションに binding 済みのバージョン/ハッシュを返す。
+    // グローバル定数を直接返すと、コード上で文言を更新したあとに在中の古いリンクに
+    // 新文言が表示されてしまい、署名対象の hash と表示テキストが乖離する (Codex P2)。
+    const sessionConsentVersion = session.consent_version ?? null;
+    const sessionConsentHash = session.consent_text_hash ?? null;
+    const lookupText = getConsentTextByVersion(sessionConsentVersion);
+
+    // 整合性チェック: コード上の文言エントリと、セッション保存時の hash が一致しないと
+    //   - 文言定数を編集したのに version をバンプし忘れた、または
+    //   - DB が改ざんされた
+    // のいずれか。表示してしまうと署名対象との乖離が発生するので 500 で止める。
+    if (!sessionConsentVersion || !sessionConsentHash || !lookupText) {
+      console.error(
+        "[delivery-receipt/session] consent metadata missing on session",
+        session.id,
+        sessionConsentVersion,
+      );
+      return apiError({
+        code: "internal_error",
+        message: "同意文言情報が見つかりません。施工店にリンクの再発行を依頼してください。",
+        status: 500,
+      });
+    }
+    if (computeConsentTextHash(lookupText) !== sessionConsentHash) {
+      console.error("[delivery-receipt/session] consent text hash drift", session.id, sessionConsentVersion);
+      return apiError({
+        code: "internal_error",
+        message:
+          "同意文言の整合性チェックに失敗しました (バージョン未バンプの可能性)。施工店にリンクの再発行を依頼してください。",
+        status: 500,
+      });
+    }
+
     return apiOk({
       status: "pending",
       session_id: session.id,
@@ -133,8 +168,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
           }
         : null,
       consent: {
-        version: CONSENT_VERSION,
-        text: CONSENT_TEXT_BODY,
+        version: sessionConsentVersion,
+        text: lookupText,
+        text_hash: sessionConsentHash,
       },
     });
   } catch (e) {
