@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import ReceiptOnboardingTour from "./ReceiptOnboardingTour";
 
 type Phase = "loading" | "error" | "expired" | "already_signed" | "cancelled" | "form" | "submitting" | "complete";
 
@@ -166,6 +167,9 @@ export default function DeliveryReceiptClient({ token }: { token: string }) {
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-start py-8 px-4">
+      {/* 初回アクセス時のみ表示されるオンボーディングツアー (form フェーズに入ったら起動) */}
+      <ReceiptOnboardingTour enabled={phase === "form"} />
+
       <div className="w-full max-w-md mb-6">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-blue-400 font-bold text-xl tracking-wide">Ledra</span>
@@ -175,7 +179,10 @@ export default function DeliveryReceiptClient({ token }: { token: string }) {
       </div>
 
       {/* 受領内容カード */}
-      <div className="w-full max-w-md bg-gray-900 rounded-2xl border border-gray-800 p-5 mb-4">
+      <div
+        data-tour="receipt-content"
+        className="w-full max-w-md bg-gray-900 rounded-2xl border border-gray-800 p-5 mb-4"
+      >
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
           <span className="text-gray-300 text-sm font-medium">作業完了内容</span>
@@ -210,7 +217,7 @@ export default function DeliveryReceiptClient({ token }: { token: string }) {
         <h2 className="text-white font-semibold mb-4">受領サイン情報</h2>
 
         {/* メール */}
-        <label className="block mb-4">
+        <label data-tour="receipt-email" className="block mb-4">
           <span className="text-gray-200 text-sm mb-1 block">
             メールアドレス
             <span className="text-red-400 ml-1">*</span>
@@ -229,7 +236,7 @@ export default function DeliveryReceiptClient({ token }: { token: string }) {
         </label>
 
         {/* 電話番号下4桁 (本人確認) */}
-        <label className="block mb-4">
+        <label data-tour="receipt-phone" className="block mb-4">
           <span className="text-gray-200 text-sm mb-1 block">
             ご登録の電話番号 下4桁
             <span className="text-red-400 ml-1">*</span>
@@ -255,32 +262,35 @@ export default function DeliveryReceiptClient({ token }: { token: string }) {
           </p>
         </label>
 
-        {/* 同意文言ボックス */}
-        {session?.consent?.text && (
-          <div className="mb-4 p-3 bg-gray-950 border border-gray-800 rounded-lg">
-            <p className="text-gray-200 text-xs leading-relaxed whitespace-pre-line">{session.consent.text}</p>
-          </div>
-        )}
+        {/* 同意文言ボックス + 同意チェックボックスを 1 つのツアー対象でまとめる */}
+        <div data-tour="receipt-consent">
+          {session?.consent?.text && (
+            <div className="mb-4 p-3 bg-gray-950 border border-gray-800 rounded-lg">
+              <p className="text-gray-200 text-xs leading-relaxed whitespace-pre-line">{session.consent.text}</p>
+            </div>
+          )}
 
-        {/* 同意チェックボックス */}
-        <label className="flex items-start gap-3 cursor-pointer mb-6">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-0.5 w-5 h-5 rounded border-gray-600 bg-gray-800 text-blue-500
-                       focus:ring-blue-500 focus:ring-2 cursor-pointer shrink-0"
-          />
-          <span className="text-gray-300 text-sm leading-relaxed">
-            上記内容を確認し、同意の上で受領サイン (電子署名) を行います。
-          </span>
-        </label>
+          {/* 同意チェックボックス */}
+          <label className="flex items-start gap-3 cursor-pointer mb-6">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 w-5 h-5 rounded border-gray-600 bg-gray-800 text-blue-500
+                         focus:ring-blue-500 focus:ring-2 cursor-pointer shrink-0"
+            />
+            <span className="text-gray-300 text-sm leading-relaxed">
+              上記内容を確認し、同意の上で受領サイン (電子署名) を行います。
+            </span>
+          </label>
+        </div>
 
         {errorMsg && (
           <div className="mb-4 p-3 bg-red-950 border border-red-800 rounded-lg text-red-300 text-sm">{errorMsg}</div>
         )}
 
         <button
+          data-tour="receipt-submit"
           onClick={handleSign}
           disabled={!canSubmit}
           className="w-full py-4 rounded-xl font-bold text-base transition-all
