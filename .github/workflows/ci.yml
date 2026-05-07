@@ -78,11 +78,22 @@ jobs:
           restore-keys: |
             nextjs-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
 
+      # E2E はビルド・起動が通ることを見たいだけなので、サードパーティ SDK
+      # がモジュール top-level で要求する変数や、本番起動時に instrumentation
+      # で env-validation が要求する変数には CI 専用の stub を渡す。
+      # validateHighEntropy() は 32 文字以上 + "placeholder/test/dev" 等の
+      # weak ワード単体ではない文字列を要求し、SECRET_ENCRYPTION_KEY は
+      # base64 で 32 byte に decode できる必要がある。secret 値は E2E が
+      # 実際に外部 API を叩かない限り中身は不要。
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://stub-ci-build.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'stub-ci-build-anon-key-not-used-in-e2e' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'stub-ci-build-service-role-key-40chars-padding-padding' }}
+          QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY || 'sig_stub_ci_build_current' }}
+          QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY || 'sig_stub_ci_build_next' }}
+          QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN || 'stub-ci-build-qstash-token' }}
 
       - name: Start server & run E2E
         run: |
@@ -90,8 +101,20 @@ jobs:
           npx wait-on http://localhost:3000 --timeout 30000
           npm run test:e2e
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://stub-ci-build.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'stub-ci-build-anon-key-not-used-in-e2e' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'stub-ci-build-service-role-key-40chars-padding-padding' }}
+          QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY || 'sig_stub_ci_build_current' }}
+          QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY || 'sig_stub_ci_build_next' }}
+          QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN || 'stub-ci-build-qstash-token' }}
+          # --- env-validation requires (instrumentation hook) ---
+          CRON_SECRET: ${{ secrets.CRON_SECRET || 'ci-stub-cron-secret-not-real-just-32-chars-padding' }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL || 'https://stub-ci.upstash.io' }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN || 'stub-ci-upstash-redis-token' }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET || 'whsec_stub_ci_build_webhook_secret' }}
+          CUSTOMER_AUTH_PEPPER: ${{ secrets.CUSTOMER_AUTH_PEPPER || 'ci-stub-customer-auth-pepper-not-real-32-chars-padding' }}
+          # base64 of 32 bytes (0xAB repeated) — passes AES-256-GCM key length check.
+          SECRET_ENCRYPTION_KEY: ${{ secrets.SECRET_ENCRYPTION_KEY || 'q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s=' }}
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v7
