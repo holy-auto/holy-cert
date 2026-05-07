@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { checkAdminFeature } from "@/lib/billing/adminFeatureGate";
 import PageHeader from "@/components/ui/PageHeader";
 import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 import { formatDateTime } from "@/lib/format";
@@ -46,6 +47,13 @@ export default async function AdminAuditPage({
   const filterType = params.type ?? "";
   const filterFrom = params.from ?? "";
   const filterTo = params.to ?? "";
+
+  const gate = await checkAdminFeature("audit_log", "/admin/audit");
+  if (!gate.ok) {
+    if (gate.reason === "unauthorized") redirect("/login?next=/admin/audit");
+    if (gate.billing_url) redirect(gate.billing_url);
+    redirect("/admin/billing?next=/admin/audit");
+  }
 
   const supabase = await createSupabaseServerClient();
   const {

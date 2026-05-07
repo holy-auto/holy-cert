@@ -12,13 +12,9 @@ const SLIDES = [
     id: "title",
     render: () => (
       <div className="flex flex-col items-center justify-center h-full text-center gap-6">
-        <div className="text-[10px] font-mono tracking-[0.3em] text-blue-400 uppercase mb-2">
-          WEB 施工証明書 SaaS
-        </div>
+        <div className="text-[10px] font-mono tracking-[0.3em] text-blue-400 uppercase mb-2">WEB 施工証明書 SaaS</div>
         <h1 className="text-7xl md:text-8xl font-bold tracking-tight text-white">Ledra</h1>
-        <p className="text-2xl md:text-3xl text-white/60 font-light">
-          施工の証明を、デジタルで。
-        </p>
+        <p className="text-2xl md:text-3xl text-white/60 font-light">施工の証明を、デジタルで。</p>
         <div className="mt-8 w-16 h-px bg-blue-500/60" />
         <p className="text-white/40 text-sm">← → キーまたはクリックでスライドを切り替え</p>
       </div>
@@ -161,9 +157,7 @@ const SLIDES = [
               </div>
               <div className="text-white font-semibold text-sm">{s.title}</div>
               <div className="text-white/50 text-xs leading-tight">{s.desc}</div>
-              {i < 4 && (
-                <div className="hidden md:block absolute" />
-              )}
+              {i < 4 && <div className="hidden md:block absolute" />}
             </div>
           ))}
         </div>
@@ -303,21 +297,16 @@ const SLIDES = [
           </div>
           <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-5">
             <div className="flex flex-wrap gap-2">
-              {[
-                "問い合わせ",
-                "見積もり",
-                "発注",
-                "作業実施",
-                "完了・レビュー",
-                "パートナーランク反映",
-              ].map((step, i) => (
-                <span key={i} className="flex items-center gap-1">
-                  <span className="text-xs px-3 py-1 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-300">
-                    {step}
+              {["問い合わせ", "見積もり", "発注", "作業実施", "完了・レビュー", "パートナーランク反映"].map(
+                (step, i) => (
+                  <span key={i} className="flex items-center gap-1">
+                    <span className="text-xs px-3 py-1 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-300">
+                      {step}
+                    </span>
+                    {i < 5 && <span className="text-white/30 text-xs">→</span>}
                   </span>
-                  {i < 5 && <span className="text-white/30 text-xs">→</span>}
-                </span>
-              ))}
+                ),
+              )}
             </div>
           </div>
         </div>
@@ -344,15 +333,12 @@ const SLIDES = [
           {[
             { name: "Stripe", desc: "安全な決済・サブスク管理", icon: "💳" },
             { name: "Supabase", desc: "PostgreSQL + RLS + Realtime", icon: "🗄️" },
-            { name: "Polygon BC", desc: "証明書改ざん防止アンカリング", icon: "⛓️" },
-            { name: "Square", desc: "POS・売上データ連携", icon: "🏪" },
-            { name: "CloudSign", desc: "電子署名・契約書管理", icon: "✍️" },
+            { name: "Polygon BC", desc: "施工写真ハッシュのアンカリング", icon: "⛓️" },
+            { name: "C2PA", desc: "施工写真へのコンテンツクレデンシャル付与", icon: "🪪" },
+            { name: "電子署名 (内製)", desc: "ECDSA P-256 ベースの自前署名", icon: "✍️" },
             { name: "2FA (TOTP)", desc: "Google Auth / 1Password 対応", icon: "🔐" },
           ].map((t) => (
-            <div
-              key={t.name}
-              className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-4 flex flex-col gap-2"
-            >
+            <div key={t.name} className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-4 flex flex-col gap-2">
               <div className="text-xl">{t.icon}</div>
               <div className="text-white font-semibold text-sm">{t.name}</div>
               <div className="text-white/45 text-xs leading-relaxed">{t.desc}</div>
@@ -378,13 +364,10 @@ const SLIDES = [
     id: "cta",
     render: () => (
       <div className="flex flex-col items-center justify-center h-full text-center gap-8">
-        <div className="text-[10px] font-mono tracking-[0.3em] text-blue-400 uppercase">
-          今すぐ始めましょう
-        </div>
+        <div className="text-[10px] font-mono tracking-[0.3em] text-blue-400 uppercase">今すぐ始めましょう</div>
         <h2 className="text-6xl md:text-7xl font-bold text-white">Ledra</h2>
         <p className="text-xl text-white/60 max-w-md leading-relaxed">
-          14 日間の無料トライアルで全機能をお試しいただけます。
-          クレジットカード不要。いつでもキャンセル可能。
+          14 日間の無料トライアルで全機能をお試しいただけます。 クレジットカード不要。いつでもキャンセル可能。
         </p>
         <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
           <a
@@ -412,22 +395,10 @@ const SLIDES = [
 /* ------------------------------------------------------------------ */
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[10px] font-mono tracking-[0.25em] text-blue-400 uppercase">{children}</div>
-  );
+  return <div className="text-[10px] font-mono tracking-[0.25em] text-blue-400 uppercase">{children}</div>;
 }
 
-function PortalCard({
-  role,
-  label,
-  color,
-  items,
-}: {
-  role: string;
-  label: string;
-  color: string;
-  items: string[];
-}) {
+function PortalCard({ role, label, color, items }: { role: string; label: string; color: string; items: string[] }) {
   const colorMap: Record<string, { bg: string; border: string; text: string }> = {
     blue: {
       bg: "rgba(59,130,246,0.12)",
@@ -452,10 +423,7 @@ function PortalCard({
   };
   const c = colorMap[color];
   return (
-    <div
-      className="rounded-xl p-5 flex flex-col gap-3"
-      style={{ background: c.bg, border: `1px solid ${c.border}` }}
-    >
+    <div className="rounded-xl p-5 flex flex-col gap-3" style={{ background: c.bg, border: `1px solid ${c.border}` }}>
       <div>
         <div className="text-xs font-mono tracking-widest" style={{ color: c.text }}>
           {role}
@@ -482,14 +450,11 @@ export default function VideoPresentation() {
   const [current, setCurrent] = useState(0);
   const [animKey, setAnimKey] = useState(0);
 
-  const goTo = useCallback(
-    (index: number) => {
-      if (index < 0 || index >= SLIDES.length) return;
-      setCurrent(index);
-      setAnimKey((k) => k + 1);
-    },
-    [],
-  );
+  const goTo = useCallback((index: number) => {
+    if (index < 0 || index >= SLIDES.length) return;
+    setCurrent(index);
+    setAnimKey((k) => k + 1);
+  }, []);
 
   const next = useCallback(() => goTo(current + 1), [current, goTo]);
   const prev = useCallback(() => goTo(current - 1), [current, goTo]);
