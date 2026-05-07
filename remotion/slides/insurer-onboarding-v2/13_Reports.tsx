@@ -6,11 +6,11 @@ import { ScreenshotSlide } from "../../components/screenshot-slide";
 export const InsurerV2Reports: React.FC = () => (
   <AbsoluteFill style={{ fontFamily: FONT }}>
     <ScreenshotSlide
-      file="screenshots/insurer/certs.png"
+      file="screenshots/insurer/reports.png"
       step="手順 2"
-      title="レポートのエクスポート"
-      description="「レポート」から月次・週次レポートをPDF・Excel形式でエクスポートできます。テンプレートをカスタマイズして、自社の書式に合わせたレポートを作成できます。スケジュール設定で自動メール送信も可能です。"
-      subtext="エクスポートしたデータは社内システムへのインポートにも使用できます。"
+      title="案件レポート — 月次/週次の傾向分析"
+      description="「レポート」では案件の推移をグラフで確認できます。月次/週次の切替、ステータス別・カテゴリ別の構成比、平均解決時間、対応済み件数の集計が一画面で見られます。"
+      subtext="案件 API 直結で集計するため、最新のチケット状況がそのまま反映されます。"
     />
   </AbsoluteFill>
 );

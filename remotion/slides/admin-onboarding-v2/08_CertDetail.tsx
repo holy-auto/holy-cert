@@ -6,11 +6,11 @@ import { ScreenshotSlide } from "../../components/screenshot-slide";
 export const AdminV2CertDetail: React.FC = () => (
   <AbsoluteFill style={{ fontFamily: FONT }}>
     <ScreenshotSlide
-      file="screenshots/admin/certs-list.png"
+      file="screenshots/admin/cert-detail.png"
       step="確認 3"
-      title="証明書の詳細と印刷"
-      description="証明書詳細画面では、作業記録・使用部品・写真・QRコードが確認できます。「印刷」ボタンで顧客向けの証明書PDF・ステッカーを出力できます。「共有」ボタンでURLリンクをお客様にメッセージ送信することも可能です。"
-      subtext="証明書は改ざん防止のためブロックチェーンに記録されます。"
+      title="証明書詳細 — 出力と画像管理"
+      description="証明書詳細では、車両情報・施工内容・添付画像・編集履歴が一画面で確認できます。「PDF」ボタンから施工証明書 PDF を 1 件単位で出力でき、画像セクションから施工写真の追加・削除も可能です。"
+      subtext="添付画像は Polygon ブロックチェーンに改ざん検知用ハッシュが記録されます。"
     />
   </AbsoluteFill>
 );

@@ -6,11 +6,11 @@ import { ScreenshotSlide } from "../../components/screenshot-slide";
 export const AgentV2ReferralTracking: React.FC = () => (
   <AbsoluteFill style={{ fontFamily: FONT }}>
     <ScreenshotSlide
-      file="screenshots/agent/referrals.png"
+      file="screenshots/agent/referral-links.png"
       step="確認 3"
-      title="紹介URLの共有方法"
-      description="各紹介には固有のURLとQRコードが割り当てられます。「コピー」ボタンでURLをクリップボードにコピーするか、「QRコードを表示」で印刷用コードを取得できます。名刺・チラシへの印刷にもご活用ください。"
-      subtext="紹介URLのアクセス数・クリック数もリアルタイムで確認できます。"
+      title="紹介リンク・QRコードの発行"
+      description="「紹介リンク」では営業先で使える専用 URL とそれに対応する QR コードを発行できます。リンクはワンクリックでクリップボードにコピーでき、QR コードは PNG でダウンロードできます。名刺やチラシへの印刷にも活用できます。"
+      subtext="リンクごとに用途別ラベルを付けて管理できます。"
     />
   </AbsoluteFill>
 );

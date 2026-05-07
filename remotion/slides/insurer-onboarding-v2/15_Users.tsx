@@ -6,11 +6,11 @@ import { ScreenshotSlide } from "../../components/screenshot-slide";
 export const InsurerV2Users: React.FC = () => (
   <AbsoluteFill style={{ fontFamily: FONT }}>
     <ScreenshotSlide
-      file="screenshots/insurer/dashboard.png"
+      file="screenshots/insurer/users.png"
       step="確認 1"
       title="ユーザー管理"
-      description="「設定」→「ユーザー」タブでは担当者アカウントの追加・編集・削除ができます。メールアドレスを入力して招待を送信するとアカウントが作成されます。「管理者」「担当者」「閲覧者」のロールが選択できます。"
-      subtext="SSO（シングルサインオン）での連携も可能です。設定はLedraサポートにお問い合わせください。"
+      description="「ユーザー」では担当者アカウントの招待・ロール変更・有効化/無効化ができます。メールアドレスを入力して招待を送るとサインアップ案内が届きます。ロールは「管理者」「閲覧者」「監査者」から選択でき、管理者のみがこのページを操作できます。"
+      subtext="ロール変更や無効化は即時反映されます。"
     />
   </AbsoluteFill>
 );

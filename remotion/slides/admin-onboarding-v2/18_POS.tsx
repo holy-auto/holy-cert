@@ -8,9 +8,9 @@ export const AdminV2POS: React.FC = () => (
     <ScreenshotSlide
       file="screenshots/admin/pos.png"
       step="手順 1"
-      title="POS決済"
-      description="「POS」メニューでは店頭での決済を処理できます。整備案件を選択して部品・作業を追加すると自動的に合計金額が計算されます。Square端末と連携しているので、クレジットカード・電子マネー・QRコード決済が可能です。"
-      subtext="領収書はメールまたは印刷でお客様に発行できます。"
+      title="POS会計"
+      description="「POS」メニューでは店頭での会計を Ledra 上で完結できます。未会計の予約から対象を選び、品目を追加すると合計金額が自動計算されます。決済方法は現金・カード（Stripe Terminal）・QRコード・銀行振込から選べます。"
+      subtext="決済完了後は領収書がお客様にメール送信されます。"
     />
   </AbsoluteFill>
 );

@@ -9,8 +9,8 @@ export const InsurerV2VehicleSearch: React.FC = () => (
       file="screenshots/insurer/vehicles.png"
       step="手順 3"
       title="車両履歴の確認"
-      description="「車両」メニューでは特定の車両の整備履歴全件が確認できます。事故歴・重大な整備記録などを時系列で追うことができます。「ウォッチリストに追加」ボタンで要注意車両を監視リストに登録できます。"
-      subtext="車両情報は車検証QRコードのスキャンでも検索できます。"
+      description="「車両」メニューでは登録済みの車両一覧と、各車両に紐づく整備証明書・事案を時系列で追跡できます。プレート・車台番号での絞り込みも可能です。"
+      subtext="特に要注意な車両は別途「ウォッチリスト」メニューで個別に追跡できます。"
     />
   </AbsoluteFill>
 );

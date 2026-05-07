@@ -129,6 +129,11 @@ async function captureAdmin(browser: ReturnType<typeof chromium.launch> extends 
   await go(page, `${BASE_URL}/admin/certificates`);
   await shot(page, "admin/certs-list.png");
 
+  // Certificate detail (seeded public_id from setup-demo-tenant.ts)
+  await go(page, `${BASE_URL}/admin/certificates/LEDRA-DEMO-0001`);
+  await shot(page, "admin/cert-detail.png");
+  await go(page, `${BASE_URL}/admin/certificates`);
+
   // Try to open new-certificate form
   const newCertBtn = page.locator(
     'button:has-text("発行"), button:has-text("新規"), a:has-text("発行"), a:has-text("新規"), button:has-text("New"), a:has-text("New")'
@@ -275,6 +280,14 @@ async function captureInsurer(browser: ReturnType<typeof chromium.launch> extend
     fs.copyFileSync(path.join(OUT, "insurer/cases.png"), path.join(OUT, "insurer/cases-new.png"));
   }
 
+  // Reports
+  await go(page, `${BASE_URL}/insurer/reports`);
+  await shot(page, "insurer/reports.png");
+
+  // Users
+  await go(page, `${BASE_URL}/insurer/users`);
+  await shot(page, "insurer/users.png");
+
   await ctx.close();
 }
 
@@ -321,6 +334,18 @@ async function captureAgent(browser: ReturnType<typeof chromium.launch> extends 
   // Training
   await go(page, `${BASE_URL}/agent/training`);
   await shot(page, "agent/training.png");
+
+  // Materials (営業資料)
+  await go(page, `${BASE_URL}/agent/materials`);
+  await shot(page, "agent/materials.png");
+
+  // Referral links (URL/QRコード)
+  await go(page, `${BASE_URL}/agent/referral-links`);
+  await shot(page, "agent/referral-links.png");
+
+  // Reports
+  await go(page, `${BASE_URL}/agent/reports`);
+  await shot(page, "agent/reports.png");
 
   await ctx.close();
 }
