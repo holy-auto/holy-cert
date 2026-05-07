@@ -130,11 +130,15 @@ export default function WalkInCheckoutScreen() {
         unit_price: item.unitPrice,
         amount: item.unitPrice * item.quantity,
       }));
+      // 任意UUIDは空文字列だと PG が "invalid input syntax for type uuid"
+      // で落ちるため明示的に null に正規化する。
+      // 店舗未設定（select-store の "店舗が登録されていません" 経路）で
+      // selectedStore.id が "" になる現象の保険。
       const { data, error } = await supabase.rpc("pos_checkout", {
         p_tenant_id: user!.tenantId,
         p_reservation_id: null,
         p_customer_id: null,
-        p_store_id: selectedStore!.id,
+        p_store_id: selectedStore?.id || null,
         p_register_session_id: null,
         p_payment_method: "card",
         p_amount: total,
@@ -254,7 +258,7 @@ export default function WalkInCheckoutScreen() {
         const result = await processCardPayment({
           amountJpy: total,
           description: "Ledra POS - ウォークイン会計",
-          storeId: selectedStore!.id,
+          storeId: selectedStore?.id || "",
           tenantId: user!.tenantId,
         });
         if (!result.success) {
@@ -278,7 +282,7 @@ export default function WalkInCheckoutScreen() {
             body: {
               amount: total,
               tenant_id: user!.tenantId,
-              store_id: selectedStore!.id,
+              store_id: selectedStore?.id || null,
             },
           },
         );
@@ -290,11 +294,13 @@ export default function WalkInCheckoutScreen() {
       }
 
       // pos_checkout RPC呼び出し（予約なし）
+      // 任意UUIDは空文字列だと PG が "invalid input syntax for type uuid"
+      // で落ちるため明示的に null に正規化する。
       const { data, error } = await supabase.rpc("pos_checkout", {
         p_tenant_id: user!.tenantId,
         p_reservation_id: null,
         p_customer_id: null,
-        p_store_id: selectedStore!.id,
+        p_store_id: selectedStore?.id || null,
         p_register_session_id: null,
         p_payment_method: paymentMethod,
         p_amount: total,
