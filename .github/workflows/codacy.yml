@@ -13,14 +13,11 @@
 
 name: Codacy Security Scan
 
+# NOTE: CODACY_PROJECT_TOKEN が未設定のため
+# 自動トリガー (push / pull_request / schedule) を一時的に無効化。
+# 設定が完了したら元のトリガーを復活させる。
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
-  schedule:
-    - cron: '38 0 * * 4'
+  workflow_dispatch:
 
 permissions:
   contents: read
