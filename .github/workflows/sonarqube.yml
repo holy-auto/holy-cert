@@ -26,11 +26,10 @@
 
 name: SonarQube analysis
 
+# NOTE: SONAR_TOKEN / SONAR_HOST_URL / projectKey が未設定のため
+# 自動トリガー (push / pull_request) を一時的に無効化。
+# 設定が完了したら push / pull_request トリガーを復活させる。
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
 
 permissions:

@@ -1,0 +1,108 @@
+name: Weekly Claude Code Review
+
+on:
+  schedule:
+    # Every Monday at 04:00 UTC (13:00 JST). Runs in parallel with the
+    # CodeQL weekly scan; this audit performs an independent review and
+    # does not consume CodeQL alerts as input, so ordering is not required.
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "Which audit to run"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - security
+          - simplify
+          - review
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  security-audit:
+    name: Security Review (vulnerability scan)
+    if: ${{ github.event_name == 'schedule' || inputs.scope == 'all' || inputs.scope == 'security' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude security review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Perform a thorough security review of this codebase against the
+            main branch. Focus on the OWASP Top 10 and items commonly missed
+            in a multi-tenant Next.js + Supabase SaaS:
+
+              - Authn/authz boundary checks (RLS, route guards, server actions)
+              - SQL/command injection, SSRF, prototype pollution, path traversal
+              - Secrets, tokens, or credentials accidentally committed
+              - Unsafe `dangerouslySetInnerHTML`, eval, or untrusted JSON parsing
+              - Tenant isolation regressions in shared queries
+
+            Open one GitHub issue per distinct finding using the label
+            `security` and `claude-weekly`. Include severity, file:line,
+            reproduction, and a suggested fix. If nothing is found, do not
+            open an issue.
+          claude_args: "--allowedTools 'Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),mcp__github__issue_write,mcp__github__list_issues,mcp__github__search_issues'"
+
+  simplify-audit:
+    name: Simplify (dead/redundant code)
+    if: ${{ github.event_name == 'schedule' || inputs.scope == 'all' || inputs.scope == 'simplify' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude simplify pass
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Audit the codebase for dead code, redundant abstractions, and
+            duplicated logic that could be consolidated. Look at code added
+            or modified in the last 7 days first (`git log --since='7 days ago'`),
+            then sample older hot paths.
+
+            For each finding, open a GitHub issue with the label
+            `tech-debt` and `claude-weekly`. Include the file:line, the
+            redundancy, and a concrete refactor suggestion. Skip stylistic
+            nits. Do not open an issue if there is nothing material.
+          claude_args: "--allowedTools 'Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),mcp__github__issue_write,mcp__github__list_issues,mcp__github__search_issues'"
+
+  review-audit:
+    name: Code Review (errors & bugs)
+    if: ${{ github.event_name == 'schedule' || inputs.scope == 'all' || inputs.scope == 'review' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude code review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review code merged to main in the last 7 days
+            (`git log --since='7 days ago' main`) for likely bugs, broken
+            error handling, missing null checks, race conditions, and
+            type-system escapes (`any`, unsafe casts, `// @ts-ignore`).
+
+            Open one issue per distinct bug with the labels `bug` and
+            `claude-weekly`, including file:line, the failure mode, and a
+            proposed fix. No issue if there is nothing actionable.
+          claude_args: "--allowedTools 'Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),mcp__github__issue_write,mcp__github__list_issues,mcp__github__search_issues'"
