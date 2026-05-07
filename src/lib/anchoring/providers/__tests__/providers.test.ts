@@ -33,6 +33,8 @@ describe("invokeAllUploadProviders", () => {
     expect(result.polygon).toEqual({ txHash: null, anchored: false, network: null });
   });
 
+  // c2pa-node の native binding 初期化 + 失敗ハンドリングが含まれるため、
+  // 高負荷の CI ランナー上では default 5s timeout を超えうる。30s に拡張。
   it("falls back gracefully when c2pa signing fails on non-JPEG buffer", async () => {
     process.env.C2PA_MODE = "dev-signed";
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -48,7 +50,7 @@ describe("invokeAllUploadProviders", () => {
 
     errorSpy.mockRestore();
     infoSpy.mockRestore();
-  });
+  }, 30_000);
 
   it("returns disabled deepfake result when HIVE_API_KEY is missing", async () => {
     process.env.DEEPFAKE_PROVIDER = "hive";
