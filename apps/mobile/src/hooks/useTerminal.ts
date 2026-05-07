@@ -131,7 +131,17 @@ export function useTerminal() {
       if (discoverError) {
         tapToPayDiscoveryRef.current = null;
         store.setReaderStatus("disconnected");
-        store.setReaderError(`Tap to Pay 検索失敗: ${discoverError.message}`);
+        // "Operation not permitted" は entitlement 不足が原因。
+        // 現在ビルドに com.apple.developer.proximity-reader.payment.acceptance
+        // が含まれていない / Apple から発行されていないケース。
+        // 一般スタッフ向けに分かりやすい文言に置き換える。
+        const raw = discoverError.message ?? "";
+        const isEntitlementError =
+          /not permitted|entitlement|bundle|application bundle is valid/i.test(raw);
+        const friendly = isEntitlementError
+          ? "Tap to Pay の権限 (entitlement) がこのアプリビルドに付与されていません。最新のビルドに更新するか、管理者にお問い合わせください。"
+          : `Tap to Pay 検索失敗: ${raw}`;
+        store.setReaderError(friendly);
         return false;
       }
 

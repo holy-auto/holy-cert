@@ -75,7 +75,10 @@ export default function SelectStoreScreen() {
         <Button
           mode="contained"
           onPress={() => {
-            setSelectedStore({ id: "", name: user?.tenantName ?? "本店" });
+            // 店舗未登録時は selectedStore を null のままにする。
+            // 空文字列を入れると pos_checkout 等の RPC で
+            // "invalid input syntax for type uuid" を引き起こすため。
+            setSelectedStore(null);
             router.replace("/(tabs)");
           }}
           style={{ marginTop: 24 }}

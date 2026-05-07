@@ -202,7 +202,7 @@ export default function PosCheckoutScreen() {
           amountJpy: total,
           description: `Ledra POS - ${reservation?.customer?.name ?? "会計"}`,
           reservationId: id,
-          storeId: selectedStore!.id,
+          storeId: selectedStore?.id || "",
           tenantId: user!.tenantId,
         });
         if (!result.success) {
@@ -216,11 +216,13 @@ export default function PosCheckoutScreen() {
           unit_price: it.unit_price,
           amount: it.quantity * it.unit_price,
         }));
+        // 任意UUIDは空文字列だと PG が "invalid input syntax for type uuid"
+        // で落ちるため明示的に null に正規化する。
         const { error } = await supabase.rpc("pos_checkout", {
           p_tenant_id: user!.tenantId,
           p_reservation_id: id || null,
           p_customer_id: null,
-          p_store_id: selectedStore!.id,
+          p_store_id: selectedStore?.id || null,
           p_register_session_id: null,
           p_payment_method: "card",
           p_amount: total,
@@ -249,7 +251,7 @@ export default function PosCheckoutScreen() {
               amount: total,
               reservation_id: id,
               tenant_id: user!.tenantId,
-              store_id: selectedStore!.id,
+              store_id: selectedStore?.id || null,
             },
           }
         );
@@ -274,7 +276,7 @@ export default function PosCheckoutScreen() {
         p_tenant_id: user!.tenantId,
         p_reservation_id: id || null,
         p_customer_id: null,
-        p_store_id: selectedStore!.id,
+        p_store_id: selectedStore?.id || null,
         p_register_session_id: null,
         p_payment_method: paymentMethod,
         p_amount: total,
