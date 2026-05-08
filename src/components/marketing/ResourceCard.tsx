@@ -18,7 +18,13 @@ export type Resource = {
    * id back to the server for downloaded_at writeback.
    */
   downloadUrl?: string;
+  /**
+   * Optional filename for the saved download. Defaults to `${key}.pdf`.
+   * Set this when the resource is not a PDF (e.g. the bundle ZIP).
+   */
+  downloadFilename?: string;
   pageCount?: number;
+  ctaLabel?: string;
 };
 
 export function ResourceCard({ resource, delay = 0 }: { resource: Resource; delay?: number }) {
@@ -49,7 +55,7 @@ export function ResourceCard({ resource, delay = 0 }: { resource: Resource; dela
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl;
-      a.download = `${resource.key}.pdf`;
+      a.download = resource.downloadFilename ?? `${resource.key}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -88,7 +94,7 @@ export function ResourceCard({ resource, delay = 0 }: { resource: Resource; dela
           onClick={openForm}
           className="mt-6 inline-flex items-center justify-center rounded-lg px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-[0_1px_12px_rgba(59,130,246,0.3)] transition-all self-start"
         >
-          無料でダウンロード
+          {resource.ctaLabel ?? "無料でダウンロード"}
         </button>
 
         {open && (

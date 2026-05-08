@@ -3,6 +3,7 @@ import { Section } from "@/components/marketing/Section";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { CTABanner } from "@/components/marketing/CTABanner";
 import { ResourceCard, type Resource } from "@/components/marketing/ResourceCard";
+import { RESOURCE_BUNDLE_FILENAME, RESOURCE_BUNDLE_KEY } from "@/lib/marketing/resourceBundle";
 
 export const metadata = {
   title: "資料ダウンロード",
@@ -64,6 +65,17 @@ const resources: Resource[] = [
   },
 ];
 
+const bundleResource: Resource = {
+  key: RESOURCE_BUNDLE_KEY,
+  title: "全資料パック（まとめてダウンロード）",
+  description:
+    "サービス概要・機能紹介・セキュリティ・導入事例・ROI・料金プランの全資料をひとつの ZIP にまとめてお届けします。社内共有や検討資料の一括取得に。",
+  badge: "一括",
+  downloadUrl: "/api/marketing/resources/all/zip",
+  downloadFilename: RESOURCE_BUNDLE_FILENAME,
+  ctaLabel: "まとめてダウンロード",
+};
+
 export default function ResourcesPage() {
   return (
     <>
@@ -78,7 +90,10 @@ export default function ResourcesPage() {
           title="ご用意している資料"
           subtitle="簡単なフォームのご記入後、メールでダウンロードリンクをお送りします。"
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
+        <div className="mt-10">
+          <ResourceCard resource={bundleResource} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           {resources.map((r, i) => (
             <ResourceCard key={r.key} resource={r} delay={i * 60} />
           ))}

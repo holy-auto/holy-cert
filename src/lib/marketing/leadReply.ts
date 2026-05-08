@@ -10,6 +10,7 @@ import { sendResendEmail, type ResendAttachment } from "@/lib/email/resendSend";
 import { siteConfig } from "./config";
 import type { LeadSource } from "./leads";
 import { RESOURCE_PDFS } from "./resourcePdf";
+import { RESOURCE_BUNDLE_FILENAME, isResourceBundleKey, renderResourceBundle } from "./resourceBundle";
 
 const FROM =
   process.env.LEAD_REPLY_FROM_EMAIL ??
@@ -122,7 +123,10 @@ function copyFor(source: LeadSource, name?: string, downloadUrl?: string): Reply
 }
 
 function buildResourceDownloadUrl(resourceKey: string, leadId?: string): string {
-  const url = new URL(`/api/marketing/resources/${encodeURIComponent(resourceKey)}/pdf`, siteConfig.siteUrl);
+  const path = isResourceBundleKey(resourceKey)
+    ? `/api/marketing/resources/all/zip`
+    : `/api/marketing/resources/${encodeURIComponent(resourceKey)}/pdf`;
+  const url = new URL(path, siteConfig.siteUrl);
   if (leadId) url.searchParams.set("lead", leadId);
   return url.toString();
 }
@@ -139,6 +143,19 @@ async function renderResourcePdfAttachment(resourceKey: string): Promise<ResendA
     };
   } catch (err) {
     console.error("[lead-reply] pdf render failed:", err);
+    return null;
+  }
+}
+
+async function renderResourceBundleAttachment(): Promise<ResendAttachment | null> {
+  try {
+    const buffer = await renderResourceBundle();
+    return {
+      filename: RESOURCE_BUNDLE_FILENAME,
+      content: Buffer.from(buffer).toString("base64"),
+    };
+  } catch (err) {
+    console.error("[lead-reply] bundle render failed:", err);
     return null;
   }
 }
@@ -170,10 +187,16 @@ export async function sendLeadAutoReply(opts: {
   let attachments: ResendAttachment[] | undefined;
   let downloadUrl: string | undefined;
 
-  if (isDocumentSource && opts.resource_key && RESOURCE_PDFS[opts.resource_key]) {
-    const attachment = await renderResourcePdfAttachment(opts.resource_key);
-    if (attachment) attachments = [attachment];
-    downloadUrl = buildResourceDownloadUrl(opts.resource_key, opts.leadId);
+  if (isDocumentSource && opts.resource_key) {
+    if (isResourceBundleKey(opts.resource_key)) {
+      const attachment = await renderResourceBundleAttachment();
+      if (attachment) attachments = [attachment];
+      downloadUrl = buildResourceDownloadUrl(opts.resource_key, opts.leadId);
+    } else if (RESOURCE_PDFS[opts.resource_key]) {
+      const attachment = await renderResourcePdfAttachment(opts.resource_key);
+      if (attachment) attachments = [attachment];
+      downloadUrl = buildResourceDownloadUrl(opts.resource_key, opts.leadId);
+    }
   }
 
   const { subject, body } = copyFor(opts.source, opts.name, downloadUrl);
