@@ -5,19 +5,20 @@
  * the marketing site brand voice.
  */
 
-import { Resend } from "resend";
+import { renderToBuffer } from "@react-pdf/renderer";
+import { sendResendEmail, type ResendAttachment } from "@/lib/email/resendSend";
 import { siteConfig } from "./config";
 import type { LeadSource } from "./leads";
+import { RESOURCE_PDFS } from "./resourcePdf";
 
-function getResend() {
-  return new Resend(process.env.RESEND_API_KEY ?? "");
-}
-
-const FROM = process.env.LEAD_REPLY_FROM_EMAIL ?? process.env.RESEND_FROM ?? `Ledra <noreply@${new URL(siteConfig.siteUrl).hostname}>`;
+const FROM =
+  process.env.LEAD_REPLY_FROM_EMAIL ??
+  process.env.RESEND_FROM ??
+  `Ledra <noreply@${new URL(siteConfig.siteUrl).hostname}>`;
 
 type ReplyCopy = { subject: string; body: string };
 
-function copyFor(source: LeadSource, name?: string): ReplyCopy {
+function copyFor(source: LeadSource, name?: string, downloadUrl?: string): ReplyCopy {
   const greeting = name ? `${name} 様` : "ご担当者様";
 
   const closing = [
@@ -32,21 +33,30 @@ function copyFor(source: LeadSource, name?: string): ReplyCopy {
     case "document_dl":
     case "document_shop":
     case "document_agent":
-    case "document_insurer":
+    case "document_insurer": {
+      const lines: string[] = [greeting, "", "このたびは Ledra の資料をご請求いただきありがとうございます。"];
+      if (downloadUrl) {
+        lines.push(
+          "資料は本メールに添付しております。",
+          "また、以下のURLからもダウンロードいただけます。",
+          "",
+          downloadUrl,
+        );
+      } else {
+        lines.push("ご記入内容を確認のうえ、担当より資料をお送りいたします。");
+      }
+      lines.push(
+        "",
+        "記録を、業界の共通言語にする。",
+        "Ledra は、施工現場の記録を WEB 施工証明書としてデジタル化し、",
+        "施工店・顧客・保険会社・代理店の間で同じ「事実」を共有できるサービスです。",
+        closing,
+      );
       return {
         subject: "【Ledra】資料のお届け",
-        body: [
-          `${greeting}`,
-          "",
-          "このたびは Ledra の資料をご請求いただきありがとうございます。",
-          "資料は本メールに添付、またはダウンロードURLよりご確認いただけます。",
-          "",
-          "記録を、業界の共通言語にする。",
-          "Ledra は、施工現場の記録を WEB 施工証明書としてデジタル化し、",
-          "施工店・顧客・保険会社・代理店の間で同じ「事実」を共有できるサービスです。",
-          closing,
-        ].join("\n"),
+        body: lines.join("\n"),
       };
+    }
     case "demo":
       return {
         subject: "【Ledra】デモご依頼の受付",
@@ -111,10 +121,34 @@ function copyFor(source: LeadSource, name?: string): ReplyCopy {
   }
 }
 
+function buildResourceDownloadUrl(resourceKey: string, leadId?: string): string {
+  const url = new URL(`/api/marketing/resources/${encodeURIComponent(resourceKey)}/pdf`, siteConfig.siteUrl);
+  if (leadId) url.searchParams.set("lead", leadId);
+  return url.toString();
+}
+
+async function renderResourcePdfAttachment(resourceKey: string): Promise<ResendAttachment | null> {
+  const entry = RESOURCE_PDFS[resourceKey];
+  if (!entry) return null;
+  try {
+    const docElement = await entry.doc({ locale: "ja" });
+    const buffer = await renderToBuffer(docElement);
+    return {
+      filename: entry.filename({ locale: "ja" }),
+      content: Buffer.from(buffer).toString("base64"),
+    };
+  } catch (err) {
+    console.error("[lead-reply] pdf render failed:", err);
+    return null;
+  }
+}
+
 export async function sendLeadAutoReply(opts: {
   to: string;
   source: LeadSource;
   name?: string;
+  resource_key?: string;
+  leadId?: string;
 }): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
     if (process.env.NODE_ENV !== "production") {
@@ -123,16 +157,37 @@ export async function sendLeadAutoReply(opts: {
     return;
   }
 
-  const { subject, body } = copyFor(opts.source, opts.name);
+  // Document download leads with a registered resource_key get the PDF
+  // attached and a download URL in the body. Other sources (and document
+  // requests without a specific resource) fall back to the manual-followup
+  // wording.
+  const isDocumentSource =
+    opts.source === "document_dl" ||
+    opts.source === "document_shop" ||
+    opts.source === "document_agent" ||
+    opts.source === "document_insurer";
 
-  try {
-    await getResend().emails.send({
-      from: FROM,
-      to: opts.to,
-      subject,
-      text: body,
-    });
-  } catch (err) {
-    console.error("[lead-reply] send failed:", err);
+  let attachments: ResendAttachment[] | undefined;
+  let downloadUrl: string | undefined;
+
+  if (isDocumentSource && opts.resource_key && RESOURCE_PDFS[opts.resource_key]) {
+    const attachment = await renderResourcePdfAttachment(opts.resource_key);
+    if (attachment) attachments = [attachment];
+    downloadUrl = buildResourceDownloadUrl(opts.resource_key, opts.leadId);
+  }
+
+  const { subject, body } = copyFor(opts.source, opts.name, downloadUrl);
+
+  const result = await sendResendEmail({
+    from: FROM,
+    to: opts.to,
+    subject,
+    text: body,
+    attachments,
+    idempotencyKey: opts.leadId ? `lead-reply-${opts.leadId}` : undefined,
+  });
+
+  if (!result.ok) {
+    console.error("[lead-reply] send failed:", result.error);
   }
 }

@@ -71,6 +71,8 @@ export async function POST(request: Request) {
       to: rest.email,
       source: rest.source,
       name: rest.name,
+      resource_key: rest.resource_key,
+      leadId: persist.id,
     });
   } catch (err) {
     console.error("[leads] auto-reply failed:", err);
