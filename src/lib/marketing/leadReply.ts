@@ -10,7 +10,12 @@ import { sendResendEmail, type ResendAttachment } from "@/lib/email/resendSend";
 import { siteConfig } from "./config";
 import type { LeadSource } from "./leads";
 import { RESOURCE_PDFS } from "./resourcePdf";
-import { RESOURCE_BUNDLE_FILENAME, isResourceBundleKey, renderResourceBundle } from "./resourceBundle";
+import {
+  RESOURCE_BUNDLE_FILENAME,
+  RESOURCE_BUNDLE_KEY,
+  isResourceBundleKey,
+  renderResourceBundle,
+} from "./resourceBundle";
 
 const FROM =
   process.env.LEAD_REPLY_FROM_EMAIL ??
@@ -19,7 +24,7 @@ const FROM =
 
 type ReplyCopy = { subject: string; body: string };
 
-function copyFor(source: LeadSource, name?: string, downloadUrl?: string): ReplyCopy {
+function copyFor(source: LeadSource, name?: string, downloadUrl?: string, hasAttachment: boolean = false): ReplyCopy {
   const greeting = name ? `${name} 様` : "ご担当者様";
 
   const closing = [
@@ -36,13 +41,15 @@ function copyFor(source: LeadSource, name?: string, downloadUrl?: string): Reply
     case "document_agent":
     case "document_insurer": {
       const lines: string[] = [greeting, "", "このたびは Ledra の資料をご請求いただきありがとうございます。"];
-      if (downloadUrl) {
+      if (downloadUrl && hasAttachment) {
         lines.push(
           "資料は本メールに添付しております。",
           "また、以下のURLからもダウンロードいただけます。",
           "",
           downloadUrl,
         );
+      } else if (downloadUrl) {
+        lines.push("以下のURLよりダウンロードいただけます。", "", downloadUrl);
       } else {
         lines.push("ご記入内容を確認のうえ、担当より資料をお送りいたします。");
       }
@@ -174,10 +181,11 @@ export async function sendLeadAutoReply(opts: {
     return;
   }
 
-  // Document download leads with a registered resource_key get the PDF
-  // attached and a download URL in the body. Other sources (and document
-  // requests without a specific resource) fall back to the manual-followup
-  // wording.
+  // Document leads always get a download URL in the email body — and
+  // the matching PDF/ZIP attached when render succeeds. Role-targeted
+  // requests (`document_shop`/`_agent`/`_insurer`) and any document_dl
+  // without a specific resource key default to the full bundle so the
+  // recipient never gets an empty email.
   const isDocumentSource =
     opts.source === "document_dl" ||
     opts.source === "document_shop" ||
@@ -187,19 +195,22 @@ export async function sendLeadAutoReply(opts: {
   let attachments: ResendAttachment[] | undefined;
   let downloadUrl: string | undefined;
 
-  if (isDocumentSource && opts.resource_key) {
-    if (isResourceBundleKey(opts.resource_key)) {
+  if (isDocumentSource) {
+    const requestedKey = opts.resource_key;
+    const useBundle = !requestedKey || isResourceBundleKey(requestedKey) || !RESOURCE_PDFS[requestedKey];
+
+    if (useBundle) {
       const attachment = await renderResourceBundleAttachment();
       if (attachment) attachments = [attachment];
-      downloadUrl = buildResourceDownloadUrl(opts.resource_key, opts.leadId);
-    } else if (RESOURCE_PDFS[opts.resource_key]) {
-      const attachment = await renderResourcePdfAttachment(opts.resource_key);
+      downloadUrl = buildResourceDownloadUrl(RESOURCE_BUNDLE_KEY, opts.leadId);
+    } else {
+      const attachment = await renderResourcePdfAttachment(requestedKey);
       if (attachment) attachments = [attachment];
-      downloadUrl = buildResourceDownloadUrl(opts.resource_key, opts.leadId);
+      downloadUrl = buildResourceDownloadUrl(requestedKey, opts.leadId);
     }
   }
 
-  const { subject, body } = copyFor(opts.source, opts.name, downloadUrl);
+  const { subject, body } = copyFor(opts.source, opts.name, downloadUrl, !!attachments);
 
   const result = await sendResendEmail({
     from: FROM,
