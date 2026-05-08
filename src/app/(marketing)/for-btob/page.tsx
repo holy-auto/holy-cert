@@ -267,8 +267,7 @@ export default function ForBtoBPage() {
             question="月額プランの費用はどのくらいかかりますか？"
             answer={
               <>
-                受発注機能は無料プランから利用可能です。より高度な管理機能が必要な場合はStarter / Standard /
-                Proプランをご検討ください。詳細は
+                BtoB機能（中古車マーケット・受発注・商談管理）は全プラン共通の追加オプション（¥0/月・申込制）として提供しています。Free/Starter/Standard/Proのいずれでも、申込いただければ追加費用なしでご利用いただけます。プラン本体の詳細は
                 <a href="/pricing" className="text-blue-400 underline">
                   料金ページ
                 </a>

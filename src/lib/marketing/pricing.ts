@@ -160,6 +160,11 @@ export const ANNUAL_DISCOUNT_PERCENT = 20;
 
 /** オプション料金 */
 export const ADD_ON_OPTIONS = {
+  btobPack: {
+    name: "BtoBパック（中古車マーケット・受発注・商談管理）",
+    price: "¥0",
+    unit: "/月（申込制）",
+  },
   additionalStore: { name: "追加店舗", price: "¥4,980", unit: "/店舗/月" },
   additionalUser: { name: "追加ユーザー", price: "¥1,480", unit: "/人/月" },
   prioritySupport: { name: "優先サポート", price: "¥4,980", unit: "/月" },
@@ -201,6 +206,13 @@ export const FEATURE_COMPARISON = [
   { feature: "保険会社ポータル", free: "✓", starter: "✓", standard: "✓", pro: "✓" },
   { feature: "CSV/PDFエクスポート", free: "—", starter: "単体のみ", standard: "✓", pro: "✓" },
   { feature: "レポート", free: "—", starter: "—", standard: "基本", pro: "詳細" },
+  {
+    feature: "BtoB（中古車マーケット・受発注・商談管理）",
+    free: "オプション",
+    starter: "オプション",
+    standard: "オプション",
+    pro: "オプション",
+  },
   { feature: "API連携", free: "—", starter: "—", standard: "—", pro: "✓" },
   { feature: "監査ログ", free: "—", starter: "—", standard: "—", pro: "✓" },
   { feature: "サポート", free: "メール", starter: "メール", standard: "優先", pro: "専任" },

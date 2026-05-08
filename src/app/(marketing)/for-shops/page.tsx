@@ -75,9 +75,7 @@ const certFlowSteps = [
           <div
             key={v.plate}
             className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
-              v.selected
-                ? "border-blue-500/40 bg-blue-500/10"
-                : "border-white/[0.06] bg-white/[0.02]"
+              v.selected ? "border-blue-500/40 bg-blue-500/10" : "border-white/[0.06] bg-white/[0.02]"
             }`}
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.06] text-base">🚗</div>
@@ -94,9 +92,7 @@ const certFlowSteps = [
             )}
           </div>
         ))}
-        <button className="w-full rounded-xl bg-blue-600/80 py-2.5 text-xs font-bold text-white">
-          次へ →
-        </button>
+        <button className="w-full rounded-xl bg-blue-600/80 py-2.5 text-xs font-bold text-white">次へ →</button>
       </div>
     ),
   },
@@ -130,9 +126,7 @@ const certFlowSteps = [
             ))}
           </div>
         </div>
-        <button className="w-full rounded-xl bg-blue-600/80 py-2.5 text-xs font-bold text-white">
-          発行する
-        </button>
+        <button className="w-full rounded-xl bg-blue-600/80 py-2.5 text-xs font-bold text-white">発行する</button>
       </div>
     ),
   },
@@ -143,7 +137,13 @@ const certFlowSteps = [
       <div className="p-4 flex flex-col items-center text-center space-y-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500/30">
           <svg viewBox="0 0 24 24" className="h-6 w-6 text-emerald-400" fill="none">
-            <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M5 13l4 4L19 7"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
         <div>
@@ -156,7 +156,7 @@ const certFlowSteps = [
               key={i}
               className="rounded-[1px]"
               style={{
-                background: [0,1,2,5,6,10,12,14,18,19,20,22,23,24].includes(i)
+                background: [0, 1, 2, 5, 6, 10, 12, 14, 18, 19, 20, 22, 23, 24].includes(i)
                   ? "rgba(255,255,255,0.7)"
                   : "transparent",
               }}
@@ -262,8 +262,9 @@ const features = [
     description: "顧客の車両・施工履歴・予約・請求を一画面で。リピート営業が自然に回る設計です。",
   },
   {
-    title: "BtoB受発注",
-    description: "他の施工店と連携。得意分野を活かした仕事の受発注がプラットフォーム上で完結します。",
+    title: "BtoB受発注（オプション）",
+    description:
+      "中古車マーケット・受発注・商談管理を一体化したBtoBパック。全プラン共通の追加オプション（¥0/月・申込制）として提供しています。",
   },
   {
     title: "NFCタグ連携",
@@ -375,28 +376,27 @@ export default function ForShopsPage() {
 
       {/* Day in the life timeline */}
       <Section bg="alt">
-        <SectionHeading
-          title="施工店の1日"
-          subtitle="Ledra を導入した施工店の、ある日の使い方です。"
-        />
+        <SectionHeading title="施工店の1日" subtitle="Ledra を導入した施工店の、ある日の使い方です。" />
         <div className="mx-auto mt-10 max-w-3xl relative">
           {/* Vertical line */}
           <div className="absolute left-[5.5rem] top-0 bottom-0 w-px bg-white/[0.06] hidden md:block" />
           <div className="space-y-4">
             {timelineEvents.map((e, i) => (
               <ScrollReveal key={e.time} variant="fade-up" delay={i * 50}>
-                <div className={`flex gap-4 md:gap-6 rounded-2xl border p-4 md:p-5 transition-colors ${
-                  e.highlight
-                    ? "border-blue-500/30 bg-blue-500/[0.06]"
-                    : "border-white/[0.07] bg-white/[0.02]"
-                }`}>
+                <div
+                  className={`flex gap-4 md:gap-6 rounded-2xl border p-4 md:p-5 transition-colors ${
+                    e.highlight ? "border-blue-500/30 bg-blue-500/[0.06]" : "border-white/[0.07] bg-white/[0.02]"
+                  }`}
+                >
                   <div className="w-16 shrink-0 text-right">
                     <span className="text-[0.75rem] font-mono font-medium text-white/50">{e.time}</span>
                   </div>
                   <div className="relative flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1.5">
                       <h3 className="text-[0.938rem] font-bold text-white leading-snug">{e.title}</h3>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[0.625rem] font-medium border ${tagColors[e.tag] ?? "text-white/50 bg-white/[0.05] border-white/[0.1]"}`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[0.625rem] font-medium border ${tagColors[e.tag] ?? "text-white/50 bg-white/[0.05] border-white/[0.1]"}`}
+                      >
                         {e.tag}
                       </span>
                     </div>
