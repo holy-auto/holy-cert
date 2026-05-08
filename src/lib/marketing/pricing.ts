@@ -163,7 +163,7 @@ export const ADD_ON_OPTIONS = {
   btobPack: {
     name: "BtoBパック（中古車マーケット・受発注・商談管理）",
     price: "¥0",
-    unit: "/月（申込制）",
+    unit: "/月（全プラン自動付与）",
   },
   additionalStore: { name: "追加店舗", price: "¥4,980", unit: "/店舗/月" },
   additionalUser: { name: "追加ユーザー", price: "¥1,480", unit: "/人/月" },

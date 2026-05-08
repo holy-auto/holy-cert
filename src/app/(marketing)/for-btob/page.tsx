@@ -267,7 +267,7 @@ export default function ForBtoBPage() {
             question="月額プランの費用はどのくらいかかりますか？"
             answer={
               <>
-                BtoB機能（中古車マーケット・受発注・商談管理）は全プラン共通の追加オプション（¥0/月・申込制）として提供しています。Free/Starter/Standard/Proのいずれでも、申込いただければ追加費用なしでご利用いただけます。プラン本体の詳細は
+                BtoB機能（中古車マーケット・受発注・商談管理）は全プラン共通の追加オプション（¥0/月）として提供しており、Free/Starter/Standard/Proのいずれでもご契約と同時に自動付与されます。お客様側で申込・設定をしていただく必要はありません。プラン本体の詳細は
                 <a href="/pricing" className="text-blue-400 underline">
                   料金ページ
                 </a>
