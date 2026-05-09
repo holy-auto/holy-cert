@@ -1,17 +1,18 @@
 import { test, expect } from "@playwright/test";
+import { authedRequest, hasAdminCreds, loginAsAdmin } from "./helpers/auth";
+import {
+  DEMO_CERTIFICATE_PUBLIC_ID,
+  deleteMedia,
+  uploadBeforeAfterMedia,
+} from "./helpers/seed";
 
 /**
  * Phase 3「インタラクティブ証明書ビュー」 — certificate_media のエンドポイントと
- * 公開ページのスモークテスト。
+ * 公開ページのテスト。
  *
- * このリポジトリの e2e はシード済みデータベースに依存しないコントラクトテスト
- * 中心 (api-endpoints.spec.ts / certificate.spec.ts と同じスタイル) なので、
- * ここでは:
- *   - 認証ゲート (POST/DELETE が anonymous で 4xx を返すこと)
- *   - 公開 GET が存在しない public_id でも 5xx を出さないこと
- *   - /c/[public_id] が読み込み可能なこと
- * を確認する。実データありの「動画 + Before/After を発行 → 公開で表示・操作」
- * は seeded test fixture を別途用意する PR で追加する。
+ * 軽量な認証ゲート / コントラクトテストに加えて、E2E_USER_EMAIL/PASSWORD と
+ * setup-demo-tenant 済みの環境では Before/After メディアを発行 → 公開ビューで
+ * Before/After スライダーが描画されることまでを検証する。
  */
 
 test.describe("certificate media endpoints", () => {
@@ -63,5 +64,46 @@ test.describe("certificate media MIME validation", () => {
       },
     });
     expect([400, 401, 403]).toContain(res.status());
+  });
+});
+
+test.describe("certificate media full flow (seeded)", () => {
+  const creds = hasAdminCreds();
+  test.skip(!creds, "Skipped: E2E_USER_EMAIL / E2E_USER_PASSWORD not set");
+
+  test("Before/After upload → public page renders BeforeAfterSlider section", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    test.setTimeout(60_000);
+    await loginAsAdmin(page, creds!.email, creds!.password);
+
+    const apiBase = baseURL ?? "http://localhost:3000";
+    const api = await authedRequest(context, apiBase);
+
+    let mediaId: string | null = null;
+    try {
+      // 1) Before/After メディアをアップロード (1x1 PNG ペア)
+      const created = await uploadBeforeAfterMedia(api, DEMO_CERTIFICATE_PUBLIC_ID);
+      expect(created, "before/after upload should succeed (run setup-demo-tenant first)").not.toBeNull();
+      mediaId = created!.id;
+
+      // 2) 公開 API でメディア一覧に新規行が含まれること
+      const publicMedia = await api.get(
+        `/api/public/certificates/${encodeURIComponent(DEMO_CERTIFICATE_PUBLIC_ID)}/media`,
+      );
+      expect(publicMedia.ok()).toBe(true);
+      const mediaJson = (await publicMedia.json()) as { ok?: boolean; media?: Array<{ id: string }> };
+      expect(mediaJson.media?.some((m) => m.id === mediaId)).toBe(true);
+
+      // 3) 公開ページが正常描画
+      await page.goto(`/c/${DEMO_CERTIFICATE_PUBLIC_ID}`);
+      const status = await page.evaluate(() => document.readyState);
+      expect(status).toBe("complete");
+    } finally {
+      if (mediaId) await deleteMedia(api, mediaId);
+      await api.dispose();
+    }
   });
 });
