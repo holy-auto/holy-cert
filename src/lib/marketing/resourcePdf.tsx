@@ -325,7 +325,8 @@ function Page3Features() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>既存ツールとの連携</Text>
             <Text style={styles.cardDesc}>
-              Stripe / Square / Google Calendar / LINE / CloudSign と接続。置き換えではなく、橋渡し。
+              Stripe / Google Calendar / LINE と接続。置き換えではなく、橋渡し。 Square /
+              電子署名サービスはロードマップ上で順次対応予定。
             </Text>
           </View>
         </View>
@@ -937,7 +938,7 @@ const SECURITY_BLOCKS: SecurityBlock[] = [
       },
       {
         title: "保存データの暗号化",
-        desc: "Supabase Postgres はディスク暗号化 (AES-256) および自動鍵ローテーションを実装。オブジェクトストレージも転送時・保管時ともに暗号化。",
+        desc: "Supabase Postgres はディスク暗号化 (AES-256) を実装。アプリ層のテナントシークレットは AES-256-GCM で暗号化保管し、運用ルールに沿って鍵ローテーション。オブジェクトストレージも転送時・保管時ともに暗号化。",
       },
       {
         title: "機微データのペッパリング",
@@ -968,7 +969,7 @@ const SECURITY_BLOCKS: SecurityBlock[] = [
       },
       {
         title: "セッション管理",
-        desc: "顧客ポータルは専用のセッション有効期限 (デフォルト24時間)。署名付き URL は1回限りのトークンで発行。",
+        desc: "顧客ポータルは pepper 付きハッシュで保存される独自セッショントークン (デフォルト 30 日)。代理店契約等の高セキュリティ操作には 1 回限りの署名付き URL (5 分有効) を別途発行。",
       },
       {
         title: "レート制限",
@@ -1033,11 +1034,11 @@ const SECURITY_BLOCKS: SecurityBlock[] = [
       },
       {
         title: "Polygon anchoring",
-        desc: "発行時に証明書コンテンツのハッシュを Polygon に刻印。後からデータが書き換えられても、チェーン上のアンカーとの差分で検知できます。",
+        desc: "発行時に施工写真の SHA-256 ハッシュを Polygon に刻印。写真が差し替えられた場合、チェーン上のアンカーとの差分で検知できます (証明書本体ハッシュ・バッチ Merkle はロードマップ)。",
       },
       {
         title: "デジタル署名",
-        desc: "証明書 PDF には Ledra の署名鍵で署名を付与。発行元の同一性を第三者が検証可能。",
+        desc: "証明書には ECDSA P-256 で生成した署名情報 (公開鍵フィンガープリント + verify URL) をメタデータとして付与。発行元の同一性を Ledra Verify API で検証可能。",
       },
     ],
   },
@@ -1151,29 +1152,32 @@ function SecurityPolygonFlow() {
       <Text style={styles.pageTitle}>06 POLYGON ANCHORING</Text>
       <View style={styles.gradientBar} />
       <Text style={styles.h1}>Polygon anchoring フロー</Text>
-      <Text style={styles.lead}>証明書発行時のハッシュ刻印から、第三者による独立検証までの一連の流れです。</Text>
+      <Text style={styles.lead}>施工写真ハッシュの刻印から、第三者による独立検証までの一連の流れです。</Text>
 
       <Text style={styles.h2}>発行フロー（書き込み側）</Text>
+      <Text style={styles.bullet}>1. 施工写真を SHA-256 で確定値を算出（C2PA 署名と並行）。</Text>
       <Text style={styles.bullet}>
-        1. 証明書コンテンツ（写真 / 施工内容 / 施工者 / 日時）を正準化し、SHA-256 で確定値を算出。
+        2. ハッシュを Ledra の anchoring キューに投入。Polygon PoS の LedraAnchor コントラクトに送信。
       </Text>
       <Text style={styles.bullet}>
-        2. ハッシュを Ledra の anchoring キューに投入。バッチで Polygon PoS の anchoring コントラクトに送信。
-      </Text>
-      <Text style={styles.bullet}>
-        3. トランザクションハッシュと block number を証明書レコードに記録。UI の「検証済」バッジが点灯。
+        3. トランザクションハッシュと block number を画像レコードに記録。UI の「ブロックチェーン検証済み」バッジが点灯。
       </Text>
 
       <Text style={styles.h2}>検証フロー（読み取り側）</Text>
-      <Text style={styles.bullet}>1. 任意の第三者が証明書コンテンツと記録済みトランザクションを取得。</Text>
-      <Text style={styles.bullet}>2. 手元でコンテンツを同じ正準化手順で SHA-256 計算。</Text>
-      <Text style={styles.bullet}>3. Polygon 上の anchoring コントラクトに読み出し、ハッシュ一致を確認。</Text>
+      <Text style={styles.bullet}>1. 任意の第三者が施工写真と記録済みトランザクションを取得。</Text>
+      <Text style={styles.bullet}>2. 手元で写真を SHA-256 ハッシュ化。</Text>
+      <Text style={styles.bullet}>
+        3. Polygon 上の LedraAnchor コントラクトを読み出し、ハッシュ一致を Polygonscan 等で確認。
+      </Text>
 
       <View style={[styles.card, { marginTop: 10 }]}>
         <Text style={styles.cardTitle}>設計上の要点</Text>
-        <Text style={styles.bullet}>• Ledra 側 DB が改変されても、Polygon 上の記録との比較で検知可能。</Text>
+        <Text style={styles.bullet}>• Ledra 側ストレージが改変されても、Polygon 上の記録との比較で検知可能。</Text>
         <Text style={styles.bullet}>• 写真そのものは C2PA 署名で独立検証。チェーン上にはハッシュのみ記録。</Text>
-        <Text style={styles.bullet}>• ガス代高騰時に備え、バッチ Merkle 化で個別トランザクション数を抑制。</Text>
+        <Text style={styles.bullet}>
+          • 証明書コンテンツ全体のハッシュ刻印 (LedraCertAnchor) と日次バッチ Merkle (LedraBatchAnchor)
+          はコントラクトを準備済み。配線はロードマップで対応。
+        </Text>
       </View>
 
       <Footer pageLabel={`${n} / ${SECURITY_PAGE_TOTAL}`} />

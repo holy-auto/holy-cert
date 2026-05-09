@@ -5,8 +5,15 @@ import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { renderBrandedCertificatePdf } from "@/lib/template-options/renderBrandedCertificate";
-import { renderCertificatePdf, type CertRow, type AnchorInfo, type PdfMediaInfo } from "@/lib/pdfCertificate";
+import {
+  renderCertificatePdf,
+  type CertRow,
+  type AnchorInfo,
+  type PdfMediaInfo,
+  type PdfPhoto,
+} from "@/lib/pdfCertificate";
 import { loadPublicCertificateMedia } from "@/lib/certificateMedia/loadPublic";
+import { CERTIFICATE_IMAGE_BUCKET } from "@/lib/certificateImages";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { logger } from "@/lib/logger";
 import type { TemplateConfig } from "@/types/templateOption";
@@ -149,21 +156,50 @@ export async function GET(req: Request) {
     .maybeSingle<FullCertRow>();
 
   let anchors: AnchorInfo[] = [];
+  let photos: PdfPhoto[] = [];
   if (fullCert?.id) {
     const { data: images } = await adm
       .from("certificate_images")
-      .select("sha256, polygon_tx_hash, polygon_network")
+      .select(
+        "id, file_name, sort_order, sha256, polygon_tx_hash, polygon_network, storage_path, rendered_storage_path, annotations",
+      )
       .eq("certificate_id", fullCert.id)
-      .not("polygon_tx_hash", "is", null)
       .order("sort_order", { ascending: true });
-    anchors = (images ?? []).map((i) => ({
-      sha256: (i.sha256 as string | null) ?? null,
-      polygon_tx_hash: (i.polygon_tx_hash as string | null) ?? null,
-      polygon_network:
-        i.polygon_network === "polygon" || i.polygon_network === "amoy"
-          ? (i.polygon_network as "polygon" | "amoy")
-          : null,
-    }));
+    const allImages = images ?? [];
+
+    anchors = allImages
+      .filter((i) => i.polygon_tx_hash)
+      .map((i) => ({
+        sha256: (i.sha256 as string | null) ?? null,
+        polygon_tx_hash: (i.polygon_tx_hash as string | null) ?? null,
+        polygon_network:
+          i.polygon_network === "polygon" || i.polygon_network === "amoy"
+            ? (i.polygon_network as "polygon" | "amoy")
+            : null,
+      }));
+
+    // Phase 2: PDF に貼る写真。rendered_storage_path があれば優先 (注釈焼き込み済み)、
+    // なければ storage_path (原画像)。署名 URL は短命でも PDF レンダリング中に保てば十分。
+    const photoCandidates = allImages.filter((i) => i.storage_path || i.rendered_storage_path);
+    const resolvedPhotos = await Promise.all(
+      photoCandidates.map(async (img): Promise<PdfPhoto | null> => {
+        const path = (img.rendered_storage_path as string | null) ?? (img.storage_path as string | null);
+        if (!path) return null;
+        try {
+          const { data } = await adm.storage.from(CERTIFICATE_IMAGE_BUCKET).createSignedUrl(path, 600);
+          const url = data?.signedUrl;
+          if (!url) return null;
+          return {
+            url,
+            caption: (img.file_name as string | null) ?? null,
+            annotated: !!img.annotations,
+          };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    photos = resolvedPhotos.filter((p): p is PdfPhoto => p !== null);
   }
 
   const certRow: CertRow = {
@@ -253,7 +289,7 @@ export async function GET(req: Request) {
   }
 
   // 標準デザイン（オプション未購入の全テナント共通）
-  const buf = await renderCertificatePdf(certRow, publicUrl, anchors, pdfMedia);
+  const buf = await renderCertificatePdf(certRow, publicUrl, anchors, pdfMedia, photos);
 
   return new NextResponse(new Uint8Array(buf), {
     status: 200,

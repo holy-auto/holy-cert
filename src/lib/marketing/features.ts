@@ -97,8 +97,9 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         description: "請求書をPDFで自動生成。メール送信や共有リンクで顧客に送付。未回収アラート付き。",
       },
       {
-        title: "BtoB受発注",
-        description: "他の施工店と連携。得意分野を活かした仕事の受発注がプラットフォーム上で完結。",
+        title: "BtoB受発注（オプション）",
+        description:
+          "中古車マーケット・受発注・商談管理を一体化したBtoBパック。全プラン共通の追加オプション（¥0/月）として、ご契約と同時に自動付与。",
       },
     ],
   },

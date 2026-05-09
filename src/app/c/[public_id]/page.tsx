@@ -85,6 +85,8 @@ type PublicStatusResponse = {
     sort_order?: number | null;
     created_at?: string | null;
     url?: string | null;
+    rendered_url?: string | null;
+    annotations?: unknown;
     authenticity_grade?: string | null;
     sha256?: string | null;
     polygon_tx_hash?: string | null;
@@ -551,6 +553,8 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
           images={images.map((img) => ({
             id: String(img.id ?? `${img.sort_order ?? 0}-${img.url ?? img.file_name ?? "image"}`),
             url: img.url ?? null,
+            rendered_url: img.rendered_url ?? null,
+            annotations: img.annotations,
             file_name: img.file_name ?? null,
             sort_order: img.sort_order ?? null,
           }))}

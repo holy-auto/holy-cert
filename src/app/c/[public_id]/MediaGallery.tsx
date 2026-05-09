@@ -1,10 +1,13 @@
 import CertificateVideo from "./CertificateVideo";
 import BeforeAfterSlider from "./BeforeAfterSlider";
+import AnnotatedImage from "@/components/imageMarkup/AnnotatedImage";
 import type { ResolvedCertificateMedia } from "@/lib/certificateMedia";
 
 export type GalleryImage = {
   id: string;
   url: string | null;
+  rendered_url?: string | null;
+  annotations?: unknown;
   file_name: string | null;
   sort_order: number | null;
 };
@@ -89,19 +92,21 @@ export function mergeAndSort(images: GalleryImage[], media: ResolvedCertificateM
 function ImageTile({ image }: { image: GalleryImage }) {
   if (!image.url) return null;
   const alt = image.file_name || `image_${image.sort_order ?? ""}`;
+  // 表示用 URL: 焼き込み済みがあれば優先、なければ原画像 (注釈は AnnotatedImage が SVG オーバーレイで描画)。
+  const displayUrl = String(image.rendered_url ?? image.url);
   return (
     <a
-      href={image.url}
+      href={displayUrl}
       target="_blank"
       rel="noreferrer"
       className="block rounded-xl border border-border-default p-2.5 no-underline transition-colors hover:border-accent/50 hover:bg-surface-hover"
     >
-      <img
-        src={image.url}
+      <AnnotatedImage
+        imageUrl={String(image.url)}
+        renderedUrl={image.rendered_url ?? null}
+        annotations={image.annotations}
         alt={alt}
-        className="h-[180px] w-full rounded-lg border border-border-default bg-base object-cover"
-        loading="lazy"
-        decoding="async"
+        className="block h-[180px] w-full rounded-lg border border-border-default bg-base object-cover"
       />
       <div className="mt-2 text-xs text-muted">{alt}</div>
     </a>

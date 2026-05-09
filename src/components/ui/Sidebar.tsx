@@ -223,6 +223,20 @@ const NAV_GROUPS: NavGroup[] = [
         ),
       },
       {
+        href: "/admin/service-packages",
+        label: "施工パッケージ",
+        requiredPermission: "menu_items:manage",
+        icon: (
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 7.5l-9-4.5-9 4.5m18 0l-9 4.5m9-4.5v9l-9 4.5M3 7.5v9l9 4.5m0-13.5V21"
+            />
+          </svg>
+        ),
+      },
+      {
         href: "/admin/inventory",
         label: "在庫管理",
         requiredPermission: "menu_items:manage",

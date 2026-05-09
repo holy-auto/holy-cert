@@ -107,6 +107,24 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
   // Service type (ppf | coating | maintenance | body_repair | etc)
   const service_type = String(formData.get("service_type") || "").trim() || null;
 
+  // 施工パッケージのスナップショット (任意)
+  // form 上の hidden input から取り出し、content_preset_json に保存して
+  // 「どのパッケージを元に発行されたか」を後追いできるようにする。
+  // PR-C 仕様: 案件の menu_items_json はここでは触らない (= 再展開しない)。
+  const package_id_form = String(formData.get("package_id") || "").trim() || null;
+  let package_snapshot: Record<string, unknown> | null = null;
+  if (package_id_form) {
+    try {
+      const raw = String(formData.get("package_snapshot_json") || "");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") package_snapshot = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // パッケージのトレースは optional のため、parse 失敗は無視する。
+    }
+  }
+
   if (!customer_name) return { ok: false, error: "customer_name_required" };
   if (!vehicle_id && !vehicle_maker && !model) return { ok: false, error: "vehicle_required" };
 
@@ -233,6 +251,8 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
       schema_snapshot,
       values,
       ...(film_thickness.length > 0 ? { film_thickness } : {}),
+      ...(package_id_form ? { package_id: package_id_form } : {}),
+      ...(package_snapshot ? { package_snapshot } : {}),
     },
     coating_products_json: coating_products.length > 0 ? coating_products : [],
     ppf_coverage_json: ppf_coverage.length > 0 ? ppf_coverage : [],

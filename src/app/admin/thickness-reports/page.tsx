@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { checkAdminFeature } from "@/lib/billing/adminFeatureGate";
 import PageHeader from "@/components/ui/PageHeader";
 import { formatDateTime } from "@/lib/format";
 
@@ -42,6 +43,13 @@ export default async function ThicknessReportsListPage({
 }) {
   const sp = (await searchParams) ?? {};
   const status = parseStatus(sp.status);
+
+  const gate = await checkAdminFeature("detailed_reports", "/admin/thickness-reports");
+  if (!gate.ok) {
+    if (gate.reason === "unauthorized") redirect("/login?next=/admin/thickness-reports");
+    if (gate.billing_url) redirect(gate.billing_url);
+    redirect("/admin/billing?next=/admin/thickness-reports");
+  }
 
   const supabase = await createSupabaseServerClient();
   const {
@@ -120,9 +128,7 @@ export default async function ThicknessReportsListPage({
               key={tab}
               href={`/admin/thickness-reports?status=${tab}`}
               className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                isActive
-                  ? "border-accent text-primary"
-                  : "border-transparent text-muted hover:text-secondary"
+                isActive ? "border-accent text-primary" : "border-transparent text-muted hover:text-secondary"
               }`}
             >
               {TAB_LABEL[tab]}
