@@ -319,6 +319,39 @@ export default function CertNewFormWrapper({
             console.warn("photo upload failed", uploadJson);
           } else {
             setUploadProgress(`写真 ${uploadJson.uploaded} 枚をアップロードしました`);
+
+            // Phase 2: 注釈付きの写真があれば、対応する画像 ID を引いて
+            // 注釈を保存し、焼き込みもキックする。
+            const annotations = photoRef.current?.getAnnotations() ?? [];
+            const uploadedImages: { id: string; file_name: string | null }[] = Array.isArray(uploadJson?.images)
+              ? uploadJson.images
+              : [];
+            if (annotations.length > 0 && uploadedImages.length > 0) {
+              setUploadProgress("写真の注釈を保存中…");
+              await Promise.all(
+                annotations.map(async (entry) => {
+                  const match = uploadedImages.find((img) => img.file_name === entry.fileName);
+                  if (!match) return;
+                  try {
+                    const putRes = await fetch(`/api/certificates/images/${encodeURIComponent(match.id)}/annotations`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ annotations: entry.doc }),
+                    });
+                    if (!putRes.ok) {
+                      console.warn("[markup] annotations PUT failed", await putRes.text());
+                      return;
+                    }
+                    // 焼き込みはユーザー体験を遅らせないよう fire-and-forget。
+                    fetch(`/api/certificates/images/${encodeURIComponent(match.id)}/render`, {
+                      method: "POST",
+                    }).catch((e) => console.warn("[markup] render failed", e));
+                  } catch (e) {
+                    console.warn("[markup] annotation post error", e);
+                  }
+                }),
+              );
+            }
           }
         } catch (e) {
           console.warn("photo upload error", e);

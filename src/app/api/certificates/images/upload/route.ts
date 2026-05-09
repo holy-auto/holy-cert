@@ -126,6 +126,8 @@ export async function POST(req: NextRequest) {
     // ── Upload files ───────────────────────────────────────────────
     const toUpload = files.slice(0, remaining);
     let uploaded = 0;
+    /** 成功した画像 (id, file_name) を返す。Phase 2 で注釈の post-upload 適用に使う。 */
+    const uploadedImages: { id: string; file_name: string | null }[] = [];
     // Capture the last failure so we can return a specific error to the
     // client instead of a generic "invalid format or size" message.
     let lastFailure: { code: "validation_error" | "db_error" | "internal_error"; message: string } | null = null;
@@ -211,29 +213,34 @@ export async function POST(req: NextRequest) {
               : null,
       });
 
-      const { error: insertError } = await admin.from("certificate_images").insert({
-        certificate_id: cert.id,
-        tenant_id: tenantId,
-        storage_path: storagePath,
-        file_name: file.name || `photo_${i + 1}.${ext}`,
-        content_type: mime,
-        file_size: finalBuffer.length,
-        sort_order: existing + uploaded,
-        sha256,
-        perceptual_hash: perceptualHash,
-        exif_captured_at: exif.capturedAt ? exif.capturedAt.toISOString() : null,
-        exif_device_model: exif.deviceModel,
-        exif_gps_stripped: exif.gpsStripped,
-        c2pa_manifest_cid: providers.c2pa.manifestCid,
-        c2pa_verified: providers.c2pa.verified,
-        device_attestation_provider: providers.deviceAttestation.provider,
-        device_attestation_verified: providers.deviceAttestation.verified,
-        deepfake_score: providers.deepfake.score,
-        deepfake_verdict: providers.deepfake.verdict,
-        polygon_tx_hash: providers.polygon.txHash,
-        polygon_network: providers.polygon.network,
-        authenticity_grade: grade,
-      });
+      const fileNameToStore = file.name || `photo_${i + 1}.${ext}`;
+      const { data: insertedRow, error: insertError } = await admin
+        .from("certificate_images")
+        .insert({
+          certificate_id: cert.id,
+          tenant_id: tenantId,
+          storage_path: storagePath,
+          file_name: fileNameToStore,
+          content_type: mime,
+          file_size: finalBuffer.length,
+          sort_order: existing + uploaded,
+          sha256,
+          perceptual_hash: perceptualHash,
+          exif_captured_at: exif.capturedAt ? exif.capturedAt.toISOString() : null,
+          exif_device_model: exif.deviceModel,
+          exif_gps_stripped: exif.gpsStripped,
+          c2pa_manifest_cid: providers.c2pa.manifestCid,
+          c2pa_verified: providers.c2pa.verified,
+          device_attestation_provider: providers.deviceAttestation.provider,
+          device_attestation_verified: providers.deviceAttestation.verified,
+          deepfake_score: providers.deepfake.score,
+          deepfake_verdict: providers.deepfake.verdict,
+          polygon_tx_hash: providers.polygon.txHash,
+          polygon_network: providers.polygon.network,
+          authenticity_grade: grade,
+        })
+        .select("id, file_name")
+        .single();
 
       if (insertError) {
         console.error("certificate_images insert error", insertError);
@@ -267,6 +274,13 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      if (insertedRow?.id) {
+        uploadedImages.push({
+          id: insertedRow.id as string,
+          file_name: (insertedRow.file_name as string | null) ?? null,
+        });
+      }
+
       uploaded++;
     }
 
@@ -280,7 +294,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return apiOk({ uploaded, max: maxPhotos, plan: planTier });
+    return apiOk({ uploaded, max: maxPhotos, plan: planTier, images: uploadedImages });
   } catch (e) {
     return apiInternalError(e, "image upload");
   }
