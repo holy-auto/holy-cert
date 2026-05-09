@@ -1,15 +1,21 @@
 import { test, expect } from "@playwright/test";
+import { authedRequest, hasAdminCreds, loginAsAdmin } from "./helpers/auth";
+import {
+  DEMO_CERTIFICATE_PUBLIC_ID,
+  buildSampleAnnotationDoc,
+  deleteImage,
+  postRender,
+  putAnnotations,
+  uploadFixtureImage,
+} from "./helpers/seed";
 
 /**
  * Phase 2: 写真 Image Markup の e2e。
  *
- * 既存の e2e 群 (certificate.spec.ts) と同様、無認証 API がきちんと
- * 401/403/404 で弾かれること、公開ページがクラッシュせず描画されることを
- * 確認する軽量なスモークテスト。
- *
- * フル E2E (注釈追加 → 保存 → 公開ビュー → PDF) は現状の e2e 基盤に
- * テナント・証明書・画像のシード機構が無いためスキップ。シードが入ったら
- * `test.describe.skip` を外す。
+ * 認証ゲート + 公開サーフェスのコントラクトテストに加えて、
+ * E2E_USER_EMAIL / E2E_USER_PASSWORD と setup-demo-tenant 済みの環境では
+ * 「画像アップロード → 注釈保存 → render → 公開ビュー反映」の
+ * 一気通貫を実行する。fixture が無い CI では full flow ブロックは skip される。
  */
 
 test.describe("Image Markup API authorization", () => {
@@ -30,7 +36,6 @@ test.describe("Image Markup API authorization", () => {
         data: { annotations: { not: "valid" } },
       },
     );
-    // Auth or validation error — but never 500.
     expect(res.status()).toBeLessThan(500);
   });
 
@@ -42,19 +47,49 @@ test.describe("Image Markup API authorization", () => {
 
 test.describe("Image Markup public surface", () => {
   test("public page does not crash even when annotations would render", async ({ page }) => {
-    // /c/<invalid> は 404 NotFound でも HTML が返る (Next の通常動作)。
-    // Annotated photo セクションがあるルートでも JS 例外が出ないことを確認する。
     await page.goto("/c/nonexistent-test-id");
     const status = await page.evaluate(() => document.readyState);
     expect(status).toBe("complete");
   });
 });
 
-test.describe.skip("Image Markup full flow (requires fixture)", () => {
-  test("annotation save → public view shows overlay → PDF embeds rendered image", async () => {
-    // TODO: シード機構 (テナント / 証明書 / 画像) が入ったら以下を実装。
-    //  1) ログイン → 既存画像に注釈を 1 つ追加して保存
-    //  2) 公開ビュー /c/<pid> を開き、SVG オーバーレイ (or rendered URL) を確認
-    //  3) /api/certificate/pdf?pid=<pid> を取得し、PDF にページ3 (Photos) があることを確認
+test.describe("Image Markup full flow (seeded)", () => {
+  const creds = hasAdminCreds();
+  test.skip(!creds, "Skipped: E2E_USER_EMAIL / E2E_USER_PASSWORD not set");
+
+  test("annotation save → render → public page shows annotated image", async ({ page, context, baseURL }) => {
+    test.setTimeout(60_000);
+    await loginAsAdmin(page, creds!.email, creds!.password);
+
+    const apiBase = baseURL ?? "http://localhost:3000";
+    const api = await authedRequest(context, apiBase);
+
+    let imageId: string | null = null;
+    try {
+      // 1) 既存デモ証明書に画像を 1 枚アップロード
+      const uploaded = await uploadFixtureImage(api, DEMO_CERTIFICATE_PUBLIC_ID);
+      expect(uploaded, "fixture upload should succeed (run setup-demo-tenant first)").not.toBeNull();
+      imageId = uploaded!.id;
+
+      // 2) 注釈ドキュメントを保存
+      const doc = buildSampleAnnotationDoc({ width: 1, height: 1 });
+      const annotated = await putAnnotations(api, imageId, doc);
+      expect(annotated, "annotations PUT should be 200").toBe(true);
+
+      // 3) サーバ側で SVG を焼き込み
+      const rendered = await postRender(api, imageId);
+      expect(rendered, "render POST should be 200").toBe(true);
+
+      // 4) 公開ページを開いて 200 で描画されることを確認
+      await page.goto(`/c/${DEMO_CERTIFICATE_PUBLIC_ID}`);
+      const status = await page.evaluate(() => document.readyState);
+      expect(status).toBe("complete");
+      // 「添付画像」セクションが描画されるはず
+      const heading = page.locator("text=添付画像");
+      await expect(heading).toBeVisible({ timeout: 10_000 });
+    } finally {
+      if (imageId) await deleteImage(api, imageId);
+      await api.dispose();
+    }
   });
 });
