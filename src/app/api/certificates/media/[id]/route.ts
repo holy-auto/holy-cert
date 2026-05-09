@@ -41,14 +41,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       (p): p is string => typeof p === "string" && p.length > 0,
     );
 
-    // Storage 削除は best-effort: DB 行の削除を canonical とする。
-    if (paths.length > 0) {
-      const { error: storageErr } = await admin.storage.from(CERTIFICATE_MEDIA_BUCKET).remove(paths);
-      if (storageErr) {
-        console.error("[media delete] storage remove error", storageErr);
-      }
-    }
-
+    // DB 行の削除を先に行う (canonical state)。
+    // 先に Storage を消すと、続く DB 削除が失敗した際に「DB には残っているが
+    // 参照先 Storage が消えている」破綻状態が生まれ、公開/管理画面のレンダリング
+    // を壊す。DB を真とし、Storage 削除は後段で best-effort 実行する。
     const { error: dbErr } = await admin
       .from("certificate_media")
       .delete()
@@ -56,6 +52,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       .eq("tenant_id", caller.tenantId);
 
     if (dbErr) return apiInternalError(dbErr, "media delete");
+
+    // Storage は best-effort: 失敗しても孤児ファイルが残るのみで、
+    // ユーザー体験上は削除完了として扱う。
+    if (paths.length > 0) {
+      const { error: storageErr } = await admin.storage.from(CERTIFICATE_MEDIA_BUCKET).remove(paths);
+      if (storageErr) {
+        console.error("[media delete] storage remove error", storageErr);
+      }
+    }
 
     return apiOk({ deleted: true });
   } catch (e) {

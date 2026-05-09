@@ -747,9 +747,13 @@ export async function renderCertificatePdf(
           </View>
         </View>
 
-        {/* Phase 3: 動画 / Before-After (PDF に焼ける形式に変換) */}
+        {/* Phase 3: 動画 / Before-After (PDF に焼ける形式に変換)
+            最大 6 件まで並ぶ可能性があり、mediaBlock 1 件あたり ~120pt 取るため
+            外側に wrap={false} を付けるとページ高を超えた分が React-PDF で
+            クリップされる。カード自体はページ跨ぎを許可し、個々の mediaBlock
+            にだけ wrap={false} を当ててサムネイル中央での分断のみ防ぐ。 */}
         {pdfMedia.length > 0 && (
-          <View style={styles.mediaCard} wrap={false}>
+          <View style={styles.mediaCard}>
             <Text style={styles.cardEyebrow}>Interactive Media</Text>
             <Text style={[styles.cardBody, { marginBottom: 6 }]}>
               施工の動画 / Before-After をオンライン版で確認できます。 動画はサムネイルと QR を、Before-After は 2
@@ -757,7 +761,7 @@ export async function renderCertificatePdf(
             </Text>
             {pdfMedia.map((m, idx) =>
               m.kind === "video" ? (
-                <View key={idx} style={styles.mediaBlock}>
+                <View key={idx} style={styles.mediaBlock} wrap={false}>
                   <View style={styles.mediaThumbWrap}>
                     {m.posterUrl ? (
                       <Image src={m.posterUrl} style={styles.mediaThumb} />
@@ -775,7 +779,7 @@ export async function renderCertificatePdf(
                   </View>
                 </View>
               ) : (
-                <View key={idx} style={styles.mediaBlock}>
+                <View key={idx} style={styles.mediaBlock} wrap={false}>
                   <View style={styles.mediaPair}>
                     <View style={styles.mediaPairThumb}>
                       <Image src={m.beforeUrl} style={{ width: 84, height: 100 }} />
