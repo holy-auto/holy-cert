@@ -65,6 +65,10 @@
     {
       "path": "/api/cron/onboarding-followup",
       "schedule": "30 10 * * *"
+    },
+    {
+      "path": "/api/cron/accounting-sync",
+      "schedule": "0 9,13,19 * * *"
     }
   ]
 }
