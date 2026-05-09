@@ -322,15 +322,18 @@ export default function CertNewFormWrapper({
 
             // Phase 2: 注釈付きの写真があれば、対応する画像 ID を引いて
             // 注釈を保存し、焼き込みもキックする。
+            // 紐付けはアップロード順 index で行う (ファイル名重複に強い)。
             const annotations = photoRef.current?.getAnnotations() ?? [];
-            const uploadedImages: { id: string; file_name: string | null }[] = Array.isArray(uploadJson?.images)
+            const uploadedImages: { id: string; file_name: string | null; upload_index?: number }[] = Array.isArray(
+              uploadJson?.images,
+            )
               ? uploadJson.images
               : [];
             if (annotations.length > 0 && uploadedImages.length > 0) {
               setUploadProgress("写真の注釈を保存中…");
               await Promise.all(
                 annotations.map(async (entry) => {
-                  const match = uploadedImages.find((img) => img.file_name === entry.fileName);
+                  const match = uploadedImages.find((img) => img.upload_index === entry.uploadIndex);
                   if (!match) return;
                   try {
                     const putRes = await fetch(`/api/certificates/images/${encodeURIComponent(match.id)}/annotations`, {

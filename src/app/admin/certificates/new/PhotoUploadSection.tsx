@@ -11,7 +11,12 @@ const ImageMarkupModal = dynamic(() => import("@/components/imageMarkup/ImageMar
 export type PhotoAnnotationEntry = {
   /** PhotoUploadSection の Preview と同じ id (= 配列内の通し番号)。 */
   previewId: number;
-  /** 元ファイル名 (api 側でも file.name として保存される)。 */
+  /**
+   * getFiles() で返した配列内の位置 = upload API へ multipart で送る順序。
+   * file.name が重複してもサーバ側 response の index と突き合わせ可能にする。
+   */
+  uploadIndex: number;
+  /** 元ファイル名 (api 側でも file.name として保存される)。診断用 */
   fileName: string;
   /** 注釈ドキュメント。空なら null。 */
   doc: AnnotationDocument;
@@ -52,9 +57,11 @@ const PhotoUploadSection = forwardRef<PhotoUploadHandle, Props>(function PhotoUp
     getFiles: () => previews.map((p) => p.file),
     getAnnotations: () =>
       previews
-        .filter((p) => p.annotations && p.annotations.annotations.length > 0)
-        .map((p) => ({
+        .map((p, idx) => ({ p, idx }))
+        .filter(({ p }) => p.annotations && p.annotations.annotations.length > 0)
+        .map(({ p, idx }) => ({
           previewId: p.id,
+          uploadIndex: idx,
           fileName: p.file.name,
           doc: p.annotations as AnnotationDocument,
         })),

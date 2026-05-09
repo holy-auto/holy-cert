@@ -13,6 +13,7 @@
 import { NextRequest } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
+import { CERTIFICATE_IMAGE_BUCKET } from "@/lib/certificateImages";
 import {
   apiOk,
   apiInternalError,
@@ -82,23 +83,39 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (!imageRow) return apiNotFound("画像が見つかりません。");
 
+    // annotations が null (削除) の場合のみ rendered_* もクリア + Storage 上の
+    // 焼き込み画像を削除する。更新の場合は POST /render が原子的に置き換えるため、
+    // ここでクリアすると render endpoint が「前の rendered_storage_path」を参照
+    // できなくなり、Storage に孤児が残る。
+    const previousRendered = imageRow.rendered_storage_path as string | null;
+    const updatePayload: Record<string, unknown> = {
+      annotations,
+      annotated_at: annotations ? new Date().toISOString() : null,
+      annotated_by: annotations ? caller.userId : null,
+    };
+    if (annotations === null) {
+      updatePayload.rendered_storage_path = null;
+      updatePayload.rendered_at = null;
+    }
+
     const { error: updateError } = await admin
       .from("certificate_images")
-      .update({
-        annotations: annotations,
-        annotated_at: annotations ? new Date().toISOString() : null,
-        annotated_by: annotations ? caller.userId : null,
-        // 注釈を更新したら焼き込みは陳腐化する。
-        // 次回 render 呼び出しで上書きされるよう rendered_* をクリア。
-        rendered_storage_path: null,
-        rendered_at: null,
-      })
+      .update(updatePayload)
       .eq("id", id)
       .eq("tenant_id", caller.tenantId);
 
     if (updateError) {
       console.error("[annotations PUT] update error", updateError);
       return apiInternalError(updateError, "annotations PUT");
+    }
+
+    // 削除フローのみ: DB がクリアされたあとで Storage の旧 rendered を best-effort で削除。
+    // (失敗してもユーザーには成功扱い。次回 render 時にも見落としは無いので孤児ファイルが残るのみ)
+    if (annotations === null && previousRendered) {
+      admin.storage
+        .from(CERTIFICATE_IMAGE_BUCKET)
+        .remove([previousRendered])
+        .catch((err) => console.warn("[annotations PUT] previous rendered cleanup failed", err));
     }
 
     return apiOk({

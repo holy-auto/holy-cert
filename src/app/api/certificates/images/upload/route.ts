@@ -126,8 +126,12 @@ export async function POST(req: NextRequest) {
     // ── Upload files ───────────────────────────────────────────────
     const toUpload = files.slice(0, remaining);
     let uploaded = 0;
-    /** 成功した画像 (id, file_name) を返す。Phase 2 で注釈の post-upload 適用に使う。 */
-    const uploadedImages: { id: string; file_name: string | null }[] = [];
+    /**
+     * 成功した画像を返す。`upload_index` はクライアントが送信した
+     * `photos` 配列内の位置 (0-origin) で、ファイル名が重複した場合でも
+     * 注釈の post-upload 適用を index ベースで一意に紐付けるために使う。
+     */
+    const uploadedImages: { id: string; file_name: string | null; upload_index: number }[] = [];
     // Capture the last failure so we can return a specific error to the
     // client instead of a generic "invalid format or size" message.
     let lastFailure: { code: "validation_error" | "db_error" | "internal_error"; message: string } | null = null;
@@ -278,6 +282,7 @@ export async function POST(req: NextRequest) {
         uploadedImages.push({
           id: insertedRow.id as string,
           file_name: (insertedRow.file_name as string | null) ?? null,
+          upload_index: i,
         });
       }
 
