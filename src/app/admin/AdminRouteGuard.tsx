@@ -20,6 +20,10 @@ function requiredFeatureForPath(pathname: string): FeatureKey | null {
   if (pathname.startsWith("/admin/certificates/pdf-selected")) return "pdf_zip";
   if (pathname.startsWith("/admin/certificates/pdf-one")) return "pdf_one";
 
+  // Pro 限定機能（料金プラン詳細資料 p.3 比較表）
+  if (pathname.startsWith("/admin/audit")) return "audit_log";
+  if (pathname.startsWith("/admin/thickness-reports")) return "detailed_reports";
+
   return null;
 }
 
@@ -35,7 +39,7 @@ export default function AdminRouteGuard({ children }: { children: ReactNode }) {
   // useMemo must be called unconditionally (before any early returns)
   const nextUrl = useMemo(() => {
     const qs = sp?.toString();
-    return qs ? (pathname + "?" + qs) : pathname;
+    return qs ? pathname + "?" + qs : pathname;
   }, [pathname, sp]);
 
   // Role-based access check (skip while loading to avoid false blocks)
@@ -43,9 +47,7 @@ export default function AdminRouteGuard({ children }: { children: ReactNode }) {
     return (
       <div className="space-y-3">
         <div className="glass-card p-4 text-sm glow-amber">
-          <div className="font-semibold text-warning">
-            この画面へのアクセス権限がありません。
-          </div>
+          <div className="font-semibold text-warning">この画面へのアクセス権限がありません。</div>
           <div className="mt-3">
             <Link className="btn-primary" href="/admin">
               ダッシュボードに戻る
@@ -82,7 +84,9 @@ export default function AdminRouteGuard({ children }: { children: ReactNode }) {
           <Link className="btn-primary" href={"/admin/billing?next=" + encodeURIComponent(nextUrl)}>
             {cta}
           </Link>
-          <span className="text-xs text-muted">plan: {planTier} / active: {String(isActive)}</span>
+          <span className="text-xs text-muted">
+            plan: {planTier} / active: {String(isActive)}
+          </span>
         </div>
       </div>
 

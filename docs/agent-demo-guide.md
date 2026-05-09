@@ -377,7 +377,8 @@
 
 ### 7.5 連携可能な外部サービス
 
-Stripe / Square / Google Calendar / LINE / CloudSign / Resend / Supabase / Upstash / Sentry / Vercel / Polygon
+Stripe / Google Calendar / LINE / Resend / Supabase / Upstash / Sentry / Vercel / Polygon
+（Square POS の決済フロー / CloudSign 等の外部電子署名はロードマップ）
 
 ### 7.6 モバイル対応
 
@@ -400,7 +401,7 @@ Stripe / Square / Google Calendar / LINE / CloudSign / Resend / Supabase / Upsta
 **A.** 現状はオンライン前提です。回線が不安定な現場ではモバイル API + ローカルキャッシュ運用を推奨しています。完全オフライン対応はモバイルアプリのロードマップに含まれています。
 
 ### Q4. 既存の業務システム（販売管理など）と連携できますか？
-**A.** Square OAuth、Google Calendar、CloudSign は標準連携。それ以外は CSV インポート（車両一覧）/ CSV・PDF エクスポート（保険会社）と Webhook 受信で対応します。専用 API 連携は Enterprise プランで個別対応します。
+**A.** Google Calendar、LINE は標準連携。Square POS の決済 / CloudSign 等の外部電子署名はロードマップ上で対応予定です。それ以外は CSV インポート（車両一覧）/ CSV・PDF エクスポート（保険会社）と Webhook 受信で対応します。専用 API 連携は Enterprise プランで個別対応します。
 
 ### Q5. 解約時にデータは持ち出せますか？
 **A.** 顧客 / 車両 / 証明書 / 請求書はすべて CSV / PDF でエクスポート可能です。Enterprise プランでは生 SQL ダンプの提供も検討可能です。

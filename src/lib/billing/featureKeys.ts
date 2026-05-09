@@ -19,6 +19,10 @@ export const FEATURES = {
   academy_know_how: "academy_know_how", // C-1: 公開事例のノウハウ詳細閲覧 (要約・良点・注意点)
   ai_proposal: "ai_proposal", // ヒアリング提案（既存）
   ai_follow_up_email: "ai_follow_up_email", // フォローメール（既存）
+  // ── Pro 限定機能（料金プラン詳細資料 p.3 の比較表ベース）──
+  audit_log: "audit_log", // 管理者向け監査ログ閲覧
+  api_integration: "api_integration", // 外部 API キー発行 / Webhook 連携
+  detailed_reports: "detailed_reports", // 詳細レポート (Standard は基本レポートのみ)
 } as const;
 
 export type FeatureId = keyof typeof FEATURES;

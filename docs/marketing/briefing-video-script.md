@@ -126,8 +126,8 @@ CSV・PDF 形式でのエクスポートにも対応しています。
 **ナレーション:**
 「Ledra は、業界標準の信頼性を持つサービス群と連携しています。
 
-Stripe による安全な決済、Square との売上連携、
-Google Calendar・LINE・CloudSign との自動連携。
+Stripe による安全な決済、Google Calendar・LINE との自動連携。
+電子署名は内製（ECDSA P-256）、Square 等は順次対応予定。
 
 2 要素認証（TOTP）、テナントスコープ RLS、Polygon ブロックチェーンアンカリング。
 企業レベルのセキュリティで、皆様のデータをお守りします。」

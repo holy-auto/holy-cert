@@ -18,6 +18,10 @@ pragma solidity ^0.8.24;
  * The Merkle tree must use OpenZeppelin's `StandardMerkleTree` encoding
  * (leaf = keccak256(keccak256(abi.encode(value))), sorted pairs) for
  * compatibility with off-the-shelf verifiers.
+ *
+ * Access control:
+ *   - Writes are gated by an anchorer allowlist (deployer bootstrapped).
+ *   - Owner can pause and rotate keys for emergency response.
  */
 contract LedraBatchAnchor {
     /// @notice Emitted when a batch is anchored.
@@ -30,22 +34,45 @@ contract LedraBatchAnchor {
         uint256 timestamp
     );
 
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event AnchorerSet(address indexed anchorer, bool allowed);
+    event PausedSet(bool paused);
+
     /// @notice Anchored Merkle roots → block timestamp.
     mapping(bytes32 => uint256) public roots;
 
     /// @notice Anchored Merkle roots → leaf count (for transparency).
     mapping(bytes32 => uint256) public leafCounts;
 
-    /// @notice Owner address (for potential future access control).
+    /// @notice Owner address (governance / key rotation).
     address public owner;
+
+    /// @notice Allowlist of addresses permitted to call anchorBatch().
+    mapping(address => bool) public anchorers;
+
+    /// @notice When true, write operations are blocked.
+    bool public paused;
 
     modifier onlyOwner() {
         require(msg.sender == owner, "LedraBatchAnchor: not owner");
         _;
     }
 
+    modifier onlyAnchorer() {
+        require(anchorers[msg.sender], "LedraBatchAnchor: not anchorer");
+        _;
+    }
+
+    modifier whenNotPaused() {
+        require(!paused, "LedraBatchAnchor: paused");
+        _;
+    }
+
     constructor() {
         owner = msg.sender;
+        anchorers[msg.sender] = true;
+        emit OwnershipTransferred(address(0), msg.sender);
+        emit AnchorerSet(msg.sender, true);
     }
 
     /**
@@ -54,7 +81,7 @@ contract LedraBatchAnchor {
      * @param leafCount   Number of leaves in the tree (for record).
      * @dev Idempotent — re-anchoring an existing root is a no-op.
      */
-    function anchorBatch(bytes32 merkleRoot, uint256 leafCount) external {
+    function anchorBatch(bytes32 merkleRoot, uint256 leafCount) external onlyAnchorer whenNotPaused {
         if (roots[merkleRoot] != 0) return; // Already anchored, skip
         roots[merkleRoot] = block.timestamp;
         leafCounts[merkleRoot] = leafCount;
@@ -82,11 +109,26 @@ contract LedraBatchAnchor {
         return leafCounts[merkleRoot];
     }
 
+    /// @notice Add or remove an anchorer.
+    function setAnchorer(address anchorer, bool allowed) external onlyOwner {
+        require(anchorer != address(0), "LedraBatchAnchor: zero address");
+        anchorers[anchorer] = allowed;
+        emit AnchorerSet(anchorer, allowed);
+    }
+
+    /// @notice Emergency pause / unpause.
+    function setPaused(bool _paused) external onlyOwner {
+        paused = _paused;
+        emit PausedSet(_paused);
+    }
+
     /**
      * @notice Transfer ownership (for key rotation).
      */
     function transferOwnership(address newOwner) external onlyOwner {
         require(newOwner != address(0), "LedraBatchAnchor: zero address");
+        address previousOwner = owner;
         owner = newOwner;
+        emit OwnershipTransferred(previousOwner, newOwner);
     }
 }

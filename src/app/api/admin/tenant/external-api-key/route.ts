@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requirePermission } from "@/lib/auth/checkRole";
+import { checkAdminFeature, billingDenyResponse } from "@/lib/billing/adminFeatureGate";
 import {
   apiJson,
   apiUnauthorized,
@@ -41,6 +42,9 @@ function maskKey(key: string): string {
 
 export async function GET() {
   try {
+    const gate = await checkAdminFeature("api_integration", "/admin/settings/integrations");
+    if (!gate.ok) return billingDenyResponse(gate, "api_integration", "/admin/settings/integrations");
+
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
@@ -63,6 +67,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const gate = await checkAdminFeature("api_integration", "/admin/settings/integrations");
+    if (!gate.ok) return billingDenyResponse(gate, "api_integration", "/admin/settings/integrations");
+
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
