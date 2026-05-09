@@ -7,6 +7,7 @@
  */
 
 import { NextRequest } from "next/server";
+import { createOAuthState } from "@/lib/accounting/oauthState";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
@@ -60,7 +61,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ pr
     let authUrl: string;
     try {
       authUrl = client.buildAuthUrl({
-        state: caller.tenantId,
+        state: createOAuthState({ tenantId: caller.tenantId, provider }),
         redirectUri: buildRedirectUri(provider),
       });
     } catch (e) {

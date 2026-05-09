@@ -17,6 +17,7 @@ import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { buildTokenWritePayload } from "@/lib/accounting/tokenStore";
 import { getAccountingProviderClient, isAccountingProvider } from "@/lib/accounting/registry";
 import { logger } from "@/lib/logger";
+import { verifyOAuthState } from "@/lib/accounting/oauthState";
 
 export const dynamic = "force-dynamic";
 
@@ -55,17 +56,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     return redirect(baseUrl, { provider, error: "unauthenticated" });
   }
 
+  const verifiedState = verifyOAuthState({ state, provider });
+  if (!verifiedState.ok) {
+    log.warn("callback: invalid oauth state", { provider, reason: verifiedState.reason });
+    return redirect(baseUrl, { provider, error: "invalid_state" });
+  }
+
+  const tenantId = verifiedState.tenantId;
+
   // テナントメンバーシップ確認
-  const { admin } = createTenantScopedAdmin(state);
+  const { admin } = createTenantScopedAdmin(tenantId);
   const { data: membership } = await admin
     .from("tenant_memberships")
     .select("user_id, role")
     .eq("user_id", user.id)
-    .eq("tenant_id", state)
+     .eq("tenant_id", tenantId)
     .limit(1)
     .maybeSingle();
   if (!membership) {
-    log.warn("callback: user is not a member of state tenant", { userId: user.id, tenantId: state });
+    log.warn("callback: user is not a member of state tenant", { userId: user.id, tenantId });
     return redirect(baseUrl, { provider, error: "unauthorized" });
   }
 
@@ -74,7 +83,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     return redirect(baseUrl, { provider, error: "forbidden" });
   }
 
-  const tenantId = state;
   const client = getAccountingProviderClient(provider);
   const redirectUri = `${baseUrl}/api/admin/accounting/${provider}/callback`;
 

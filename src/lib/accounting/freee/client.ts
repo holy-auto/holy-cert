@@ -81,9 +81,10 @@ async function freeeFetch<T>(opts: {
   method?: "GET" | "POST";
   accessToken?: string;
   body?: unknown;
+  contentType?: "json" | "form";
   query?: Record<string, string | number | undefined>;
 }): Promise<T> {
-  const { url, method = "GET", accessToken, body, query } = opts;
+  const { url, method = "GET", accessToken, body, query, contentType = "json" } = opts;
   let fullUrl = url;
   if (query) {
     const params = new URLSearchParams();
@@ -100,11 +101,16 @@ async function freeeFetch<T>(opts: {
     const res = await fetch(fullUrl, {
       method,
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": contentType === "form" ? "application/x-www-form-urlencoded" : "application/json",
         accept: "application/json",
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body:
+        !body
+          ? undefined
+          : contentType === "form"
+            ? new URLSearchParams(body as Record<string, string>).toString()
+            : JSON.stringify(body),
       signal: controller.signal,
     });
 
@@ -161,6 +167,7 @@ export const freeeClient: AccountingProviderClient = {
         code,
         redirect_uri: redirectUri,
       },
+      contentType: "form",
     });
     return tokensFromResponse(data);
   },
@@ -175,6 +182,7 @@ export const freeeClient: AccountingProviderClient = {
         client_secret: requireEnv("FREEE_CLIENT_SECRET"),
         refresh_token: refreshToken,
       },
+      contentType: "form",
     });
     return tokensFromResponse(data);
   },
