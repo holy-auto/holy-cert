@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getPublicCertificateData } from "@/lib/certificate/publicData";
 import CustomerActions from "./CustomerActions";
 import MediaGallery from "./MediaGallery";
+import UnifiedTimeline, { type CertEvent, type ReservationItem } from "./UnifiedTimeline";
 import HeroCard from "@/components/customer/HeroCard";
 import { highestGrade, type AuthenticityGrade } from "@/lib/anchoring/authenticityGrade";
 import { logCertificateAction } from "@/lib/audit/certificateLog";
@@ -90,6 +91,7 @@ type PublicStatusResponse = {
     polygon_network?: string | null;
   }>;
   media?: ResolvedCertificateMedia[];
+  reservations?: ReservationItem[];
   shop?: {
     name?: string | null;
     slug?: string | null;
@@ -573,27 +575,25 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
           </div>
         </section>
 
-        <section className="glass-card p-4">
-          <div className="mb-3 font-bold text-primary">履歴</div>
-
-          {(data.histories?.length ?? 0) > 0 ? (
-            <div className="grid gap-3">
-              {data.histories?.map((row) => (
-                <div key={row.id} className="rounded-xl border border-border-default bg-base p-3">
-                  <div className="font-bold text-primary">{row.title}</div>
-                  <div className="mt-1 text-xs text-muted">
-                    {formatDateTime(row.performed_at ?? row.created_at ?? null)} / {row.type}
-                  </div>
-                  {row.description ? (
-                    <div className="mt-2 whitespace-pre-wrap leading-relaxed text-secondary">{row.description}</div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-muted">履歴はありません。</div>
-          )}
-        </section>
+        <UnifiedTimeline
+          selfPublicId={data.certificate.public_id}
+          histories={(data.histories ?? []).map((h) => ({
+            id: h.id,
+            type: h.type ?? null,
+            title: h.title ?? null,
+            description: h.description ?? null,
+            performed_at: h.performed_at ?? null,
+            created_at: h.created_at ?? null,
+          }))}
+          certs={(data.vehicle_certificates ?? []).map<CertEvent>((vc) => ({
+            id: String(vc.id ?? vc.public_id ?? ""),
+            publicId: String(vc.public_id ?? ""),
+            status: vc.status ?? null,
+            customerName: vc.customer_name ?? null,
+            createdAt: vc.created_at ?? null,
+          }))}
+          reservations={!isVoidCertificate ? (data.reservations ?? []) : []}
+        />
       </div>
 
       {!isVoidCertificate ? (

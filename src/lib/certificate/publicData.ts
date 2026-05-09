@@ -5,6 +5,21 @@ import {
   type ResolvedCertificateMedia,
 } from "@/lib/certificateMedia";
 
+/**
+ * scheduled_date (YYYY-MM-DD) と start_time (HH:MM[:SS]) を ISO 8601 文字列に
+ * 結合する。両方欠ける場合は created_at にフォールバック (timeline 並び順用)。
+ */
+export function combineScheduledAt(date: string | null, time: string | null, fallback: string | null): string | null {
+  if (!date) return fallback;
+  const trimmedTime = time && /^\d{1,2}:\d{2}/.test(time) ? time : "00:00";
+  // start_time may include seconds ("09:30:00") or microseconds; trim to HH:MM
+  const hhmm = trimmedTime.slice(0, 5);
+  const iso = `${date}T${hhmm}:00`;
+  const parsed = new Date(iso);
+  if (isNaN(parsed.getTime())) return fallback;
+  return parsed.toISOString();
+}
+
 /** Mask customer name for public display: 山田太郎 → 山田●● */
 export function maskName(name: string | null): string | null {
   if (!name) return null;
@@ -81,6 +96,23 @@ type HistoryRow = {
   created_at: string | null;
 };
 
+type ReservationRow = {
+  id: string;
+  title: string | null;
+  status: string | null;
+  scheduled_date: string | null;
+  start_time: string | null;
+  created_at: string | null;
+};
+
+/** 公開向けに簡素化した予約レコード (customer 情報や担当者は含まない)。 */
+export type PublicReservation = {
+  id: string;
+  title: string | null;
+  status: string | null;
+  scheduled_at: string | null;
+};
+
 type ImageRow = {
   id: string;
   file_name: string | null;
@@ -118,6 +150,7 @@ export type PublicCertificateData = {
   histories: HistoryRow[];
   images: (ImageRow & { url: string | null })[];
   media: ResolvedCertificateMedia[];
+  reservations: PublicReservation[];
   vehicle_certificates: (Omit<VehicleCertRow, "content_free_text"> & {
     content_free_text?: undefined;
     customer_name: string | null;
@@ -160,7 +193,7 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
   const cert = certRes.data;
   if (!cert?.tenant_id) return null;
 
-  const [tenantRes, vehicleRes, nfcRes, histRes, imgRes, vcRes, mediaRes] = await Promise.all([
+  const [tenantRes, vehicleRes, nfcRes, histRes, imgRes, vcRes, mediaRes, reservationsRes] = await Promise.all([
     supabase
       .from("tenants")
       .select("name, slug, custom_domain")
@@ -226,6 +259,17 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
       .order("sort_order", { ascending: true })
       .limit(50)
       .returns<CertificateMediaRow[]>(),
+
+    cert.vehicle_id
+      ? supabase
+          .from("reservations")
+          .select("id, title, status, scheduled_date, start_time, created_at")
+          .eq("vehicle_id", cert.vehicle_id)
+          .in("status", ["arrived", "in_progress", "completed"])
+          .order("scheduled_date", { ascending: false })
+          .limit(20)
+          .returns<ReservationRow[]>()
+      : Promise.resolve({ data: [] as ReservationRow[], error: null }),
   ]);
 
   const tenant = tenantRes.data ?? null;
@@ -264,6 +308,17 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
     mediaRows.map((row) => resolveCertificateMedia(supabase, row)),
   );
 
+  // reservations: 来店以降のステータスのみ公開対象。日時は scheduled_date + start_time
+  // から ISO 文字列に整形して、UnifiedTimeline 側でソートできるようにする。
+  const reservations: PublicReservation[] = (
+    !reservationsRes.error && reservationsRes.data && !isVoid ? reservationsRes.data : []
+  ).map((r) => ({
+    id: r.id,
+    title: r.title,
+    status: r.status,
+    scheduled_at: combineScheduledAt(r.scheduled_date, r.start_time, r.created_at),
+  }));
+
   const vehicleServiceHistoryCount = vehicle_certificates.length;
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/c/${cert.public_id}`;
 
@@ -290,6 +345,7 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
     histories,
     images,
     media,
+    reservations,
     vehicle_certificates: vehicle_certificates.map((vc) => ({
       ...vc,
       content_free_text: undefined as undefined,

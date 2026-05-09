@@ -69,6 +69,26 @@ export type AnchorInfo = {
 /** PDF 本体に QR を載せる最大枚数。これ以上は "+N more" 表記にする */
 const MAX_ANCHOR_QR = 4;
 
+/** PDF にレイアウトする interactive media (動画 / Before-After) の上限 */
+const MAX_PDF_MEDIA = 6;
+
+/**
+ * PDF に焼き込む interactive media (Phase 3)。
+ * 動画は PDF に直接埋め込めないので、poster 画像 + QR を表示する。
+ * Before-After は After / Before の 2 枚を並列レイアウトする。
+ */
+export type PdfMediaInfo = {
+  kind: "video" | "before_after";
+  /** 動画の poster 画像 URL (kind = video のときのみ使う) */
+  posterUrl?: string | null;
+  /** Before 画像 URL (kind = before_after) */
+  beforeUrl?: string | null;
+  /** After 画像 URL (kind = before_after — 主たる画像) */
+  afterUrl?: string | null;
+  /** PDF 表示用キャプション */
+  caption?: string | null;
+};
+
 const colors = {
   bg: "#060a12",
   bgCard: "#0b111c",
@@ -298,6 +318,64 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     marginTop: 2,
   },
+  // Phase 3 interactive media (video poster + QR / Before-After 2-up)
+  mediaCard: {
+    backgroundColor: colors.bgCardAlt,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+  },
+  mediaBlock: {
+    flexDirection: "row",
+    gap: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderTopWidth: 0.5,
+    borderTopColor: "#141d2e",
+  },
+  mediaThumbWrap: {
+    width: 168,
+    height: 100,
+    borderRadius: 6,
+    overflow: "hidden",
+    backgroundColor: colors.bg,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+  },
+  mediaThumb: {
+    width: 168,
+    height: 100,
+  },
+  mediaQrOuter: {
+    padding: 5,
+    borderRadius: 6,
+    backgroundColor: "#ffffff",
+  },
+  mediaQr: {
+    width: 56,
+    height: 56,
+  },
+  mediaMeta: {
+    flex: 1,
+  },
+  mediaCaption: {
+    fontSize: 9.5,
+    color: colors.text,
+    marginTop: 4,
+  },
+  mediaPair: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  mediaPairThumb: {
+    width: 84,
+    height: 100,
+    borderRadius: 4,
+    overflow: "hidden",
+    backgroundColor: colors.bg,
+  },
   // Tagline
   tagline: {
     fontSize: 11,
@@ -405,6 +483,76 @@ async function buildAnchorQrs(
   );
 }
 
+/**
+ * Phase 3: 動画 / Before-After media を PDF レイアウト用に解釈し、
+ * 動画には 公開ページ URL を指す QR を 1 つ生成する。
+ * Before-After は 2 枚の画像 URL をそのまま流す (QR は不要)。
+ */
+async function buildPdfMedia(
+  media: PdfMediaInfo[] | undefined,
+  publicUrl: string,
+): Promise<
+  Array<
+    | {
+        kind: "video";
+        posterUrl: string | null;
+        qrDataUrl: string;
+        caption: string | null;
+      }
+    | {
+        kind: "before_after";
+        beforeUrl: string;
+        afterUrl: string;
+        caption: string | null;
+      }
+  >
+> {
+  if (!media || media.length === 0) return [];
+  const capped = media.slice(0, MAX_PDF_MEDIA);
+  return Promise.all(
+    capped.map(
+      async (
+        m,
+      ): Promise<
+        | { kind: "video"; posterUrl: string | null; qrDataUrl: string; caption: string | null }
+        | { kind: "before_after"; beforeUrl: string; afterUrl: string; caption: string | null }
+        | null
+      > => {
+        if (m.kind === "video") {
+          const qrDataUrl = await QRCode.toDataURL(publicUrl, {
+            errorCorrectionLevel: "M",
+            margin: 1,
+            width: 200,
+          });
+          return {
+            kind: "video",
+            posterUrl: m.posterUrl ?? null,
+            qrDataUrl,
+            caption: m.caption ?? null,
+          };
+        }
+        if (m.kind === "before_after" && m.beforeUrl && m.afterUrl) {
+          return {
+            kind: "before_after",
+            beforeUrl: m.beforeUrl,
+            afterUrl: m.afterUrl,
+            caption: m.caption ?? null,
+          };
+        }
+        return null;
+      },
+    ),
+  ).then((rows) =>
+    rows.filter(
+      (
+        r,
+      ): r is
+        | { kind: "video"; posterUrl: string | null; qrDataUrl: string; caption: string | null }
+        | { kind: "before_after"; beforeUrl: string; afterUrl: string; caption: string | null } => r !== null,
+    ),
+  );
+}
+
 function normValue(v: unknown): string | null {
   if (v === undefined || v === null) return null;
   if (Array.isArray(v)) {
@@ -452,7 +600,12 @@ function buildPresetLines(schema: TemplateSchema | null, values: Record<string, 
   return lines;
 }
 
-export async function renderCertificatePdf(row: CertRow, publicUrl: string, anchors?: AnchorInfo[]) {
+export async function renderCertificatePdf(
+  row: CertRow,
+  publicUrl: string,
+  anchors?: AnchorInfo[],
+  media?: PdfMediaInfo[],
+) {
   const preset = row.content_preset_json ?? {};
   // content_preset_json は DB JSON カラムのため動的。TemplateSchema /
   // Record<string, unknown> に narrow するため unknown 経由で cast する。
@@ -483,6 +636,7 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string, anch
 
   const qrDataUrl = await QRCode.toDataURL(publicUrl, { margin: 1, width: 220 });
   const anchorQrs = await buildAnchorQrs(anchors);
+  const pdfMedia = await buildPdfMedia(media, publicUrl);
   const totalAnchored = (anchors ?? []).filter(
     (a) => typeof a.polygon_tx_hash === "string" && a.polygon_tx_hash.length > 0,
   ).length;
@@ -592,6 +746,56 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string, anch
             </View>
           </View>
         </View>
+
+        {/* Phase 3: 動画 / Before-After (PDF に焼ける形式に変換) */}
+        {pdfMedia.length > 0 && (
+          <View style={styles.mediaCard} wrap={false}>
+            <Text style={styles.cardEyebrow}>Interactive Media</Text>
+            <Text style={[styles.cardBody, { marginBottom: 6 }]}>
+              施工の動画 / Before-After をオンライン版で確認できます。 動画はサムネイルと QR を、Before-After は 2
+              枚並列で同梱しています。
+            </Text>
+            {pdfMedia.map((m, idx) =>
+              m.kind === "video" ? (
+                <View key={idx} style={styles.mediaBlock}>
+                  <View style={styles.mediaThumbWrap}>
+                    {m.posterUrl ? (
+                      <Image src={m.posterUrl} style={styles.mediaThumb} />
+                    ) : (
+                      <Text style={{ fontSize: 9, color: colors.dim, padding: 8 }}>動画 (poster なし)</Text>
+                    )}
+                  </View>
+                  <View style={styles.mediaMeta}>
+                    <Text style={{ fontSize: 9.5, color: colors.text, fontWeight: 700 }}>動画 #{idx + 1}</Text>
+                    {m.caption ? <Text style={styles.mediaCaption}>{m.caption}</Text> : null}
+                    <Text style={{ fontSize: 8.5, color: colors.dim, marginTop: 4 }}>QR で公開ページへアクセス</Text>
+                  </View>
+                  <View style={styles.mediaQrOuter}>
+                    <Image src={m.qrDataUrl} style={styles.mediaQr} />
+                  </View>
+                </View>
+              ) : (
+                <View key={idx} style={styles.mediaBlock}>
+                  <View style={styles.mediaPair}>
+                    <View style={styles.mediaPairThumb}>
+                      <Image src={m.beforeUrl} style={{ width: 84, height: 100 }} />
+                    </View>
+                    <View style={styles.mediaPairThumb}>
+                      <Image src={m.afterUrl} style={{ width: 84, height: 100 }} />
+                    </View>
+                  </View>
+                  <View style={styles.mediaMeta}>
+                    <Text style={{ fontSize: 9.5, color: colors.text, fontWeight: 700 }}>
+                      Before / After #{idx + 1}
+                    </Text>
+                    {m.caption ? <Text style={styles.mediaCaption}>{m.caption}</Text> : null}
+                    <Text style={{ fontSize: 8.5, color: colors.dim, marginTop: 4 }}>左: Before / 右: After</Text>
+                  </View>
+                </View>
+              ),
+            )}
+          </View>
+        )}
 
         {/* Tamper Proof · Polygon Anchoring — 改ざん防止の根拠（前面に配置） */}
         {anchorQrs.length > 0 && (
