@@ -345,6 +345,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/admin/invoices": "invoices:view",
   "/admin/management": "management:view",
   "/admin/menu-items": "menu_items:manage",
+  "/admin/service-packages": "menu_items:manage",
   "/admin/inventory": "menu_items:manage",
   "/admin/templates": "templates:manage",
   "/admin/members": "members:view",
