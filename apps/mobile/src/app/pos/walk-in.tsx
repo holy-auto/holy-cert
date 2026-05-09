@@ -282,7 +282,7 @@ export default function WalkInCheckoutScreen() {
             body: {
               amount: total,
               tenant_id: user!.tenantId,
-              store_id: selectedStore?.id || null,
+              store_id: selectedStore?.id ?? "",
             },
           },
         );

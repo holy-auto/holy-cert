@@ -251,7 +251,7 @@ export default function PosCheckoutScreen() {
               amount: total,
               reservation_id: id,
               tenant_id: user!.tenantId,
-              store_id: selectedStore?.id || null,
+              store_id: selectedStore?.id ?? "",
             },
           }
         );
