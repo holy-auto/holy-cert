@@ -1,8 +1,15 @@
 import { NextRequest } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { resolveCallerWithRole } from "@/lib/auth/checkRole";
-import { apiJson, apiUnauthorized, apiNotFound, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
+import {
+  apiJson,
+  apiUnauthorized,
+  apiForbidden,
+  apiNotFound,
+  apiValidationError,
+  apiInternalError,
+} from "@/lib/api/response";
 import { servicePackageUpdateSchema } from "@/lib/validations/service-package";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +55,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
@@ -91,7 +99,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         }
       }
 
-      // 既存 items を全削除して入れ直す (UI 側は全置換セマンティクス)
+      // 全置換セマンティクス。supabase-js にトランザクションがないため、
+      // delete 前に既存行のスナップショットを取り、reinsert 失敗時に復元する。
+      const { data: snapshot, error: snapErr } = await admin
+        .from("service_package_items")
+        .select("menu_item_id, quantity, override_unit_price, sort_order, is_archived")
+        .eq("package_id", id)
+        .eq("tenant_id", caller.tenantId);
+      if (snapErr) return apiInternalError(snapErr, "service-package-items snapshot");
+
       const { error: delErr } = await admin
         .from("service_package_items")
         .delete()
@@ -109,7 +125,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           sort_order: it.sort_order ?? idx,
         }));
         const { error: insErr } = await admin.from("service_package_items").insert(rows);
-        if (insErr) return apiInternalError(insErr, "service-package-items reinsert");
+        if (insErr) {
+          if ((snapshot ?? []).length > 0) {
+            const restoreRows = (snapshot ?? []).map((r) => ({
+              package_id: id,
+              tenant_id: caller.tenantId,
+              menu_item_id: r.menu_item_id as string,
+              quantity: r.quantity as number,
+              override_unit_price: r.override_unit_price as number | null,
+              sort_order: r.sort_order as number,
+              is_archived: r.is_archived as boolean,
+            }));
+            await admin.from("service_package_items").insert(restoreRows);
+          }
+          return apiInternalError(insErr, "service-package-items reinsert");
+        }
       }
     }
 
@@ -125,6 +155,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const supabase = await createSupabaseServerClient();
     const caller = await resolveCallerWithRole(supabase);
     if (!caller) return apiUnauthorized();
+    if (!requireMinRole(caller, "staff")) return apiForbidden();
 
     const { id } = await params;
     const { admin } = createTenantScopedAdmin(caller.tenantId);

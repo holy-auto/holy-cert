@@ -12,6 +12,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn().mockResolvedValue({}) }));
 vi.mock("@/lib/auth/checkRole", () => ({
   resolveCallerWithRole: mocks.resolveCallerWithRole,
+  requireMinRole: (caller: { role: string }, minRole: string) => {
+    const rank: Record<string, number> = { super_admin: 5, owner: 4, admin: 3, staff: 2, viewer: 1 };
+    return (rank[caller.role] ?? 0) >= (rank[minRole] ?? 0);
+  },
 }));
 vi.mock("@/lib/supabase/admin", () => ({ createTenantScopedAdmin: mocks.createTenantScopedAdmin }));
 vi.mock("@/lib/logger", () => ({
@@ -26,6 +30,7 @@ import { GET as detailGET, DELETE as detailDELETE } from "@/app/api/admin/servic
 const TENANT_A = "11111111-1111-1111-1111-111111111111";
 const TENANT_B = "22222222-2222-2222-2222-222222222222";
 const ADMIN_A = { userId: "u1", tenantId: TENANT_A, role: "admin", planTier: "pro" };
+const VIEWER_A = { userId: "u2", tenantId: TENANT_A, role: "viewer", planTier: "pro" };
 
 beforeEach(() => {
   Object.values(mocks).forEach((m) => "mockReset" in m && m.mockReset());
@@ -214,6 +219,18 @@ describe("GET /api/admin/service-packages", () => {
 });
 
 describe("POST /api/admin/service-packages", () => {
+  it("403 when caller role is below staff", async () => {
+    mocks.resolveCallerWithRole.mockResolvedValueOnce(VIEWER_A);
+    const res = await POST(
+      makeReq("http://localhost/api/admin/service-packages", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "x", items: [] }),
+      }),
+    );
+    expect(res.status).toBe(403);
+  });
+
   it("rejects payload referencing menu_item_id from another tenant", async () => {
     mocks.resolveCallerWithRole.mockResolvedValueOnce(ADMIN_A);
     mocks.createTenantScopedAdmin.mockReturnValueOnce({
