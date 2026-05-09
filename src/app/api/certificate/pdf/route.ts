@@ -5,7 +5,14 @@ import { logCertificateAction, getRequestMeta } from "@/lib/audit/certificateLog
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { apiJson, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
 import { renderBrandedCertificatePdf } from "@/lib/template-options/renderBrandedCertificate";
-import { renderCertificatePdf, type CertRow, type AnchorInfo, type PdfPhoto } from "@/lib/pdfCertificate";
+import {
+  renderCertificatePdf,
+  type CertRow,
+  type AnchorInfo,
+  type PdfMediaInfo,
+  type PdfPhoto,
+} from "@/lib/pdfCertificate";
+import { loadPublicCertificateMedia } from "@/lib/certificateMedia/loadPublic";
 import { CERTIFICATE_IMAGE_BUCKET } from "@/lib/certificateImages";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { logger } from "@/lib/logger";
@@ -261,8 +268,28 @@ export async function GET(req: Request) {
     console.error("branded template fallback:", brandErr instanceof Error ? brandErr.message : brandErr);
   }
 
+  // Phase 3: interactive media (動画 / Before-After) を PDF に焼き込む。
+  // 動画は poster + 公開ページ URL の QR、Before-After は 2 枚並列。
+  let pdfMedia: PdfMediaInfo[] = [];
+  try {
+    const resolved = await loadPublicCertificateMedia(pid);
+    pdfMedia = resolved
+      .map<PdfMediaInfo | null>((m) => {
+        if (m.media_type === "video") {
+          return { kind: "video", posterUrl: m.poster_url, caption: m.caption };
+        }
+        if (m.media_type === "before_after" && m.before_url && m.url) {
+          return { kind: "before_after", beforeUrl: m.before_url, afterUrl: m.url, caption: m.caption };
+        }
+        return null;
+      })
+      .filter((m): m is PdfMediaInfo => m !== null);
+  } catch (e) {
+    console.warn("[pdf] media load failed", e instanceof Error ? e.message : e);
+  }
+
   // 標準デザイン（オプション未購入の全テナント共通）
-  const buf = await renderCertificatePdf(certRow, publicUrl, anchors, photos);
+  const buf = await renderCertificatePdf(certRow, publicUrl, anchors, pdfMedia, photos);
 
   return new NextResponse(new Uint8Array(buf), {
     status: 200,

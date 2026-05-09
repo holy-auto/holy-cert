@@ -109,12 +109,16 @@ export function buildFakeVideoBuffer(): Buffer {
   return Buffer.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32]);
 }
 
+/**
+ * before_after メディアをアップロード。
+ * `/api/certificates/[id]/media` の `id` パスパラメータは **public_id**。
+ */
 export async function uploadBeforeAfterMedia(
   request: APIRequestContext,
-  certificateId: string,
+  publicId: string,
 ): Promise<{ id: string } | null> {
   const buf = readPixelPng();
-  const res = await request.post(`/api/certificates/${certificateId}/media`, {
+  const res = await request.post(`/api/certificates/${encodeURIComponent(publicId)}/media`, {
     multipart: {
       media_type: "before_after",
       file: { name: "after.png", mimeType: "image/png", buffer: buf },

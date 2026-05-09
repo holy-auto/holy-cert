@@ -11,7 +11,9 @@ import CertEditForm from "./CertEditForm";
 import CertEditHistory from "./CertEditHistory";
 import CertImageUpload from "./CertImageUpload";
 import CertImageDeleteButton from "./CertImageDeleteButton";
+import MediaUploadSection from "./MediaUploadSection";
 import PhotoTamperingPanel from "./PhotoTamperingPanel";
+import { resolveCertificateMedia, type CertificateMediaRow } from "@/lib/certificateMedia";
 import AnnotateExistingImageButton from "@/components/imageMarkup/AnnotateExistingImageButton";
 import { isAnnotationDocument, type AnnotationDocument } from "@/components/imageMarkup/types";
 import { formatDateTime } from "@/lib/format";
@@ -142,6 +144,26 @@ export default async function Page({ params }: PageProps) {
   // Aggregate blockchain stats for summary panel
   const anchoredCount = images.filter((i) => !!i.polygon_tx_hash).length;
   const pendingAnchorCount = images.filter((i) => !!i.sha256 && !i.polygon_tx_hash).length;
+
+  // Phase 3 — interactive media (video / before_after / panorama360)
+  const { data: mediaRowsRaw } = await admin
+    .from("certificate_media")
+    .select(
+      "id, media_type, storage_path, before_path, poster_path, duration_ms, width, height, caption, sort_order, content_type, file_size, created_at",
+    )
+    .eq("certificate_id", row.id)
+    .order("sort_order", { ascending: true })
+    .returns<CertificateMediaRow[]>();
+  const mediaResolved = await Promise.all((mediaRowsRaw ?? []).map((m) => resolveCertificateMedia(admin, m)));
+  const adminMedia = mediaResolved.map((m) => ({
+    id: m.id,
+    media_type: m.media_type,
+    caption: m.caption,
+    url: m.url,
+    before_url: m.before_url,
+    poster_url: m.poster_url,
+    sort_order: m.sort_order,
+  }));
 
   // Plan tier → photo upload limit
   const { data: tenantRow } = await admin
@@ -491,6 +513,8 @@ export default async function Page({ params }: PageProps) {
               <div className="rounded-xl bg-base p-4 text-sm text-muted">添付画像はありません。</div>
             )}
           </section>
+
+          {!isVoid && <MediaUploadSection publicId={row.public_id as string} existing={adminMedia} />}
         </div>
 
         <aside className="space-y-6">
