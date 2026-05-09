@@ -1,7 +1,7 @@
 "use client";
 import { parseJsonSafe } from "@/lib/api/safeJson";
 
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
 import Badge from "@/components/ui/Badge";
@@ -9,6 +9,7 @@ import EmptyStateGuide from "@/components/ui/EmptyStateGuide";
 import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
 import { formatJpy } from "@/lib/format";
 import { fetcher } from "@/lib/swr";
+import MenuItemPackagesPanel from "./MenuItemPackagesPanel";
 
 /* ---------- Types ---------- */
 
@@ -63,6 +64,16 @@ export default function MenuItemsClient() {
 
   // Delete
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // 「このメニューを使うパッケージ」逆引きの展開状態
+  const [packagesOpen, setPackagesOpen] = useState<Set<string>>(new Set());
+  const togglePackages = (id: string) =>
+    setPackagesOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   // CSV import
   const [showCsv, setShowCsv] = useState(false);
@@ -485,106 +496,131 @@ export default function MenuItemsClient() {
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
                   {(data.items ?? []).map((item) => (
-                    <tr key={item.id} className="hover:bg-surface-hover/60">
-                      {editingId === item.id ? (
-                        /* Inline Edit Row */
-                        <>
-                          <td className="px-5 py-3">
-                            <input
-                              type="text"
-                              className="input-field py-1 text-sm"
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                            />
-                          </td>
-                          <td className="hidden sm:table-cell px-5 py-3">
-                            <input
-                              type="text"
-                              className="input-field py-1 text-sm"
-                              value={editDescription}
-                              onChange={(e) => setEditDescription(e.target.value)}
-                            />
-                          </td>
-                          <td className="px-5 py-3">
-                            <input
-                              type="number"
-                              className="input-field py-1 text-sm"
-                              min="0"
-                              value={editUnitPrice}
-                              onChange={(e) => setEditUnitPrice(e.target.value)}
-                            />
-                          </td>
-                          <td className="hidden sm:table-cell px-5 py-3">
-                            <select
-                              className="select-field py-1 text-sm"
-                              value={editTaxCategory}
-                              onChange={(e) => setEditTaxCategory(e.target.value)}
-                            >
-                              <option value="10">10%</option>
-                              <option value="8">8%</option>
-                            </select>
-                          </td>
-                          <td className="hidden sm:table-cell px-5 py-3">
-                            <Badge variant={item.is_active ? "success" : "default"}>
-                              {item.is_active ? "有効" : "無効"}
-                            </Badge>
-                          </td>
-                          <td className="px-5 py-3">
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                className="btn-primary px-3 py-1 text-xs"
-                                disabled={editSaving || !editName.trim()}
-                                onClick={handleEdit}
+                    <Fragment key={item.id}>
+                      <tr className="hover:bg-surface-hover/60">
+                        {editingId === item.id ? (
+                          /* Inline Edit Row */
+                          <>
+                            <td className="px-5 py-3">
+                              <input
+                                type="text"
+                                className="input-field py-1 text-sm"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                              />
+                            </td>
+                            <td className="hidden sm:table-cell px-5 py-3">
+                              <input
+                                type="text"
+                                className="input-field py-1 text-sm"
+                                value={editDescription}
+                                onChange={(e) => setEditDescription(e.target.value)}
+                              />
+                            </td>
+                            <td className="px-5 py-3">
+                              <input
+                                type="number"
+                                className="input-field py-1 text-sm"
+                                min="0"
+                                value={editUnitPrice}
+                                onChange={(e) => setEditUnitPrice(e.target.value)}
+                              />
+                            </td>
+                            <td className="hidden sm:table-cell px-5 py-3">
+                              <select
+                                className="select-field py-1 text-sm"
+                                value={editTaxCategory}
+                                onChange={(e) => setEditTaxCategory(e.target.value)}
                               >
-                                {editSaving ? "保存中…" : "保存"}
-                              </button>
-                              <button type="button" className="btn-ghost px-3 py-1 text-xs" onClick={cancelEdit}>
-                                取消
-                              </button>
-                            </div>
-                          </td>
-                        </>
-                      ) : (
-                        /* Display Row */
-                        <>
-                          <td className="px-5 py-3.5 font-medium text-primary">{item.name}</td>
-                          <td className="hidden sm:table-cell px-5 py-3.5 text-secondary">{item.description ?? "-"}</td>
-                          <td className="px-5 py-3.5 font-medium text-primary whitespace-nowrap">
-                            {item.unit_price != null ? formatJpy(item.unit_price) : "-"}
-                          </td>
-                          <td className="hidden sm:table-cell px-5 py-3.5 text-secondary">
-                            {item.tax_category != null ? `${item.tax_category}%` : "-"}
-                          </td>
-                          <td className="hidden sm:table-cell px-5 py-3.5">
-                            <Badge variant={item.is_active ? "success" : "default"}>
-                              {item.is_active ? "有効" : "無効"}
-                            </Badge>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                className="btn-ghost px-3 py-1 text-xs"
-                                onClick={() => startEdit(item)}
-                              >
-                                編集
-                              </button>
-                              {item.is_active && (
+                                <option value="10">10%</option>
+                                <option value="8">8%</option>
+                              </select>
+                            </td>
+                            <td className="hidden sm:table-cell px-5 py-3">
+                              <Badge variant={item.is_active ? "success" : "default"}>
+                                {item.is_active ? "有効" : "無効"}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-3">
+                              <div className="flex gap-2">
                                 <button
                                   type="button"
-                                  className="btn-danger px-3 py-1 text-xs"
-                                  disabled={deletingId === item.id}
-                                  onClick={() => handleDelete(item.id)}
+                                  className="btn-primary px-3 py-1 text-xs"
+                                  disabled={editSaving || !editName.trim()}
+                                  onClick={handleEdit}
                                 >
-                                  {deletingId === item.id ? "無効化中…" : "無効化"}
+                                  {editSaving ? "保存中…" : "保存"}
                                 </button>
-                              )}
+                                <button type="button" className="btn-ghost px-3 py-1 text-xs" onClick={cancelEdit}>
+                                  取消
+                                </button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          /* Display Row */
+                          <>
+                            <td className="px-5 py-3.5 font-medium text-primary">{item.name}</td>
+                            <td className="hidden sm:table-cell px-5 py-3.5 text-secondary">
+                              {item.description ?? "-"}
+                            </td>
+                            <td className="px-5 py-3.5 font-medium text-primary whitespace-nowrap">
+                              {item.unit_price != null ? formatJpy(item.unit_price) : "-"}
+                            </td>
+                            <td className="hidden sm:table-cell px-5 py-3.5 text-secondary">
+                              {item.tax_category != null ? `${item.tax_category}%` : "-"}
+                            </td>
+                            <td className="hidden sm:table-cell px-5 py-3.5">
+                              <Badge variant={item.is_active ? "success" : "default"}>
+                                {item.is_active ? "有効" : "無効"}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  className="btn-ghost px-3 py-1 text-xs"
+                                  onClick={() => startEdit(item)}
+                                >
+                                  編集
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-ghost px-3 py-1 text-xs"
+                                  onClick={() => togglePackages(item.id)}
+                                  aria-expanded={packagesOpen.has(item.id)}
+                                  data-testid={`menu-item-packages-toggle-${item.id}`}
+                                >
+                                  {packagesOpen.has(item.id) ? "▾ パッケージを隠す" : "▸ 使用パッケージ"}
+                                </button>
+                                {item.is_active && (
+                                  <button
+                                    type="button"
+                                    className="btn-danger px-3 py-1 text-xs"
+                                    disabled={deletingId === item.id}
+                                    onClick={() => handleDelete(item.id)}
+                                  >
+                                    {deletingId === item.id ? "無効化中…" : "無効化"}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                      {packagesOpen.has(item.id) && (
+                        <tr className="bg-inset">
+                          <td colSpan={6} className="px-5 py-3">
+                            <div className="text-[10px] font-semibold tracking-[0.18em] text-muted">
+                              この品目を使うパッケージ
+                            </div>
+                            <div className="mt-2">
+                              <MenuItemPackagesPanel menuItemId={item.id} />
                             </div>
                           </td>
-                        </>
+                        </tr>
                       )}
-                    </tr>
+                    </Fragment>
                   ))}
                   {(data.items ?? []).length === 0 && (
                     <tr>

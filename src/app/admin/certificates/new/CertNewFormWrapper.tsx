@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createCertAction } from "./actions";
+import CertPackagePicker from "./CertPackagePicker";
 import VehiclePickerSection from "./VehiclePickerSection";
 import FilmThicknessSection from "./FilmThicknessSection";
 import CoatingProductsSection from "./CoatingProductsSection";
@@ -65,6 +66,7 @@ export type Template = {
   id: string;
   name: string;
   schema_json: TemplateSchema | null;
+  category?: string | null;
 };
 
 type Props = {
@@ -395,6 +397,11 @@ export default function CertNewFormWrapper({
         <input type="hidden" name="template_name" value={selectedTemplate?.name ?? ""} />
         {defaultCustomerId && <input type="hidden" name="customer_id" value={defaultCustomerId} />}
         {serviceType && <input type="hidden" name="service_type" value={serviceType} />}
+
+        {/* ━━━ 0. 施工パッケージ ━━━ */}
+        <section className="pb-6">
+          <CertPackagePicker templates={templates} currentTemplateId={tid} />
+        </section>
 
         {/* ━━━ 1. 車種選択 ━━━ */}
         <section data-vehicle-picker className="pb-6">
