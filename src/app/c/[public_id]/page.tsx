@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getPublicCertificateData } from "@/lib/certificate/publicData";
+import AnnotatedImage from "@/components/imageMarkup/AnnotatedImage";
 import CustomerActions from "./CustomerActions";
 import HeroCard from "@/components/customer/HeroCard";
 import { highestGrade, type AuthenticityGrade } from "@/lib/anchoring/authenticityGrade";
@@ -82,6 +83,8 @@ type PublicStatusResponse = {
     sort_order?: number | null;
     created_at?: string | null;
     url?: string | null;
+    rendered_url?: string | null;
+    annotations?: unknown;
     authenticity_grade?: string | null;
     sha256?: string | null;
     polygon_tx_hash?: string | null;
@@ -231,11 +234,15 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
         >
           <div>
             <div className="text-sm font-semibold text-blue-400">この車両の全施工履歴を見る</div>
-            <div className="mt-0.5 text-xs text-muted">
-              複数の施工店の記録がブロックチェーン上で集約されています
-            </div>
+            <div className="mt-0.5 text-xs text-muted">複数の施工店の記録がブロックチェーン上で集約されています</div>
           </div>
-          <svg className="h-5 w-5 shrink-0 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className="h-5 w-5 shrink-0 text-blue-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
           </svg>
         </a>
@@ -541,24 +548,29 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
           <section className="glass-card p-4">
             <div className="mb-3 font-bold text-primary">添付画像</div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {images.map((img) => (
-                <a
-                  key={String(img.id ?? `${img.sort_order ?? 0}-${img.url ?? img.file_name ?? "image"}`)}
-                  href={String(img.url)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block rounded-xl border border-border-default p-2.5 no-underline transition-colors hover:border-accent/50 hover:bg-surface-hover"
-                >
-                  <img
-                    src={String(img.url)}
-                    alt={img.file_name || `image_${img.sort_order ?? ""}`}
-                    className="h-[180px] w-full rounded-lg border border-border-default bg-base object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div className="mt-2 text-xs text-muted">{img.file_name || `image_${img.sort_order ?? "-"}`}</div>
-                </a>
-              ))}
+              {images.map((img) => {
+                // 表示用 URL: 焼き込み済みがあれば優先、なければ原画像。
+                // 原画像 + 注釈があれば AnnotatedImage が SVG オーバーレイで描画する。
+                const displayUrl = String(img.rendered_url ?? img.url ?? "");
+                return (
+                  <a
+                    key={String(img.id ?? `${img.sort_order ?? 0}-${img.url ?? img.file_name ?? "image"}`)}
+                    href={displayUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-xl border border-border-default p-2.5 no-underline transition-colors hover:border-accent/50 hover:bg-surface-hover"
+                  >
+                    <AnnotatedImage
+                      imageUrl={String(img.url)}
+                      renderedUrl={img.rendered_url ?? null}
+                      annotations={img.annotations}
+                      alt={img.file_name || `image_${img.sort_order ?? ""}`}
+                      className="block h-[180px] w-full rounded-lg border border-border-default bg-base object-cover"
+                    />
+                    <div className="mt-2 text-xs text-muted">{img.file_name || `image_${img.sort_order ?? "-"}`}</div>
+                  </a>
+                );
+              })}
             </div>
           </section>
         ) : null}
