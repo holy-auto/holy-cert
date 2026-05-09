@@ -312,7 +312,8 @@ export async function renderAnnotated(originalBuf: Buffer, doc: AnnotationsDoc) 
 ## Phase 3: インタラクティブ証明書ビュー (DVX 風)
 
 ### 3.1 ゴール
-`/c/[public_id]` を**動画 / Before-After スライダー / 360° / イベントタイムライン**を備えたリッチビューに進化させ、Shop-Ware DVX が標榜する「承認率 89%」相当の体験を提供する。
+`/c/[public_id]` を**動画 / Before-After スライダー / イベントタイムライン**を備えたリッチビューに進化させ、Shop-Ware DVX が標榜する「承認率 89%」相当の体験を提供する。
+**360° パノラマは初版スコープ外** (将来拡張)。スキーマにはプレースホルダだけ残す。
 
 ### 3.2 現状整理 (重要箇所のみ)
 
@@ -332,8 +333,9 @@ export async function renderAnnotated(originalBuf: Buffer, doc: AnnotationsDoc) 
 create table if not exists certificate_media (
   id              uuid primary key default gen_random_uuid(),
   certificate_id  uuid not null references certificates(id) on delete cascade,
-  media_type      text not null check (media_type in ('video','panorama360','before_after')),
-  storage_path    text not null,            -- video / panorama / "after" image
+  media_type      text not null check (media_type in ('video','before_after','panorama360')),
+  -- 初版実装は 'video' / 'before_after' のみ。'panorama360' は将来拡張用にスキーマに残す。
+  storage_path    text not null,            -- video / "after" image (将来 panorama)
   before_path     text,                     -- before_after 専用
   poster_path     text,                     -- video の poster
   duration_ms     integer,
@@ -370,15 +372,15 @@ create policy certmedia_modify on certificate_media for all
 
 | 用途 | 採用 |
 |---|---|
-| Before/After スライダー | 自前実装 (range input + clip-path)。依存追加せず。 |
-| 360° パノラマ | `@photo-sphere-viewer/core` v5 + `react-photo-sphere-viewer`。Three.js 依存だが許容。 |
+| Before/After スライダー | **自前実装** (range input + clip-path)。依存追加せず。 |
 | 動画 | ネイティブ `<video controls poster>` + HLS は不要 (短尺前提)。 |
+| ~~360° パノラマ~~ | 初版スコープ外。将来 `@photo-sphere-viewer/core` 等を検討。 |
 
 ### 3.5 API 追加・改修
 
 | Method | Path | 実装 |
 |---|---|---|
-| POST | `/api/certificates/[id]/media` | 多種 media のアップロード (multipart)。MIME 厳格チェック (video/mp4, image/jpeg, image/png 360 用)。 |
+| POST | `/api/certificates/[id]/media` | 多種 media のアップロード (multipart)。MIME 厳格チェック (video/mp4, video/quicktime, image/jpeg, image/png)。 |
 | DELETE | `/api/certificates/media/[id]` | 削除 |
 | GET (公開) | `/api/public/certificates/[public_id]/media` | 公開取得。`/c/[public_id]/page.tsx` 内で直接 supabase 経由でも可。 |
 
@@ -390,11 +392,11 @@ create policy certmedia_modify on certificate_media for all
 肥大化を避けるため `/c/[public_id]/page.tsx` の**「添付画像」「履歴」セクションをコンポーネントに分割**:
 
 新規:
-- `src/app/c/[public_id]/MediaGallery.tsx` — 画像 + 動画 + 360 + Before/After を **1 つのギャラリー**として束ねる
+- `src/app/c/[public_id]/MediaGallery.tsx` — 画像 + 動画 + Before/After を **1 つのギャラリー**として束ねる
 - `src/app/c/[public_id]/UnifiedTimeline.tsx` — vehicle_histories + certificate events + reservations を時系列に統合 (`ServiceTimeline` ロジックを公開向けに簡素化)
-- `src/app/c/[public_id]/BeforeAfterSlider.tsx`
-- `src/app/c/[public_id]/PanoramaViewer.tsx` (lazy + dynamic import)
+- `src/app/c/[public_id]/BeforeAfterSlider.tsx` (自前実装、依存追加なし)
 - `src/app/c/[public_id]/CertificateVideo.tsx`
+- ~~`PanoramaViewer.tsx`~~ — 初版スコープ外
 
 #### 3.6.2 タイムライン
 管理側に既にある `ServiceTimeline` の概念 (FEATURES.md 65 行目以降) を**公開向けに匿名化して再利用**:
@@ -403,37 +405,37 @@ create policy certmedia_modify on certificate_media for all
 - アイコンは Tailwind + 既存 SVG セット
 
 #### 3.6.3 編集側 (`/admin/certificates/[public_id]` / `new`)
-- 「メディアを追加」ドロップダウン: 画像 / 動画 / 360 / Before-After ペア
+- 「メディアを追加」ドロップダウン: 画像 / 動画 / Before-After ペア (360 は将来)
 - Before-After は **2 枚を 1 つのレコードとして** UI 上で扱う (DB は `before_path` + `storage_path`)
 - 既存 `PhotoUploadSection.tsx` を **`MediaUploadSection.tsx` にリネームせず**、隣接コンポーネント `MediaUploadSection.tsx` を新設して両立 (既存挙動は保つ)
 
 ### 3.7 PDF / モバイルでの扱い
-- PDF: 動画・360 は PDF に焼けないので、**ポスター画像 + QR (公開 URL)** を載せる仕様にする。`pdfCertificate.tsx` を改修。
-- モバイル (`apps/mobile`): 公開 URL を WebView で開けば動く想定。ネイティブ実装は別フェーズ。
+- PDF: 動画は PDF に焼けないので、**ポスター画像 + QR (公開 URL)** を載せる仕様にする。Before/After は 2 枚並列でレイアウト。`pdfCertificate.tsx` を改修。
+- モバイル (`apps/mobile`): **Phase 1〜3 すべての Web 実装が完了してから着手** (確定方針)。公開 URL を WebView で開く暫定経路は許容。
 
 ### 3.8 パフォーマンス・配信
 - 動画は Supabase Storage 直配信で十分 (短尺前提)。長尺になる場合は CDN / HLS を将来検討。
-- 360 画像は最大 8K JPEG までに制限。
-- 公開ページの Lighthouse スコア低下を避けるため、動画 / 360 は **インタラクション後に load** (poster 表示 → クリックで再生)。
+- 公開ページの Lighthouse スコア低下を避けるため、動画は **インタラクション後に load** (poster 表示 → クリックで再生)。
 
 ### 3.9 テスト
 - Vitest:
-  - `MediaGallery.test.tsx`: 4 種混在のソート・空ケース
+  - `MediaGallery.test.tsx`: 3 種混在 (画像 + 動画 + Before/After) のソート・空ケース
+  - `BeforeAfterSlider.test.tsx`: range / clip-path 値の境界
   - `UnifiedTimeline.test.tsx`: マージ・並び替え・名前マスク
 - Playwright:
-  - 「動画 + Before/After + 360 のメディアを発行 → 公開 URL でそれぞれ表示・操作」
-- a11y: 動画にキャプション (caption カラム) を載せる、`<video>` に `<track>` 任意。
+  - 「動画 + Before/After のメディアを発行 → 公開 URL でそれぞれ表示・操作」
+- a11y: 動画にキャプション (caption カラム) を載せる、`<video>` に `<track>` 任意。Before/After スライダーはキーボード (←/→) で操作可能に。
 
 ### 3.10 ロールアウト
 1. PR-A: スキーマ + アップロード API
 2. PR-B: 公開ビュー分割 + MediaGallery + 動画
-3. PR-C: 360 + Before/After
+3. PR-C: Before/After スライダー (自前)
 4. PR-D: 統合タイムライン + PDF QR 連携
 5. PR-E (任意): Phase 2 の Image Markup を写真メディアに統合適用
 
 ### 3.11 リスク
-- 360 ライブラリの three.js 依存でバンドルサイズ増 → 動的インポートで初期描画から外す。
 - 動画ストレージコスト → テナントプランごとに容量上限を設ける (P1 「Add-on モデル」と連動するためここでは設計のみ)。
+- 動画自動再生による帯域消費 → poster + クリック再生で抑制。
 
 ---
 
@@ -459,15 +461,15 @@ create policy certmedia_modify on certificate_media for all
 
 ---
 
-## 5. 着手判断の論点 (最初に決めたい)
+## 5. 確定事項 (2026-05-09 合意)
 
-承認をもらいたい点を集約:
-
-1. **Phase 1 のスキーマ命名**: `service_packages` で OK か (`canned_jobs` など別名希望ある?)
-2. **Phase 2 のライブラリ**: Konva + react-konva で確定して良いか
-3. **Phase 3 の Before/After**: 自前 (依存追加なし) で OK か、`react-compare-image` 等を入れたいか
-4. **Phase 3 の 360**: 機能として優先度高いか、初版は動画 + Before/After だけで良いか
-5. **モバイル統合タイミング**: Phase 1 (テンプレ選択) を先にモバイル API へ載せるか、Web 完成後で良いか
+| # | 論点 | 決定 |
+|---|---|---|
+| 1 | Phase 1 スキーマ命名 | **`service_packages` / `service_package_items` で確定** |
+| 2 | Phase 2 ライブラリ | **Konva + react-konva で確定** |
+| 3 | Phase 3 Before/After | **自前実装 (range input + clip-path)、依存追加なし** |
+| 4 | Phase 3 360° パノラマ | **初版スコープ外** (将来拡張)。スキーマの media_type CHECK にはプレースホルダだけ残す |
+| 5 | モバイル統合タイミング | **Web 完成後に着手**。Phase 1〜3 のモバイル API ラッピングは後フェーズ |
 
 ---
 
@@ -477,6 +479,7 @@ create policy certmedia_modify on certificate_media for all
 |---|---|---|---|
 | Phase 1 Canned Jobs | 8 | 5 | 1 |
 | Phase 2 Image Markup | 6 | 4 | 1 |
-| Phase 3 Interactive View | 7 | 4 | 1 |
+| Phase 3 Interactive View | 6 | 4 | 1 |
 
-合計: 新規 21 / 改修 13 / migration 3。3 機能合わせて **概ね 4〜6 週** (1 人月相当) のスコープ。
+合計: 新規 20 / 改修 13 / migration 3。3 機能合わせて **概ね 4〜6 週** (1 人月相当) のスコープ。
+※ Phase 3 から `PanoramaViewer.tsx` を除外したため新規 -1。
