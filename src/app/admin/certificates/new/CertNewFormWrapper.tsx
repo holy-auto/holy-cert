@@ -527,6 +527,12 @@ export default function CertNewFormWrapper({
             onCountChange={setPhotoCount}
           />
 
+          {/* Phase 3: 動画 / Before-After は短時間で UI に staging できないため、
+              発行後の編集ページ (/admin/certificates/[public_id]) で追加する導線にする。 */}
+          <div className="rounded-xl border border-border-subtle bg-inset px-4 py-3 text-xs text-muted">
+            動画 / Before-After は証明書を作成後、編集ページの「動画 / Before-After」セクションから追加できます。
+          </div>
+
           {/* AI品質チェックパネル */}
           {canAiQuality && serviceType && (
             <div data-ai-quality-panel>
