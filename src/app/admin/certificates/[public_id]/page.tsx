@@ -12,6 +12,8 @@ import CertEditHistory from "./CertEditHistory";
 import CertImageUpload from "./CertImageUpload";
 import CertImageDeleteButton from "./CertImageDeleteButton";
 import PhotoTamperingPanel from "./PhotoTamperingPanel";
+import AnnotateExistingImageButton from "@/components/imageMarkup/AnnotateExistingImageButton";
+import { isAnnotationDocument, type AnnotationDocument } from "@/components/imageMarkup/types";
 import { formatDateTime } from "@/lib/format";
 import { buildExplorerUrl } from "@/lib/anchoring/providers";
 import { normalizePlanTier, PHOTO_LIMITS } from "@/lib/billing/planFeatures";
@@ -91,7 +93,7 @@ export default async function Page({ params }: PageProps) {
   const { data: imageRowsRaw } = await admin
     .from("certificate_images")
     .select(
-      "id,storage_path,file_name,content_type,file_size,sort_order,created_at,sha256,authenticity_grade,polygon_tx_hash,polygon_network,c2pa_verified,c2pa_manifest_cid",
+      "id,storage_path,file_name,content_type,file_size,sort_order,created_at,sha256,authenticity_grade,polygon_tx_hash,polygon_network,c2pa_verified,c2pa_manifest_cid,annotations,rendered_storage_path",
     )
     .eq("certificate_id", row.id)
     .order("sort_order", { ascending: true })
@@ -113,6 +115,10 @@ export default async function Page({ params }: PageProps) {
           ? (polygonNetworkRaw as "polygon" | "amoy")
           : null;
 
+      const annotations: AnnotationDocument | null = isAnnotationDocument(img.annotations)
+        ? (img.annotations as AnnotationDocument)
+        : null;
+
       return {
         id: img.id as string,
         file_name: (img.file_name as string | null) ?? null,
@@ -127,6 +133,8 @@ export default async function Page({ params }: PageProps) {
         polygon_network: polygonNetwork,
         c2pa_verified: Boolean(img.c2pa_verified),
         c2pa_manifest_cid: (img.c2pa_manifest_cid as string | null) ?? null,
+        annotations,
+        rendered_storage_path: (img.rendered_storage_path as string | null) ?? null,
       };
     }),
   );
@@ -384,21 +392,30 @@ export default async function Page({ params }: PageProps) {
                           ? "bg-accent-dim text-accent-text"
                           : "bg-surface-hover text-muted";
 
+                  const annotationCount = img.annotations?.annotations.length ?? 0;
+
                   return (
                     <div key={img.id} className="rounded-2xl border border-border-default bg-base p-3 space-y-3">
-                      {img.url ? (
-                        <a href={img.url} target="_blank" rel="noreferrer">
-                          <img
-                            src={img.url}
-                            alt={img.file_name ?? `image_${img.sort_order}`}
-                            className="h-56 w-full rounded-xl border border-border-default bg-surface object-cover"
-                          />
-                        </a>
-                      ) : (
-                        <div className="flex h-56 items-center justify-center rounded-xl border border-border-default bg-surface text-sm text-muted">
-                          画像URLを生成できませんでした
-                        </div>
-                      )}
+                      <div className="relative">
+                        {img.url ? (
+                          <a href={img.url} target="_blank" rel="noreferrer">
+                            <img
+                              src={img.url}
+                              alt={img.file_name ?? `image_${img.sort_order}`}
+                              className="h-56 w-full rounded-xl border border-border-default bg-surface object-cover"
+                            />
+                          </a>
+                        ) : (
+                          <div className="flex h-56 items-center justify-center rounded-xl border border-border-default bg-surface text-sm text-muted">
+                            画像URLを生成できませんでした
+                          </div>
+                        )}
+                        {annotationCount > 0 ? (
+                          <span className="absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+                            注釈 {annotationCount}
+                          </span>
+                        ) : null}
+                      </div>
 
                       <div className="text-sm text-secondary">
                         <div>順序: {img.sort_order}</div>
@@ -453,7 +470,19 @@ export default async function Page({ params }: PageProps) {
                         </div>
                       </div>
 
-                      {!isVoid && <CertImageDeleteButton imageId={img.id} />}
+                      {!isVoid && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {img.url ? (
+                            <AnnotateExistingImageButton
+                              imageId={img.id}
+                              imageUrl={img.url}
+                              initial={img.annotations}
+                              fileName={img.file_name}
+                            />
+                          ) : null}
+                          <CertImageDeleteButton imageId={img.id} />
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -1,10 +1,31 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useRef, useState, useCallback, forwardRef, useImperativeHandle, useEffect } from "react";
+import type { AnnotationDocument } from "@/components/imageMarkup/types";
+
+// SSR 不可なので動的読み込み。
+const ImageMarkupModal = dynamic(() => import("@/components/imageMarkup/ImageMarkupModal"), { ssr: false });
+
+export type PhotoAnnotationEntry = {
+  /** PhotoUploadSection の Preview と同じ id (= 配列内の通し番号)。 */
+  previewId: number;
+  /**
+   * getFiles() で返した配列内の位置 = upload API へ multipart で送る順序。
+   * file.name が重複してもサーバ側 response の index と突き合わせ可能にする。
+   */
+  uploadIndex: number;
+  /** 元ファイル名 (api 側でも file.name として保存される)。診断用 */
+  fileName: string;
+  /** 注釈ドキュメント。空なら null。 */
+  doc: AnnotationDocument;
+};
 
 export type PhotoUploadHandle = {
   getFiles: () => File[];
+  /** ファイル名と紐付いた注釈ドキュメントの配列。注釈なしのファイルは含まれない。 */
+  getAnnotations: () => PhotoAnnotationEntry[];
 };
 
 type Props = {
@@ -18,6 +39,7 @@ type Preview = {
   id: number;
   file: File;
   objectUrl: string;
+  annotations: AnnotationDocument | null;
 };
 
 let nextPId = 1;
@@ -29,9 +51,20 @@ const PhotoUploadSection = forwardRef<PhotoUploadHandle, Props>(function PhotoUp
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<Preview[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   useImperativeHandle(ref, () => ({
     getFiles: () => previews.map((p) => p.file),
+    getAnnotations: () =>
+      previews
+        .map((p, idx) => ({ p, idx }))
+        .filter(({ p }) => p.annotations && p.annotations.annotations.length > 0)
+        .map(({ p, idx }) => ({
+          previewId: p.id,
+          uploadIndex: idx,
+          fileName: p.file.name,
+          doc: p.annotations as AnnotationDocument,
+        })),
   }));
 
   useEffect(() => {
@@ -48,6 +81,7 @@ const PhotoUploadSection = forwardRef<PhotoUploadHandle, Props>(function PhotoUp
         id: nextPId++,
         file,
         objectUrl: URL.createObjectURL(file),
+        annotations: null,
       }));
       setPreviews((prev) => [...prev, ...newPreviews]);
     },
@@ -168,29 +202,52 @@ const PhotoUploadSection = forwardRef<PhotoUploadHandle, Props>(function PhotoUp
             {count} / {maxPhotos} 枚
           </div>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-            {previews.map((p) => (
-              <div key={p.id} className="group relative">
-                <div className="relative aspect-square overflow-hidden rounded-xl border border-border-default bg-inset">
-                  <Image
-                    src={p.objectUrl}
-                    alt={p.file.name}
-                    fill
-                    sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 20vw"
-                    unoptimized
-                    className="object-cover"
-                  />
+            {previews.map((p) => {
+              const annotationCount = p.annotations?.annotations.length ?? 0;
+              return (
+                <div key={p.id} className="group relative">
+                  <div className="relative aspect-square overflow-hidden rounded-xl border border-border-default bg-inset">
+                    <Image
+                      src={p.objectUrl}
+                      alt={p.file.name}
+                      fill
+                      sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 20vw"
+                      unoptimized
+                      className="object-cover"
+                    />
+                    {annotationCount > 0 ? (
+                      <span className="absolute left-1 top-1 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-sm">
+                        注釈 {annotationCount}
+                      </span>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(p.id)}
+                    className="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border-default bg-surface text-[10px] text-muted shadow-sm hover:bg-accent-dim hover:text-accent-text hover:border-accent"
+                    aria-label="注釈を追加"
+                    title="注釈を追加"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path
+                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897l11.682-11.682Z"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removePreview(p.id)}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border-default bg-surface text-[10px] text-muted shadow-sm hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                    aria-label="削除"
+                  >
+                    ✕
+                  </button>
+                  <div className="mt-1 truncate text-[10px] text-muted px-0.5">{p.file.name}</div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removePreview(p.id)}
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border-default bg-surface text-[10px] text-muted shadow-sm hover:bg-red-50 hover:text-red-600 hover:border-red-300"
-                  aria-label="削除"
-                >
-                  ✕
-                </button>
-                <div className="mt-1 truncate text-[10px] text-muted px-0.5">{p.file.name}</div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Add more tiles */}
             {!full && (
@@ -237,6 +294,27 @@ const PhotoUploadSection = forwardRef<PhotoUploadHandle, Props>(function PhotoUp
           {planLabel} プランの上限（{maxPhotos} 枚）に達しました。
         </div>
       )}
+
+      {(() => {
+        const editing = editingId !== null ? previews.find((p) => p.id === editingId) : null;
+        if (!editing) return null;
+        return (
+          <ImageMarkupModal
+            open={true}
+            imageUrl={editing.objectUrl}
+            initial={editing.annotations}
+            title={editing.file.name}
+            onSave={(doc) => {
+              setPreviews((prev) =>
+                prev.map((p) =>
+                  p.id === editing.id ? { ...p, annotations: doc.annotations.length > 0 ? doc : null } : p,
+                ),
+              );
+            }}
+            onClose={() => setEditingId(null)}
+          />
+        );
+      })()}
     </div>
   );
 });

@@ -66,6 +66,20 @@ export type AnchorInfo = {
   polygon_network: "polygon" | "amoy" | null;
 };
 
+/**
+ * Phase 2: PDF に貼り付ける施工写真。注釈が焼き込み済みの URL を渡せば
+ * そのまま反映される。呼び出し側 (api/certificate/pdf) で rendered_storage_path
+ * を優先して signed URL を解決すること。
+ */
+export type PdfPhoto = {
+  /** 表示用 URL (rendered_storage_path 優先 → 原画像)。 */
+  url: string;
+  /** 表示用キャプション (省略可)。 */
+  caption?: string | null;
+  /** 注釈付きかどうか (バッジ表示用)。 */
+  annotated?: boolean;
+};
+
 /** PDF 本体に QR を載せる最大枚数。これ以上は "+N more" 表記にする */
 const MAX_ANCHOR_QR = 4;
 
@@ -365,6 +379,39 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     marginBottom: 24,
   },
+  // Photos page
+  photoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -6,
+  },
+  photoCell: {
+    width: "50%",
+    paddingHorizontal: 6,
+    marginBottom: 12,
+  },
+  photoImage: {
+    width: "100%",
+    height: 220,
+    objectFit: "cover",
+    borderRadius: 6,
+    borderColor: colors.faint,
+    borderWidth: 0.5,
+  },
+  photoCaption: {
+    fontSize: 8.5,
+    color: colors.dim,
+    marginTop: 4,
+  },
+  photoBadge: {
+    fontSize: 7,
+    color: "#ffffff",
+    backgroundColor: colors.blue,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 2,
+    marginLeft: 4,
+  },
 });
 
 function buildExplorerUrl(txHash: string, network: "polygon" | "amoy"): string {
@@ -452,7 +499,12 @@ function buildPresetLines(schema: TemplateSchema | null, values: Record<string, 
   return lines;
 }
 
-export async function renderCertificatePdf(row: CertRow, publicUrl: string, anchors?: AnchorInfo[]) {
+export async function renderCertificatePdf(
+  row: CertRow,
+  publicUrl: string,
+  anchors?: AnchorInfo[],
+  photos?: PdfPhoto[],
+) {
   const preset = row.content_preset_json ?? {};
   // content_preset_json は DB JSON カラムのため動的。TemplateSchema /
   // Record<string, unknown> に narrow するため unknown 経由で cast する。
@@ -941,6 +993,43 @@ export async function renderCertificatePdf(row: CertRow, publicUrl: string, anch
           </View>
         </Page>
       )}
+
+      {/* ── ページ3: 施工写真（注釈あれば焼き込み済み）。photos が無ければ出力しない ── */}
+      {photos && photos.length > 0 ? (
+        <Page size="A4" style={styles.page}>
+          <Text style={styles.page2Eyebrow}>Certificate No. {row.public_id}</Text>
+          <Text style={styles.page2Title}>{certTitle}</Text>
+          <Text style={styles.page2Sub}>Photos · 施工写真</Text>
+
+          <View style={styles.card}>
+            <Text style={styles.cardEyebrow}>添付画像 · Attached Photos</Text>
+            <Text style={[styles.cardBody, { marginBottom: 10 }]}>
+              本証明書に紐付く施工写真です。注釈付きの写真はサーバー側で注釈を焼き込んだ画像を使用しています。
+            </Text>
+            <View style={styles.photoGrid}>
+              {photos.slice(0, 8).map((photo, idx) => (
+                <View key={idx} style={styles.photoCell}>
+                  <Image src={photo.url} style={styles.photoImage} />
+                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+                    <Text style={styles.photoCaption}>{photo.caption ?? `Photo #${idx + 1}`}</Text>
+                    {photo.annotated ? <Text style={styles.photoBadge}>注釈</Text> : null}
+                  </View>
+                </View>
+              ))}
+            </View>
+            {photos.length > 8 ? (
+              <Text style={[styles.cardBody, { marginTop: 6, fontSize: 9, color: colors.dim }]}>
+                ほか {photos.length - 8} 枚の写真は公開ページでご確認ください。
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.footer} fixed>
+            <Text style={styles.footerLeft}>{publicUrl}</Text>
+            <Text style={styles.footerRight}>Powered by Ledra</Text>
+          </View>
+        </Page>
+      ) : null}
     </Document>
   );
 

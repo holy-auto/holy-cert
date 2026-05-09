@@ -88,6 +88,8 @@ type ImageRow = {
   sha256: string | null;
   polygon_tx_hash: string | null;
   polygon_network: string | null;
+  annotations: unknown;
+  rendered_storage_path: string | null;
 };
 
 type VehicleCertRow = {
@@ -111,7 +113,7 @@ export type PublicCertificateData = {
   vehicle: (Omit<VehicleRow, "customer_email" | "notes"> & { customer_email?: undefined; notes?: undefined }) | null;
   nfc: NfcRow | null;
   histories: HistoryRow[];
-  images: (ImageRow & { url: string | null })[];
+  images: (ImageRow & { url: string | null; rendered_url: string | null })[];
   vehicle_certificates: (Omit<VehicleCertRow, "content_free_text"> & {
     content_free_text?: undefined;
     customer_name: string | null;
@@ -191,7 +193,7 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
     supabase
       .from("certificate_images")
       .select(
-        "id, file_name, content_type, file_size, sort_order, created_at, storage_path, authenticity_grade, sha256, polygon_tx_hash, polygon_network",
+        "id, file_name, content_type, file_size, sort_order, created_at, storage_path, authenticity_grade, sha256, polygon_tx_hash, polygon_network, annotations, rendered_storage_path",
       )
       .eq("certificate_id", cert.id)
       .order("sort_order", { ascending: true })
@@ -231,13 +233,20 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
     passportVin = passportRow?.vin_code_normalized ?? null;
   }
 
-  const images: (ImageRow & { url: string | null })[] = (!imgRes.error && imgRes.data ? imgRes.data : []).map((img) => {
+  const images: (ImageRow & { url: string | null; rendered_url: string | null })[] = (
+    !imgRes.error && imgRes.data ? imgRes.data : []
+  ).map((img) => {
     let url: string | null = null;
     if (img.storage_path) {
       const { data: signedData } = supabase.storage.from("certificate-images").getPublicUrl(img.storage_path);
       url = signedData?.publicUrl ?? null;
     }
-    return { ...img, url };
+    let renderedUrl: string | null = null;
+    if (img.rendered_storage_path) {
+      const { data: signedData } = supabase.storage.from("certificate-images").getPublicUrl(img.rendered_storage_path);
+      renderedUrl = signedData?.publicUrl ?? null;
+    }
+    return { ...img, url, rendered_url: renderedUrl };
   });
 
   const vehicleServiceHistoryCount = vehicle_certificates.length;
