@@ -1,4 +1,9 @@
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import {
+  resolveCertificateMedia,
+  type CertificateMediaRow,
+  type ResolvedCertificateMedia,
+} from "@/lib/certificateMedia";
 
 /** Mask customer name for public display: 山田太郎 → 山田●● */
 export function maskName(name: string | null): string | null {
@@ -112,6 +117,7 @@ export type PublicCertificateData = {
   nfc: NfcRow | null;
   histories: HistoryRow[];
   images: (ImageRow & { url: string | null })[];
+  media: ResolvedCertificateMedia[];
   vehicle_certificates: (Omit<VehicleCertRow, "content_free_text"> & {
     content_free_text?: undefined;
     customer_name: string | null;
@@ -154,7 +160,7 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
   const cert = certRes.data;
   if (!cert?.tenant_id) return null;
 
-  const [tenantRes, vehicleRes, nfcRes, histRes, imgRes, vcRes] = await Promise.all([
+  const [tenantRes, vehicleRes, nfcRes, histRes, imgRes, vcRes, mediaRes] = await Promise.all([
     supabase
       .from("tenants")
       .select("name, slug, custom_domain")
@@ -210,6 +216,16 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
           .limit(20)
           .returns<VehicleCertRow[]>()
       : Promise.resolve({ data: [] as VehicleCertRow[], error: null }),
+
+    supabase
+      .from("certificate_media")
+      .select(
+        "id, media_type, storage_path, before_path, poster_path, duration_ms, width, height, caption, sort_order, content_type, file_size, created_at",
+      )
+      .eq("certificate_id", cert.id)
+      .order("sort_order", { ascending: true })
+      .limit(50)
+      .returns<CertificateMediaRow[]>(),
   ]);
 
   const tenant = tenantRes.data ?? null;
@@ -240,6 +256,14 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
     return { ...img, url };
   });
 
+  // certificate_media: void 状態のときは images と同じく公開しない
+  const certStatusLower = String(cert.status ?? "").toLowerCase();
+  const isVoid = certStatusLower === "void";
+  const mediaRows = !mediaRes.error && mediaRes.data && !isVoid ? mediaRes.data : [];
+  const media: ResolvedCertificateMedia[] = await Promise.all(
+    mediaRows.map((row) => resolveCertificateMedia(supabase, row)),
+  );
+
   const vehicleServiceHistoryCount = vehicle_certificates.length;
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/c/${cert.public_id}`;
 
@@ -265,6 +289,7 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
     nfc,
     histories,
     images,
+    media,
     vehicle_certificates: vehicle_certificates.map((vc) => ({
       ...vc,
       content_free_text: undefined as undefined,
