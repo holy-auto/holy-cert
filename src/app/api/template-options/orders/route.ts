@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { createTenantScopedAdmin } from "@/lib/supabase/admin";
+import { createServiceRoleAdmin, createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerFull } from "@/lib/api/auth";
 import { apiOk, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { hearingSchema } from "@/lib/template-options/configSchema";
+import { sendTemplateOrderConfirmationEmail } from "@/lib/email/templateOrderEmail";
 
 const createOrderSchema = z.object({
   order_type: z.enum(["preset_setup", "custom_production", "modification", "additional"]),
@@ -93,6 +94,18 @@ export async function POST(req: NextRequest) {
       actor: caller.userId,
       message: `オーダーを作成しました（${order_type}）`,
     });
+
+    // 注文確認メール（fire-and-forget）。Resend 側では order.id ベースで重複排除される。
+    const emailKind = order.status === "paid" ? "paid" : "pending_payment";
+    const adminSupabase = createServiceRoleAdmin("template order confirmation email — read tenant member email");
+    void sendTemplateOrderConfirmationEmail({
+      supabase: adminSupabase,
+      tenantId: caller.tenantId,
+      orderId: order.id,
+      orderType: order_type,
+      amount: amounts[order_type] ?? 0,
+      kind: emailKind,
+    }).catch((e) => console.error("[template-orders] confirmation email failed:", e));
 
     return apiOk({ order_id: order.id, status: order.status });
   } catch (e) {

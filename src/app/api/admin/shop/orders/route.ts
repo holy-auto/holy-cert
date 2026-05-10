@@ -1,8 +1,10 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { createPlatformScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { apiOk, apiUnauthorized, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { sendShopOrderEmail } from "@/lib/email/shopOrderEmail";
 
 const shopOrderInvoiceSchema = z.object({
   items: z
@@ -129,6 +131,17 @@ export async function POST(req: NextRequest) {
   const { error: iErr } = await supabase.from("shop_order_items").insert(itemsToInsert);
 
   if (iErr) return apiInternalError(iErr, "shop_order_items insert");
+
+  // 注文受付メール送信（fire-and-forget）。auth admin で tenant member email を解決する必要があるため
+  // platform-scoped admin client を別途生成して渡す。失敗してもレスポンス自体は成功扱い。
+  const adminSupabase = createPlatformScopedAdmin("shop invoice order confirmation email — read tenant member email");
+  void sendShopOrderEmail({
+    supabase: adminSupabase,
+    tenantId: caller.tenantId,
+    shopOrderId: order.id,
+    kind: "invoice",
+    idempotencyKey: `shop-order-invoice:${order.id}`,
+  }).catch((e) => console.error("[shop/orders] invoice email failed:", e));
 
   return apiOk({ order_id: order.id, order_number: orderNumber, total });
 }

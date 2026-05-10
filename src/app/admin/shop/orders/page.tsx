@@ -15,6 +15,9 @@ const fmt = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
 
 const STATUS_COLORS: Record<ShopOrderStatus, string> = {
   pending: "bg-warning-dim text-warning-text",
+  pending_checkout: "bg-warning-dim text-warning-text",
+  pending_payment: "bg-warning-dim text-warning-text",
+  checkout_failed: "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300",
   paid: "bg-accent-dim text-accent-text",
   processing: "bg-violet-dim text-violet-text",
   shipped: "bg-accent-dim text-accent-text",
@@ -92,10 +95,7 @@ export default function ShopOrdersPage() {
           {orders.map((order) => {
             const isExpanded = expandedId === order.id;
             return (
-              <div
-                key={order.id}
-                className="rounded-xl border border-primary/10 bg-surface overflow-hidden"
-              >
+              <div key={order.id} className="rounded-xl border border-primary/10 bg-surface overflow-hidden">
                 {/* Order header */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : order.id)}
@@ -121,9 +121,7 @@ export default function ShopOrdersPage() {
                     >
                       {SHOP_ORDER_STATUS_LABELS[order.status]}
                     </span>
-                    <span className="text-xs text-secondary">
-                      {SHOP_PAYMENT_METHOD_LABELS[order.payment_method]}
-                    </span>
+                    <span className="text-xs text-secondary">{SHOP_PAYMENT_METHOD_LABELS[order.payment_method]}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-primary">{fmt(order.total)}</span>
@@ -165,25 +163,27 @@ export default function ShopOrdersPage() {
                       </tbody>
                       <tfoot>
                         <tr className="text-xs text-secondary">
-                          <td colSpan={3} className="pt-2 text-right">小計</td>
+                          <td colSpan={3} className="pt-2 text-right">
+                            小計
+                          </td>
                           <td className="pt-2 text-right">{fmt(order.subtotal)}</td>
                         </tr>
                         <tr className="text-xs text-secondary">
-                          <td colSpan={3} className="text-right">消費税</td>
+                          <td colSpan={3} className="text-right">
+                            消費税
+                          </td>
                           <td className="text-right">{fmt(order.tax)}</td>
                         </tr>
                         <tr className="font-semibold text-primary">
-                          <td colSpan={3} className="pt-1 text-right">合計</td>
+                          <td colSpan={3} className="pt-1 text-right">
+                            合計
+                          </td>
                           <td className="pt-1 text-right">{fmt(order.total)}</td>
                         </tr>
                       </tfoot>
                     </table>
 
-                    {order.note && (
-                      <p className="text-xs text-secondary">
-                        備考: {order.note}
-                      </p>
-                    )}
+                    {order.note && <p className="text-xs text-secondary">備考: {order.note}</p>}
                   </div>
                 )}
               </div>

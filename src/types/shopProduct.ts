@@ -2,13 +2,7 @@
 /*  Shop Products & Orders — 型定義                                    */
 /* ------------------------------------------------------------------ */
 
-export type ShopProductCategory =
-  | "nfc_tag"
-  | "certificate_template"
-  | "sticker"
-  | "sign"
-  | "banner"
-  | "other";
+export type ShopProductCategory = "nfc_tag" | "certificate_template" | "sticker" | "sign" | "banner" | "other";
 
 export const SHOP_CATEGORY_LABELS: Record<ShopProductCategory, string> = {
   nfc_tag: "NFCタグ",
@@ -23,6 +17,9 @@ export const SHOP_CATEGORY_ALL = Object.keys(SHOP_CATEGORY_LABELS) as ShopProduc
 
 export type ShopOrderStatus =
   | "pending"
+  | "pending_checkout"
+  | "pending_payment"
+  | "checkout_failed"
   | "paid"
   | "processing"
   | "shipped"
@@ -31,6 +28,9 @@ export type ShopOrderStatus =
 
 export const SHOP_ORDER_STATUS_LABELS: Record<ShopOrderStatus, string> = {
   pending: "未払い",
+  pending_checkout: "決済準備中",
+  pending_payment: "決済待ち",
+  checkout_failed: "決済失敗",
   paid: "支払済み",
   processing: "処理中",
   shipped: "発送済み",
