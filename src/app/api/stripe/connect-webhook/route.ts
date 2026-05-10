@@ -58,6 +58,110 @@ async function sendPayoutFailedEmail(params: {
   }
 }
 
+async function sendTransferPaidEmail(params: {
+  to: string;
+  recipientName: string;
+  amount: number;
+  currency: string;
+  transferId: string;
+  isCommission: boolean;
+  idempotencyKey: string;
+}): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+  if (!apiKey || !from) return;
+
+  const name = escapeHtml(params.recipientName);
+  // Stripe amounts are in the smallest currency unit; JPY is zero-decimal so
+  // amount === yen, but other currencies (usd/eur) are in cents.
+  const isZeroDecimal = params.currency.toLowerCase() === "jpy";
+  const display = isZeroDecimal
+    ? params.amount.toLocaleString("ja-JP")
+    : (params.amount / 100).toLocaleString("ja-JP", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const symbol = isZeroDecimal ? "¥" : params.currency.toUpperCase() + " ";
+  const subjectLabel = params.isCommission ? "コミッションが入金されました" : "売上が入金されました";
+
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+      <div style="border-bottom:2px solid #34c759;padding-bottom:12px;margin-bottom:20px;">
+        <h2 style="margin:0;color:#1d1d1f;font-size:18px;">${escapeHtml(subjectLabel)}</h2>
+      </div>
+      <p style="color:#1d1d1f;font-size:14px;">
+        ${name} 様<br><br>
+        Stripe Connect 経由の${params.isCommission ? "コミッション" : "売上"}入金が完了しました。
+      </p>
+      <div style="background:#f0fdf4;border-radius:8px;padding:12px;margin:16px 0;font-size:14px;color:#14532d;">
+        入金額: <strong>${symbol}${display}</strong><br>
+        振込ID: ${escapeHtml(params.transferId)}
+      </div>
+      <p style="font-size:13px;color:#86868b;">
+        振込明細は Stripe ダッシュボードまたは Ledra 管理画面からご確認いただけます。
+      </p>
+      <div style="border-top:1px solid #e5e5e5;margin-top:24px;padding-top:12px;font-size:12px;color:#86868b;">
+        Ledra
+      </div>
+    </div>
+  `;
+
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": params.idempotencyKey,
+      },
+      body: JSON.stringify({ from, to: params.to, subject: `[Ledra] ${subjectLabel}`, html }),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("connect-webhook: transfer paid email error", { error: msg });
+  }
+}
+
+async function sendConnectOnboardedEmail(params: {
+  to: string;
+  recipientName: string;
+  idempotencyKey: string;
+}): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+  if (!apiKey || !from) return;
+
+  const name = escapeHtml(params.recipientName);
+
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+      <div style="border-bottom:2px solid #0071e3;padding-bottom:12px;margin-bottom:20px;">
+        <h2 style="margin:0;color:#1d1d1f;font-size:18px;">決済受付・お振込が利用可能になりました</h2>
+      </div>
+      <p style="color:#1d1d1f;font-size:14px;">
+        ${name} 様<br><br>
+        Stripe Connect のオンボーディングが完了しました。<br>
+        これで Ledra 経由の決済受付と銀行口座へのお振込が可能になります。
+      </p>
+      <div style="border-top:1px solid #e5e5e5;margin-top:24px;padding-top:12px;font-size:12px;color:#86868b;">
+        Ledra
+      </div>
+    </div>
+  `;
+
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": params.idempotencyKey,
+      },
+      body: JSON.stringify({ from, to: params.to, subject: "[Ledra] 決済受付が利用可能になりました", html }),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("connect-webhook: onboarded email error", { error: msg });
+  }
+}
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -194,16 +298,67 @@ export async function POST(req: NextRequest) {
 
         // agent_commissions にも反映（source_type=commission の場合）
         const meta = transfer.metadata as Record<string, string> | null;
-        if (meta?.source_type === "commission" && meta?.source_id) {
+        const isCommission = meta?.source_type === "commission" && !!meta?.source_id;
+        if (isCommission) {
           await supabase
             .from("agent_commissions")
             .update({ status: "paid", paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-            .eq("id", meta.source_id);
+            .eq("id", meta!.source_id);
           console.info("connect-webhook: agent commission paid", {
-            commissionId: meta.source_id,
+            commissionId: meta!.source_id,
             transferId: transfer.id,
           });
         }
+
+        // 入金完了メール: テナント or 代理店の contact_email に送信
+        const destinationAccountId = transfer.destination
+          ? typeof transfer.destination === "string"
+            ? transfer.destination
+            : transfer.destination.id
+          : (connectedAccountId ?? "");
+
+        void (async () => {
+          try {
+            const { tenantId, agentId } = await resolveReceiver(supabase, destinationAccountId);
+            if (tenantId && !isCommission) {
+              const { data: tenant } = await supabase
+                .from("tenants")
+                .select("name, contact_email")
+                .eq("id", tenantId)
+                .single();
+              if (tenant?.contact_email) {
+                await sendTransferPaidEmail({
+                  to: tenant.contact_email,
+                  recipientName: tenant.name ?? "店舗",
+                  amount: transfer.amount,
+                  currency: transfer.currency,
+                  transferId: transfer.id,
+                  isCommission: false,
+                  idempotencyKey: `transfer-paid:${event.id}`,
+                });
+              }
+            } else if (agentId) {
+              const { data: agent } = await supabase
+                .from("agents")
+                .select("name, contact_email")
+                .eq("id", agentId)
+                .single();
+              if (agent?.contact_email) {
+                await sendTransferPaidEmail({
+                  to: agent.contact_email,
+                  recipientName: agent.name ?? "代理店",
+                  amount: transfer.amount,
+                  currency: transfer.currency,
+                  transferId: transfer.id,
+                  isCommission,
+                  idempotencyKey: `transfer-paid:${event.id}`,
+                });
+              }
+            }
+          } catch (notifyErr) {
+            console.error("connect-webhook: transfer paid notification error:", notifyErr);
+          }
+        })();
 
         console.info("connect-webhook: transfer paid", { transferId: transfer.id });
         break;
@@ -357,7 +512,7 @@ export async function POST(req: NextRequest) {
           await supabase.from("tenants").update({ stripe_connect_onboarded: onboarded }).eq("id", tenant.id);
           console.info("connect-webhook: tenant connect synced", { accountId: account.id, onboarded });
 
-          // オンボーディング完了 → pending_onboarding の案件を自動送金
+          // オンボーディング完了 → pending_onboarding の案件を自動送金 + 通知
           if (onboarded && tenant.id) {
             const { data: pendingOrders } = await supabase
               .from("job_orders")
@@ -376,6 +531,25 @@ export async function POST(req: NextRequest) {
                 );
               }
             }
+
+            void (async () => {
+              try {
+                const { data: t } = await supabase
+                  .from("tenants")
+                  .select("name, contact_email")
+                  .eq("id", tenant.id)
+                  .single();
+                if (t?.contact_email) {
+                  await sendConnectOnboardedEmail({
+                    to: t.contact_email,
+                    recipientName: t.name ?? "店舗",
+                    idempotencyKey: `connect-onboarded:tenant:${tenant.id}`,
+                  });
+                }
+              } catch (notifyErr) {
+                console.error("connect-webhook: tenant onboarded notification error:", notifyErr);
+              }
+            })();
           }
         }
 
@@ -390,6 +564,27 @@ export async function POST(req: NextRequest) {
         if (agent && agent.stripe_connect_onboarded !== onboarded) {
           await supabase.from("agents").update({ stripe_connect_onboarded: onboarded }).eq("id", agent.id);
           console.info("connect-webhook: agent connect synced", { accountId: account.id, onboarded });
+
+          if (onboarded && agent.id) {
+            void (async () => {
+              try {
+                const { data: a } = await supabase
+                  .from("agents")
+                  .select("name, contact_email")
+                  .eq("id", agent.id)
+                  .single();
+                if (a?.contact_email) {
+                  await sendConnectOnboardedEmail({
+                    to: a.contact_email,
+                    recipientName: a.name ?? "代理店",
+                    idempotencyKey: `connect-onboarded:agent:${agent.id}`,
+                  });
+                }
+              } catch (notifyErr) {
+                console.error("connect-webhook: agent onboarded notification error:", notifyErr);
+              }
+            })();
+          }
         }
 
         break;

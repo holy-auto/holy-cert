@@ -9,6 +9,8 @@ import { apiJson, apiValidationError, apiInternalError, apiError } from "@/lib/a
 import { captureSecurityEvent } from "@/lib/observability/sentry";
 import { logAuditEvent } from "@/lib/audit/certificateLog";
 import { isResendFailure, sendResendEmail } from "@/lib/email/resendSend";
+import { sendShopOrderEmail } from "@/lib/email/shopOrderEmail";
+import { sendTemplateSubscriptionStartedEmail } from "@/lib/email/templateOrderEmail";
 import { maskEmail } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -129,29 +131,13 @@ Ledra — 株式会社HOLY AUTO
   }
 }
 
-// ── Shop order confirmation email ──
-async function sendShopOrderConfirmationEmail(
+// ── Subscription cancellation email ──
+async function sendSubscriptionCancelledEmail(
   supabase: ReturnType<typeof createServiceRoleAdmin>,
   tenantId: string,
-  shopOrderId: string,
-  idempotencyKey?: string,
+  billingPortalUrl: string,
+  idempotencyKey: string,
 ) {
-  const { data: order } = await supabase
-    .from("shop_orders")
-    .select("order_number, subtotal, tax, total")
-    .eq("id", shopOrderId)
-    .maybeSingle();
-
-  if (!order) {
-    console.warn("webhook: shop confirmation email skipped — order not found", { shopOrderId });
-    return;
-  }
-
-  const { data: items } = await supabase
-    .from("shop_order_items")
-    .select("product_name, quantity, unit_price, amount")
-    .eq("order_id", shopOrderId);
-
   const { data: members } = await supabase
     .from("tenant_memberships")
     .select("user_id, role")
@@ -160,86 +146,46 @@ async function sendShopOrderConfirmationEmail(
     .limit(1);
 
   if (!members?.[0]) {
-    console.warn("webhook: shop confirmation email skipped — no owner/admin member found", { tenantId });
+    console.warn("webhook: subscription cancelled email skipped — no owner/admin member", { tenantId });
     return;
   }
 
   const { data: userData } = await supabase.auth.admin.getUserById(members[0].user_id);
   const email = userData?.user?.email;
   if (!email) {
-    console.warn("webhook: shop confirmation email skipped — no email for user", {
-      tenantId,
-      userId: members[0].user_id,
-    });
+    console.warn("webhook: subscription cancelled email skipped — no email", { tenantId });
     return;
   }
 
-  const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.ledra.co.jp";
-  const ordersUrl = `${appUrl}/admin/shop/orders`;
-
-  const itemsRowsHtml = (items ?? [])
-    .map(
-      (it) => `
-        <tr>
-          <td style="padding:8px 0;color:#1d1d1f;">${escapeHtml(it.product_name)} × ${it.quantity}</td>
-          <td style="padding:8px 0;color:#1d1d1f;text-align:right;">${yen(it.amount)}</td>
-        </tr>`,
-    )
-    .join("");
-
-  const itemsLinesText = (items ?? [])
-    .map((it) => `・${it.product_name} × ${it.quantity}  ${yen(it.amount)}`)
-    .join("\n");
-
   const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
-      <div style="border-bottom: 2px solid #34c759; padding-bottom: 12px; margin-bottom: 20px;">
-        <h2 style="margin: 0; color: #1d1d1f; font-size: 18px;">ご注文ありがとうございます</h2>
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+      <div style="border-bottom:2px solid #86868b;padding-bottom:12px;margin-bottom:20px;">
+        <h2 style="margin:0;color:#1d1d1f;font-size:18px;">サブスクリプションを解約しました</h2>
       </div>
-      <p style="color: #1d1d1f; line-height: 1.6;">
-        お支払いが完了いたしました。<br>
-        注文番号: <strong>${escapeHtml(order.order_number)}</strong>
+      <p style="color:#1d1d1f;line-height:1.6;">
+        ご利用中の Ledra プランの解約が完了いたしました。<br>
+        ご利用ありがとうございました。
       </p>
-      <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
-        ${itemsRowsHtml}
-        <tr><td colspan="2" style="border-top:1px solid #e5e5e5;padding-top:8px;"></td></tr>
-        <tr>
-          <td style="padding:4px 0;color:#86868b;">小計</td>
-          <td style="padding:4px 0;color:#86868b;text-align:right;">${yen(order.subtotal)}</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 0;color:#86868b;">消費税</td>
-          <td style="padding:4px 0;color:#86868b;text-align:right;">${yen(order.tax)}</td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;color:#1d1d1f;font-weight:600;">合計</td>
-          <td style="padding:8px 0;color:#1d1d1f;font-weight:600;text-align:right;">${yen(order.total)}</td>
-        </tr>
-      </table>
-      <p style="margin: 24px 0;">
-        <a href="${ordersUrl}" style="display: inline-block; background: #0071e3; color: #fff; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
-          注文履歴を見る
+      <p style="color:#86868b;font-size:13px;">
+        今後また Ledra をご利用いただける際は、いつでも管理画面から再開いただけます。
+      </p>
+      <p style="margin:24px 0;">
+        <a href="${billingPortalUrl}" style="display:inline-block;background:#0071e3;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:500;">
+          プランを再開する
         </a>
       </p>
-      <div style="border-top: 1px solid #e5e5e5; margin-top: 24px; padding-top: 12px; font-size: 12px; color: #86868b;">
+      <div style="border-top:1px solid #e5e5e5;margin-top:24px;padding-top:12px;font-size:12px;color:#86868b;">
         Ledra — 株式会社HOLY AUTO
       </div>
     </div>
   `;
 
-  const text = `ご注文ありがとうございます
+  const text = `サブスクリプションを解約しました
 
-お支払いが完了いたしました。
-注文番号: ${order.order_number}
+ご利用中の Ledra プランの解約が完了いたしました。
+ご利用ありがとうございました。
 
-${itemsLinesText}
-
-小計: ${yen(order.subtotal)}
-消費税: ${yen(order.tax)}
-合計: ${yen(order.total)}
-
-注文履歴: ${ordersUrl}
+プランを再開する: ${billingPortalUrl}
 
 ---
 Ledra — 株式会社HOLY AUTO
@@ -248,35 +194,116 @@ Ledra — 株式会社HOLY AUTO
   const sent = await sendResendEmail({
     to: email,
     reply_to: "support@ledra.co.jp",
-    subject: `【Ledra】ご注文を承りました（${order.order_number}）`,
+    subject: "【Ledra】サブスクリプションを解約しました",
     html,
     text,
     idempotencyKey,
   });
   if (isResendFailure(sent)) {
-    console.error("webhook: shop confirmation email send failed", {
+    console.error("webhook: subscription cancelled email send failed", {
       tenantId,
-      shopOrderId,
       emailMasked: maskEmail(email),
       status: sent.status,
     });
   } else {
-    console.info("webhook: shop confirmation email sent", {
+    console.info("webhook: subscription cancelled email sent", {
       tenantId,
-      shopOrderId,
       emailMasked: maskEmail(email),
       resendId: sent.id,
     });
   }
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+// ── Trial will end notification email ──
+async function sendTrialWillEndEmail(
+  supabase: ReturnType<typeof createServiceRoleAdmin>,
+  tenantId: string,
+  trialEndAt: Date,
+  billingPortalUrl: string,
+  idempotencyKey: string,
+) {
+  const { data: members } = await supabase
+    .from("tenant_memberships")
+    .select("user_id, role")
+    .eq("tenant_id", tenantId)
+    .in("role", ["owner", "admin", "super_admin"])
+    .limit(1);
+
+  if (!members?.[0]) {
+    console.warn("webhook: trial-will-end email skipped — no owner/admin member", { tenantId });
+    return;
+  }
+
+  const { data: userData } = await supabase.auth.admin.getUserById(members[0].user_id);
+  const email = userData?.user?.email;
+  if (!email) {
+    console.warn("webhook: trial-will-end email skipped — no email", { tenantId });
+    return;
+  }
+
+  const endDateLabel = trialEndAt.toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+      <div style="border-bottom:2px solid #ff9500;padding-bottom:12px;margin-bottom:20px;">
+        <h2 style="margin:0;color:#1d1d1f;font-size:18px;">トライアル期間が終了します</h2>
+      </div>
+      <p style="color:#1d1d1f;line-height:1.6;">
+        無料トライアル期間は <strong>${endDateLabel}</strong> に終了いたします。<br>
+        引き続きご利用の場合はお支払い情報をご登録ください。
+      </p>
+      <p style="margin:24px 0;">
+        <a href="${billingPortalUrl}" style="display:inline-block;background:#0071e3;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:500;">
+          お支払い情報を登録する
+        </a>
+      </p>
+      <p style="color:#86868b;font-size:13px;">
+        登録がない場合、トライアル終了後は一部機能がご利用いただけなくなります。
+      </p>
+      <div style="border-top:1px solid #e5e5e5;margin-top:24px;padding-top:12px;font-size:12px;color:#86868b;">
+        Ledra — 株式会社HOLY AUTO
+      </div>
+    </div>
+  `;
+
+  const text = `トライアル期間が終了します
+
+無料トライアル期間は ${endDateLabel} に終了いたします。
+引き続きご利用の場合はお支払い情報をご登録ください。
+
+お支払い情報の登録: ${billingPortalUrl}
+
+登録がない場合、トライアル終了後は一部機能がご利用いただけなくなります。
+
+---
+Ledra — 株式会社HOLY AUTO
+`;
+
+  const sent = await sendResendEmail({
+    to: email,
+    reply_to: "support@ledra.co.jp",
+    subject: "【Ledra】無料トライアル終了のご案内",
+    html,
+    text,
+    idempotencyKey,
+  });
+  if (isResendFailure(sent)) {
+    console.error("webhook: trial-will-end email send failed", {
+      tenantId,
+      emailMasked: maskEmail(email),
+      status: sent.status,
+    });
+  } else {
+    console.info("webhook: trial-will-end email sent", {
+      tenantId,
+      emailMasked: maskEmail(email),
+      resendId: sent.id,
+    });
+  }
 }
 
 function getStripe(): Stripe {
@@ -540,7 +567,13 @@ export async function POST(req: NextRequest) {
           // 購入完了メール送信。Stripe が webhook をリトライしても
           // event.id ベースの idempotency key で Resend 側が重複送信しない。
           if (tenantId) {
-            await sendShopOrderConfirmationEmail(supabase, tenantId, shopOrderId, `shop-order-paid:${event.id}`);
+            await sendShopOrderEmail({
+              supabase,
+              tenantId,
+              shopOrderId,
+              kind: "paid",
+              idempotencyKey: `shop-order-paid:${event.id}`,
+            });
           }
 
           console.info("webhook: shop order paid", { shopOrderId, tenantId });
@@ -572,6 +605,13 @@ export async function POST(req: NextRequest) {
               },
               { onConflict: "tenant_id,option_type" },
             );
+
+            await sendTemplateSubscriptionStartedEmail({
+              supabase,
+              tenantId,
+              optionType,
+              idempotencyKey: `template-subscription-started:${event.id}`,
+            });
 
             console.info("webhook: template option subscription created", { tenantId, optionType, subscriptionId });
           }
@@ -651,6 +691,70 @@ export async function POST(req: NextRequest) {
             if (!handled) throw tenantErr; // Re-throw if neither tenant nor insurer
           }
         }
+
+        // ─── サブスク解約通知メール（テナント向け、保険会社・テンプレオプは除外）───
+        if (event.type === "customer.subscription.deleted" && !isInsurer) {
+          const tenantId = sub.metadata?.tenant_id;
+          const customerId = asStringId(sub.customer);
+          const resolvedTenantId =
+            tenantId ??
+            (customerId
+              ? ((
+                  await supabase
+                    .from("tenants")
+                    .select("id")
+                    .eq("stripe_customer_id", customerId)
+                    .limit(1)
+                    .maybeSingle()
+                ).data?.id ?? null)
+              : null);
+          if (resolvedTenantId) {
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.ledra.co.jp";
+            await sendSubscriptionCancelledEmail(
+              supabase,
+              resolvedTenantId,
+              `${appUrl}/admin/billing`,
+              `subscription-cancelled:${event.id}`,
+            );
+          }
+        }
+        break;
+      }
+
+      // ─── トライアル終了 7 日前通知 ───
+      case "customer.subscription.trial_will_end": {
+        const sub = event.data.object as Stripe.Subscription;
+        if (isTemplateOptionEvent(sub.metadata as Record<string, string> | null)) break;
+        if (sub.metadata?.type === "insurer") break;
+
+        const tenantId = sub.metadata?.tenant_id;
+        const customerId = asStringId(sub.customer);
+        const resolvedTenantId =
+          tenantId ??
+          (customerId
+            ? ((await supabase.from("tenants").select("id").eq("stripe_customer_id", customerId).limit(1).maybeSingle())
+                .data?.id ?? null)
+            : null);
+
+        if (!resolvedTenantId) {
+          console.warn("webhook: trial_will_end skipped — no tenant", { subId: sub.id, customerId });
+          break;
+        }
+
+        const trialEndUnix = sub.trial_end;
+        if (!trialEndUnix) {
+          console.warn("webhook: trial_will_end skipped — no trial_end", { subId: sub.id });
+          break;
+        }
+
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.ledra.co.jp";
+        await sendTrialWillEndEmail(
+          supabase,
+          resolvedTenantId,
+          new Date(trialEndUnix * 1000),
+          `${appUrl}/admin/billing`,
+          `trial-will-end:${event.id}`,
+        );
         break;
       }
 
