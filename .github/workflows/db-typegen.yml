@@ -39,7 +39,7 @@ jobs:
             > src/types/db.generated.ts
 
       - name: Open PR if types changed
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "chore(db): regenerate Supabase types"
           title: "chore(db): regenerate Supabase types"
