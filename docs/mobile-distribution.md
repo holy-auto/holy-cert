@@ -105,13 +105,31 @@ eas update:republish --group <PREVIOUS_GROUP_ID>
 正式ストア提出は **手動** とし、CI からの自動 submit は無効化済 (
 誤提出のリスクが大きいため)。
 
-## TODO (続編で対応)
+## 本番リリース前 残作業チェックリスト
 
-- [ ] Tap to Pay (iPhone) の Apple Entitlement 申請が承認待ち
-- [ ] Push 通知 (APNs / FCM) の本番証明書登録
-- [ ] 生体認証 (Face ID / 指紋) のオプトイン設定
-- [ ] ストア掲載後の Crashlytics / Sentry リリーストラッキング
-- [ ] 加盟店向けインストールガイド (`docs/agent-demo-guide.md` の延長)
+ストア審査提出前に全てクリアする。「担当」は当該領域の最終責任者、
+「状態」は更新するたびに書き換える。
+
+| # | 項目 | 担当 | 状態 | 関連 |
+|---|---|---|---|---|
+| 1 | Tap to Pay (iPhone) Apple Entitlement 申請 | iOS リード | ⏳ 承認待ち | `docs/tap-to-pay-submission-guide.md` |
+| 2 | Push 通知本番証明書登録 (APNs key + FCM Server Key を EAS Secrets に) | Mobile リード | ⬜ 未着手 | `apps/mobile/eas.json` |
+| 3 | 生体認証 (`expo-local-authentication`) のオプトイン UI + 設定保存 | Mobile リード | ⬜ 未着手 | `apps/mobile/src/features/auth/` |
+| 4 | Sentry リリーストラッキング (`sentry-expo` + EAS Update hook) | DevOps | ⬜ 未着手 | `sentry.client.config.ts` |
+| 5 | 加盟店向け インストールガイド (TestFlight + Play Internal) | サポート | ⬜ 未着手 | `docs/agent-demo-guide.md` の延長 |
+| 6 | ストアスクリーンショット (5 端末分 × 2 言語) | デザイン | ⬜ 未着手 | `_review-pdfs/` |
+| 7 | プライバシーポリシーの最新版を App Privacy 入力に反映 | PM | ⬜ 未着手 | `/(marketing)/privacy` |
+| 8 | App Store / Play 連絡先メアド統一 (Resend に MX 設定済か?) | PM | ⬜ 未着手 | `docs/operations-guide.md` |
+| 9 | EAS Build credentials 鍵 (.p8 / keystore) を 1Password に複製 | DevOps | ⬜ 未着手 | — |
+| 10 | 本番接続前の Crashlytics 24h 観測期間 | Mobile リード | ⬜ 未着手 | Phased Release 5% から開始 |
+
+進捗テンプレ: ⬜ 未着手 / ⏳ 進行中 / 🟡 ブロッカーあり / ✅ 完了
+
+### Lighthouse 接続前にやらない理由 (敢えてスコープ外)
+
+- **iPad 対応**: B2B SaaS の現場は iPhone + Android スマホ中心。Lighthouse 1社の声で判断
+- **Apple Wallet パス**: Tap to Pay より優先度低。証明書 NFC があれば代替可
+- **Watch app**: ユースケース未確定
 
 ## 参考
 

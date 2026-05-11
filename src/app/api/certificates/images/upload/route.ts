@@ -12,6 +12,7 @@ import { stripGpsAndReadExif } from "@/lib/anchoring/imageExif";
 import { computeAuthenticityGrade } from "@/lib/anchoring/authenticityGrade";
 import { invokeAllUploadProviders } from "@/lib/anchoring/providers";
 import { upsertVehiclePassport } from "@/lib/passport/upsertVehiclePassport";
+import { generateImageVariants, variantStoragePath } from "@/lib/certificateImages/generateVariants";
 
 export const runtime = "nodejs";
 // Allow up to 60s for image processing + verification providers.
@@ -202,6 +203,30 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // ── WebP variants (best-effort, never blocks primary upload) ──
+      // The original is already in storage; if variant encoding or upload
+      // fails, the row is inserted with NULL variant paths and consumers
+      // fall back to `storage_path`. See lib/certificateImages/generateVariants.
+      let thumbnailPath: string | null = null;
+      let mediumPath: string | null = null;
+      const variants = await generateImageVariants(finalBuffer);
+      if (variants.thumbnail) {
+        const path = variantStoragePath(storagePath, "thumbnail");
+        const { error: vErr } = await admin.storage
+          .from(CERTIFICATE_IMAGE_BUCKET)
+          .upload(path, variants.thumbnail.buffer, { contentType: "image/webp", upsert: false });
+        if (vErr) console.warn("thumbnail variant upload failed", { path, message: vErr.message });
+        else thumbnailPath = path;
+      }
+      if (variants.medium) {
+        const path = variantStoragePath(storagePath, "medium");
+        const { error: vErr } = await admin.storage
+          .from(CERTIFICATE_IMAGE_BUCKET)
+          .upload(path, variants.medium.buffer, { contentType: "image/webp", upsert: false });
+        if (vErr) console.warn("medium variant upload failed", { path, message: vErr.message });
+        else mediumPath = path;
+      }
+
       const c2paMode = (process.env.C2PA_MODE ?? "disabled") as "disabled" | "dev-signed" | "production";
       const grade = computeAuthenticityGrade({
         hasSha256: true,
@@ -242,22 +267,27 @@ export async function POST(req: NextRequest) {
           polygon_tx_hash: providers.polygon.txHash,
           polygon_network: providers.polygon.network,
           authenticity_grade: grade,
+          thumbnail_path: thumbnailPath,
+          medium_path: mediumPath,
         })
         .select("id, file_name")
         .single();
 
       if (insertError) {
         console.error("certificate_images insert error", insertError);
-        // Best-effort: remove the just-uploaded storage object so we don't
-        // orphan it when the DB row can't be written. Failures here turn
-        // into paid storage we cannot reach, so surface the cleanup error
-        // loudly instead of swallowing it.
+        // Best-effort: remove the primary object AND any variants so we
+        // don't orphan paid storage. Failures here surface loudly because
+        // the bytes are unreachable from the application path forever.
+        const pathsToRemove = [storagePath];
+        if (thumbnailPath) pathsToRemove.push(thumbnailPath);
+        if (mediumPath) pathsToRemove.push(mediumPath);
         admin.storage
           .from(CERTIFICATE_IMAGE_BUCKET)
-          .remove([storagePath])
+          .remove(pathsToRemove)
           .catch((removeErr: unknown) => {
             console.error("certificate_images orphan cleanup failed", {
               storagePath,
+              variantPaths: pathsToRemove.slice(1),
               insertError: insertError.message,
               removeError: removeErr instanceof Error ? removeErr.message : String(removeErr),
             });

@@ -43,7 +43,12 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
+vi.mock("@sentry/nextjs", () => ({
+  captureException: vi.fn(),
+  setUser: vi.fn(),
+  setTag: vi.fn(),
+  setContext: vi.fn(),
+}));
 
 import { GET } from "@/app/api/agent/data-export/route";
 import { NextRequest } from "next/server";
