@@ -12,6 +12,7 @@ import { isResendFailure, sendResendEmail } from "@/lib/email/resendSend";
 import { sendShopOrderEmail } from "@/lib/email/shopOrderEmail";
 import { sendTemplateSubscriptionStartedEmail } from "@/lib/email/templateOrderEmail";
 import { maskEmail } from "@/lib/logger";
+import { invalidateTenantBillingCache } from "@/lib/billing/guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -393,6 +394,9 @@ async function syncBySubscription(
       title: "課金状態を同期",
       description: `plan=${plan_tier ?? "unknown"} active=${active} sub=${subscriptionId}`,
     });
+    // Bust the billing-guard cache so the next request sees the new plan
+    // immediately instead of waiting up to 60s for TTL expiry.
+    await invalidateTenantBillingCache(resolvedTenantId);
   }
 }
 

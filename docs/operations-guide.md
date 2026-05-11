@@ -1590,3 +1590,32 @@ Vercel Cron に登録するスケジュール (`vercel.json`):
 - `/api/contact` — 問い合わせフォーム
 - `/api/health` — ヘルスチェック
 - `/api/probe` — 監視プローブ
+
+---
+
+## ホットデータキャッシュ戦略
+
+Upstash Redis をバックエンドにした memoization レイヤ (`src/lib/cache.ts`)。
+Redis 未設定の dev/CI 環境では透過的にバイパスされる (`getRedis()` が null を返す)。
+
+### 適用先と TTL
+
+| キー prefix | TTL | 対象 | 無効化トリガ |
+|---|---|---|---|
+| `tenant-billing:<tenantId>` | 60s | billing guard の plan_tier / is_active ルックアップ | Stripe webhook の subscription 更新 (`invalidateTenantBillingCache`) |
+| `dashboard-summary:<tenantId>` | 30s | `/api/admin/dashboard-summary` の集計レスポンス | TTL 切れまで stale を許容 |
+| `whitelabel-host:<host>` | 既存 | カスタムドメイン → tenant_id 解決 | `tenant_custom_domains` 更新時に手動 (将来自動化) |
+
+### 追加するときの規約
+
+- キーは `<scope>:<id>[:<purpose>]` のコロン区切りで揃える。prefix 一括無効化 (`invalidateByPrefix`) のため
+- mutation 直後は `invalidateCache(key)` でバストする (TTL 切れに依存しない)。ユーザが「上書きしたのに反映されない」を体験しないことが優先
+- TTL は最大でも 3600s (プラン定義レベルのほぼ不変データ) を上限とする。アプリログイン状態に関わる値はキャッシュ禁止
+- 書き込み (SET) 失敗は warn ログのみで握り潰す (fresh data は返ってる)
+- 読み取り (GET) 失敗時は fn() に fallback (Redis 障害でアプリが落ちないように)
+
+### 観測
+
+- hit/miss は 1% サンプリングで `logger.debug` (Vercel ログ容量節約)
+- Upstash コンソールの metrics で hit-rate を週次確認
+- 異常な miss 連発時は `[cache get/set failed]` の warn を Sentry で alerting
