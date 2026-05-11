@@ -42,7 +42,7 @@
 | バックアップ | 🟡 | Supabase 自動バックアップ 30日 / PITR 1分粒度 (Pro 必須)。`docs/disaster-recovery.md` 参照 |
 | Read Replica | 🟡 | `getReadReplica()` 経由で透過対応済。Pro 化 + `SUPABASE_REPLICA_URL` 設定で有効化 |
 | データ削除 (GDPR Erasure) | 🟡 | `/api/customer/data-deletion` 実装済 (customer scope)。admin/agent/insurer 向けは roadmap |
-| データエクスポート | 🟡 | `/api/customer/data-export` (JSON) 実装済 (customer scope)。残スコープは roadmap |
+| データエクスポート | ✅ | 4 スコープ全て JSON ダウンロード対応: `/api/customer/data-export` / `/api/admin/data-export` (owner only) / `/api/agent/data-export` / `/api/insurer/data-export` (admin only)。Rate limit 3/h、5 MB 超は QStash 非同期に切替予定。`docs/data-retention.md` 参照 |
 | データ保持ポリシー | ✅ | `docs/data-retention.md` + `/api/cron/data-retention` で自動削除 |
 
 ---
