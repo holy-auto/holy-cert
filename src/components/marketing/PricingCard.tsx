@@ -5,6 +5,7 @@ export function PricingCard({
   name,
   price,
   unit = "月",
+  setupFee,
   description,
   features,
   recommended = false,
@@ -15,6 +16,7 @@ export function PricingCard({
   name: string;
   price: string;
   unit?: string;
+  setupFee?: string;
   description: string;
   features: string[];
   recommended?: boolean;
@@ -41,9 +43,19 @@ export function PricingCard({
         <p className="mt-1.5 text-sm text-white/80">{description}</p>
       </div>
 
-      <div className="mb-8 min-h-[3.5rem] flex items-baseline">
+      <div className="mb-2 min-h-[3.5rem] flex items-baseline">
         <span className="text-[2.5rem] font-bold tracking-tight text-white">{price}</span>
         {unit && <span className="text-sm ml-1.5 text-white/75">{unit.startsWith("/") ? unit : `/${unit}`}</span>}
+      </div>
+      <div className="mb-6 min-h-[1.25rem] text-xs text-white/60">
+        {setupFee ? (
+          <>
+            初期費用 <span className="line-through text-white/40">{setupFee}</span>{" "}
+            <span className="text-amber-400 font-medium">先着100店舗まで¥0</span>
+          </>
+        ) : (
+          <span className="text-white/40">初期費用なし</span>
+        )}
       </div>
 
       <ul className="space-y-3 mb-10 flex-1">

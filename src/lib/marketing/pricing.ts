@@ -188,7 +188,8 @@ export const LAUNCH_CAMPAIGN = {
   plans: ["standard", "pro"] as const,
   durationMonths: 12,
   nfcFreeAllocation: 30,
-  description: "初期100店舗限定キャンペーン（初年度のみ適用・Standard/Pro対象）",
+  description: "先着100店舗限定: 初期費用¥0 + 初年度月額¥10,000OFF（Standard/Pro対象）",
+  shortLabel: "先着100店舗まで初期費用¥0",
 } as const;
 
 /** プラン別機能比較テーブルデータ */

@@ -285,6 +285,7 @@ export default async function HomePage() {
             name={PLANS.standard.name}
             price={PLANS.standard.price}
             unit={PLANS.standard.unit}
+            setupFee={PLANS.standard.setupFee}
             description={PLANS.standard.description}
             delay={200}
             features={[...PLANS.standard.features]}
@@ -294,6 +295,7 @@ export default async function HomePage() {
             name={PLANS.pro.name}
             price={PLANS.pro.price}
             unit={PLANS.pro.unit}
+            setupFee={PLANS.pro.setupFee}
             description={PLANS.pro.description}
             delay={300}
             features={[...PLANS.pro.features]}
