@@ -3,6 +3,8 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { checkPasswordSignInAllowed } from "@/lib/auth/ssoPolicy";
+import { SsoSignInButton } from "@/components/auth/SsoSignInButton";
 
 /**
  * ログイン後のリダイレクト先を安全に決定する。
@@ -59,7 +61,14 @@ async function resolveDefaultRedirect(userId: string, activeContext: string | nu
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; redirect_to?: string; e?: string; reason?: string }>;
+  searchParams: Promise<{
+    next?: string;
+    redirect_to?: string;
+    e?: string;
+    reason?: string;
+    sso?: string;
+    domain?: string;
+  }>;
 }) {
   const sp = await searchParams;
 
@@ -71,6 +80,19 @@ export default async function Page({
     "use server";
     const email = String(formData.get("email") || "");
     const password = String(formData.get("password") || "");
+
+    // Enterprise SSO enforcement: if the user's email domain belongs to a
+    // tenant with sso_required=true, block password sign-in and redirect to
+    // the SSO entry point. Fail-open semantics — see ssoPolicy.ts.
+    const policyAdmin = createServiceRoleAdmin("login — checks sso_required policy for caller email");
+    const policy = await checkPasswordSignInAllowed(policyAdmin, email);
+    if (!policy.allowed) {
+      const params = new URLSearchParams();
+      if (rawNext) params.set("next", rawNext);
+      params.set("sso", "1");
+      params.set("domain", policy.tenantSsoDomain);
+      redirect(`/login?${params.toString()}`);
+    }
 
     const supabase = await createSupabaseServerClient();
     const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -122,6 +144,13 @@ export default async function Page({
           <div className="text-sm text-red-400 text-center">メールアドレスまたはパスワードが正しくありません。</div>
         )}
 
+        {sp.sso === "1" && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-400">
+            このメールアドレスは SSO ログインが必須に設定されています。下の「会社の SSO
+            でログイン」ボタンを使用してください。
+          </div>
+        )}
+
         {/* 代理店申請フローからのリダイレクト時のメッセージ */}
         {rawNext?.startsWith("/agent/apply") && (
           <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 text-sm text-blue-400">
@@ -136,6 +165,17 @@ export default async function Page({
             ログイン
           </button>
         </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-border-default" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-base px-2 text-muted">または</span>
+          </div>
+        </div>
+
+        <SsoSignInButton defaultDomain={sp.domain} next={rawNext} />
 
         <div className="text-center space-y-2">
           <Link href="/forgot-password" className="text-xs text-accent hover:underline">

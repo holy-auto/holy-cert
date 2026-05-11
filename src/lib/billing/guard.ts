@@ -2,6 +2,23 @@ import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import Stripe from "stripe";
 import { type PlanTier, PLAN_RANK as RANK } from "@/types/billing";
 import { isPlatformTenantId } from "@/lib/auth/platformAdmin";
+import { withCache, invalidateCache } from "@/lib/cache";
+
+/**
+ * Cache key for the billing-guard tenant lookup. Exposed so the Stripe
+ * webhook can bust it on subscription changes (see `invalidateTenantBillingCache`).
+ */
+function tenantBillingCacheKey(tenantId: string) {
+  return `tenant-billing:${tenantId}`;
+}
+
+/**
+ * Drop the cached billing row for a tenant. Idempotent — safe to call from
+ * webhook handlers that may not yet know whether the cache existed.
+ */
+export async function invalidateTenantBillingCache(tenantId: string): Promise<void> {
+  await invalidateCache(tenantBillingCacheKey(tenantId));
+}
 
 const DEFAULT_GRACE_DAYS = 14;
 
@@ -217,14 +234,26 @@ export async function enforceBilling(
   }
 
   const supabase = getBillingLookupAdmin();
-  const { data, error } = await supabase
-    .from("tenants")
-    .select("plan_tier, is_active, stripe_subscription_id")
-    .eq("id", tenant_id)
-    .limit(1)
-    .maybeSingle();
+  // Cache the billing-relevant tenant row for 60s. Bust the cache via
+  // `invalidateTenantBillingCache(tenantId)` from the Stripe webhook on
+  // subscription updates so plan changes propagate within the request that
+  // ran the upgrade. Cache key is collapsed by tenant for prefix bust.
+  const data = await withCache<{
+    plan_tier: string | null;
+    is_active: boolean | null;
+    stripe_subscription_id: string | null;
+  } | null>(tenantBillingCacheKey(tenant_id), 60, async () => {
+    const { data: row, error } = await supabase
+      .from("tenants")
+      .select("plan_tier, is_active, stripe_subscription_id")
+      .eq("id", tenant_id)
+      .limit(1)
+      .maybeSingle();
+    if (error || !row) return null;
+    return row as { plan_tier: string | null; is_active: boolean | null; stripe_subscription_id: string | null };
+  });
 
-  if (error || !data) {
+  if (!data) {
     return json(404, { error: "Tenant not found (billing guard)" }, { "x-billing-url": "/admin/billing" });
   }
 

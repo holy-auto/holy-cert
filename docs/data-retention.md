@@ -36,6 +36,48 @@
 アンカーされた証明書ハッシュとの整合性を保つため (証明書本体は
 「誰が施工したか」のテナント側情報なので削除しない)。
 
+## アクセスリクエスト (個人情報保護法 第 33 条 / GDPR 第 15 条)
+
+データ主体に自身の保有データを開示する「アクセス権」対応として、4 つの
+ロール別エクスポート route を用意している。すべて JSON ダウンロードで
+即時応答、Content-Disposition で `attachment` を付与する。
+
+| エンドポイント | 認証 | スコープ | 含む主要テーブル |
+|---|---|---|---|
+| `GET /api/customer/data-export` | 顧客ポータル session cookie | (tenant, customer) | profile / certificates / vehicle_histories / reservations |
+| `GET /api/admin/data-export` | owner ロールのみ | tenant 全体 | tenants / certificates / customers / vehicles / invoices / reservations / vehicle_histories / tenant_memberships |
+| `GET /api/agent/data-export` | get_my_agent_status RPC で active | (agent) | agents / agent_referrals / agent_commissions / agent_payouts / agent_training_completions |
+| `GET /api/insurer/data-export` | insurer admin ロールのみ | (insurer) | insurers / insurer_users / insurer_cases / insurer_tenant_contracts / insurer_access_logs |
+
+共通仕様:
+
+- **Rate limit**: 3 / 1時間 / (scope_id × user_id)。多重発行とリソース消費を抑制
+- **権限ゲート**: admin export は owner のみ、insurer export は admin のみ。
+  下位ロールには PII 一括取得を許可しない (privilege escalation gate)
+- **Audit log**: admin export は `vehicle_histories` に `admin_data_export` type
+  で記録 (best-effort、応答ブロックしない)
+- **excluded から除外しているもの**: `auth.users` (Supabase 直接管理)、
+  `tenant_secrets` (暗号化済み)、Stripe customer 詳細 (Stripe Dashboard 経由)、
+  他テナント/他社の情報
+- **スキーマ版**: `payload.schema_version = "1.0"`。後方互換破壊時にバンプする
+
+### 5 MB 超 / 大容量テナント向けの将来仕様 (未実装)
+
+現状は in-memory で全件 select → JSON serialize。証明書 1 万件 / 顧客 5 千件
+を超えるテナントでは Vercel の `maxDuration=60s` を消費する可能性がある。
+切り替え予定:
+
+1. ボタン押下 → QStash に `data-export.tenant` topic で enqueue
+2. worker が ZIP + 署名付き URL を Supabase Storage に生成
+3. URL 期限 7 日 + Resend で当該ユーザに通知メール
+4. `customer_data_exports` テーブル (retention 7日) に履歴
+
+### Lighthouse 接続前のオペレーション
+
+- [ ] 法務レビュー済 retention テーブルを利用規約ページに転載
+- [ ] 削除 (Erasure) リクエスト UI を admin / agent / insurer 向けに追加
+- [ ] アクセスリクエスト記録を専用テーブル化 (現状 audit_log のみ)
+
 ## 実装
 
 cron route: `src/app/api/cron/data-retention/route.ts` (実装済)

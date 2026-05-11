@@ -76,18 +76,21 @@ describe("POST /api/customer/request-code", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 404 when tenant slug is unknown", async () => {
+  it("returns 200 (silently noop) when tenant slug is unknown — anti-enumeration", async () => {
     getTenantIdBySlugMock.mockResolvedValueOnce(null);
     const res = await POST(jsonReq({ tenant_slug: "nope", email: "a@b.com", phone_last4: "1234" }));
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
+    expect(createLoginCodeMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when no certificate matches the phone hash", async () => {
+  it("returns 200 (silently noop) when no certificate matches — anti-enumeration", async () => {
     getTenantIdBySlugMock.mockResolvedValueOnce("tenant-1");
     tenantHasPhoneHashMock.mockResolvedValueOnce(false);
     const res = await POST(jsonReq({ tenant_slug: "demo", email: "a@b.com", phone_last4: "1234" }));
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
     expect(createLoginCodeMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("creates a login code and sends email when input is valid", async () => {
