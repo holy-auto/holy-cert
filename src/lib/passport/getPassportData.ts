@@ -1,4 +1,4 @@
-import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { getReadReplica } from "@/lib/supabase/readReplica";
 import { buildExplorerUrl } from "@/lib/anchoring/providers";
 
 export type PassportCertCard = {
@@ -37,7 +37,11 @@ type PassportRow = {
 
 export async function getPassportData(vinRaw: string): Promise<PassportData | null> {
   const vin = vinRaw.trim().toUpperCase();
-  const admin = createServiceRoleAdmin("passport public page — /v/[vin], anonymous caller");
+  // Anonymous public read path → safe to route to the replica when configured.
+  // Eventual consistency (<1s lag) is acceptable here because newly-issued
+  // certificates take much longer to anchor on Polygon anyway, so a fresh
+  // passport view never depends on sub-second write visibility.
+  const admin = getReadReplica("passport public page — /v/[vin], anonymous caller");
 
   const { data: passportRaw } = await admin
     .from("vehicle_passports")
@@ -105,9 +109,10 @@ export async function getPassportData(vinRaw: string): Promise<PassportData | nu
     const imgs = imgsByCert.get(cert.id);
     if (!imgs?.length) continue;
     const tenant = tenantMap[cert.tenant_id];
-    const network = imgs[0].polygon_network === "amoy" || imgs[0].polygon_network === "polygon"
-      ? (imgs[0].polygon_network as "polygon" | "amoy")
-      : null;
+    const network =
+      imgs[0].polygon_network === "amoy" || imgs[0].polygon_network === "polygon"
+        ? (imgs[0].polygon_network as "polygon" | "amoy")
+        : null;
     cards.push({
       public_id: cert.public_id,
       service_type: cert.service_type,
@@ -137,11 +142,17 @@ export async function getPassportData(vinRaw: string): Promise<PassportData | nu
 
 export function getServiceTypeLabel(serviceType: string | null): string {
   switch (serviceType) {
-    case "ppf": return "PPF施工";
-    case "coating": return "コーティング";
-    case "body_repair": return "鈑金塗装";
-    case "maintenance": return "車両整備";
-    case "wrapping": return "ラッピング";
-    default: return serviceType ?? "施工";
+    case "ppf":
+      return "PPF施工";
+    case "coating":
+      return "コーティング";
+    case "body_repair":
+      return "鈑金塗装";
+    case "maintenance":
+      return "車両整備";
+    case "wrapping":
+      return "ラッピング";
+    default:
+      return serviceType ?? "施工";
   }
 }

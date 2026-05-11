@@ -1,4 +1,5 @@
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { getReadReplica, isReadReplicaConfigured } from "@/lib/supabase/readReplica";
 import { apiJson } from "@/lib/api/response";
 
 export const runtime = "nodejs";
@@ -13,7 +14,7 @@ export async function GET() {
   const checks: Record<string, { ok: boolean; latency_ms?: number; error?: string }> = {};
   let allHealthy = true;
 
-  // Check Supabase DB connectivity
+  // Check Supabase DB connectivity (primary)
   const dbStart = Date.now();
   try {
     const supabase = createServiceRoleAdmin("health check — probes DB connectivity, not tenant-scoped");
@@ -31,6 +32,28 @@ export async function GET() {
       error: "DB unreachable",
     };
     allHealthy = false;
+  }
+
+  // Check read replica reachability when configured. A replica failure
+  // does NOT degrade overall health (callers fall back to primary via
+  // getReadReplica), but we surface it so ops can spot drift early.
+  if (isReadReplicaConfigured()) {
+    const replicaStart = Date.now();
+    try {
+      const replica = getReadReplica("health check — replica probe");
+      const { error } = await replica.from("tenants").select("id").limit(1);
+      checks.database_replica = {
+        ok: !error,
+        latency_ms: Date.now() - replicaStart,
+        ...(error ? { error: "Replica query failed (falling back to primary at runtime)" } : {}),
+      };
+    } catch {
+      checks.database_replica = {
+        ok: false,
+        latency_ms: Date.now() - replicaStart,
+        error: "Replica unreachable (falling back to primary at runtime)",
+      };
+    }
   }
 
   // Check Stripe connectivity (config presence only — no API call)

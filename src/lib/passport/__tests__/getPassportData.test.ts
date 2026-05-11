@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const fromMock = vi.fn();
-vi.mock("@/lib/supabase/admin", () => ({
-  createServiceRoleAdmin: () => ({ from: fromMock }),
+vi.mock("@/lib/supabase/readReplica", () => ({
+  getReadReplica: () => ({ from: fromMock }),
 }));
 
 vi.mock("@/lib/anchoring/providers", () => ({
