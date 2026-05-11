@@ -1563,6 +1563,27 @@ DELETE:  tenant_id IN (SELECT my_tenant_ids()) AND my_tenant_role(tenant_id) IN 
 - `/api/line/webhook` — LINE
 - `/api/cron/*` — 定期処理
 
+#### Stripe webhook の信頼性レイヤ
+
+| 層 | テーブル / Route | 目的 |
+|---|---|---|
+| 1. 冪等性 | `stripe_processed_events` (UNIQUE on event_id) | 重複配送を 23505 で弾く |
+| 2. 払い戻し保証 | `stripe_processed_events.payload` (jsonb) | claim と同時に raw event を保存し、後段の障害でも復元可 |
+| 3. 完了マーク | `stripe_processed_events.processed_at` | switch を抜けた瞬間 NOW() を入れる。クラッシュ・タイムアウト時は NULL のまま |
+| 4. 監視 | `/api/cron/stripe-event-monitor` (5分間隔) | `processed_at IS NULL` かつ 5分以上経った行を Resend でアラート |
+| 5. 復旧 | Stripe Dashboard "Resend Webhook" | アラートに記載された event_id を手動再配送 (PoC 段階)。Phase 2 で自動 worker に置換予定 |
+
+Vercel Cron に登録するスケジュール (`vercel.json`):
+```json
+{ "path": "/api/cron/stripe-event-monitor", "schedule": "*/5 * * * *" }
+```
+
+アラート受信時の対応:
+1. メールに記載された `event_id` を Supabase Studio の `stripe_processed_events` で開く
+2. `error_message` がある場合は内容を読む。一過性 (Stripe 5xx / Postgres connection drop) なら Stripe Dashboard "Resend Webhook" でリトライ
+3. コードバグの場合は直して deploy 後に同じく "Resend Webhook"
+4. 処理完了後、当該行を `UPDATE stripe_processed_events SET processed_at = now() WHERE event_id = '...'` でクローズ (次回のアラート抑止)
+
 ### 公開API (5+)
 - `/api/c/[public_id]` — 公開証明書
 - `/api/certificate/public-status/*` — 公開ステータス

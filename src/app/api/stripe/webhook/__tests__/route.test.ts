@@ -10,12 +10,13 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { constructEventMock, supabaseInsertMock, supabaseClaimResultRef } = vi.hoisted(() => ({
+const { constructEventMock, supabaseInsertMock, supabaseClaimResultRef, speUpdates } = vi.hoisted(() => ({
   constructEventMock: vi.fn(),
   supabaseInsertMock: vi.fn(),
   supabaseClaimResultRef: {
     current: { data: null as { id: string } | null, error: null as { code: string; message: string } | null },
   },
+  speUpdates: [] as Array<{ patch: Record<string, unknown>; eventId: string }>,
 }));
 
 vi.mock("stripe", () => {
@@ -29,12 +30,20 @@ vi.mock("@/lib/supabase/admin", () => ({
   createServiceRoleAdmin: () => ({
     from: (table: string) => {
       if (table === "stripe_processed_events") {
-        // chain: .insert(...).select(...).single()
         return {
-          insert: () => ({
-            select: () => ({
-              single: () => Promise.resolve(supabaseClaimResultRef.current),
-            }),
+          insert: (row: Record<string, unknown>) => {
+            supabaseInsertMock(row);
+            return {
+              select: () => ({
+                single: () => Promise.resolve(supabaseClaimResultRef.current),
+              }),
+            };
+          },
+          update: (patch: Record<string, unknown>) => ({
+            eq: (_col: string, value: string) => {
+              speUpdates.push({ patch, eventId: value });
+              return Promise.resolve({ error: null });
+            },
           }),
         };
       }
@@ -87,6 +96,7 @@ describe("POST /api/stripe/webhook", () => {
   beforeEach(() => {
     constructEventMock.mockReset();
     supabaseInsertMock.mockReset();
+    speUpdates.length = 0;
     supabaseClaimResultRef.current = { data: { id: "claim-1" }, error: null };
     process.env.STRIPE_SECRET_KEY = "sk_test_dummy";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_dummy";
@@ -163,5 +173,39 @@ describe("POST /api/stripe/webhook", () => {
     // The route returns apiJson({ received: true }) for any path that falls
     // through the switch without throwing, so this case must be 200.
     expect(res.status).toBe(200);
+  });
+
+  it("claim stores the raw payload (for the monitor cron to replay later)", async () => {
+    const evt = {
+      id: "evt_payload_capture",
+      type: "ping.something_else",
+      data: { object: { secret: "hidden" } },
+    };
+    constructEventMock.mockReturnValue(evt);
+
+    await POST(webhookReq("{}", "sig_ok"));
+    expect(supabaseInsertMock).toHaveBeenCalledOnce();
+    const insertedRow = supabaseInsertMock.mock.calls[0][0];
+    expect(insertedRow).toEqual({
+      event_id: "evt_payload_capture",
+      event_type: "ping.something_else",
+      payload: evt,
+    });
+  });
+
+  it("on successful processing: UPDATE marks processed_at and clears error_message", async () => {
+    constructEventMock.mockReturnValue({
+      id: "evt_happy_path",
+      type: "ping.something_else",
+      data: { object: {} },
+    });
+
+    const res = await POST(webhookReq("{}", "sig_ok"));
+    expect(res.status).toBe(200);
+    // exactly one row UPDATE — at the end of the try block.
+    expect(speUpdates).toHaveLength(1);
+    expect(speUpdates[0].eventId).toBe("evt_happy_path");
+    expect(speUpdates[0].patch.error_message).toBeNull();
+    expect(typeof speUpdates[0].patch.processed_at).toBe("string");
   });
 });

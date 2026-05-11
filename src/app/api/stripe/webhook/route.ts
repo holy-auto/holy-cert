@@ -475,11 +475,17 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServiceRoleAdmin("stripe webhook — events can belong to any tenant");
 
-  // Idempotency: claim this event before processing.
-  // INSERT with ON CONFLICT to handle concurrent webhook deliveries.
+  // Idempotency + safety-net: claim this event before processing, capturing
+  // the raw payload so the monitor cron can replay it if the inline switch
+  // below crashes or times out. INSERT with ON CONFLICT to handle concurrent
+  // webhook deliveries. See migration 20260511000000.
   const { error: claimError } = await supabase
     .from("stripe_processed_events")
-    .insert({ event_id: event.id, event_type: event.type })
+    .insert({
+      event_id: event.id,
+      event_type: event.type,
+      payload: event as unknown as Record<string, unknown>,
+    })
     .select("id")
     .single();
 
@@ -880,12 +886,27 @@ export async function POST(req: NextRequest) {
       default:
         break;
     }
+
+    // Mark the event complete so the monitor cron does NOT later alert on it.
+    // This is best-effort: if the UPDATE itself fails we just return 200 and
+    // let the cron detect the stuck row a few minutes later.
+    await supabase
+      .from("stripe_processed_events")
+      .update({ processed_at: new Date().toISOString(), error_message: null })
+      .eq("event_id", event.id);
   } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
     console.error("stripe webhook handler failed", {
       type: event.type,
       id: event.id,
-      error: e instanceof Error ? e.message : e,
+      error: errorMessage,
     });
+    // Record the failure on the claim row so the monitor cron has context
+    // when it alerts. processed_at stays NULL → it WILL alert.
+    await supabase
+      .from("stripe_processed_events")
+      .update({ error_message: errorMessage.slice(0, 1000) })
+      .eq("event_id", event.id);
     return apiInternalError(e, "stripe webhook handler");
   }
 
