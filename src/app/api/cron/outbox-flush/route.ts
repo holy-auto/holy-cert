@@ -17,6 +17,7 @@ import { sendCronFailureAlert } from "@/lib/cronAlert";
 import { withCronLock } from "@/lib/cron/lock";
 import { processOutboxBatch } from "@/lib/outbox";
 import { buildWebhookDispatcher } from "@/lib/outbound-webhooks";
+import { buildInventoryDeductionDispatcher } from "@/lib/pos/inventoryDeduction";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
     const result = await withCronLock(admin, "outbox-flush", 55, async () => {
       const dispatchers = {
         webhook: buildWebhookDispatcher(admin),
+        "pos.inventory_deduction": buildInventoryDeductionDispatcher(admin),
       };
       return processOutboxBatch(admin, dispatchers, {
         batchSize: BATCH_SIZE,

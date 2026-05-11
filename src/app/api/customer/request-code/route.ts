@@ -12,7 +12,8 @@ import {
 } from "@/lib/customerPortalServer";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { escapeHtml } from "@/lib/sanitize";
-import { apiJson, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { logger } from "@/lib/logger";
 
 const requestCodeSchema = z.object({
   tenant_slug: z.string().trim().min(1, "missing tenant_slug").max(100),
@@ -80,8 +81,18 @@ export async function POST(req: Request) {
 
     const email = normalizeEmail(parsed.data.email);
 
+    // Generic success payload returned regardless of whether an OTP was
+    // actually sent. Anti-enumeration: never let a caller distinguish
+    // "tenant unknown" / "no matching cert" / "ok" by status code or body.
+    // The audit (MEDIUM-1, 2026-05-03) calls out phone-last4 enumeration
+    // (10000 combos) as the highest-risk customer-portal attack surface.
+    const genericOk = apiJson({ ok: true }, { status: 200 });
+
     const tenantId = await getTenantIdBySlug(tenant_slug);
-    if (!tenantId) return apiNotFound("unknown tenant");
+    if (!tenantId) {
+      logger.info("customer/request-code: unknown tenant slug (silently noop)", { tenant_slug });
+      return genericOk;
+    }
 
     // Per-account limit: 3 OTP requests per (tenant+email) per 15 min.
     // Stops attackers who rotate IPs from spamming a single victim's inbox
@@ -104,7 +115,10 @@ export async function POST(req: Request) {
     }
 
     const ok = await tenantHasPhoneHash(tenantId, phoneHash, last4Raw);
-    if (!ok) return apiNotFound("no matching certificates");
+    if (!ok) {
+      logger.info("customer/request-code: no matching certificate (silently noop)", { tenantId });
+      return genericOk;
+    }
 
     const code = genCode6();
     const expires = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000).toISOString();
@@ -132,7 +146,7 @@ export async function POST(req: Request) {
 
     await sendEmailResend(email, subject, html);
 
-    return apiJson({ ok: true }, { status: 200 });
+    return genericOk;
   } catch (e: unknown) {
     return apiInternalError(e, "customer/request-code");
   }

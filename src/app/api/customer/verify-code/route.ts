@@ -13,7 +13,8 @@ import {
   OTP_MAX_ATTEMPTS,
 } from "@/lib/customerPortalServer";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-import { apiJson, apiValidationError, apiNotFound, apiInternalError } from "@/lib/api/response";
+import { apiJson, apiValidationError, apiInternalError } from "@/lib/api/response";
+import { logger } from "@/lib/logger";
 
 const isSecureCookie = process.env.NODE_ENV === "production";
 
@@ -48,8 +49,18 @@ export async function POST(req: Request) {
     }
     const { tenant_slug, email: emailRaw, phone_last4: last4Raw, code } = parsed.data;
 
+    // Anti-enumeration: collapse "unknown tenant" / "no code" / "code used" /
+    // "code expired" / "wrong code" into a single 400 invalid_code response so
+    // callers cannot use the response to enumerate tenant slugs, email
+    // addresses, or phone-last4 combinations. Rate-limit failures (429) are
+    // unaffected because they do not reveal account state.
+    const invalidCodeResponse = apiValidationError("invalid_code");
+
     const tenantId = await getTenantIdBySlug(tenant_slug);
-    if (!tenantId) return apiNotFound("unknown tenant");
+    if (!tenantId) {
+      logger.info("customer/verify-code: unknown tenant slug", { tenant_slug });
+      return invalidCodeResponse;
+    }
 
     const email = normalizeEmail(emailRaw);
 
@@ -70,14 +81,14 @@ export async function POST(req: Request) {
     try {
       phoneHash = phoneLast4Hash(tenantId, last4Raw);
     } catch {
-      return apiValidationError("invalid phone_last4");
+      return invalidCodeResponse;
     }
 
     const row = await getLatestValidCodeRow(tenantId, email, phoneHash);
-    if (!row) return apiNotFound("no code");
+    if (!row) return invalidCodeResponse;
 
-    if (row.used_at) return apiValidationError("code used");
-    if (new Date(row.expires_at).getTime() < Date.now()) return apiValidationError("code expired");
+    if (row.used_at) return invalidCodeResponse;
+    if (new Date(row.expires_at).getTime() < Date.now()) return invalidCodeResponse;
 
     const expected = otpCodeHash(tenantId, email, phoneHash, code);
     if (expected !== row.code_hash) {
@@ -90,7 +101,7 @@ export async function POST(req: Request) {
           { status: 429 },
         );
       }
-      return apiValidationError("invalid code");
+      return invalidCodeResponse;
     }
 
     await markCodeUsed(row.id);

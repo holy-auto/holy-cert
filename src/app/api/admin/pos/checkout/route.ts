@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { resolveCallerWithRole, requireMinRole } from "@/lib/auth/checkRole";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
@@ -52,11 +53,14 @@ export async function POST(req: NextRequest) {
       return apiInternalError(error, "pos/checkout");
     }
 
-    // 在庫紐付け商品があれば減算 (best-effort: 失敗してもレシートは確定)
+    // 在庫紐付け商品があれば減算 (best-effort: 失敗してもレシートは確定)。
+    // 失敗行は outbox `pos.inventory_deduction` に enqueue され、cron で再試行される。
     const result = data as { payment_id?: string | null } | null;
+    const { admin: outboxAdmin } = createTenantScopedAdmin(caller.tenantId);
     const inventory = await deductInventoryForPosItems(supabase, data2.items_json, {
       tenantId: caller.tenantId,
       paymentId: result?.payment_id ?? null,
+      outboxAdmin,
     });
 
     return apiJson({ ok: true, result: data, inventory });

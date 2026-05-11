@@ -86,11 +86,21 @@ describe("POST /api/customer/verify-code", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 404 when no code row exists", async () => {
+  it("returns 400 with generic invalid_code message when no code row exists — anti-enumeration", async () => {
     getTenantIdBySlugMock.mockResolvedValueOnce("tenant-1");
     getLatestValidCodeRowMock.mockResolvedValueOnce(null);
     const res = await POST(jsonReq(validBody));
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.message).toBe("invalid_code");
+  });
+
+  it("returns 400 with generic invalid_code message when tenant slug is unknown — anti-enumeration", async () => {
+    getTenantIdBySlugMock.mockResolvedValueOnce(null);
+    const res = await POST(jsonReq(validBody));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.message).toBe("invalid_code");
   });
 
   it("returns 400 when code is expired", async () => {

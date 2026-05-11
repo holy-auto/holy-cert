@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import { createMobileClient, resolveMobileCaller } from "@/lib/supabase/mobile";
+import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { requireMinRole } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { apiJson, apiUnauthorized, apiForbidden, apiValidationError, apiInternalError } from "@/lib/api/response";
 import { posCheckoutSchema } from "@/lib/validations/pos";
+import { deductInventoryForPosItems } from "@/lib/pos/inventoryDeduction";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +57,16 @@ export async function POST(req: NextRequest) {
       return apiInternalError(error, "mobile/pos/checkout");
     }
 
-    return apiJson({ ok: true, result: data });
+    // 在庫紐付け商品があれば減算 (best-effort + outbox リトライ)
+    const result = data as { payment_id?: string | null } | null;
+    const { admin: outboxAdmin } = createTenantScopedAdmin(caller.tenantId);
+    const inventory = await deductInventoryForPosItems(client, input.items_json, {
+      tenantId: caller.tenantId,
+      paymentId: result?.payment_id ?? null,
+      outboxAdmin,
+    });
+
+    return apiJson({ ok: true, result: data, inventory });
   } catch (e: unknown) {
     return apiInternalError(e, "mobile/pos/checkout");
   }
