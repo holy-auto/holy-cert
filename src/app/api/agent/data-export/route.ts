@@ -24,6 +24,7 @@ import { createServiceRoleAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { apiUnauthorized, apiForbidden, apiJson, apiInternalError } from "@/lib/api/response";
 import { logger } from "@/lib/logger";
+import { setSentryAgentContext } from "@/lib/sentryContext";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -62,6 +63,8 @@ export async function GET(req: NextRequest) {
     }
     const agent = Array.isArray(agentData) ? agentData[0] : agentData;
     const agentId = agent.agent_id as string;
+    // Sentry: ensure errors raised below carry the agent_id tag for triage.
+    setSentryAgentContext({ userId: auth.user.id, agentId });
 
     // Rate limit: 3/h per (agent, user).
     const rlKey = `agent-data-export:${agentId}:${auth.user.id || getClientIp(req)}`;

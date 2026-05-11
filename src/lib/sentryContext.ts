@@ -32,3 +32,14 @@ export function setSentryInsurerContext(args: { userId: string; insurerId: strin
   Sentry.setTag("insurer_id", args.insurerId);
   Sentry.setContext("insurer", { insurer_id: args.insurerId });
 }
+
+/**
+ * Attach agent caller context. Agents are a third domain alongside
+ * tenant (admin/staff) and insurer; their errors are bound by `agent_id`,
+ * not `tenant_id`, so we tag separately to keep Sentry filters clean.
+ */
+export function setSentryAgentContext(args: { userId: string; agentId: string }): void {
+  Sentry.setUser({ id: args.userId });
+  Sentry.setTag("agent_id", args.agentId);
+  Sentry.setContext("agent", { agent_id: args.agentId });
+}

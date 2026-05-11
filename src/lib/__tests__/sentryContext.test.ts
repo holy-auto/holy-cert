@@ -12,7 +12,7 @@ vi.mock("@sentry/nextjs", () => ({
   setContext: setContextMock,
 }));
 
-import { setSentryUserAndTenant, setSentryInsurerContext } from "@/lib/sentryContext";
+import { setSentryUserAndTenant, setSentryInsurerContext, setSentryAgentContext } from "@/lib/sentryContext";
 
 describe("sentryContext", () => {
   beforeEach(() => {
@@ -60,5 +60,16 @@ describe("sentryContext", () => {
     expect(setUserMock).toHaveBeenCalledWith({ id: "u" });
     expect(setTagMock).toHaveBeenCalledWith("insurer_id", "ins-1");
     expect(setContextMock).toHaveBeenCalledWith("insurer", { insurer_id: "ins-1" });
+  });
+
+  it("scopes agent caller via the agent_id tag (separate from tenant_id)", () => {
+    setSentryAgentContext({ userId: "u", agentId: "agent-1" });
+
+    expect(setUserMock).toHaveBeenCalledWith({ id: "u" });
+    expect(setTagMock).toHaveBeenCalledWith("agent_id", "agent-1");
+    expect(setContextMock).toHaveBeenCalledWith("agent", { agent_id: "agent-1" });
+    // Agent context must NOT clobber tenant tags (callers may also belong to a tenant).
+    const tagKeys = setTagMock.mock.calls.map((c) => c[0]);
+    expect(tagKeys).not.toContain("tenant_id");
   });
 });
