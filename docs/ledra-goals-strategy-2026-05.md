@@ -84,7 +84,7 @@ OK: 「ライトハウス契約 1社 (本番運用化) + パイプライン PoC 
 
 | 段階 | 数 | 意味 |
 |---|---|---|
-| **Lighthouse** (本番接続・課金開始) | 1 社 | 損保ジャパン / 東京海上 / 三井住友海上 / あいおいニッセイ から 1 社 |
+| **Lighthouse** (本番接続・課金開始) | 1 社 | **損保ジャパン** (2026-05-13 経営確定。他 3 社は §3.2 のパイプライン枠へ) |
 | **PoC 合意** (NDA + 範囲書) | 2-3 社 | 上記の残り |
 | **初回 MTG** (関心確認) | 5-8 社 | 中堅含む |
 
@@ -179,8 +179,9 @@ ARR 10 億達成のために、以下を **有料アドオン化 or 凍結** す
 
 | 機能 | 推奨 | 理由 |
 |---|---|---|
-| `/admin/market-vehicles` (中古車) | 凍結 or 「Trades アドオン」化 | 証明書とのシナジーは仮説段階、機能が重い |
-| `/admin/btob` `/admin/orders` `/admin/deals` | アドオン化 (デフォルト OFF) | 施工店間取引慣習の SaaS 化は時間がかかる |
+| `/admin/market-vehicles` (中古車) | ✅ **アドオン化決定 (2026-05-13)** — `tenant_addons.market_vehicles` | 証明書とのシナジーは仮説段階、機能が重い |
+| `/admin/btob` `/admin/orders` (job_orders) | ✅ **アドオン化決定 (2026-05-13)** — `tenant_addons.btob` | 施工店間取引慣習の SaaS 化は時間がかかる |
+| `/admin/deals` | ✅ **アドオン化決定 (2026-05-13)** — `tenant_addons.deals` | 同上 |
 | `/admin/academy` | Standard/Pro 限定のままで OK | 既にゲートされている |
 | Apple Tap to Pay | 維持 | 現場 DX として効く・差別化にもなる |
 | Polygon バックフィル | 運営機能のまま | 課金不要、契約交渉時のエビデンス |
@@ -263,11 +264,11 @@ Q1-Q2 2027 : ARR 10 億達成
 |---|---|---|---|
 | 1 | `/v/[vin]` 車両パスポートページ実装 | エンジニア | 1 週間 |
 | 2 | Polygon アンカリングをデフォルト ON | エンジニア | 即時 |
-| 3 | Lighthouse 保険会社の決定 (損保 4 社のうち 1 社) | CEO | 2 週間 |
+| 3 | ✅ Lighthouse 保険会社の決定 → **損保ジャパン** (2026-05-13) | CEO | 完了 |
 | 4 | Woven by Toyota Partner Program 応募準備 | CEO + BizDev | 1 ヶ月 |
 | 5 | 機能 ROI ボード (`/admin/platform/operations` 拡張) | エンジニア | 2 週間 |
 | 6 | `docs/enterprise-readiness.md` 新設 | PM | 3 日 |
-| 7 | マーケット系機能 (中古車・BtoB・Deals) のアドオン化 / 凍結議論 | 経営 | 1 ヶ月 |
+| 7 | ✅ マーケット系機能 のアドオン化 → `tenant_addons` (migration 20260514000000) | 経営 + エンジニア | 完了 |
 | 8 | 3 階建て ARR 内訳での KPI 再設定 | 経営 + 投資家 | 2 週間 |
 
 ---

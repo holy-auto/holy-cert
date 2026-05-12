@@ -9,6 +9,7 @@ import Badge from "@/components/ui/Badge";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
 import FirstUseInlineGuide from "@/components/ui/FirstUseInlineGuide";
+import { InventoryWarningsBanner } from "@/components/pos/InventoryWarningsBanner";
 
 /* ────────────────────────────────────────────── */
 /*  Types                                         */
@@ -1082,6 +1083,9 @@ export default function PosClient() {
                     </div>
                   </div>
                 )}
+
+                {/* Inventory warnings \u2014 only renders when a line item carries inventory_item_id */}
+                <InventoryWarningsBanner items={checkoutItems as unknown as Array<Record<string, unknown>>} />
 
                 {/* Total */}
                 <div className="flex items-center justify-between border-t border-border-subtle pt-3">
