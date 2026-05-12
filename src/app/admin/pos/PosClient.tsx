@@ -103,32 +103,32 @@ type QrStep = "idle" | "creating" | "showing" | "paid" | "recording" | "error";
 /* ────────────────────────────────────────────── */
 
 const PAYMENT_METHODS = [
-  { value: "cash", label: "\u73FE\u91D1", icon: "\uD83D\uDCB4" },
-  { value: "card", label: "\u30AB\u30FC\u30C9", icon: "\uD83D\uDCB3" },
-  { value: "qr", label: "QR\u6C7A\u6E08", icon: "\uD83D\uDCF1" },
-  { value: "bank_transfer", label: "\u632F\u8FBC", icon: "\uD83C\uDFE6" },
-  { value: "other", label: "\u305D\u306E\u4ED6", icon: "\uD83D\uDCCB" },
+  { value: "cash", label: "現金", icon: "💴" },
+  { value: "card", label: "カード", icon: "💳" },
+  { value: "qr", label: "QR決済", icon: "📱" },
+  { value: "bank_transfer", label: "振込", icon: "🏦" },
+  { value: "other", label: "その他", icon: "📋" },
 ] as const;
 
 const RESERVATION_STATUS_MAP: Record<
   string,
   { variant: "default" | "success" | "warning" | "danger" | "info" | "violet"; label: string }
 > = {
-  confirmed: { variant: "info", label: "\u78BA\u5B9A" },
-  arrived: { variant: "violet", label: "\u6765\u5E97" },
-  in_progress: { variant: "warning", label: "\u4F5C\u696D\u4E2D" },
-  completed: { variant: "success", label: "\u5B8C\u4E86" },
-  cancelled: { variant: "default", label: "\u53D6\u6D88" },
+  confirmed: { variant: "info", label: "確定" },
+  arrived: { variant: "violet", label: "来店" },
+  in_progress: { variant: "warning", label: "作業中" },
+  completed: { variant: "success", label: "完了" },
+  cancelled: { variant: "default", label: "取消" },
 };
 
 const PAYMENT_STATUS_MAP: Record<
   string,
   { variant: "default" | "success" | "warning" | "danger" | "info" | "violet"; label: string }
 > = {
-  unpaid: { variant: "default", label: "\u672A\u4F1A\u8A08" },
-  paid: { variant: "success", label: "\u4F1A\u8A08\u6E08" },
-  partial: { variant: "warning", label: "\u4E00\u90E8" },
-  refunded: { variant: "danger", label: "\u8FD4\u91D1\u6E08" },
+  unpaid: { variant: "default", label: "未会計" },
+  paid: { variant: "success", label: "会計済" },
+  partial: { variant: "warning", label: "一部" },
+  refunded: { variant: "danger", label: "返金済" },
 };
 
 /* ────────────────────────────────────────────── */
@@ -355,8 +355,8 @@ export default function PosClient() {
       // 1. Checkout Session 作成
       const description =
         checkoutItems.map((i) => i.description).join(", ") ||
-        (mode === "reservation" ? selected?.title : "\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08") ||
-        "POS\u4F1A\u8A08";
+        (mode === "reservation" ? selected?.title : "ウォークイン会計") ||
+        "POS会計";
       const res = await fetch("/api/admin/pos/checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -374,13 +374,12 @@ export default function PosClient() {
         }),
       });
       const data = await res.json();
-      if (!res.ok)
-        throw new Error(data?.error ?? "Checkout Session \u306E\u4F5C\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
+      if (!res.ok) throw new Error(data?.error ?? "Checkout Session の作成に失敗しました");
 
       const sessionId = data.session_id as string;
       const checkoutUrl = data.url as string;
 
-      // 2. QR\u30B3\u30FC\u30C9\u751F\u6210
+      // 2. QRコード生成
       const qrUrl = await QRCode.toDataURL(checkoutUrl, {
         width: 250,
         margin: 2,
@@ -391,18 +390,16 @@ export default function PosClient() {
       setQrDataUrl(qrUrl);
       setQrStep("showing");
 
-      // 3. \u30DD\u30FC\u30EA\u30F3\u30B0\u958B\u59CB (2\u79D2\u9593\u9694, \u6700\u59275\u5206)
+      // 3. ポーリング開始 (2秒間隔, 最大5分)
       let attempts = 0;
-      const maxAttempts = 150; // 5\u5206 = 150 x 2\u79D2
+      const maxAttempts = 150; // 5分 = 150 x 2秒
 
       pollingRef.current = setInterval(async () => {
         attempts++;
         if (attempts > maxAttempts) {
           if (pollingRef.current) clearInterval(pollingRef.current);
           pollingRef.current = null;
-          setQrError(
-            "\u6C7A\u6E08\u304C\u30BF\u30A4\u30E0\u30A2\u30A6\u30C8\u3057\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
-          );
+          setQrError("決済がタイムアウトしました。もう一度お試しください。");
           setQrStep("error");
           return;
         }
@@ -418,7 +415,7 @@ export default function PosClient() {
             pollingRef.current = null;
             setQrStep("paid");
 
-            // 4. Ledra DB \u306B\u8A18\u9332
+            // 4. Ledra DB に記録
             setQrStep("recording");
             const checkoutRes = await fetch("/api/admin/pos/checkout", {
               method: "POST",
@@ -440,10 +437,7 @@ export default function PosClient() {
               }),
             });
             const checkoutData = await checkoutRes.json();
-            if (!checkoutRes.ok)
-              throw new Error(
-                checkoutData?.error ?? "\u6C7A\u6E08\u306E\u8A18\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
-              );
+            if (!checkoutRes.ok) throw new Error(checkoutData?.error ?? "決済の記録に失敗しました");
 
             setResult(checkoutData);
             if (mode === "invoice" && loadedInvoice) {
@@ -462,21 +456,15 @@ export default function PosClient() {
           } else if (statusData.status === "expired") {
             if (pollingRef.current) clearInterval(pollingRef.current);
             pollingRef.current = null;
-            setQrError(
-              "\u30BB\u30C3\u30B7\u30E7\u30F3\u304C\u671F\u9650\u5207\u308C\u306B\u306A\u308A\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
-            );
+            setQrError("セッションが期限切れになりました。もう一度お試しください。");
             setQrStep("error");
           }
         } catch {
-          // \u30DD\u30FC\u30EA\u30F3\u30B0\u4E2D\u306E\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u30A8\u30E9\u30FC\u306F\u7121\u8996\u3057\u3066\u6B21\u56DE\u30EA\u30C8\u30E9\u30A4
+          // ポーリング中のネットワークエラーは無視して次回リトライ
         }
       }, 2000);
     } catch (e) {
-      setQrError(
-        e instanceof Error
-          ? e.message
-          : "QR\u30B3\u30FC\u30C9\u306E\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
-      );
+      setQrError(e instanceof Error ? e.message : "QRコードの生成に失敗しました");
       setQrStep("error");
     }
   }, [selected, loadedInvoice, amount, checkoutItems, note, mutate, mode]);
@@ -498,7 +486,7 @@ export default function PosClient() {
   const handleCheckout = useCallback(async () => {
     if (!hasSelection || processing) return;
 
-    // \u30AB\u30FC\u30C9\u6C7A\u6E08: QR\u30B3\u30FC\u30C9\u30D5\u30ED\u30FC
+    // カード決済: QRコードフロー
     if (paymentMethod === "card") {
       setProcessing(true);
       setError(null);
@@ -507,7 +495,7 @@ export default function PosClient() {
       return;
     }
 
-    // \u73FE\u91D1\u30FBQR\u30FB\u632F\u8FBC\u30FB\u305D\u306E\u4ED6: \u5373 pos_checkout
+    // 現金・QR・振込・その他: 即 pos_checkout
     setProcessing(true);
     setError(null);
     try {
@@ -547,7 +535,7 @@ export default function PosClient() {
       }
       await mutate();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "\u4F1A\u8A08\u51E6\u7406\u306B\u5931\u6557\u3057\u307E\u3057\u305F");
+      setError(e instanceof Error ? e.message : "会計処理に失敗しました");
     } finally {
       setProcessing(false);
     }
@@ -569,41 +557,34 @@ export default function PosClient() {
   // ── Render ──
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="POS \u4F1A\u8A08"
-        tag="POS"
-        description="\u4E88\u7D04\u306E\u4F1A\u8A08\u51E6\u7406\u30FB\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08\u3092\u884C\u3044\u307E\u3059"
-      />
+      <PageHeader title="POS 会計" tag="POS" description="予約の会計処理・ウォークイン会計を行います" />
 
       <FirstUseInlineGuide
         storageKey="pos"
-        title="POS\u4F1A\u8A08\u306E\u4F7F\u3044\u65B9"
-        description="\u5E97\u982D\u3067\u306E\u73FE\u91D1\u30FB\u30AB\u30FC\u30C9\u4F1A\u8A08\u3092 Ledra \u4E0A\u3067\u5B8C\u7D50\u3055\u305B\u308B\u6A5F\u80FD\u3067\u3059\u3002Stripe Terminal \u3092\u63A5\u7D9A\u3059\u308B\u3068\u30AB\u30FC\u30C9\u6C7A\u6E08\u306E\u96FB\u5B50\u5316\u3082\u3067\u304D\u307E\u3059\u3002"
+        title="POS会計の使い方"
+        description="店頭での現金・カード会計を Ledra 上で完結させる機能です。Stripe Terminal を接続するとカード決済の電子化もできます。"
         steps={[
           {
-            title: "\u30EC\u30B8\u3092\u958B\u5C40",
-            description:
-              "1\u65E5\u306E\u55B6\u696D\u958B\u59CB\u6642\u306B\u300C\u30EC\u30B8\u3092\u958B\u5C40\u300D\u3092\u62BC\u3057\u3001\u958B\u59CB\u6642\u306E\u73FE\u91D1\u6B8B\u9AD8\u3092\u5165\u529B\u3002\u9589\u5C40\u6642\u306B\u58F2\u4E0A\u7A81\u5408\u3057\u307E\u3059\u3002",
+            title: "レジを開局",
+            description: "1日の営業開始時に「レジを開局」を押し、開始時の現金残高を入力。閉局時に売上突合します。",
           },
           {
-            title: "\u4F1A\u8A08\u5BFE\u8C61\u3092\u9078\u3076",
-            description:
-              "\u672A\u4F1A\u8A08\u306E\u4E88\u7D04\u4E00\u89A7\u304B\u3089\u5BFE\u8C61\u3092\u30AF\u30EA\u30C3\u30AF\u3001\u3082\u3057\u304F\u306F\u300C\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08\u300D\u3067\u305D\u306E\u5834\u3067\u54C1\u76EE\u5165\u529B\u3067\u304D\u307E\u3059\u3002",
+            title: "会計対象を選ぶ",
+            description: "未会計の予約一覧から対象をクリック、もしくは「ウォークイン会計」でその場で品目入力できます。",
           },
           {
-            title: "\u6C7A\u6E08\u65B9\u6CD5\u3092\u9078\u629E\u3057\u3066\u5B8C\u4E86",
-            description:
-              "\u73FE\u91D1\u30FB\u30AB\u30FC\u30C9 (Stripe Terminal) \u30FBQR\u30FB\u9280\u884C\u632F\u8FBC\u304B\u3089\u9078\u629E\u3002\u5B8C\u4E86\u5F8C\u306F\u9818\u53CE\u66F8\u304C\u30E1\u30FC\u30EB\u9001\u4FE1\u3067\u304D\u307E\u3059\u3002",
+            title: "決済方法を選択して完了",
+            description: "現金・カード (Stripe Terminal) ・QR・銀行振込から選択。完了後は領収書がメール送信できます。",
           },
         ]}
       />
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="\u672A\u4F1A\u8A08" value={unpaidReservations.length} />
-        <StatCard label="\u672C\u65E5\u4F1A\u8A08\u6E08" value={paidReservations.length} />
+        <StatCard label="未会計" value={unpaidReservations.length} />
+        <StatCard label="本日会計済" value={paidReservations.length} />
         <StatCard
-          label="\u672C\u65E5\u58F2\u4E0A"
+          label="本日売上"
           value={formatJpy(paidReservations.reduce((s, r) => s + (r.estimated_amount ?? 0), 0))}
         />
       </div>
@@ -617,7 +598,7 @@ export default function PosClient() {
             mode === "reservation" ? "bg-surface text-primary shadow-sm" : "text-secondary hover:text-primary"
           }`}
         >
-          {"\u4E88\u7D04\u304B\u3089\u4F1A\u8A08"}
+          {"予約から会計"}
         </button>
         <button
           type="button"
@@ -626,7 +607,7 @@ export default function PosClient() {
             mode === "walkin" ? "bg-surface text-primary shadow-sm" : "text-secondary hover:text-primary"
           }`}
         >
-          {"\u4E88\u7D04\u306A\u3057\u4F1A\u8A08"}
+          {"予約なし会計"}
         </button>
         <button
           type="button"
@@ -635,7 +616,7 @@ export default function PosClient() {
             mode === "invoice" ? "bg-surface text-primary shadow-sm" : "text-secondary hover:text-primary"
           }`}
         >
-          {"\u8ACB\u6C42\u66F8\u304B\u3089\u4F1A\u8A08"}
+          {"請求書から会計"}
         </button>
       </div>
 
@@ -645,7 +626,7 @@ export default function PosClient() {
           {mode === "reservation" ? (
             /* ── Reservation list ── */
             <>
-              <h2 className="text-sm font-semibold text-secondary">{"\u672A\u4F1A\u8A08\u306E\u4E88\u7D04"}</h2>
+              <h2 className="text-sm font-semibold text-secondary">{"未会計の予約"}</h2>
 
               {isLoading && !data ? (
                 <div className="space-y-2">
@@ -655,7 +636,7 @@ export default function PosClient() {
                 </div>
               ) : unpaidReservations.length === 0 ? (
                 <div className="rounded-xl border border-border-subtle bg-surface p-8 text-center text-sm text-muted">
-                  {"\u672A\u4F1A\u8A08\u306E\u4E88\u7D04\u306F\u3042\u308A\u307E\u305B\u3093"}
+                  {"未会計の予約はありません"}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -677,7 +658,7 @@ export default function PosClient() {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-primary">{r.title || "\u7121\u984C"}</span>
+                          <span className="text-sm font-medium text-primary">{r.title || "無題"}</span>
                           <div className="flex items-center gap-2">
                             <Badge variant={statusEntry.variant}>{statusEntry.label}</Badge>
                             <span className="text-sm font-semibold text-primary">{formatJpy(r.estimated_amount)}</span>
@@ -688,7 +669,7 @@ export default function PosClient() {
                           {r.start_time && (
                             <span>
                               {r.start_time}
-                              {"\u301C"}
+                              {"〜"}
                               {r.end_time ?? ""}
                             </span>
                           )}
@@ -704,9 +685,7 @@ export default function PosClient() {
           ) : mode === "invoice" ? (
             /* ── Invoice lookup ── */
             <>
-              <h2 className="text-sm font-semibold text-secondary">
-                {"\u8ACB\u6C42\u66F8\u756A\u53F7\u3067\u8AAD\u307F\u8FBC\u3080"}
-              </h2>
+              <h2 className="text-sm font-semibold text-secondary">{"請求書番号で読み込む"}</h2>
 
               <div className="flex gap-2">
                 <input
@@ -716,7 +695,7 @@ export default function PosClient() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleInvoiceSearch();
                   }}
-                  placeholder="\u4F8B: INV-202604-001"
+                  placeholder="例: INV-202604-001"
                   className="flex-1 rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <button
@@ -725,7 +704,7 @@ export default function PosClient() {
                   disabled={invoiceSearchBusy || !invoiceSearch.trim()}
                   className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
                 >
-                  {invoiceSearchBusy ? "\u691C\u7D22\u4E2D..." : "\u691C\u7D22"}
+                  {invoiceSearchBusy ? "検索中..." : "検索"}
                 </button>
               </div>
 
@@ -738,7 +717,7 @@ export default function PosClient() {
               {loadedInvoice && (
                 <div className="rounded-xl border border-accent bg-accent-dim p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold tracking-wider text-muted">{"\u8ACB\u6C42\u66F8"}</span>
+                    <span className="text-xs font-semibold tracking-wider text-muted">{"請求書"}</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -747,7 +726,7 @@ export default function PosClient() {
                       }}
                       className="text-xs text-muted hover:text-danger-text"
                     >
-                      {"\u30AF\u30EA\u30A2"}
+                      {"クリア"}
                     </button>
                   </div>
                   <div className="text-sm font-semibold text-primary">{loadedInvoice.doc_number}</div>
@@ -768,7 +747,7 @@ export default function PosClient() {
                     </div>
                   )}
                   <div className="flex items-center justify-between border-t border-accent/30 pt-2 text-sm font-bold">
-                    <span className="text-accent">{"\u5408\u8A08"}</span>
+                    <span className="text-accent">{"合計"}</span>
                     <span className="text-accent">{formatJpy(loadedInvoice.total)}</span>
                   </div>
                 </div>
@@ -778,10 +757,10 @@ export default function PosClient() {
             /* ── Walk-in: menu item grid ── */
             <>
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-secondary">{"\u54C1\u76EE\u3092\u9078\u629E"}</h2>
+                <h2 className="text-sm font-semibold text-secondary">{"品目を選択"}</h2>
                 {cart.length > 0 && (
                   <button type="button" onClick={clearCart} className="text-xs text-danger-text hover:underline">
-                    {"\u30AB\u30FC\u30C8\u3092\u7A7A\u306B\u3059\u308B"}
+                    {"カートを空にする"}
                   </button>
                 )}
               </div>
@@ -791,7 +770,7 @@ export default function PosClient() {
                 type="text"
                 value={menuSearch}
                 onChange={(e) => setMenuSearch(e.target.value)}
-                placeholder={"\u54C1\u76EE\u540D\u3067\u691C\u7D22..."}
+                placeholder={"品目名で検索..."}
                 className="w-full rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
               />
 
@@ -799,7 +778,7 @@ export default function PosClient() {
               {cart.length > 0 && (
                 <div className="space-y-1 rounded-xl border border-accent bg-accent-dim p-3">
                   <span className="text-xs font-medium text-accent">
-                    {"\u30AB\u30FC\u30C8"} ({cart.length} {"\u54C1\u76EE"})
+                    {"カート"} ({cart.length} {"品目"})
                   </span>
                   {cart.map((c) => (
                     <div key={c.id} className="flex items-center justify-between text-sm">
@@ -825,7 +804,7 @@ export default function PosClient() {
                     </div>
                   ))}
                   <div className="flex justify-between border-t border-accent/30 pt-1 text-sm font-semibold">
-                    <span className="text-accent">{"\u5408\u8A08"}</span>
+                    <span className="text-accent">{"合計"}</span>
                     <span className="text-accent">{formatJpy(amount)}</span>
                   </div>
                 </div>
@@ -840,9 +819,7 @@ export default function PosClient() {
                 </div>
               ) : filteredMenuItems.length === 0 ? (
                 <div className="rounded-xl border border-border-subtle bg-surface p-8 text-center text-sm text-muted">
-                  {menuSearch
-                    ? "\u8A72\u5F53\u3059\u308B\u54C1\u76EE\u304C\u3042\u308A\u307E\u305B\u3093"
-                    : "\u54C1\u76EE\u30DE\u30B9\u30BF\u304C\u767B\u9332\u3055\u308C\u3066\u3044\u307E\u305B\u3093"}
+                  {menuSearch ? "該当する品目がありません" : "品目マスタが登録されていません"}
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
@@ -893,11 +870,11 @@ export default function PosClient() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-primary">{"\u4F1A\u8A08\u5B8C\u4E86"}</h3>
+                  <h3 className="text-lg font-semibold text-primary">{"会計完了"}</h3>
                   <p className="mt-1 text-sm text-secondary">
                     {result.doc_number && (
                       <>
-                        {"\u9818\u53CE\u66F8"}: {result.doc_number}
+                        {"領収書"}: {result.doc_number}
                       </>
                     )}
                   </p>
@@ -905,12 +882,12 @@ export default function PosClient() {
 
                 <div className="space-y-2 rounded-xl bg-surface-hover p-4 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-secondary">{"\u304A\u4F1A\u8A08"}</span>
+                    <span className="text-secondary">{"お会計"}</span>
                     <span className="font-semibold">{formatJpy(result.amount)}</span>
                   </div>
                   {result.change > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-secondary">{"\u304A\u91E3\u308A"}</span>
+                      <span className="text-secondary">{"お釣り"}</span>
                       <span className="font-semibold text-accent">{formatJpy(result.change)}</span>
                     </div>
                   )}
@@ -925,7 +902,7 @@ export default function PosClient() {
                   }}
                   className="btn-primary w-full rounded-xl py-3 text-sm font-medium"
                 >
-                  {"\u6B21\u306E\u4F1A\u8A08\u3078"}
+                  {"次の会計へ"}
                 </button>
               </div>
             ) : qrStep !== "idle" && paymentMethod === "card" ? (
@@ -952,18 +929,14 @@ export default function PosClient() {
 
                         {/* Instructions */}
                         <p className="text-sm font-semibold text-primary">
-                          {
-                            "\u304A\u5BA2\u69D8\u306E\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u3067\u30B9\u30AD\u30E3\u30F3\u3057\u3066\u304A\u652F\u6255\u3044\u304F\u3060\u3055\u3044"
-                          }
+                          {"お客様のスマートフォンでスキャンしてお支払いください"}
                         </p>
-                        <p className="text-xs text-secondary">
-                          {"\u30AB\u30FC\u30C9 / Apple Pay / Google Pay \u304C\u4F7F\u3048\u307E\u3059"}
-                        </p>
+                        <p className="text-xs text-secondary">{"カード / Apple Pay / Google Pay が使えます"}</p>
 
                         {/* Spinner */}
                         <div className="flex items-center justify-center gap-2 text-sm text-info-text">
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-info-text border-t-transparent" />
-                          {"\u6C7A\u6E08\u5F85\u3061..."}
+                          {"決済待ち..."}
                         </div>
 
                         {/* Cancel button */}
@@ -972,7 +945,7 @@ export default function PosClient() {
                           onClick={handleCancelQr}
                           className="w-full rounded-xl border border-border-subtle bg-surface py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-surface-hover"
                         >
-                          {"\u30AD\u30E3\u30F3\u30BB\u30EB"}
+                          {"キャンセル"}
                         </button>
                       </>
                     ) : qrStep === "paid" || qrStep === "recording" ? (
@@ -991,10 +964,10 @@ export default function PosClient() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                           </svg>
                         </div>
-                        <p className="text-lg font-semibold text-success-text">{"\u6C7A\u6E08\u5B8C\u4E86"}</p>
+                        <p className="text-lg font-semibold text-success-text">{"決済完了"}</p>
                         <div className="flex items-center justify-center gap-2 text-sm text-secondary">
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
-                          {"\u8A18\u9332\u4E2D..."}
+                          {"記録中..."}
                         </div>
                       </>
                     ) : null}
@@ -1004,9 +977,7 @@ export default function PosClient() {
                 {qrStep === "creating" && (
                   <div className="flex flex-col items-center justify-center py-8 space-y-3">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-info-text border-t-transparent" />
-                    <p className="text-sm font-medium text-info-text">
-                      {"QR\u30B3\u30FC\u30C9\u3092\u751F\u6210\u4E2D..."}
-                    </p>
+                    <p className="text-sm font-medium text-info-text">{"QRコードを生成中..."}</p>
                   </div>
                 )}
 
@@ -1025,23 +996,21 @@ export default function PosClient() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </div>
-                    <p className="text-sm font-semibold text-danger-text">
-                      {qrError ?? "QR\u30B3\u30FC\u30C9\u6C7A\u6E08\u306B\u5931\u6557\u3057\u307E\u3057\u305F"}
-                    </p>
+                    <p className="text-sm font-semibold text-danger-text">{qrError ?? "QRコード決済に失敗しました"}</p>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={handleCancelQr}
                         className="flex-1 rounded-xl border border-border-subtle bg-surface py-2.5 text-sm font-medium text-secondary transition-colors hover:bg-surface-hover"
                       >
-                        {"\u623B\u308B"}
+                        {"戻る"}
                       </button>
                       <button
                         type="button"
                         onClick={handleCheckout}
                         className="flex-1 rounded-xl bg-[#635BFF] py-2.5 text-sm font-semibold text-white shadow-lg transition-transform active:scale-95"
                       >
-                        {"\u518D\u8A66\u884C"}
+                        {"再試行"}
                       </button>
                     </div>
                   </div>
@@ -1053,10 +1022,10 @@ export default function PosClient() {
                 <div>
                   <h3 className="text-base font-semibold text-primary">
                     {mode === "reservation"
-                      ? selected?.title || "\u7121\u984C"
+                      ? selected?.title || "無題"
                       : mode === "invoice"
-                        ? loadedInvoice?.doc_number || "\u8ACB\u6C42\u66F8"
-                        : "\u30A6\u30A9\u30FC\u30AF\u30A4\u30F3\u4F1A\u8A08"}
+                        ? loadedInvoice?.doc_number || "請求書"
+                        : "ウォークイン会計"}
                   </h3>
                   {mode === "reservation" && selected?.customer_name && (
                     <p className="mt-0.5 text-xs text-secondary">{selected.customer_name}</p>
@@ -1069,7 +1038,7 @@ export default function PosClient() {
                 {/* Items */}
                 {checkoutItems.length > 0 && (
                   <div className="space-y-1.5">
-                    <span className="text-xs font-medium text-secondary">{"\u660E\u7D30"}</span>
+                    <span className="text-xs font-medium text-secondary">{"明細"}</span>
                     <div className="space-y-1 rounded-xl bg-surface-hover p-3">
                       {checkoutItems.map((item, i) => (
                         <div key={i} className="flex items-center justify-between text-sm">
@@ -1084,18 +1053,18 @@ export default function PosClient() {
                   </div>
                 )}
 
-                {/* Inventory warnings \u2014 only renders when a line item carries inventory_item_id */}
+                {/* Inventory warnings — only renders when a line item carries inventory_item_id */}
                 <InventoryWarningsBanner items={checkoutItems as unknown as Array<Record<string, unknown>>} />
 
                 {/* Total */}
                 <div className="flex items-center justify-between border-t border-border-subtle pt-3">
-                  <span className="text-sm font-medium text-secondary">{"\u5408\u8A08"}</span>
+                  <span className="text-sm font-medium text-secondary">{"合計"}</span>
                   <span className="text-2xl font-bold text-primary">{formatJpy(amount)}</span>
                 </div>
 
                 {/* Payment method */}
                 <div className="space-y-2">
-                  <span className="text-xs font-medium text-secondary">{"\u652F\u6255\u65B9\u6CD5"}</span>
+                  <span className="text-xs font-medium text-secondary">{"支払方法"}</span>
                   <div className="grid grid-cols-3 gap-2">
                     {PAYMENT_METHODS.map((pm) => (
                       <button
@@ -1118,7 +1087,7 @@ export default function PosClient() {
                 {/* Received amount (cash only) */}
                 {paymentMethod === "cash" && (
                   <div className="space-y-2">
-                    <span className="text-xs font-medium text-secondary">{"\u9810\u308A\u91D1\u984D"}</span>
+                    <span className="text-xs font-medium text-secondary">{"預り金額"}</span>
                     <input
                       type="number"
                       inputMode="numeric"
@@ -1144,12 +1113,12 @@ export default function PosClient() {
                         onClick={() => setReceivedAmount(String(amount))}
                         className="rounded-lg border border-border-subtle bg-surface px-2.5 py-1 text-xs text-secondary transition-colors hover:border-border hover:text-primary"
                       >
-                        {"\u3074\u3063\u305F\u308A"}
+                        {"ぴったり"}
                       </button>
                     </div>
                     {change > 0 && (
                       <div className="flex items-center justify-between rounded-xl bg-accent-dim px-4 py-2.5">
-                        <span className="text-sm text-accent">{"\u304A\u91E3\u308A"}</span>
+                        <span className="text-sm text-accent">{"お釣り"}</span>
                         <span className="text-lg font-bold text-accent">{formatJpy(change)}</span>
                       </div>
                     )}
@@ -1158,12 +1127,12 @@ export default function PosClient() {
 
                 {/* Note */}
                 <div className="space-y-1.5">
-                  <span className="text-xs font-medium text-secondary">{"\u30E1\u30E2\uFF08\u4EFB\u610F\uFF09"}</span>
+                  <span className="text-xs font-medium text-secondary">{"メモ（任意）"}</span>
                   <input
                     type="text"
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder={"\u5099\u8003\u3092\u5165\u529B"}
+                    placeholder={"備考を入力"}
                     className="w-full rounded-xl border border-border-subtle bg-surface px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </div>
@@ -1188,12 +1157,12 @@ export default function PosClient() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                       </svg>
-                      {"\u51E6\u7406\u4E2D..."}
+                      {"処理中..."}
                     </span>
                   ) : paymentMethod === "card" ? (
-                    `${formatJpy(amount)} \u30AB\u30FC\u30C9\u6C7A\u6E08\u3092\u958B\u59CB`
+                    `${formatJpy(amount)} カード決済を開始`
                   ) : (
-                    `${formatJpy(amount)} \u3092\u4F1A\u8A08\u3059\u308B`
+                    `${formatJpy(amount)} を会計する`
                   )}
                 </button>
               </div>
@@ -1218,10 +1187,10 @@ export default function PosClient() {
                   </svg>
                   <p className="text-sm text-muted">
                     {mode === "reservation"
-                      ? "\u5DE6\u306E\u4E00\u89A7\u304B\u3089\u4E88\u7D04\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044"
+                      ? "左の一覧から予約を選択してください"
                       : mode === "invoice"
-                        ? "\u8ACB\u6C42\u66F8\u756A\u53F7\u3092\u5165\u529B\u3057\u3066\u691C\u7D22\u3057\u3066\u304F\u3060\u3055\u3044"
-                        : "\u5DE6\u306E\u54C1\u76EE\u3092\u30BF\u30C3\u30D7\u3057\u3066\u30AB\u30FC\u30C8\u306B\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044"}
+                        ? "請求書番号を入力して検索してください"
+                        : "左の品目をタップしてカートに追加してください"}
                   </p>
                 </div>
               </div>
