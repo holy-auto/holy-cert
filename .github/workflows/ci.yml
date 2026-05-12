@@ -41,6 +41,34 @@ jobs:
           wait $PID_TSC || exit 1
           wait $PID_TEST || exit 1
 
+  bundle-size:
+    name: Client Bundle Size
+    runs-on: ubuntu-latest
+    # PR only — main pushes are already gated by required statuses, and a
+    # full next build adds ~3-5 min that we don't want on every direct push.
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build (production)
+        # Skip Sentry source-map upload (no token in PR context) and dev
+        # turbo flags. The build still emits build-manifest.json which is
+        # all the size check needs.
+        env:
+          SKIP_ENV_VALIDATION: "true"
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build
+      - name: Check client bundle size
+        # Default threshold 850 KB raw bytes. Override with repo variable
+        # CLIENT_BUNDLE_MAX_KB if a deliberate growth needs to land first.
+        env:
+          CLIENT_BUNDLE_MAX_KB: ${{ vars.CLIENT_BUNDLE_MAX_KB || '850' }}
+        run: npm run check:bundle-size
+
   # NOTE: E2E ジョブは一旦削除。多くの spec が実 backend (Supabase / Upstash
   # Redis / Stripe webhook 等) の応答に依存しており、stub 値ではテストが
   # 失敗する。CI で動かす場合は test secrets を Settings → Secrets に

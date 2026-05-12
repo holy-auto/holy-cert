@@ -7,6 +7,16 @@ try {
   // @sentry/nextjs not available — skip wrapping
 }
 
+// Bundle analyzer: only active when ANALYZE=true so it doesn't slow down
+// regular builds. Output goes to .next/analyze/{client,server}.html which
+// the bundle-size CI gate parses. See docs/operations-guide.md.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports
+const withBundleAnalyzer: (cfg: NextConfig) => NextConfig =
+  process.env.ANALYZE === "true"
+    ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("@next/bundle-analyzer")({ enabled: true })
+    : (c: NextConfig) => c;
+
 const nextConfig: NextConfig = {
   reactCompiler: true,
   compress: true,
@@ -160,6 +170,9 @@ const sentryBuildOptions = {
 
 // Apply Sentry wrapper only at build time (CI/deploy), not during dev.
 // withSentryConfig modifies Webpack/Turbopack and can cause path issues in dev worktrees.
-export default withSentryConfig && process.env.SENTRY_AUTH_TOKEN
-  ? withSentryConfig(nextConfig, sentryBuildOptions)
-  : nextConfig;
+const sentryWrapped =
+  withSentryConfig && process.env.SENTRY_AUTH_TOKEN
+    ? withSentryConfig(nextConfig, sentryBuildOptions)
+    : nextConfig;
+
+export default withBundleAnalyzer(sentryWrapped);

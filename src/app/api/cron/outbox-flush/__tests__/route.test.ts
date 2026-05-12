@@ -67,7 +67,7 @@ describe("GET /api/cron/outbox-flush", () => {
     expect(body.errored).toBe(1);
     expect(mocks.processOutboxBatch).toHaveBeenCalledOnce();
     const dispatchers = mocks.processOutboxBatch.mock.calls[0][1] as Record<string, unknown>;
-    expect(Object.keys(dispatchers).sort()).toEqual(["pos.inventory_deduction", "webhook"]);
+    expect(Object.keys(dispatchers).sort()).toEqual(["email.send", "pos.inventory_deduction", "webhook"]);
   });
 
   it("emits cron failure alert on exception", async () => {

@@ -18,6 +18,7 @@ import { withCronLock } from "@/lib/cron/lock";
 import { processOutboxBatch } from "@/lib/outbox";
 import { buildWebhookDispatcher } from "@/lib/outbound-webhooks";
 import { buildInventoryDeductionDispatcher } from "@/lib/pos/inventoryDeduction";
+import { buildEmailDispatcher } from "@/lib/email/sendWithFallback";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest) {
       const dispatchers = {
         webhook: buildWebhookDispatcher(admin),
         "pos.inventory_deduction": buildInventoryDeductionDispatcher(admin),
+        "email.send": buildEmailDispatcher(),
       };
       return processOutboxBatch(admin, dispatchers, {
         batchSize: BATCH_SIZE,

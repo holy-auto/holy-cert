@@ -74,6 +74,10 @@
     {
       "path": "/api/cron/stripe-event-monitor",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/image-variants-backfill",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
