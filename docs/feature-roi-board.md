@@ -109,11 +109,11 @@ CREATE TABLE feature_metrics_weekly (
 
 ## 5. 実装フェーズ
 
-### Phase 1 — 集計だけ (Week 1)
-1. migration: `feature_metrics_weekly` テーブル作成
-2. cron route `/api/cron/feature-metrics-rollup` (月曜実行、batch insert)
-3. 集計クエリは tenant_id × feature_id ごとの RPC で計算
-4. **UI なし**。Supabase Studio で生データ確認
+### Phase 1 — 集計だけ ✅ 実装済 (2026-05-13)
+1. ✅ migration: `feature_metrics_weekly` テーブル (`20260513000000_*`)
+2. ✅ cron route `/api/cron/feature-metrics-rollup` (Sun 19:00 UTC = Mon 04:00 JST、batch upsert)
+3. ✅ 6 機能の success/failure 集計 (cert.issue / pos / customer.portal / reservations / insurer.case_view / anchoring.polygon)
+4. ✅ **UI なし**。Supabase Studio で生データ確認 (`SELECT * FROM feature_metrics_weekly ORDER BY week_start DESC, feature_id`)
 
 ### Phase 2 — ボード UI (Week 2)
 5. `/admin/platform/operations/roi-board` ページ
