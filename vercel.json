@@ -78,6 +78,10 @@
     {
       "path": "/api/cron/image-variants-backfill",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/feature-metrics-rollup",
+      "schedule": "0 19 * * 0"
     }
   ]
 }
