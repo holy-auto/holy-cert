@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPassportData, getServiceTypeLabel } from "@/lib/passport/getPassportData";
 import { formatDate } from "@/lib/format";
+import PassportShareButton from "./PassportShareButton";
 
 type PageProps = {
   params: Promise<{ vin: string }>;
@@ -49,9 +50,16 @@ export default async function VehiclePassportPage({ params }: PageProps) {
             </div>
             <div className="mt-1 font-mono text-sm text-muted">VIN: {data.vin_code_normalized}</div>
           </div>
-          <div className="rounded-xl border border-border-default bg-surface px-3 py-2 text-right shrink-0">
-            <div className="text-[10px] uppercase tracking-widest text-muted">Passport ID</div>
-            <div className="font-mono text-sm font-bold text-primary">{passportId}</div>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <div className="rounded-xl border border-border-default bg-surface px-3 py-2 text-right">
+              <div className="text-[10px] uppercase tracking-widest text-muted">Passport ID</div>
+              <div className="font-mono text-sm font-bold text-primary">{passportId}</div>
+            </div>
+            <PassportShareButton
+              vehicleLabel={vehicleLabel}
+              vinCodeNormalized={data.vin_code_normalized}
+              anchoredCertCount={data.anchored_cert_count}
+            />
           </div>
         </div>
 
@@ -141,6 +149,27 @@ export default async function VehiclePassportPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      <Link
+        href="/verify"
+        className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-[rgba(16,185,129,0.07)] px-4 py-3 no-underline transition-colors hover:bg-[rgba(16,185,129,0.12)]"
+      >
+        <div>
+          <div className="text-sm font-semibold text-emerald-400">受け取った写真をブロックチェーンで検証</div>
+          <div className="mt-0.5 text-xs text-muted">
+            画像のハッシュをブラウザ内で計算し、Polygon の記録と照合します (画像本体は送信されません)
+          </div>
+        </div>
+        <svg
+          className="h-5 w-5 shrink-0 text-emerald-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        </svg>
+      </Link>
 
       <footer className="text-xs text-muted">
         このパスポートに記載された施工証明の真正性は Polygon PoS ネットワーク上で検証可能です。 各施工写真の SHA-256

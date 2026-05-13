@@ -27,6 +27,7 @@ export default async function AdminVehicleDetailPage({
   const savedFlag = Array.isArray(sp?.saved) ? sp?.saved[0] : sp?.saved;
   const voidedFlag = Array.isArray(sp?.voided) ? sp?.voided[0] : sp?.voided;
   const errFlag = Array.isArray(sp?.e) ? sp?.e[0] : sp?.e;
+  const passportFlag = Array.isArray(sp?.passport) ? sp?.passport[0] : sp?.passport;
 
   const supabase = await createSupabaseServerClient();
 
@@ -124,6 +125,46 @@ export default async function AdminVehicleDetailPage({
     redirect(`/admin/vehicles/${id}?voided=1`);
   }
 
+  async function togglePassportOptOut(formData: FormData) {
+    "use server";
+
+    const nextRaw = String(formData.get("next") ?? "")
+      .trim()
+      .toLowerCase();
+    const next = nextRaw === "true";
+
+    const supabase = await createSupabaseServerClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/login");
+
+    const { data: membership } = await supabase
+      .from("tenant_memberships")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .single();
+
+    if (!membership?.tenant_id) {
+      redirect(`/admin/vehicles/${id}?e=1`);
+    }
+
+    const updated = await supabase
+      .from("vehicles")
+      .update({ passport_opt_out: next, updated_at: new Date().toISOString() })
+      .eq("tenant_id", membership.tenant_id)
+      .eq("id", id);
+
+    if (updated.error) {
+      redirect(`/admin/vehicles/${id}?e=1`);
+    }
+
+    redirect(`/admin/vehicles/${id}?passport=${next ? "opted_out" : "opted_in"}`);
+  }
+
   type VehicleDetailRow = {
     id: string;
     maker: string | null;
@@ -138,6 +179,8 @@ export default async function AdminVehicleDetailPage({
     customer: { id: string; name: string | null } | null;
     // 新カラム (存在しないテナントもあるので optional)
     size_class?: string | null;
+    vin_code_normalized?: string | null;
+    passport_opt_out?: boolean | null;
   };
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
@@ -367,6 +410,65 @@ export default async function AdminVehicleDetailPage({
         <div className="rounded-xl border border-red-500/30 bg-[rgba(239,68,68,0.1)] p-3 text-sm text-red-500">
           処理に失敗しました。
         </div>
+      ) : null}
+
+      {passportFlag === "opted_in" ? (
+        <div className="rounded-xl border border-success/30 bg-success-dim p-3 text-sm text-success-text">
+          車両パスポートへの掲載を再開しました。
+        </div>
+      ) : passportFlag === "opted_out" ? (
+        <div className="rounded-xl border border-warning/30 bg-warning-dim p-3 text-sm text-warning-text">
+          車両パスポートへの掲載を停止しました。次回のアンカー集計で反映されます。
+        </div>
+      ) : null}
+
+      {vehicle.vin_code_normalized ? (
+        <section className="glass-card p-6 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-primary">車両パスポート</h2>
+              <p className="mt-0.5 text-xs text-muted">
+                VIN 単位で施工履歴を横断公開するページです。Polygon アンカー済みの証明書のみ掲載されます。
+              </p>
+            </div>
+            <Link
+              href={`/v/${encodeURIComponent(vehicle.vin_code_normalized)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-secondary text-xs whitespace-nowrap"
+            >
+              公開ページを開く ↗
+            </Link>
+          </div>
+
+          <div className="rounded-lg border border-border-default bg-base p-3 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="font-medium text-primary">
+                  掲載ステータス:{" "}
+                  {vehicle.passport_opt_out ? (
+                    <span className="text-warning-text">この施工店分は非掲載</span>
+                  ) : (
+                    <span className="text-success-text">掲載中</span>
+                  )}
+                </div>
+                <div className="mt-1 text-xs text-muted">
+                  この設定は <strong>自店舗が登録した証明書</strong>{" "}
+                  にのみ適用されます。他の施工店の証明書は引き続き公開されます。
+                </div>
+              </div>
+              <form action={togglePassportOptOut}>
+                <input type="hidden" name="next" value={vehicle.passport_opt_out ? "false" : "true"} />
+                <button
+                  type="submit"
+                  className={vehicle.passport_opt_out ? "btn-primary text-xs" : "btn-secondary text-xs"}
+                >
+                  {vehicle.passport_opt_out ? "掲載を再開" : "掲載を停止"}
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       <section className="glass-card p-6 space-y-3">
