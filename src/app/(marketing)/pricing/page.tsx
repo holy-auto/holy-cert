@@ -48,7 +48,7 @@ export default function PricingPage() {
         <ScrollReveal variant="fade-up">
           <div className="mx-auto mt-8 max-w-2xl rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center text-sm">
             <div className="font-semibold text-amber-400">{LAUNCH_CAMPAIGN.description}</div>
-            <div className="mt-1 text-xs text-amber-200/80">
+            <div className="mt-1 text-xs text-amber-200">
               初期費用 ¥29,800〜¥49,800 が無料、適用期間 {LAUNCH_CAMPAIGN.durationMonths} ヶ月
             </div>
           </div>

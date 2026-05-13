@@ -129,7 +129,7 @@ function FallbackMobileMock() {
         </div>
 
         <div className="rounded-2xl border border-white/[0.1] bg-white/[0.04] p-4 backdrop-blur-md">
-          <p className="text-[0.625rem] uppercase tracking-wider text-blue-300/80">今日の作業</p>
+          <p className="text-[0.625rem] uppercase tracking-wider text-blue-300">今日の作業</p>
           <p className="mt-2 text-sm font-bold text-white leading-snug">
             ガラスコーティング
             <br />
@@ -162,7 +162,7 @@ function FallbackMobileMock() {
         </div>
 
         <div className="mt-auto rounded-xl border border-blue-500/25 bg-blue-500/[0.08] p-3 text-center">
-          <p className="text-[0.65rem] text-blue-200/80">URL ひとつで顧客と共有</p>
+          <p className="text-[0.65rem] text-blue-200">URL ひとつで顧客と共有</p>
           <p className="mt-0.5 text-xs font-semibold text-white">そのまま開ける公開ページ</p>
         </div>
       </div>

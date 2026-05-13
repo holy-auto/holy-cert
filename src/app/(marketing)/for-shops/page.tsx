@@ -321,7 +321,7 @@ export default function ForShopsPage() {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="hidden md:block w-5 h-5 text-blue-300/50"
+                  className="hidden md:block w-5 h-5 text-blue-300"
                 >
                   <path d="M5 12h14M13 5l7 7-7 7" />
                 </svg>
@@ -441,9 +441,7 @@ export default function ForShopsPage() {
                 🔗
               </div>
               <div className="flex-1">
-                <p className="text-[0.688rem] uppercase tracking-widest text-blue-300/80 font-semibold mb-2">
-                  改ざん検知
-                </p>
+                <p className="text-[0.688rem] uppercase tracking-widest text-blue-300 font-semibold mb-2">改ざん検知</p>
                 <h3 className="text-[1.125rem] font-bold text-white leading-snug">
                   発行した証明書は、発行後に書き換えられません
                 </h3>

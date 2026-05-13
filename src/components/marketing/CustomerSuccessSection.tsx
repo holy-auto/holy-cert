@@ -91,8 +91,8 @@ export function CustomerSuccessSection() {
           <ScrollReveal key={p.phase} variant="fade-up" delay={i * 80}>
             <div className="h-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 hover:bg-white/[0.06] hover:border-white/[0.14] transition-colors">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[0.65rem] font-medium uppercase tracking-widest text-blue-300/80">{p.phase}</div>
-                <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2 py-0.5 text-[0.6rem] font-medium text-blue-300/90">
+                <div className="text-[0.65rem] font-medium uppercase tracking-widest text-blue-300">{p.phase}</div>
+                <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2 py-0.5 text-[0.6rem] font-medium text-blue-300">
                   {p.plan}
                 </span>
               </div>

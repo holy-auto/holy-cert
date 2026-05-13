@@ -154,7 +154,7 @@ function FeatureCard({
   return (
     <ScrollReveal variant="fade-up" delay={delay}>
       <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 md:p-7 hover:bg-white/[0.05] hover:border-white/[0.14] transition-all duration-300 h-full flex flex-col">
-        <div className="text-[0.688rem] font-medium uppercase tracking-widest text-blue-300/80">{eyebrow}</div>
+        <div className="text-[0.688rem] font-medium uppercase tracking-widest text-blue-300">{eyebrow}</div>
         <h3 className="mt-2 text-lg md:text-xl font-bold leading-snug text-white">{title}</h3>
         <p className="mt-2 text-sm leading-relaxed text-white">{description}</p>
         <div className="mt-5">{children}</div>

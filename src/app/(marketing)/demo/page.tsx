@@ -76,7 +76,7 @@ export default function DemoPage() {
           </ScrollReveal>
 
           <ScrollReveal variant="fade-up" delay={250}>
-            <div className="mt-10 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] p-5 text-sm leading-relaxed text-amber-100/90">
+            <div className="mt-10 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] p-5 text-sm leading-relaxed text-amber-100">
               <div className="mb-1 flex items-center gap-2 font-semibold text-amber-200">
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path

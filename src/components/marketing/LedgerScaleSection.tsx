@@ -85,7 +85,7 @@ function SplitRow({
         className={`md:col-span-5 ${copyOrder}`}
       >
         <div>
-          <span className="text-[0.688rem] font-medium uppercase tracking-widest text-blue-300/80">{eyebrow}</span>
+          <span className="text-[0.688rem] font-medium uppercase tracking-widest text-blue-300">{eyebrow}</span>
           <h3 className="mt-3 text-[1.5rem] md:text-[1.75rem] font-bold leading-[1.3] tracking-tight text-white">
             {title}
           </h3>
