@@ -39,12 +39,14 @@ export function IntegrationLogoWall() {
           <ScrollReveal key={item.name} variant="fade-up" delay={Math.floor(i / 4) * 60}>
             <div className="group h-full rounded-2xl border border-white/[0.14] bg-white/[0.06] p-5 md:p-6 text-center hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors">
               {item.logoSrc ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.logoSrc}
-                  alt={item.name}
-                  className="mx-auto h-7 md:h-8 w-auto object-contain"
-                />
+                <div className="mx-auto inline-flex items-center justify-center rounded-md bg-white px-3 py-1.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.logoSrc}
+                    alt={item.name}
+                    className="h-5 md:h-6 w-auto object-contain"
+                  />
+                </div>
               ) : (
                 <p className="text-base md:text-lg font-semibold text-white tracking-tight">{item.name}</p>
               )}
