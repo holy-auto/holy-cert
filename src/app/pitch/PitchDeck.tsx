@@ -4,20 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 
 export type Slide = { id: string; node: React.ReactNode };
 
-export function PitchDeck({
-  slides,
-  label,
-}: {
-  slides: Slide[];
-  label: string;
-}) {
+export function PitchDeck({ slides, label }: { slides: Slide[]; label: string }) {
   const [cur, setCur] = useState(0);
 
   const prev = useCallback(() => setCur((c) => Math.max(0, c - 1)), []);
-  const next = useCallback(
-    () => setCur((c) => Math.min(slides.length - 1, c + 1)),
-    [slides.length],
-  );
+  const next = useCallback(() => setCur((c) => Math.min(slides.length - 1, c + 1)), [slides.length]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -36,13 +27,13 @@ export function PitchDeck({
         <div className="flex items-center justify-between px-6 py-3 border-b border-white/[0.08] shrink-0">
           <span className="text-white font-bold tracking-tight text-sm">Ledra</span>
           <div className="flex items-center gap-4">
-            <span className="text-white/40 text-xs">{label}</span>
-            <span className="text-white/30 text-xs font-mono">
+            <span className="text-white text-xs">{label}</span>
+            <span className="text-white text-xs font-mono">
               {cur + 1} / {slides.length}
             </span>
             <button
               onClick={() => window.print()}
-              className="text-xs border border-white/20 rounded-lg px-3 py-1.5 text-white/60 hover:text-white hover:border-white/40 transition cursor-pointer"
+              className="text-xs border border-white/20 rounded-lg px-3 py-1.5 text-white hover:text-white hover:border-white/40 transition cursor-pointer"
             >
               PDF出力
             </button>
@@ -56,9 +47,7 @@ export function PitchDeck({
               <div
                 key={s.id}
                 className={`absolute inset-0 transition-opacity duration-250 ${
-                  i === cur
-                    ? "opacity-100 pointer-events-auto"
-                    : "opacity-0 pointer-events-none"
+                  i === cur ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
                 }`}
               >
                 {s.node}
@@ -72,15 +61,9 @@ export function PitchDeck({
           <button
             onClick={prev}
             disabled={cur === 0}
-            className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition cursor-pointer"
+            className="flex items-center gap-1.5 text-sm text-white hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition cursor-pointer"
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
             前へ
@@ -101,16 +84,10 @@ export function PitchDeck({
           <button
             onClick={next}
             disabled={cur === slides.length - 1}
-            className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition cursor-pointer"
+            className="flex items-center gap-1.5 text-sm text-white hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition cursor-pointer"
           >
             次へ
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>

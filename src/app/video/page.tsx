@@ -14,9 +14,9 @@ const SLIDES = [
       <div className="flex flex-col items-center justify-center h-full text-center gap-6">
         <div className="text-[10px] font-mono tracking-[0.3em] text-blue-400 uppercase mb-2">WEB 施工証明書 SaaS</div>
         <h1 className="text-7xl md:text-8xl font-bold tracking-tight text-white">Ledra</h1>
-        <p className="text-2xl md:text-3xl text-white/60 font-light">施工の証明を、デジタルで。</p>
+        <p className="text-2xl md:text-3xl text-white font-light">施工の証明を、デジタルで。</p>
         <div className="mt-8 w-16 h-px bg-blue-500/60" />
-        <p className="text-white/40 text-sm">← → キーまたはクリックでスライドを切り替え</p>
+        <p className="text-white text-sm">← → キーまたはクリックでスライドを切り替え</p>
       </div>
     ),
   },
@@ -40,11 +40,7 @@ const SLIDES = [
             "保険会社への施工実績提出に時間がかかりすぎる",
             "施工店間での連携・受発注の手段がない",
           ].map((text, i) => (
-            <li
-              key={i}
-              className="flex items-start gap-3 text-white/75 text-lg"
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
+            <li key={i} className="flex items-start gap-3 text-white text-lg" style={{ animationDelay: `${i * 80}ms` }}>
               <span className="mt-1 w-5 h-5 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center flex-shrink-0">
                 <span className="text-red-400 text-xs">✕</span>
               </span>
@@ -75,7 +71,7 @@ const SLIDES = [
             "保険会社専用ポータルで証明書を即座に検索・照会",
             "BtoB マーケットプレイスで施工店間の受発注を実現",
           ].map((text, i) => (
-            <li key={i} className="flex items-start gap-3 text-white/75 text-lg">
+            <li key={i} className="flex items-start gap-3 text-white text-lg">
               <span className="mt-1 w-5 h-5 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center flex-shrink-0">
                 <span className="text-green-400 text-xs">✓</span>
               </span>
@@ -156,12 +152,12 @@ const SLIDES = [
                 {s.step}
               </div>
               <div className="text-white font-semibold text-sm">{s.title}</div>
-              <div className="text-white/50 text-xs leading-tight">{s.desc}</div>
+              <div className="text-white text-xs leading-tight">{s.desc}</div>
               {i < 4 && <div className="hidden md:block absolute" />}
             </div>
           ))}
         </div>
-        <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-5 text-white/60 text-sm leading-relaxed">
+        <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-5 text-white text-sm leading-relaxed">
           証明書には施工内容・写真・施工店情報が記録され、公開 URL から誰でも真正性を検証できます。
           ブロックチェーンに写真ハッシュをアンカリングすることで、デジタル改ざんを完全に防止します。
         </div>
@@ -193,7 +189,7 @@ const SLIDES = [
               >
                 {s}
               </div>
-              {i < 3 && <span className="text-white/30">→</span>}
+              {i < 3 && <span className="text-white">→</span>}
             </div>
           ))}
         </div>
@@ -221,7 +217,7 @@ const SLIDES = [
             >
               <div className="text-2xl">{card.icon}</div>
               <div className="text-white font-semibold">{card.title}</div>
-              <div className="text-white/50 text-sm leading-relaxed">{card.desc}</div>
+              <div className="text-white text-sm leading-relaxed">{card.desc}</div>
             </div>
           ))}
         </div>
@@ -242,8 +238,8 @@ const SLIDES = [
         </h2>
         <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-6 flex flex-col gap-4">
           <div className="flex items-center gap-3 rounded-lg bg-white/[0.06] border border-white/[0.1] px-4 py-3">
-            <span className="text-white/40">🔍</span>
-            <span className="text-white/40 text-sm">証明書番号 / 顧客名 / 車両ナンバーで検索…</span>
+            <span className="text-white">🔍</span>
+            <span className="text-white text-sm">証明書番号 / 顧客名 / 車両ナンバーで検索…</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -256,7 +252,7 @@ const SLIDES = [
             ].map((f) => (
               <div
                 key={f.label}
-                className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-sm text-white/70"
+                className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-sm text-white"
               >
                 <span>{f.icon}</span>
                 {f.label}
@@ -264,7 +260,7 @@ const SLIDES = [
             ))}
           </div>
         </div>
-        <p className="text-white/50 text-sm leading-relaxed">
+        <p className="text-white text-sm leading-relaxed">
           保険金請求時の施工実績確認が、専用ポータルで数秒で完了。
           施工店とのコミュニケーションコストを大幅に削減します。
         </p>
@@ -287,12 +283,12 @@ const SLIDES = [
           <div className="flex items-center gap-4">
             <div className="flex-1 rounded-xl bg-white/[0.04] border border-white/[0.07] p-5">
               <div className="text-white font-semibold mb-1">施工店 A</div>
-              <div className="text-white/50 text-sm">得意分野・空き情報を掲載</div>
+              <div className="text-white text-sm">得意分野・空き情報を掲載</div>
             </div>
-            <div className="text-white/40 text-2xl">⇄</div>
+            <div className="text-white text-2xl">⇄</div>
             <div className="flex-1 rounded-xl bg-white/[0.04] border border-white/[0.07] p-5">
               <div className="text-white font-semibold mb-1">施工店 B</div>
-              <div className="text-white/50 text-sm">検索・問い合わせ・発注</div>
+              <div className="text-white text-sm">検索・問い合わせ・発注</div>
             </div>
           </div>
           <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-5">
@@ -303,14 +299,14 @@ const SLIDES = [
                     <span className="text-xs px-3 py-1 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-300">
                       {step}
                     </span>
-                    {i < 5 && <span className="text-white/30 text-xs">→</span>}
+                    {i < 5 && <span className="text-white text-xs">→</span>}
                   </span>
                 ),
               )}
             </div>
           </div>
         </div>
-        <p className="text-white/50 text-sm leading-relaxed">
+        <p className="text-white text-sm leading-relaxed">
           パートナーランク（プラチナ / ゴールド / シルバー / ブロンズ）で実績が可視化され、
           信頼できる施工店との取引を促進します。
         </p>
@@ -341,7 +337,7 @@ const SLIDES = [
             <div key={t.name} className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-4 flex flex-col gap-2">
               <div className="text-xl">{t.icon}</div>
               <div className="text-white font-semibold text-sm">{t.name}</div>
-              <div className="text-white/45 text-xs leading-relaxed">{t.desc}</div>
+              <div className="text-white text-xs leading-relaxed">{t.desc}</div>
             </div>
           ))}
         </div>
@@ -349,7 +345,7 @@ const SLIDES = [
           {["Google Calendar", "LINE", "Resend", "Sentry", "Vercel", "Upstash Redis"].map((s) => (
             <span
               key={s}
-              className="text-xs px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-white/50"
+              className="text-xs px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.08] text-white"
             >
               {s}
             </span>
@@ -366,7 +362,7 @@ const SLIDES = [
       <div className="flex flex-col items-center justify-center h-full text-center gap-8">
         <div className="text-[10px] font-mono tracking-[0.3em] text-blue-400 uppercase">今すぐ始めましょう</div>
         <h2 className="text-6xl md:text-7xl font-bold text-white">Ledra</h2>
-        <p className="text-xl text-white/60 max-w-md leading-relaxed">
+        <p className="text-xl text-white max-w-md leading-relaxed">
           14 日間の無料トライアルで全機能をお試しいただけます。 クレジットカード不要。いつでもキャンセル可能。
         </p>
         <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
@@ -378,13 +374,13 @@ const SLIDES = [
           </a>
           <a
             href="/contact"
-            className="px-8 py-4 rounded-xl border border-white/20 hover:border-white/40 transition-colors text-white/75 font-semibold text-lg"
+            className="px-8 py-4 rounded-xl border border-white/20 hover:border-white/40 transition-colors text-white font-semibold text-lg"
           >
             お問い合わせ
           </a>
         </div>
         <div className="mt-8 w-16 h-px bg-white/10" />
-        <p className="text-white/30 text-sm">ledra.jp</p>
+        <p className="text-white text-sm">ledra.jp</p>
       </div>
     ),
   },
@@ -432,7 +428,7 @@ function PortalCard({ role, label, color, items }: { role: string; label: string
       </div>
       <ul className="flex flex-col gap-1">
         {items.map((item) => (
-          <li key={item} className="text-xs text-white/55 flex items-center gap-1.5">
+          <li key={item} className="text-xs text-white flex items-center gap-1.5">
             <span className="w-1 h-1 rounded-full bg-current opacity-60" />
             {item}
           </li>
@@ -521,7 +517,7 @@ export default function VideoPresentation() {
       </div>
 
       {/* Slide counter */}
-      <div className="absolute top-6 right-8 text-white/25 text-xs font-mono z-20">
+      <div className="absolute top-6 right-8 text-white text-xs font-mono z-20">
         {current + 1} / {SLIDES.length}
       </div>
 
@@ -532,7 +528,7 @@ export default function VideoPresentation() {
             e.stopPropagation();
             prev();
           }}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white/80 transition-all"
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] flex items-center justify-center text-white hover:text-white transition-all"
           aria-label="前のスライド"
         >
           ‹
@@ -544,7 +540,7 @@ export default function VideoPresentation() {
             e.stopPropagation();
             next();
           }}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white/80 transition-all"
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] flex items-center justify-center text-white hover:text-white transition-all"
           aria-label="次のスライド"
         >
           ›

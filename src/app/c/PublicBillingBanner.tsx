@@ -57,7 +57,7 @@ export default function PublicBillingBanner() {
   return (
     <div className="glass-card mb-4 border-amber-500/30 p-4 text-sm text-amber-400">
       <div className="font-semibold">この施工証明書は閲覧できますが、現在「検証」はできません</div>
-      <div className="mt-1 text-amber-400/80">
+      <div className="mt-1 text-amber-400">
         施工店のサブスクリプションが停止中のため、最新状態の保証・再発行・一部の出力機能は制限されます。
       </div>
 
@@ -67,16 +67,10 @@ export default function PublicBillingBanner() {
         </div>
       )}
 
-      {!data.pdf_allowed && (
-        <div className="mt-2 font-semibold">
-          現在、PDF出力は利用できません（支払い停止中）。
-        </div>
-      )}
+      {!data.pdf_allowed && <div className="mt-2 font-semibold">現在、PDF出力は利用できません（支払い停止中）。</div>}
 
       {notice === "pdf_blocked" && (
-        <div className="mt-2 font-semibold">
-          PDF出力が制限されています。施工店へご確認ください。
-        </div>
+        <div className="mt-2 font-semibold">PDF出力が制限されています。施工店へご確認ください。</div>
       )}
     </div>
   );

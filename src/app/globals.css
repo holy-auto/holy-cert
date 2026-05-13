@@ -100,8 +100,8 @@
   --border-focus: #4d9fff;
 
   --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.78);
-  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-secondary: rgba(255, 255, 255, 0.95);
+  --text-muted: rgba(255, 255, 255, 0.85);
   --text-inverse: #1d1d1f;
 
   /* Accent adjustments for dark bg */

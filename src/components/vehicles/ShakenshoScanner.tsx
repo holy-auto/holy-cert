@@ -96,7 +96,7 @@ export default function ShakenshoScanner({ open, onResult, onClose }: Props) {
       <div className="flex items-start justify-between gap-3 p-4 text-white">
         <div>
           <div className="text-lg font-semibold">車検証の二次元コードをスキャン</div>
-          <div className="mt-0.5 text-xs text-white/80">電子車検証の印字 QR にカメラをかざしてください</div>
+          <div className="mt-0.5 text-xs text-white">電子車検証の印字 QR にカメラをかざしてください</div>
         </div>
         <button
           type="button"
@@ -111,7 +111,7 @@ export default function ShakenshoScanner({ open, onResult, onClose }: Props) {
         <video ref={videoRef} playsInline muted className="max-h-full max-w-full" />
 
         {!ready && !error && (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-white/80">
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-white">
             カメラを起動しています...
           </div>
         )}
@@ -132,7 +132,7 @@ export default function ShakenshoScanner({ open, onResult, onClose }: Props) {
         )}
       </div>
 
-      <div className="p-4 text-center text-xs text-white/80">
+      <div className="p-4 text-center text-xs text-white">
         スキャンできない場合は「閉じる」→「車検証から読み取る」で画像アップロードをお試しください
       </div>
     </div>

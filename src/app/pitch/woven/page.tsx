@@ -1,15 +1,7 @@
 import { PitchDeck, type Slide } from "../PitchDeck";
 
 // ─── Slide chrome ───────────────────────────────────────────────
-function S({
-  children,
-  n,
-  total = 6,
-}: {
-  children: React.ReactNode;
-  n: number;
-  total?: number;
-}) {
+function S({ children, n, total = 6 }: { children: React.ReactNode; n: number; total?: number }) {
   return (
     <div
       className="w-full h-full flex flex-col bg-[#060a12] overflow-hidden"
@@ -18,8 +10,10 @@ function S({
       <div className="h-[3px] w-full bg-gradient-to-r from-emerald-500 to-teal-400 shrink-0" />
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">{children}</div>
       <div className="px-10 py-2.5 flex items-center justify-between border-t border-white/[0.06] shrink-0">
-        <span className="text-white/30 text-[11px] tracking-wide">Ledra — Confidential · 2026年4月</span>
-        <span className="text-white/25 text-[11px] font-mono">{n}/{total}</span>
+        <span className="text-white text-[11px] tracking-wide">Ledra — Confidential · 2026年4月</span>
+        <span className="text-white text-[11px] font-mono">
+          {n}/{total}
+        </span>
       </div>
     </div>
   );
@@ -31,7 +25,7 @@ function Chip({ children, color = "emerald" }: { children: React.ReactNode; colo
       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
       : color === "teal"
         ? "border-teal-500/30 bg-teal-500/10 text-teal-300"
-        : "border-white/15 bg-white/5 text-white/60";
+        : "border-white/15 bg-white/5 text-white";
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${cls}`}
@@ -54,16 +48,14 @@ const S1 = (
       </div>
       <h1 className="text-4xl md:text-5xl font-extrabold leading-tight tracking-tight text-white">
         Woven City ×{" "}
-        <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
-          Ledra
-        </span>
+        <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">Ledra</span>
       </h1>
-      <p className="text-base text-white/70 max-w-xl leading-relaxed">
+      <p className="text-base text-white max-w-xl leading-relaxed">
         車両施工記録をスマートシティの
         <br />
         真正性インフラへ。
       </p>
-      <div className="mt-2 flex gap-6 text-xs text-white/40">
+      <div className="mt-2 flex gap-6 text-xs text-white">
         <span>Polygon PoS Anchoring</span>
         <span>·</span>
         <span>C2PA 写真署名</span>
@@ -79,12 +71,11 @@ const S2 = (
     {/* Problem */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-2">
-          現状課題
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-2">現状課題</p>
         <h2 className="text-2xl font-extrabold text-white leading-snug">
           施工記録は今も
-          <br />「紙と信頼」で動いている
+          <br />
+          「紙と信頼」で動いている
         </h2>
       </div>
       <div className="grid grid-cols-3 gap-4 flex-1">
@@ -105,13 +96,10 @@ const S2 = (
             body: "中古車査定担当者・保険会社・次のオーナーが施工の事実を独立して検証できる仕組みがない。",
           },
         ].map((item) => (
-          <div
-            key={item.n}
-            className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 flex flex-col gap-3"
-          >
+          <div key={item.n} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 flex flex-col gap-3">
             <span className="font-mono text-emerald-500 text-xs font-bold">{item.n}</span>
             <h3 className="text-sm font-bold text-white leading-snug">{item.title}</h3>
-            <p className="text-xs text-white/65 leading-relaxed">{item.body}</p>
+            <p className="text-xs text-white leading-relaxed">{item.body}</p>
           </div>
         ))}
       </div>
@@ -124,12 +112,8 @@ const S3 = (
     {/* Solution - How it works */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-2">
-          解決策
-        </p>
-        <h2 className="text-2xl font-extrabold text-white leading-snug">
-          施工完了から証明完結まで — 4ステップ
-        </h2>
+        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-2">解決策</p>
+        <h2 className="text-2xl font-extrabold text-white leading-snug">施工完了から証明完結まで — 4ステップ</h2>
       </div>
       <div className="flex-1 flex flex-col justify-center gap-3">
         {[
@@ -165,9 +149,9 @@ const S3 = (
             <div className="flex-1 rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-2.5 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-semibold text-white">{step.label}</span>
-                <p className="text-xs text-white/55 mt-0.5 leading-relaxed">{step.detail}</p>
+                <p className="text-xs text-white mt-0.5 leading-relaxed">{step.detail}</p>
               </div>
-              <span className="text-[10px] border border-white/10 rounded-full px-2 py-0.5 text-white/40 shrink-0">
+              <span className="text-[10px] border border-white/10 rounded-full px-2 py-0.5 text-white shrink-0">
                 {step.badge}
               </span>
             </div>
@@ -185,9 +169,7 @@ const S4 = (
       {/* Left: explanation */}
       <div className="flex flex-col gap-4 w-[38%] shrink-0">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-2">
-            デモ
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-2">デモ</p>
           <h2 className="text-2xl font-extrabold text-white leading-snug">
             車両デジタルパスポート
             <br />
@@ -209,14 +191,11 @@ const S4 = (
               body: "URLを共有するだけで保険会社・査定担当者が確認できる。",
             },
           ].map((item) => (
-            <div
-              key={item.title}
-              className="flex gap-3 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3"
-            >
+            <div key={item.title} className="flex gap-3 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
               <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
               <div>
                 <div className="text-xs font-bold text-white">{item.title}</div>
-                <div className="text-xs text-white/55 mt-0.5 leading-relaxed">{item.body}</div>
+                <div className="text-xs text-white mt-0.5 leading-relaxed">{item.body}</div>
               </div>
             </div>
           ))}
@@ -233,7 +212,7 @@ const S4 = (
               <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/50" />
               <div className="h-2.5 w-2.5 rounded-full bg-green-500/50" />
             </div>
-            <div className="flex-1 text-center bg-white/[0.05] rounded px-2 py-0.5 font-mono text-white/60 text-[10px]">
+            <div className="flex-1 text-center bg-white/[0.05] rounded px-2 py-0.5 font-mono text-white text-[10px]">
               ledra.co.jp/v/JT2BF22K1W0066983
             </div>
           </div>
@@ -241,7 +220,7 @@ const S4 = (
           <div className="p-4 space-y-3">
             <div>
               <div className="text-base font-bold text-white">Toyota Alphard 2024</div>
-              <div className="font-mono text-[10px] text-white/50 mt-0.5">VIN: JT2BF22K1W0066983</div>
+              <div className="font-mono text-[10px] text-white mt-0.5">VIN: JT2BF22K1W0066983</div>
             </div>
             <div className="flex flex-wrap gap-1.5">
               <Chip>アンカー済み施工証明 3件</Chip>
@@ -255,24 +234,21 @@ const S4 = (
                 { date: "2024-09-03", type: "PPF施工（フロント）", shop: "Woven City モビリティセンター" },
                 { date: "2025-02-20", type: "車両整備", shop: "トヨタモビリティ東京" },
               ].map((c, i) => (
-                <div
-                  key={i}
-                  className="flex gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5"
-                >
+                <div key={i} className="flex gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5">
                   <div className="mt-1 h-2 w-2 shrink-0 rounded-full border border-emerald-500 bg-emerald-500/20" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-[11px] font-semibold text-white">{c.type}</span>
                       <Chip>Polygon済</Chip>
                     </div>
-                    <div className="text-[10px] text-white/50 mt-0.5">
+                    <div className="text-[10px] text-white mt-0.5">
                       {c.shop} · {c.date}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="font-mono text-[10px] text-white/40 bg-white/[0.02] border border-white/[0.05] rounded-lg px-3 py-2">
+            <div className="font-mono text-[10px] text-white bg-white/[0.02] border border-white/[0.05] rounded-lg px-3 py-2">
               Tx: 0x7f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c...
             </div>
           </div>
@@ -287,20 +263,14 @@ const S5 = (
     {/* PoC Proposal */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-2">
-          PoC提案
-        </p>
-        <h2 className="text-2xl font-extrabold text-white leading-snug">
-          Woven Cityで、試してみませんか
-        </h2>
-        <p className="text-sm text-white/55 mt-1">最小限のコミットメントで、最大限のデータを。</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-2">PoC提案</p>
+        <h2 className="text-2xl font-extrabold text-white leading-snug">Woven Cityで、試してみませんか</h2>
+        <p className="text-sm text-white mt-1">最小限のコミットメントで、最大限のデータを。</p>
       </div>
       <div className="flex gap-5 flex-1">
         {/* Scope */}
         <div className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.03] p-5">
-          <div className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-4">
-            PoCスコープ
-          </div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-white mb-4">PoCスコープ</div>
           <div className="space-y-3">
             {[
               { label: "期間", value: "3ヶ月" },
@@ -309,11 +279,8 @@ const S5 = (
               { label: "必要書類", value: "NDA + PoC合意書のみ（本番採用の義務なし）" },
               { label: "レポート", value: "週次データレポート（発行数・アンカー成功率・閲覧数）" },
             ].map((row) => (
-              <div
-                key={row.label}
-                className="flex gap-3 border-b border-white/[0.05] pb-3 last:border-0 last:pb-0"
-              >
-                <span className="text-xs text-white/45 w-24 shrink-0">{row.label}</span>
+              <div key={row.label} className="flex gap-3 border-b border-white/[0.05] pb-3 last:border-0 last:pb-0">
+                <span className="text-xs text-white w-24 shrink-0">{row.label}</span>
                 <span className="text-xs font-semibold text-white">{row.value}</span>
               </div>
             ))}
@@ -322,9 +289,7 @@ const S5 = (
 
         {/* Success metrics */}
         <div className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.03] p-5">
-          <div className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-4">
-            成功指標（3ヶ月）
-          </div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-white mb-4">成功指標（3ヶ月）</div>
           <div className="space-y-3">
             {[
               { metric: "発行証明書数", target: "50件以上" },
@@ -334,7 +299,7 @@ const S5 = (
               { metric: "施設スタッフ継続利用率", target: "3ヶ月間継続" },
             ].map((row) => (
               <div key={row.metric} className="flex items-center justify-between gap-3">
-                <span className="text-xs text-white/70">{row.metric}</span>
+                <span className="text-xs text-white">{row.metric}</span>
                 <Chip>{row.target}</Chip>
               </div>
             ))}
@@ -350,10 +315,8 @@ const S6 = (
     {/* Next Step */}
     <div className="flex flex-col items-center justify-center flex-1 text-center px-10 gap-6">
       <Chip>Next Step</Chip>
-      <h2 className="text-3xl font-extrabold text-white leading-snug">
-        まず 15分、話しませんか
-      </h2>
-      <p className="text-sm text-white/65 max-w-lg leading-relaxed">
+      <h2 className="text-3xl font-extrabold text-white leading-snug">まず 15分、話しませんか</h2>
+      <p className="text-sm text-white max-w-lg leading-relaxed">
         長文の提案書も、複雑な契約も必要ありません。
         <br />
         デモを見ていただき、関心があればNDAのみで始められます。
@@ -369,11 +332,11 @@ const S6 = (
               {step.n}
             </div>
             <div className="text-sm font-bold text-white">{step.label}</div>
-            <div className="text-xs text-white/50">{step.sub}</div>
+            <div className="text-xs text-white">{step.sub}</div>
           </div>
         ))}
       </div>
-      <div className="mt-4 flex flex-col gap-1 text-xs text-white/40">
+      <div className="mt-4 flex flex-col gap-1 text-xs text-white">
         <span>ledra.co.jp/contact</span>
         <span>Polygon PoS · C2PA · NFC · 第三者セキュリティ監査済み</span>
       </div>
