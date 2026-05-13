@@ -813,3 +813,30 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ══════════════════════════════════════════════════
+   Dark theme — force white text on all body copy.
+   Tailwind の text-white が何かに上書きされていても
+   貫通させるための最終的なセーフティネット。
+   ══════════════════════════════════════════════════ */
+[data-theme="dark"] p,
+[data-theme="dark"] li,
+[data-theme="dark"] dt,
+[data-theme="dark"] dd,
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"]
+  span:not([class*="text-blue"]):not([class*="text-emerald"]):not([class*="text-amber"]):not([class*="text-red"]):not(
+    [class*="text-violet"]
+  ):not([class*="text-green"]):not([class*="text-yellow"]):not([class*="text-pink"]):not([class*="text-orange"]):not(
+    [class*="text-purple"]
+  ):not([class*="text-rose"]):not([class*="text-cyan"]):not([class*="text-sky"]):not([class*="text-indigo"]):not(
+    [class*="text-teal"]
+  ),
+[data-theme="dark"] div.text-white {
+  color: #ffffff !important;
+}
