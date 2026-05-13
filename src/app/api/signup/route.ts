@@ -4,6 +4,7 @@ import { signupSchema } from "@/lib/validations/signup";
 import { apiOk, apiError, apiInternalError, apiValidationError } from "@/lib/api/response";
 import { checkRateLimit } from "@/lib/api/rateLimit";
 import { createServiceRoleAdmin } from "@/lib/supabase/admin";
+import { notifySlack } from "@/lib/slack";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,23 @@ export async function POST(req: NextRequest) {
       await admin.from("tenants").delete().eq("id", tenant.id);
       await admin.auth.admin.deleteUser(userId);
       return apiInternalError(membershipError, "signup: membership creation");
+    }
+
+    try {
+      await notifySlack(process.env.SLACK_SIGNUP_WEBHOOK_URL, {
+        text: `:tada: 新規施工店登録: *${shop_name}*`,
+        color: "#22c55e",
+        fields: [
+          { title: "店舗名", value: shop_name, short: true },
+          { title: "メール", value: email, short: true },
+          ...(display_name ? [{ title: "担当者", value: display_name, short: true }] : []),
+          ...(contact_phone ? [{ title: "電話", value: contact_phone, short: true }] : []),
+          { title: "プラン", value: "free", short: true },
+          { title: "tenant_id", value: tenant.id, short: true },
+        ],
+      });
+    } catch (err) {
+      console.error("[signup] slack notify failed:", err);
     }
 
     return apiOk(

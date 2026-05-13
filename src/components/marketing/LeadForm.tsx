@@ -106,7 +106,7 @@ export function LeadForm({
           </svg>
         </div>
         <h3 className="mt-6 text-xl font-bold text-white">{success?.title ?? "送信を受け付けました"}</h3>
-        <p className="mt-3 text-white/80 leading-relaxed whitespace-pre-line">
+        <p className="mt-3 text-white leading-relaxed whitespace-pre-line">
           {success?.body ?? "ご登録いただいたメールアドレスに追ってご連絡いたします。\n通常1営業日以内にお届けします。"}
         </p>
       </div>
@@ -178,7 +178,7 @@ export function LeadForm({
     <form onSubmit={handleSubmit} className="space-y-6" noValidate>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="lf-name" className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="lf-name" className="block text-sm font-medium text-white mb-2">
             お名前 <span className="text-red-400">*</span>
           </label>
           <input
@@ -192,7 +192,7 @@ export function LeadForm({
           />
         </div>
         <div>
-          <label htmlFor="lf-company" className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="lf-company" className="block text-sm font-medium text-white mb-2">
             {companyLabel} <span className="text-red-400">*</span>
           </label>
           <input
@@ -209,7 +209,7 @@ export function LeadForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="lf-role" className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="lf-role" className="block text-sm font-medium text-white mb-2">
             {roleLabel} <span className="text-red-400">*</span>
           </label>
           <input
@@ -223,7 +223,7 @@ export function LeadForm({
           />
         </div>
         <div>
-          <label htmlFor="lf-email" className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="lf-email" className="block text-sm font-medium text-white mb-2">
             メールアドレス <span className="text-red-400">*</span>
           </label>
           <input
@@ -240,7 +240,7 @@ export function LeadForm({
 
       {fields.phone && (
         <div>
-          <label htmlFor="lf-phone" className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="lf-phone" className="block text-sm font-medium text-white mb-2">
             電話番号
           </label>
           <input
@@ -258,7 +258,7 @@ export function LeadForm({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {fields.industry && (
             <div>
-              <label htmlFor="lf-industry" className="block text-sm font-medium text-white/80 mb-2">
+              <label htmlFor="lf-industry" className="block text-sm font-medium text-white mb-2">
                 業態
               </label>
               <select id="lf-industry" name="industry" className={inputClass}>
@@ -276,7 +276,7 @@ export function LeadForm({
           )}
           {fields.locations && (
             <div>
-              <label htmlFor="lf-locations" className="block text-sm font-medium text-white/80 mb-2">
+              <label htmlFor="lf-locations" className="block text-sm font-medium text-white mb-2">
                 拠点数
               </label>
               <select id="lf-locations" name="locations" className={inputClass}>
@@ -290,7 +290,7 @@ export function LeadForm({
           )}
           {fields.timing && (
             <div>
-              <label htmlFor="lf-timing" className="block text-sm font-medium text-white/80 mb-2">
+              <label htmlFor="lf-timing" className="block text-sm font-medium text-white mb-2">
                 検討時期
               </label>
               <select id="lf-timing" name="timing" className={inputClass}>
@@ -307,7 +307,7 @@ export function LeadForm({
 
       {messageConfig && (
         <div>
-          <label htmlFor="lf-message" className="block text-sm font-medium text-white/80 mb-2">
+          <label htmlFor="lf-message" className="block text-sm font-medium text-white mb-2">
             {messageConfig.label ?? "ご質問・ご要望"}
             {messageConfig.required && <span className="text-red-400"> *</span>}
           </label>
@@ -330,8 +330,8 @@ export function LeadForm({
           required
           className="mt-1 h-4 w-4 rounded border-white/20 bg-white/[0.05] text-blue-500 focus:ring-blue-500/40"
         />
-        <label htmlFor="lf-consent" className="text-xs text-white/80 leading-relaxed">
-          <Link href="/privacy" className="underline text-white/80 hover:text-white">
+        <label htmlFor="lf-consent" className="text-xs text-white leading-relaxed">
+          <Link href="/privacy" className="underline text-white hover:text-white">
             プライバシーポリシー
           </Link>
           に同意の上、ご入力いただいた情報がお問い合わせ対応・ご案内のために利用されることに同意します。

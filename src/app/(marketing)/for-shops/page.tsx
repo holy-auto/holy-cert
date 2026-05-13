@@ -61,9 +61,9 @@ const certFlowSteps = [
     url: "admin.ledra.app/certificates/new",
     mock: (
       <div className="p-4 space-y-3">
-        <p className="text-[0.625rem] font-semibold text-white/40 uppercase tracking-widest">車両を選択</p>
+        <p className="text-[0.625rem] font-semibold text-white uppercase tracking-widest">車両を選択</p>
         <div className="relative">
-          <div className="rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-xs text-white/50">
+          <div className="rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-xs text-white">
             車両番号・名前で検索...
           </div>
         </div>
@@ -81,7 +81,7 @@ const certFlowSteps = [
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.06] text-base">🚗</div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-white truncate">{v.name}</p>
-              <p className="text-[0.625rem] text-white/50 font-mono">{v.plate}</p>
+              <p className="text-[0.625rem] text-white font-mono">{v.plate}</p>
             </div>
             {v.selected && (
               <div className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center">
@@ -101,7 +101,7 @@ const certFlowSteps = [
     url: "admin.ledra.app/certificates/new/details",
     mock: (
       <div className="p-4 space-y-3">
-        <p className="text-[0.625rem] font-semibold text-white/40 uppercase tracking-widest">施工内容を入力</p>
+        <p className="text-[0.625rem] font-semibold text-white uppercase tracking-widest">施工内容を入力</p>
         {[
           { label: "施工種別", value: "ガラスコーティング" },
           { label: "グレード", value: "プレミアム" },
@@ -109,12 +109,12 @@ const certFlowSteps = [
           { label: "施工日", value: "2026-04-29" },
         ].map((row) => (
           <div key={row.label} className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2">
-            <p className="text-[0.594rem] text-white/40 uppercase tracking-wide">{row.label}</p>
+            <p className="text-[0.594rem] text-white uppercase tracking-wide">{row.label}</p>
             <p className="mt-0.5 text-xs font-medium text-white">{row.value}</p>
           </div>
         ))}
         <div>
-          <p className="mb-1.5 text-[0.594rem] text-white/40 uppercase tracking-wide">施工写真</p>
+          <p className="mb-1.5 text-[0.594rem] text-white uppercase tracking-wide">施工写真</p>
           <div className="grid grid-cols-3 gap-1.5">
             {["📸", "📸", "📸"].map((icon, i) => (
               <div
@@ -148,7 +148,7 @@ const certFlowSteps = [
         </div>
         <div>
           <p className="text-xs font-bold text-white">証明書を発行しました</p>
-          <p className="mt-0.5 text-[0.625rem] font-mono text-white/50">LDR-2026-00842</p>
+          <p className="mt-0.5 text-[0.625rem] font-mono text-white">LDR-2026-00842</p>
         </div>
         <div className="w-24 h-24 rounded-xl border border-white/[0.1] bg-white/[0.04] grid grid-cols-5 gap-0.5 p-2">
           {Array.from({ length: 25 }).map((_, i) => (
@@ -163,15 +163,15 @@ const certFlowSteps = [
             />
           ))}
         </div>
-        <p className="text-[0.625rem] text-white/50">スマホをかざして確認</p>
+        <p className="text-[0.625rem] text-white">スマホをかざして確認</p>
         <div className="flex gap-2 w-full">
-          <button className="flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] py-2 text-[0.625rem] font-medium text-white/80">
+          <button className="flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] py-2 text-[0.625rem] font-medium text-white">
             LINE 送信
           </button>
-          <button className="flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] py-2 text-[0.625rem] font-medium text-white/80">
+          <button className="flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] py-2 text-[0.625rem] font-medium text-white">
             メール送信
           </button>
-          <button className="flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] py-2 text-[0.625rem] font-medium text-white/80">
+          <button className="flex-1 rounded-lg border border-white/[0.1] bg-white/[0.04] py-2 text-[0.625rem] font-medium text-white">
             PDF出力
           </button>
         </div>
@@ -313,8 +313,8 @@ export default function ForShopsPage() {
             <ScrollReveal key={o.before} variant="fade-up" delay={i * 50}>
               <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-6">
                 <div>
-                  <p className="text-[0.688rem] uppercase tracking-wider text-white/75">Before</p>
-                  <p className="mt-1.5 text-[0.938rem] text-white/80 leading-relaxed">{o.before}</p>
+                  <p className="text-[0.688rem] uppercase tracking-wider text-white">Before</p>
+                  <p className="mt-1.5 text-[0.938rem] text-white leading-relaxed">{o.before}</p>
                 </div>
                 <svg
                   viewBox="0 0 24 24"
@@ -389,18 +389,18 @@ export default function ForShopsPage() {
                   }`}
                 >
                   <div className="w-16 shrink-0 text-right">
-                    <span className="text-[0.75rem] font-mono font-medium text-white/50">{e.time}</span>
+                    <span className="text-[0.75rem] font-mono font-medium text-white">{e.time}</span>
                   </div>
                   <div className="relative flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1.5">
                       <h3 className="text-[0.938rem] font-bold text-white leading-snug">{e.title}</h3>
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[0.625rem] font-medium border ${tagColors[e.tag] ?? "text-white/50 bg-white/[0.05] border-white/[0.1]"}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[0.625rem] font-medium border ${tagColors[e.tag] ?? "text-white bg-white/[0.05] border-white/[0.1]"}`}
                       >
                         {e.tag}
                       </span>
                     </div>
-                    <p className="text-[0.875rem] leading-[1.75] text-white/70">{e.desc}</p>
+                    <p className="text-[0.875rem] leading-[1.75] text-white">{e.desc}</p>
                   </div>
                 </div>
               </ScrollReveal>
@@ -424,7 +424,7 @@ export default function ForShopsPage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -447,7 +447,7 @@ export default function ForShopsPage() {
                 <h3 className="text-[1.125rem] font-bold text-white leading-snug">
                   発行した証明書は、発行後に書き換えられません
                 </h3>
-                <p className="mt-2 text-[0.875rem] leading-[1.8] text-white/70">
+                <p className="mt-2 text-[0.875rem] leading-[1.8] text-white">
                   C2PA写真署名とPolygonブロックチェーンにより、施工写真・施工内容が改ざんされると検知されます。
                   保険会社が独立に真正性を確認できるため、査定での信頼性が変わります。
                 </p>
@@ -472,7 +472,7 @@ export default function ForShopsPage() {
           <h2 className="mt-6 text-2xl md:text-3xl font-bold text-white leading-tight">
             施工店パイロット参加店舗を募集しています
           </h2>
-          <p className="mt-4 text-[0.938rem] md:text-base leading-[1.9] text-white/80 max-w-xl mx-auto">
+          <p className="mt-4 text-[0.938rem] md:text-base leading-[1.9] text-white max-w-xl mx-auto">
             先行導入いただく施工店様には、導入支援の無償優遇、事例化とロゴ掲載、機能リクエストの優先反映をご用意しています。
             <br />
             「はじめての1店」として、業界の記録文化を一緒に作り直しませんか。
@@ -526,7 +526,7 @@ export default function ForShopsPage() {
               className="group block rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 md:p-7 hover:bg-white/[0.06] hover:border-white/[0.14] transition-colors"
             >
               <h3 className="text-[1.063rem] font-bold text-white leading-snug">{item.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-white/80">{item.desc}</p>
+              <p className="mt-3 text-sm leading-relaxed text-white">{item.desc}</p>
               <p className="mt-5 text-xs font-medium text-blue-300 group-hover:text-blue-200 transition-colors">
                 {item.cta}
               </p>

@@ -44,7 +44,7 @@ function StepDot({ n }: { n: number }) {
 
 function TxLine({ hash }: { hash: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 font-mono text-xs text-white/75">
+    <div className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 font-mono text-xs text-white">
       <svg
         className="h-3.5 w-3.5 shrink-0 text-emerald-400"
         fill="none"
@@ -88,7 +88,7 @@ export default function PocPage() {
                 ブロックチェーンで証明する
               </span>
             </h1>
-            <p className="mt-6 text-base leading-relaxed text-white/80 md:text-lg max-w-2xl mx-auto">
+            <p className="mt-6 text-base leading-relaxed text-white md:text-lg max-w-2xl mx-auto">
               Ledra は、コーティング・PPF・鈑金塗装などの施工証明書を C2PA 署名と Polygon
               ブロックチェーンで改ざん検知可能にし、 VIN 単位で車両全体の施工履歴を集約するインフラです。
             </p>
@@ -144,7 +144,7 @@ export default function PocPage() {
               <div className={card}>
                 <Chip color={item.color}>{item.label}</Chip>
                 <h3 className="mt-4 text-lg font-bold text-white">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/80">{item.body}</p>
+                <p className="mt-2 text-sm leading-relaxed text-white">{item.body}</p>
               </div>
             </ScrollReveal>
           ))}
@@ -185,7 +185,7 @@ export default function PocPage() {
                 <StepDot n={step.n} />
                 <div>
                   <div className="font-bold text-white">{step.title}</div>
-                  <p className="mt-1.5 text-sm leading-relaxed text-white/80">{step.body}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-white">{step.body}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -210,7 +210,7 @@ export default function PocPage() {
                   <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
                   <div className="h-3 w-3 rounded-full bg-green-500/60" />
                 </div>
-                <div className="flex-1 rounded-md bg-white/[0.05] px-3 py-1 text-center font-mono text-xs text-white/70">
+                <div className="flex-1 rounded-md bg-white/[0.05] px-3 py-1 text-center font-mono text-xs text-white">
                   ledra.co.jp/v/JT2BF22K1W0066983
                 </div>
               </div>
@@ -218,12 +218,12 @@ export default function PocPage() {
               <div className="p-5 space-y-4">
                 <div>
                   <div className="text-lg font-bold text-white">Toyota Alphard 2024</div>
-                  <div className="font-mono text-xs text-white/70 mt-0.5">VIN: JT2BF22K1W0066983</div>
+                  <div className="font-mono text-xs text-white mt-0.5">VIN: JT2BF22K1W0066983</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Chip color="green">アンカー済み施工証明 3件</Chip>
                   <Chip color="blue">関与施工店 2店</Chip>
-                  <span className={`${badge} border-white/10 text-white/70`}>初回登録 2024年6月</span>
+                  <span className={`${badge} border-white/10 text-white`}>初回登録 2024年6月</span>
                 </div>
                 <div className="space-y-3">
                   {[
@@ -238,7 +238,7 @@ export default function PocPage() {
                           <span className="text-xs font-semibold text-white">{cert.type}</span>
                           <Chip color="green">Polygon済</Chip>
                         </div>
-                        <div className="text-xs text-white/70 mt-0.5">
+                        <div className="text-xs text-white mt-0.5">
                           {cert.shop} · {cert.date}
                         </div>
                       </div>
@@ -246,9 +246,7 @@ export default function PocPage() {
                   ))}
                 </div>
                 <TxLine hash="0x7f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c..." />
-                <div className="text-xs text-white/70">
-                  この証明書の真正性は Polygon PoS ネットワーク上で検証可能です
-                </div>
+                <div className="text-xs text-white">この証明書の真正性は Polygon PoS ネットワーク上で検証可能です</div>
               </div>
             </div>
           </ScrollReveal>
@@ -293,7 +291,7 @@ export default function PocPage() {
                     />
                     <div>
                       <div className="font-semibold text-white">{item.title}</div>
-                      <p className="mt-1 text-sm leading-relaxed text-white/80">{item.body}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-white">{item.body}</p>
                     </div>
                   </div>
                 </div>
@@ -313,7 +311,7 @@ export default function PocPage() {
         {/* ライフサイクル図 */}
         <ScrollReveal variant="fade-up">
           <div className="mb-12 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
-            <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-4">
+            <div className="text-xs font-semibold uppercase tracking-widest text-white mb-4">
               車両ライフサイクルとカバレッジ
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -329,7 +327,7 @@ export default function PocPage() {
                 { label: "廃車", covered: true, who: "TBL" },
               ].map((item, i) =>
                 item.sep ? (
-                  <span key={i} className="text-white/70 text-lg">
+                  <span key={i} className="text-white text-lg">
                     →
                   </span>
                 ) : (
@@ -337,12 +335,12 @@ export default function PocPage() {
                     key={i}
                     className={`rounded-xl border px-4 py-3 text-center ${
                       item.covered
-                        ? "border-white/[0.1] bg-white/[0.04] text-white/80"
+                        ? "border-white/[0.1] bg-white/[0.04] text-white"
                         : "border-blue-500/40 bg-blue-500/15 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.2)]"
                     }`}
                   >
                     <div className="text-sm font-bold">{item.label}</div>
-                    <div className={`text-xs mt-0.5 font-mono ${item.covered ? "text-white/70" : "text-blue-400"}`}>
+                    <div className={`text-xs mt-0.5 font-mono ${item.covered ? "text-white" : "text-blue-400"}`}>
                       {item.who}
                     </div>
                     {!item.covered && <div className="text-[10px] mt-1 text-blue-400 font-semibold">← 空白地帯</div>}
@@ -378,7 +376,7 @@ export default function PocPage() {
               <div className={card}>
                 <Chip color={item.color}>{item.tag}</Chip>
                 <h3 className="mt-4 text-lg font-bold text-white">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/80">{item.body}</p>
+                <p className="mt-2 text-sm leading-relaxed text-white">{item.body}</p>
               </div>
             </ScrollReveal>
           ))}
@@ -395,7 +393,7 @@ export default function PocPage() {
           {/* PoC スコープ */}
           <ScrollReveal variant="fade-right">
             <div className={card}>
-              <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-5">PoC スコープ</div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-white mb-5">PoC スコープ</div>
               <div className="space-y-4">
                 {[
                   { label: "期間", value: "3ヶ月" },
@@ -405,7 +403,7 @@ export default function PocPage() {
                   { label: "提供データ", value: "週次レポート（発行数・アンカー成功率・パスポートアクセス数）" },
                 ].map((row) => (
                   <div key={row.label} className={divider.replace("my-8", "")}>
-                    <div className="text-xs text-white/70 mb-1">{row.label}</div>
+                    <div className="text-xs text-white mb-1">{row.label}</div>
                     <div className="text-sm font-semibold text-white">{row.value}</div>
                   </div>
                 ))}
@@ -416,7 +414,7 @@ export default function PocPage() {
           {/* 成功指標 */}
           <ScrollReveal variant="fade-left">
             <div className={card}>
-              <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-5">
+              <div className="text-xs font-semibold uppercase tracking-widest text-white mb-5">
                 PoC 成功指標（3ヶ月）
               </div>
               <div className="space-y-4">
@@ -430,7 +428,7 @@ export default function PocPage() {
                   <div key={row.metric} className="flex items-start justify-between gap-4">
                     <div>
                       <div className="text-sm font-semibold text-white">{row.metric}</div>
-                      <div className="text-xs text-white/70">{row.desc}</div>
+                      <div className="text-xs text-white">{row.desc}</div>
                     </div>
                     <Chip color="green">{row.target}</Chip>
                   </div>
@@ -442,7 +440,7 @@ export default function PocPage() {
 
         {/* PoC フロー */}
         <div className="mt-10">
-          <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-6 text-center">
+          <div className="text-xs font-semibold uppercase tracking-widest text-white mb-6 text-center">
             PoC 運用フロー
           </div>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-0">
@@ -458,7 +456,7 @@ export default function PocPage() {
               { from: "QR / NFC で\n第三者が検証", arrow: false },
             ].map((item, i) =>
               item.arrow ? (
-                <div key={i} className="flex items-center justify-center px-2 text-white/70 text-2xl">
+                <div key={i} className="flex items-center justify-center px-2 text-white text-2xl">
                   →
                 </div>
               ) : (
@@ -511,7 +509,7 @@ export default function PocPage() {
               <div className={card}>
                 <Chip color={item.color}>{item.label}</Chip>
                 <div className="mt-3 text-2xl font-extrabold text-white">{item.value}</div>
-                <p className="mt-2 text-xs leading-relaxed text-white/75">{item.note}</p>
+                <p className="mt-2 text-xs leading-relaxed text-white">{item.note}</p>
               </div>
             </ScrollReveal>
           ))}
@@ -519,7 +517,7 @@ export default function PocPage() {
 
         <ScrollReveal variant="fade-up" delay={300}>
           <div className="mt-8 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
-            <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-4">
+            <div className="text-xs font-semibold uppercase tracking-widest text-white mb-4">
               FAQ — よくある懸念事項
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -543,7 +541,7 @@ export default function PocPage() {
               ].map((item) => (
                 <div key={item.q} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
                   <div className="text-sm font-semibold text-white mb-2">Q. {item.q}</div>
-                  <div className="text-xs leading-relaxed text-white/75">A. {item.a}</div>
+                  <div className="text-xs leading-relaxed text-white">A. {item.a}</div>
                 </div>
               ))}
             </div>
@@ -564,7 +562,7 @@ export default function PocPage() {
             <h2 className="text-[2rem] font-extrabold leading-[1.2] tracking-tight text-white md:text-[3rem]">
               まず 15 分、話しませんか
             </h2>
-            <p className="mt-5 text-base leading-relaxed text-white/80 max-w-xl mx-auto">
+            <p className="mt-5 text-base leading-relaxed text-white max-w-xl mx-auto">
               長文の提案書も、複雑な契約も必要ありません。 デモを見ていただき、PoC に関心があれば NDA
               のみで始められます。
             </p>
@@ -588,7 +586,7 @@ export default function PocPage() {
 
             <div className={`${divider} max-w-lg mx-auto mt-12`} />
 
-            <div className="flex flex-wrap justify-center gap-6 text-xs text-white/70">
+            <div className="flex flex-wrap justify-center gap-6 text-xs text-white">
               <span>Toyota Blockchain Lab 連携</span>
               <span>·</span>
               <span>KINTO スコアリング統合</span>

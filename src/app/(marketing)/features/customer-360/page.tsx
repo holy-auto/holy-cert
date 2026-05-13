@@ -116,13 +116,11 @@ const features = [
   },
   {
     title: "CSVエクスポート",
-    description:
-      "顧客リスト・施工履歴・請求履歴をCSVで出力。既存のCRMや会計ソフトとの連携・分析に活用できます。",
+    description: "顧客リスト・施工履歴・請求履歴をCSVで出力。既存のCRMや会計ソフトとの連携・分析に活用できます。",
   },
   {
     title: "検索・フィルタ",
-    description:
-      "名前・電話番号・ナンバー・VINで全顧客を横断検索。ステータス・来店日・タグでの絞り込みも可能です。",
+    description: "名前・電話番号・ナンバー・VINで全顧客を横断検索。ステータス・来店日・タグでの絞り込みも可能です。",
   },
 ];
 
@@ -162,9 +160,7 @@ export default function Customer360Page() {
                 <button
                   key={tab.id}
                   className={`shrink-0 rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${
-                    i === 0
-                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                      : "text-white/50 hover:text-white/70"
+                    i === 0 ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-white hover:text-white"
                   }`}
                 >
                   {tab.label}
@@ -181,7 +177,7 @@ export default function Customer360Page() {
                 </div>
                 <div>
                   <p className="text-base font-bold text-white">山田 太郎</p>
-                  <p className="text-xs text-white/50 mt-0.5">090-1234-5678 · t.yamada@example.com</p>
+                  <p className="text-xs text-white mt-0.5">090-1234-5678 · t.yamada@example.com</p>
                 </div>
                 <div className="ml-auto">
                   <span className="rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-[0.625rem] font-semibold text-blue-300">
@@ -197,26 +193,32 @@ export default function Customer360Page() {
                   { label: "施工証明書", value: "8件" },
                   { label: "最終来店", value: "2025-03-01" },
                 ].map((stat) => (
-                  <div key={stat.label} className="rounded-xl bg-white/[0.04] border border-white/[0.08] p-3 text-center">
+                  <div
+                    key={stat.label}
+                    className="rounded-xl bg-white/[0.04] border border-white/[0.08] p-3 text-center"
+                  >
                     <p className="text-lg font-bold text-white">{stat.value}</p>
-                    <p className="text-[0.625rem] text-white/40 mt-0.5">{stat.label}</p>
+                    <p className="text-[0.625rem] text-white mt-0.5">{stat.label}</p>
                   </div>
                 ))}
               </div>
 
               {/* Vehicles preview */}
               <div className="mt-4">
-                <p className="text-[0.625rem] font-semibold text-white/40 uppercase tracking-widest mb-2">保有車両</p>
+                <p className="text-[0.625rem] font-semibold text-white uppercase tracking-widest mb-2">保有車両</p>
                 <div className="space-y-2">
                   {[
                     { name: "トヨタ アルファード", plate: "品川 300 あ 12-34", certs: "5件" },
                     { name: "BMW 3シリーズ", plate: "横浜 500 め 9900", certs: "3件" },
                   ].map((v) => (
-                    <div key={v.plate} className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                    <div
+                      key={v.plate}
+                      className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3"
+                    >
                       <div className="text-xl">🚗</div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-white truncate">{v.name}</p>
-                        <p className="text-[0.625rem] text-white/40 font-mono">{v.plate}</p>
+                        <p className="text-[0.625rem] text-white font-mono">{v.plate}</p>
                       </div>
                       <span className="text-[0.625rem] text-blue-300 font-medium shrink-0">証明書 {v.certs}</span>
                     </div>
@@ -224,27 +226,22 @@ export default function Customer360Page() {
                 </div>
               </div>
             </div>
-            <p className="mt-3 text-center text-xs text-white/40">顧客 360° ビューの表示例（イメージ）</p>
+            <p className="mt-3 text-center text-xs text-white">顧客 360° ビューの表示例（イメージ）</p>
           </div>
         </ScrollReveal>
       </Section>
 
       {/* Workflow examples */}
       <Section bg="alt">
-        <SectionHeading
-          title="使われる場面"
-          subtitle="接客・フォローアップ・提案、どの場面でも文脈が揃っています。"
-        />
+        <SectionHeading title="使われる場面" subtitle="接客・フォローアップ・提案、どの場面でも文脈が揃っています。" />
         <div className="mx-auto mt-10 max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-5">
           {workflowExamples.map((ex, idx) => (
             <ScrollReveal key={ex.scenario} variant="fade-up" delay={idx * 70}>
               <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 h-full">
-                <p className="text-xs font-semibold uppercase tracking-wider text-blue-300 mb-4">
-                  {ex.scenario}
-                </p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-blue-300 mb-4">{ex.scenario}</p>
                 <ol className="space-y-2">
                   {ex.steps.map((step, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                    <li key={i} className="flex items-start gap-2 text-sm text-white">
                       <span className="shrink-0 mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20 text-[0.563rem] font-bold text-blue-300">
                         {i + 1}
                       </span>
@@ -260,10 +257,7 @@ export default function Customer360Page() {
 
       {/* Features */}
       <Section>
-        <SectionHeading
-          title="顧客 360° ビューの機能"
-          subtitle="参照・連絡・次アクションが一画面で完結します。"
-        />
+        <SectionHeading title="顧客 360° ビューの機能" subtitle="参照・連絡・次アクションが一画面で完結します。" />
         <FeatureGrid className="mt-10">
           {features.map((f, i) => (
             <FeatureCard key={f.title} title={f.title} description={f.description} delay={i * 40} />

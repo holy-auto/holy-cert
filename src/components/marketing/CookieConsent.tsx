@@ -38,13 +38,12 @@ export function CookieConsent() {
       className="fixed inset-x-3 bottom-3 z-[60] md:inset-x-auto md:right-6 md:bottom-6 md:max-w-md"
     >
       <div className="rounded-2xl border border-white/[0.08] bg-[#0b111c]/95 shadow-[0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-md p-5">
-        <p className="text-sm leading-relaxed text-white/80">
-          サイトの改善と利用状況の分析のため、Cookie を使用しています。
-          詳細は{" "}
+        <p className="text-sm leading-relaxed text-white">
+          サイトの改善と利用状況の分析のため、Cookie を使用しています。 詳細は{" "}
           <Link href="/privacy" className="underline hover:text-white">
             プライバシーポリシー
-          </Link>
-          {" "}をご覧ください。
+          </Link>{" "}
+          をご覧ください。
         </p>
         <div className="mt-4 flex items-center gap-2">
           <button
@@ -57,7 +56,7 @@ export function CookieConsent() {
           <button
             type="button"
             onClick={() => persist("denied")}
-            className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-medium text-white/70 border border-white/[0.12] hover:bg-white/[0.06] transition-colors"
+            className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-medium text-white border border-white/[0.12] hover:bg-white/[0.06] transition-colors"
           >
             必須のみ
           </button>

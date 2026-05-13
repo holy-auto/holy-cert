@@ -93,7 +93,7 @@ export default function DataDisclosurePage() {
       </p>
 
       <hr />
-      <p className="text-sm text-muted">最終更新: 2026-05-03</p>
+      <p className="text-sm text-white">最終更新: 2026-05-03</p>
     </Container>
   );
 }

@@ -57,7 +57,7 @@ export default function VerifyPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-primary">{item.title}</h3>
-                <p className="mt-1 text-sm text-muted">{item.desc}</p>
+                <p className="mt-1 text-sm text-white">{item.desc}</p>
               </div>
             </div>
           ))}

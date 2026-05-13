@@ -80,11 +80,7 @@ export default function VerifyClient() {
       hash = await computeSha256(file);
     } catch (e) {
       setStage("error");
-      setErrorMsg(
-        e instanceof Error
-          ? `ハッシュ計算に失敗しました: ${e.message}`
-          : "ハッシュ計算に失敗しました。",
-      );
+      setErrorMsg(e instanceof Error ? `ハッシュ計算に失敗しました: ${e.message}` : "ハッシュ計算に失敗しました。");
       return;
     }
     setSha256(hash);
@@ -138,9 +134,7 @@ export default function VerifyClient() {
           dragOver ? "border-accent/80 bg-accent/5" : "border-white/10"
         }`}
       >
-        <div className="text-sm text-muted">
-          証明書画像をここにドロップ、または
-        </div>
+        <div className="text-sm text-white">証明書画像をここにドロップ、または</div>
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -156,7 +150,7 @@ export default function VerifyClient() {
           className="hidden"
           onChange={(e) => handleFile(e.target.files?.[0])}
         />
-        <div className="text-xs text-muted">
+        <div className="text-xs text-white">
           JPEG / PNG / HEIC など画像ファイル。アップロードされるのはハッシュ値のみ。
         </div>
       </div>
@@ -166,42 +160,29 @@ export default function VerifyClient() {
         <div className="glass-card space-y-2 p-4 text-sm">
           <div className="flex items-center justify-between gap-3">
             <div className="truncate">
-              <span className="text-muted">ファイル:</span>{" "}
-              <span className="font-medium text-primary">{fileName}</span>
+              <span className="text-white">ファイル:</span> <span className="font-medium text-primary">{fileName}</span>
             </div>
-            <button
-              type="button"
-              onClick={reset}
-              className="text-xs text-muted hover:text-primary"
-            >
+            <button type="button" onClick={reset} className="text-xs text-white hover:text-primary">
               リセット
             </button>
           </div>
           {sha256 ? (
-            <div className="font-mono text-xs break-all text-muted">
+            <div className="font-mono text-xs break-all text-white">
               <span className="text-primary">SHA-256:</span> {sha256}
             </div>
           ) : null}
-          {stage === "hashing" ? (
-            <div className="text-xs text-muted">ブラウザ内でハッシュを計算中…</div>
-          ) : null}
-          {stage === "verifying" ? (
-            <div className="text-xs text-muted">オンチェーン検証中…</div>
-          ) : null}
+          {stage === "hashing" ? <div className="text-xs text-white">ブラウザ内でハッシュを計算中…</div> : null}
+          {stage === "verifying" ? <div className="text-xs text-white">オンチェーン検証中…</div> : null}
         </div>
       ) : null}
 
       {/* Error */}
       {stage === "error" && errorMsg ? (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
-          {errorMsg}
-        </div>
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{errorMsg}</div>
       ) : null}
 
       {/* Result */}
-      {result && stage === "done" ? (
-        <ResultCard result={result} />
-      ) : null}
+      {result && stage === "done" ? <ResultCard result={result} /> : null}
     </div>
   );
 }
@@ -210,31 +191,26 @@ function ResultCard({ result }: { result: VerifyResult }) {
   const matched = result.certificatePublicId !== null;
   const verified = result.onChainVerified;
 
-  const badge = matched && verified
-    ? { label: "検証成功", tone: "text-emerald-300 bg-emerald-500/10 border-emerald-400/30" }
-    : matched && !verified
-      ? { label: "DB一致・オンチェーン未記録", tone: "text-amber-300 bg-amber-500/10 border-amber-400/30" }
-      : !matched && verified
-        ? { label: "オンチェーン記録あり・DB未登録", tone: "text-sky-300 bg-sky-500/10 border-sky-400/30" }
-        : { label: "一致する記録なし", tone: "text-red-300 bg-red-500/10 border-red-400/30" };
+  const badge =
+    matched && verified
+      ? { label: "検証成功", tone: "text-emerald-300 bg-emerald-500/10 border-emerald-400/30" }
+      : matched && !verified
+        ? { label: "DB一致・オンチェーン未記録", tone: "text-amber-300 bg-amber-500/10 border-amber-400/30" }
+        : !matched && verified
+          ? { label: "オンチェーン記録あり・DB未登録", tone: "text-sky-300 bg-sky-500/10 border-sky-400/30" }
+          : { label: "一致する記録なし", tone: "text-red-300 bg-red-500/10 border-red-400/30" };
 
-  const gradeInfo = result.authenticityGrade
-    ? (GRADE_LABEL[result.authenticityGrade] ?? null)
-    : null;
+  const gradeInfo = result.authenticityGrade ? (GRADE_LABEL[result.authenticityGrade] ?? null) : null;
 
   return (
     <div className="glass-card space-y-5 p-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-semibold tracking-[0.18em] text-muted">RESULT</div>
+          <div className="text-xs font-semibold tracking-[0.18em] text-white">RESULT</div>
           <div className="mt-1 text-lg font-semibold text-primary">検証結果</div>
         </div>
-        <span
-          className={`rounded-full border px-3 py-1 text-xs font-semibold ${badge.tone}`}
-        >
-          {badge.label}
-        </span>
+        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${badge.tone}`}>{badge.label}</span>
       </div>
 
       {/* Verification grid */}
@@ -242,11 +218,7 @@ function ResultCard({ result }: { result: VerifyResult }) {
         <InfoRow
           label="オンチェーン検証"
           value={
-            verified ? (
-              <span className="text-emerald-300">✓ 記録済み</span>
-            ) : (
-              <span className="text-muted">未記録</span>
-            )
+            verified ? <span className="text-emerald-300">✓ 記録済み</span> : <span className="text-white">未記録</span>
           }
         />
         <InfoRow
@@ -273,24 +245,12 @@ function ResultCard({ result }: { result: VerifyResult }) {
         />
         <InfoRow
           label="C2PA 署名"
-          value={
-            result.c2paVerified === true
-              ? "✓ 有効"
-              : result.c2paVerified === false
-                ? "未検証"
-                : "—"
-          }
+          value={result.c2paVerified === true ? "✓ 有効" : result.c2paVerified === false ? "未検証" : "—"}
         />
         <InfoRow label="発行店舗" value={result.shopName ?? "—"} />
         <InfoRow
           label="証明書 ID"
-          value={
-            result.certificatePublicId ? (
-              <span className="font-mono">{result.certificatePublicId}</span>
-            ) : (
-              "—"
-            )
-          }
+          value={result.certificatePublicId ? <span className="font-mono">{result.certificatePublicId}</span> : "—"}
         />
         <InfoRow label="証明書ステータス" value={result.certificateStatus ?? "—"} />
         <InfoRow label="撮影日時" value={formatDate(result.capturedAt)} />
@@ -301,7 +261,7 @@ function ResultCard({ result }: { result: VerifyResult }) {
       {/* Explorer link */}
       {result.explorerUrl && result.polygonTxHash ? (
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm">
-          <div className="text-xs text-muted">ブロックチェーントランザクション</div>
+          <div className="text-xs text-white">ブロックチェーントランザクション</div>
           <a
             href={result.explorerUrl}
             target="_blank"
@@ -310,17 +270,14 @@ function ResultCard({ result }: { result: VerifyResult }) {
           >
             {result.polygonTxHash} ↗
           </a>
-          <div className="mt-1 text-xs text-muted">
-            Polygonscan で独立検証できます。誰でも確認可能。
-          </div>
+          <div className="mt-1 text-xs text-white">Polygonscan で独立検証できます。誰でも確認可能。</div>
         </div>
       ) : null}
 
       {/* Explainer when nothing matched */}
       {!matched && !verified ? (
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-xs text-muted">
-          この画像のハッシュは Ledra 上でも Polygon
-          ブロックチェーン上でも見つかりませんでした。画像が Ledra
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-xs text-white">
+          この画像のハッシュは Ledra 上でも Polygon ブロックチェーン上でも見つかりませんでした。画像が Ledra
           経由で発行されていない、もしくは発行後に改変された可能性があります。
         </div>
       ) : null}
@@ -331,7 +288,7 @@ function ResultCard({ result }: { result: VerifyResult }) {
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
-      <dt className="text-xs text-muted">{label}</dt>
+      <dt className="text-xs text-white">{label}</dt>
       <dd className="text-right text-sm text-primary">{value}</dd>
     </div>
   );

@@ -35,7 +35,7 @@ export function QuickStartReliabilityBar() {
               <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-widest text-emerald-200">
                 Quick Start
               </span>
-              <span className="text-[0.65rem] text-white/70">導入のハードルを下げています</span>
+              <span className="text-[0.65rem] text-white">導入のハードルを下げています</span>
             </div>
             <h3 className="mt-4 text-base font-bold text-white">いつでも、すぐに始められます。</h3>
             <ul className="mt-5 space-y-3">
@@ -54,7 +54,7 @@ export function QuickStartReliabilityBar() {
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-white">{q.title}</p>
-                    <p className="mt-1 text-xs text-white/80">{q.desc}</p>
+                    <p className="mt-1 text-xs text-white">{q.desc}</p>
                   </div>
                 </li>
               ))}
@@ -68,7 +68,7 @@ export function QuickStartReliabilityBar() {
               </Link>
               <Link
                 href="/pricing"
-                className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-5 py-2.5 border border-white/20 text-white/80 hover:text-white hover:border-white/40 transition-colors"
+                className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-5 py-2.5 border border-white/20 text-white hover:text-white hover:border-white/40 transition-colors"
               >
                 料金を見る
               </Link>
@@ -83,19 +83,19 @@ export function QuickStartReliabilityBar() {
               <span className="inline-flex items-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-widest text-blue-200">
                 Reliability
               </span>
-              <span className="text-[0.65rem] text-white/70">稼働も、透明に。</span>
+              <span className="text-[0.65rem] text-white">稼働も、透明に。</span>
             </div>
             <h3 className="mt-4 text-base font-bold text-white">サービスの状態を、いつでも確認できます。</h3>
             <dl className="mt-5 grid grid-cols-3 gap-3">
               {RELIABILITY.map((r) => (
                 <div key={r.metric} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-center">
-                  <dt className="text-[0.6rem] uppercase tracking-widest text-white/70">{r.metric}</dt>
+                  <dt className="text-[0.6rem] uppercase tracking-widest text-white">{r.metric}</dt>
                   <dd className="mt-1.5 text-base font-bold text-white">{r.value}</dd>
-                  <p className="mt-1 text-[0.6rem] leading-relaxed text-white/70">{r.note}</p>
+                  <p className="mt-1 text-[0.6rem] leading-relaxed text-white">{r.note}</p>
                 </div>
               ))}
             </dl>
-            <p className="mt-5 text-xs leading-relaxed text-white/80">
+            <p className="mt-5 text-xs leading-relaxed text-white">
               インシデントが発生した場合は、Status ページに即時掲載し、原因・影響範囲・復旧見込みを継続更新します。
             </p>
             <div className="mt-5 flex flex-wrap gap-3">

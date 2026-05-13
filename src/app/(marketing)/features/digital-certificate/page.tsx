@@ -67,8 +67,7 @@ const issuanceSteps = [
 const certFeatures = [
   {
     title: "30秒で発行",
-    description:
-      "テンプレートと車両マスタを使えば、入力項目は最小限。施工直後にその場で証明書を渡せます。",
+    description: "テンプレートと車両マスタを使えば、入力項目は最小限。施工直後にその場で証明書を渡せます。",
   },
   {
     title: "ブロックチェーンアンカリング",
@@ -78,8 +77,7 @@ const certFeatures = [
   },
   {
     title: "C2PA写真署名",
-    description:
-      "施工写真をC2PA規格で署名。後から差し替えられた写真は署名検証で即座に検知できます。",
+    description: "施工写真をC2PA規格で署名。後から差し替えられた写真は署名検証で即座に検知できます。",
     href: "/features/blockchain-anchoring",
   },
   {
@@ -89,13 +87,11 @@ const certFeatures = [
   },
   {
     title: "バッチPDF出力",
-    description:
-      "複数証明書を一括でPDF化。保険会社・監査機関・ディーラーへの一括提出をシンプルに。",
+    description: "複数証明書を一括でPDF化。保険会社・監査機関・ディーラーへの一括提出をシンプルに。",
   },
   {
     title: "共有方法を選べる",
-    description:
-      "QRコード印刷・公開URL・メール・LINE通知・NFCタグ書込。顧客の状況に合わせた渡し方を選べます。",
+    description: "QRコード印刷・公開URL・メール・LINE通知・NFCタグ書込。顧客の状況に合わせた渡し方を選べます。",
     href: "/features/nfc",
   },
 ];
@@ -142,10 +138,7 @@ export default function DigitalCertificatePage() {
 
       {/* Issuance flow */}
       <Section>
-        <SectionHeading
-          title="発行までの4ステップ"
-          subtitle="慣れれば施工直後にその場で渡せます。"
-        />
+        <SectionHeading title="発行までの4ステップ" subtitle="慣れれば施工直後にその場で渡せます。" />
         <div className="mx-auto mt-10 max-w-3xl space-y-4">
           {issuanceSteps.map((s, i) => (
             <ScrollReveal key={s.step} variant="fade-up" delay={i * 60}>
@@ -155,7 +148,7 @@ export default function DigitalCertificatePage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -178,8 +171,8 @@ export default function DigitalCertificatePage() {
                   i % 2 === 0 ? "bg-white/[0.03]" : "bg-white/[0.015]"
                 } ${i < certFields.length - 1 ? "border-b border-white/[0.05]" : ""}`}
               >
-                <p className="w-36 shrink-0 text-xs font-semibold text-white/60">{f.label}</p>
-                <p className="text-sm text-white/80">{f.example}</p>
+                <p className="w-36 shrink-0 text-xs font-semibold text-white">{f.label}</p>
+                <p className="text-sm text-white">{f.example}</p>
               </div>
             ))}
           </div>
@@ -210,7 +203,7 @@ export default function DigitalCertificatePage() {
                 </p>
                 <ul className="space-y-2.5">
                   {stage.events.map((ev) => (
-                    <li key={ev} className="flex items-start gap-2 text-sm text-white/80">
+                    <li key={ev} className="flex items-start gap-2 text-sm text-white">
                       <span
                         className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
                         style={{ background: `${stage.color}0.8)` }}
@@ -227,10 +220,7 @@ export default function DigitalCertificatePage() {
 
       {/* Features grid */}
       <Section bg="alt">
-        <SectionHeading
-          title="証明書機能の全体"
-          subtitle="発行・管理・共有・検証まで、ひとつの画面で完結します。"
-        />
+        <SectionHeading title="証明書機能の全体" subtitle="発行・管理・共有・検証まで、ひとつの画面で完結します。" />
         <FeatureGrid className="mt-10">
           {certFeatures.map((f, i) => (
             <FeatureCard key={f.title} title={f.title} description={f.description} delay={i * 40} href={f.href} />

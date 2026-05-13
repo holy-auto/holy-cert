@@ -132,7 +132,7 @@ export default async function HomePage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">{item.title}</h3>
-                  <p className="mt-2 text-white/80 leading-relaxed">{item.description}</p>
+                  <p className="mt-2 text-white leading-relaxed">{item.description}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -152,7 +152,7 @@ export default async function HomePage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-xs text-white/70 uppercase tracking-widest">施工証明書</div>
+                    <div className="text-xs text-white uppercase tracking-widest">施工証明書</div>
                     <div className="mt-1 text-lg font-bold text-white">Ledra</div>
                   </div>
                   <div className="w-10 h-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
@@ -170,20 +170,20 @@ export default async function HomePage() {
                 <div className="h-px bg-white/[0.06]" />
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <div className="text-white/70">車両</div>
-                    <div className="mt-1 text-white/70">Toyota Alphard 2024</div>
+                    <div className="text-white">車両</div>
+                    <div className="mt-1 text-white">Toyota Alphard 2024</div>
                   </div>
                   <div>
-                    <div className="text-white/70">施工日</div>
-                    <div className="mt-1 text-white/70">2025.03.15</div>
+                    <div className="text-white">施工日</div>
+                    <div className="mt-1 text-white">2025.03.15</div>
                   </div>
                   <div>
-                    <div className="text-white/70">施工内容</div>
-                    <div className="mt-1 text-white/70">ボディコーティング</div>
+                    <div className="text-white">施工内容</div>
+                    <div className="mt-1 text-white">ボディコーティング</div>
                   </div>
                   <div>
-                    <div className="text-white/70">保証期間</div>
-                    <div className="mt-1 text-white/70">5年間</div>
+                    <div className="text-white">保証期間</div>
+                    <div className="mt-1 text-white">5年間</div>
                   </div>
                 </div>
                 <div className="h-px bg-white/[0.06]" />
@@ -203,7 +203,7 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
-            <p className="mt-6 text-center text-sm text-white/70">
+            <p className="mt-6 text-center text-sm text-white">
               自社ロゴ・ブランドカラーの反映、施工写真の添付にも対応
             </p>
           </div>
@@ -228,7 +228,7 @@ export default async function HomePage() {
                   "発行履歴の一元管理",
                   "自社ブランドの証明書",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-white/80">
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-white">
                     <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
                       <path
                         fillRule="evenodd"
@@ -249,7 +249,7 @@ export default async function HomePage() {
                 </Link>
                 <Link
                   href="/for-shops"
-                  className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-6 py-3 border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-colors"
+                  className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-6 py-3 border border-white/20 text-white hover:text-white hover:border-white/40 transition-colors"
                 >
                   詳しく見る
                 </Link>
@@ -267,7 +267,7 @@ export default async function HomePage() {
                   "CSV一括エクスポート",
                   "既存システムとのAPI連携",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-white/80">
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-white">
                     <svg
                       className="w-4 h-4 flex-shrink-0 mt-0.5 text-violet-400"
                       viewBox="0 0 20 20"
@@ -292,7 +292,7 @@ export default async function HomePage() {
                 </Link>
                 <Link
                   href="/for-insurers"
-                  className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-6 py-3 border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-colors"
+                  className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-6 py-3 border border-white/20 text-white hover:text-white hover:border-white/40 transition-colors"
                 >
                   詳しく見る
                 </Link>

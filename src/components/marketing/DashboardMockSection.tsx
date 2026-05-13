@@ -24,13 +24,13 @@ export function DashboardMockSection() {
             <span className="block w-2.5 h-2.5 rounded-full bg-rose-400/40" />
             <span className="block w-2.5 h-2.5 rounded-full bg-amber-400/40" />
             <span className="block w-2.5 h-2.5 rounded-full bg-emerald-400/40" />
-            <span className="ml-3 text-[0.65rem] text-white/70 font-mono">admin.ledra.app / dashboard</span>
+            <span className="ml-3 text-[0.65rem] text-white font-mono">admin.ledra.app / dashboard</span>
           </div>
 
           <div className="grid grid-cols-12 gap-0">
             {/* sidebar */}
             <aside className="col-span-3 hidden md:block border-r border-white/[0.06] bg-white/[0.02] py-5 px-4">
-              <div className="text-[0.65rem] font-medium uppercase tracking-widest text-white/70">Ledra Admin</div>
+              <div className="text-[0.65rem] font-medium uppercase tracking-widest text-white">Ledra Admin</div>
               <ul className="mt-5 space-y-1.5 text-xs">
                 {[
                   ["ダッシュボード", true],
@@ -45,7 +45,7 @@ export function DashboardMockSection() {
                   <li
                     key={label as string}
                     className={`rounded-md px-3 py-2 ${
-                      active ? "bg-blue-500/15 text-blue-200" : "text-white/70 hover:text-white"
+                      active ? "bg-blue-500/15 text-blue-200" : "text-white hover:text-white"
                     }`}
                   >
                     {label}
@@ -65,7 +65,7 @@ export function DashboardMockSection() {
                   { label: "顧客満足度", value: "4.8", delta: "/ 5.0" },
                 ].map((k) => (
                   <div key={k.label} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-                    <div className="text-[0.625rem] uppercase tracking-wider text-white/70">{k.label}</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-white">{k.label}</div>
                     <div className="mt-1.5 flex items-baseline gap-1.5">
                       <span className="text-lg font-bold text-white">{k.value}</span>
                       <span className="text-[0.65rem] text-emerald-300">{k.delta}</span>
@@ -80,7 +80,7 @@ export function DashboardMockSection() {
                 <div className="lg:col-span-2 rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-white">月次発行推移</h4>
-                    <span className="text-[0.6rem] text-white/70">Last 6 mo.</span>
+                    <span className="text-[0.6rem] text-white">Last 6 mo.</span>
                   </div>
                   <svg viewBox="0 0 320 120" className="mt-3 w-full">
                     <defs>
@@ -136,9 +136,9 @@ export function DashboardMockSection() {
                       <li key={`${r.car}-${r.time}`} className="flex items-center justify-between text-[0.7rem]">
                         <div>
                           <p className="text-white font-medium">{r.car}</p>
-                          <p className="text-white/70">{r.menu}</p>
+                          <p className="text-white">{r.menu}</p>
                         </div>
-                        <span className="text-white/70">{r.time}</span>
+                        <span className="text-white">{r.time}</span>
                       </li>
                     ))}
                   </ul>
@@ -146,7 +146,7 @@ export function DashboardMockSection() {
               </div>
 
               {/* stripes legend */}
-              <div className="mt-5 flex flex-wrap items-center gap-4 text-[0.6rem] text-white/70">
+              <div className="mt-5 flex flex-wrap items-center gap-4 text-[0.6rem] text-white">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="block w-2 h-2 rounded-sm bg-blue-400" /> Cert 発行
                 </span>
@@ -163,7 +163,7 @@ export function DashboardMockSection() {
       </ScrollReveal>
 
       <ScrollReveal variant="fade-in" delay={150}>
-        <p className="mt-6 text-center text-xs text-white/70">
+        <p className="mt-6 text-center text-xs text-white">
           ※ デモ用のモック画面です。実際の指標・粒度は plan によって異なります。
         </p>
       </ScrollReveal>

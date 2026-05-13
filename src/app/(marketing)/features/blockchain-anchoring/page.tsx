@@ -156,7 +156,7 @@ export default function BlockchainAnchoringPage() {
                       {l.tech}
                     </span>
                   </div>
-                  <p className="text-[0.938rem] leading-[1.8] text-white/80">{l.desc}</p>
+                  <p className="text-[0.938rem] leading-[1.8] text-white">{l.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -192,7 +192,7 @@ export default function BlockchainAnchoringPage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -202,10 +202,7 @@ export default function BlockchainAnchoringPage() {
 
       {/* Tech cards */}
       <Section bg="alt">
-        <SectionHeading
-          title="設計上のポイント"
-          subtitle="実運用を想定した技術的な判断について。"
-        />
+        <SectionHeading title="設計上のポイント" subtitle="実運用を想定した技術的な判断について。" />
         <FeatureGrid className="mt-10">
           {techCards.map((c, i) => (
             <FeatureCard key={c.title} title={c.title} description={c.description} delay={i * 50} />

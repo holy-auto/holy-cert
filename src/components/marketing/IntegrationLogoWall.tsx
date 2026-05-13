@@ -38,12 +38,12 @@ export function IntegrationLogoWall() {
           <ScrollReveal key={item.name} variant="fade-up" delay={Math.floor(i / 4) * 60}>
             <div className="group h-full rounded-2xl border border-white/[0.14] bg-white/[0.06] p-5 md:p-6 text-center hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors">
               <p className="text-base md:text-lg font-semibold text-white tracking-tight">{item.name}</p>
-              {item.note && <p className="mt-2 text-xs leading-relaxed text-white/90">{item.note}</p>}
+              {item.note && <p className="mt-2 text-xs leading-relaxed text-white">{item.note}</p>}
             </div>
           </ScrollReveal>
         ))}
       </div>
-      <p className="mt-10 text-center text-sm text-white/85 leading-relaxed">
+      <p className="mt-10 text-center text-sm text-white leading-relaxed">
         ※ 各サービス名および関連商標は、それぞれの権利者に帰属します。
         <br className="hidden md:block" />
         現在、ロゴ使用許諾については順次交渉を進めており、許諾済みのパートナーから画像ロゴに差し替えていきます。

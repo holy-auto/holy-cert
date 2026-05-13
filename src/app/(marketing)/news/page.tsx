@@ -25,7 +25,7 @@ export default async function NewsPage() {
       <Section>
         {entries.length === 0 ? (
           <div className="mx-auto max-w-xl text-center rounded-2xl border border-white/[0.08] bg-white/[0.03] p-12">
-            <p className="text-sm text-white/80 leading-relaxed">
+            <p className="text-sm text-white leading-relaxed">
               近日、最初のお知らせを公開いたします。
               <br />
               しばらくお待ちください。
@@ -39,14 +39,14 @@ export default async function NewsPage() {
                   href={`/news/${e.frontmatter.slug}`}
                   className="group block py-8 first:pt-0 hover:bg-white/[0.02] rounded-xl -mx-4 px-4 transition-colors"
                 >
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-white/75">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-white">
                     {e.frontmatter.publishedAt && (
                       <time dateTime={e.frontmatter.publishedAt}>{formatDate(e.frontmatter.publishedAt)}</time>
                     )}
                     {e.frontmatter.tags?.map((t) => (
                       <span
                         key={t}
-                        className="inline-flex items-center rounded-full border border-white/[0.08] px-2.5 py-0.5 text-[0.688rem] font-medium text-white/80"
+                        className="inline-flex items-center rounded-full border border-white/[0.08] px-2.5 py-0.5 text-[0.688rem] font-medium text-white"
                       >
                         {t}
                       </span>
@@ -56,7 +56,7 @@ export default async function NewsPage() {
                     {e.frontmatter.title}
                   </h2>
                   {e.frontmatter.excerpt && (
-                    <p className="mt-3 text-sm leading-relaxed text-white/80">{e.frontmatter.excerpt}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-white">{e.frontmatter.excerpt}</p>
                   )}
                 </Link>
               </ScrollReveal>
