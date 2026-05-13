@@ -4,6 +4,7 @@ import { apiJson } from "@/lib/api/response";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { anchorToPolygon, verifyAnchor, findAnchorTx } from "@/lib/anchoring/providers";
+import { isPolygonAnchorOptedOut } from "@/lib/anchoring/tenantOptOut";
 import { computeAuthenticityGrade, type AuthenticityGrade, type C2paKind } from "@/lib/anchoring/authenticityGrade";
 import { upsertVehiclePassport } from "@/lib/passport/upsertVehiclePassport";
 import { Client } from "@upstash/qstash";
@@ -37,6 +38,25 @@ async function handler(req: NextRequest) {
   const { job_id, tenant_id } = parsed.data;
 
   const { admin } = createTenantScopedAdmin(tenant_id);
+
+  // Tenant-level opt-out short-circuit. Backfill is a multi-batch job
+  // that could anchor hundreds of historical images on the tenant's
+  // behalf — once the tenant has opted out we mark the job as completed
+  // with 0 progress so the queue drains cleanly instead of hammering
+  // their certs forever. The global env switch still gates everything
+  // upstream; this is the per-tenant veto.
+  if (await isPolygonAnchorOptedOut(admin, tenant_id)) {
+    await admin
+      .from("polygon_backfill_jobs")
+      .update({
+        status: "completed",
+        error_message: "tenant has opted out of polygon anchoring",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", job_id);
+    console.info(`[polygon-backfill] job=${job_id} tenant opted out, skipping`);
+    return apiJson({ success: true, processed: 0, skipped_opted_out: true });
+  }
 
   await admin
     .from("polygon_backfill_jobs")

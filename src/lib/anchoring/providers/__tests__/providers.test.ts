@@ -65,6 +65,19 @@ describe("invokeAllUploadProviders", () => {
 
     warnSpy.mockRestore();
   });
+
+  it("skips Polygon anchoring when opts.skipPolygon=true even with env ON", async () => {
+    // Even if a hostile config flipped the global env to ON, the per-tenant
+    // veto must still suppress the anchor call.
+    process.env.POLYGON_ANCHOR_ENABLED = "true";
+
+    const { invokeAllUploadProviders } = await loadProviders();
+    const result = await invokeAllUploadProviders(dummyBuffer, "image/jpeg", "abc123", undefined, {
+      skipPolygon: true,
+    });
+
+    expect(result.polygon).toEqual({ txHash: null, anchored: false, network: null });
+  });
 });
 
 describe("signC2pa directly", () => {

@@ -11,6 +11,7 @@ import { hashSha256, computePerceptualHash } from "@/lib/anchoring/imageHashing"
 import { stripGpsAndReadExif } from "@/lib/anchoring/imageExif";
 import { computeAuthenticityGrade } from "@/lib/anchoring/authenticityGrade";
 import { invokeAllUploadProviders } from "@/lib/anchoring/providers";
+import { isPolygonAnchorOptedOut } from "@/lib/anchoring/tenantOptOut";
 import { upsertVehiclePassport } from "@/lib/passport/upsertVehiclePassport";
 import { generateImageVariants, variantStoragePath } from "@/lib/certificateImages/generateVariants";
 
@@ -124,6 +125,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Resolve per-tenant Polygon anchoring opt-out **once** before the
+    // upload loop. If this tenant has explicitly opted out we skip the
+    // Polygon provider for every file in this request, saving 4-8s of
+    // RPC time per image and never spending gas under the opted-out
+    // tenant's behalf. The global env switch still gates ALL anchoring
+    // upstream; this is a per-tenant veto on top.
+    const polygonOptedOut = await isPolygonAnchorOptedOut(admin, tenantId);
+
     // ── Upload files ───────────────────────────────────────────────
     const toUpload = files.slice(0, remaining);
     let uploaded = 0;
@@ -182,7 +191,9 @@ export async function POST(req: NextRequest) {
       }
 
       // ── Phase 3a+3b: verification providers (sign before upload) ──
-      const providers = await invokeAllUploadProviders(uploadBuffer, mime, sha256);
+      const providers = await invokeAllUploadProviders(uploadBuffer, mime, sha256, undefined, {
+        skipPolygon: polygonOptedOut,
+      });
 
       // If C2PA signed, use the signed buffer (manifest embedded) for storage
       const finalBuffer = providers.c2pa.signedBuffer ?? uploadBuffer;

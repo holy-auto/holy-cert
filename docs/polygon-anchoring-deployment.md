@@ -134,6 +134,27 @@ Phase 3e 以前に発行した施工画像は `sha256` だけ計算済みで `po
 - スキーマ変更時は新コントラクトをデプロイ → 環境変数更新
 - 過去のtxHashは旧コントラクトのアドレスに紐付くが、Polygonscanリンクは引き続き有効
 
+### テナント単位の制御（2026-05 アクション #2 「default ON」対応）
+
+**2 層モデル**:
+
+| 層 | キー | 既定値 | 役割 |
+|---|---|---|---|
+| グローバル | env `POLYGON_ANCHOR_ENABLED` | `"false"` (dev), `"true"` (prod) | kill switch / 一括停止 |
+| テナント | `tenants.polygon_anchor_opt_out` | `false` (= anchor する) | 個別 opt-out |
+
+- 「default ON」とは **テナント側がデフォルトで anchoring を受ける** ことを指し、ops は `POLYGON_ANCHOR_ENABLED=true` を本番で設定する前提
+- 既存テナントは migration 20260514000001 で全員 `opt_out=false` (= anchor 有効) としてグランドファザー
+- テナントが「うちは保険会社に出さないから anchor 不要」と申し出た場合は `UPDATE tenants SET polygon_anchor_opt_out=true WHERE id=…` で個別停止
+- opt-out 中のテナントは upload route で polygon プロバイダがスキップされ、ガス代を一切消費しない
+- backfill (`/api/qstash/polygon-backfill`) もテナント opt-out を尊重し、ジョブを `completed`（`error_message: "tenant has opted out"`）で即完了する
+- DB 取得失敗時は **fail-closed** (anchor しない) — RLS 設定ミスや停電時に「知らないうちにガス代が走る」事故を防ぐ
+
+実装:
+- 列定義 / 既定値: `supabase/migrations/20260514000001_tenants_polygon_anchor_opt_out.sql`
+- 判定 helper: `src/lib/anchoring/tenantOptOut.ts`
+- 配線箇所: `src/app/api/certificates/images/upload/route.ts`, `src/app/api/qstash/polygon-backfill/route.ts`
+
 ---
 
 ## 4. トラブルシューティング

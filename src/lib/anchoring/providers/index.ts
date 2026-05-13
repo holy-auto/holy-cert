@@ -23,7 +23,10 @@ function withTimeout<T>(promise: Promise<T>, fallback: T, label: string): Promis
       resolve(fallback);
     }, PROVIDER_TIMEOUT_MS);
     promise.then(
-      (value) => { clearTimeout(timer); resolve(value); },
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
       (err) => {
         clearTimeout(timer);
         console.warn(`[providers] ${label} threw`, err instanceof Error ? err.message : err);
@@ -46,18 +49,30 @@ export { anchorToPolygon, verifyAnchor, buildExplorerUrl, findAnchorTx };
  * Every provider is gated by its own env var; when disabled it returns
  * a no-op result immediately.  Failures are caught per-provider so
  * one broken integration never blocks an upload.
+ *
+ * `opts.skipPolygon=true` short-circuits Polygon anchoring even when the
+ * global env switch is ON. Use this when the calling tenant has opted out
+ * via `tenants.polygon_anchor_opt_out` (see `tenantOptOut.ts`).
  */
 export async function invokeAllUploadProviders(
   buffer: Buffer,
   mime: string,
   sha256: string,
   deviceToken?: string,
+  opts?: { skipPolygon?: boolean },
 ): Promise<UploadProviderBundle> {
+  const polygonPromise = opts?.skipPolygon
+    ? Promise.resolve({ txHash: null, anchored: false, network: null as null })
+    : anchorToPolygon(sha256);
   const [c2pa, deepfake, deviceAttestation, polygon] = await Promise.all([
     withTimeout(signC2pa(buffer, mime), { manifestCid: null, verified: false, signedBuffer: null }, "c2pa"),
     withTimeout(checkDeepfake(buffer), { score: null, verdict: null }, "deepfake"),
-    withTimeout(verifyDeviceAttestation(deviceToken), { provider: "none" as const, verified: false }, "deviceAttestation"),
-    withTimeout(anchorToPolygon(sha256), { txHash: null, anchored: false, network: null }, "polygon"),
+    withTimeout(
+      verifyDeviceAttestation(deviceToken),
+      { provider: "none" as const, verified: false },
+      "deviceAttestation",
+    ),
+    withTimeout(polygonPromise, { txHash: null, anchored: false, network: null }, "polygon"),
   ]);
 
   return { c2pa, deepfake, deviceAttestation, polygon };

@@ -263,7 +263,7 @@ Q1-Q2 2027 : ARR 10 億達成
 | # | アクション | オーナー | 期限 |
 |---|---|---|---|
 | 1 | `/v/[vin]` 車両パスポートページ実装 | エンジニア | 1 週間 |
-| 2 | Polygon アンカリングをデフォルト ON | エンジニア | 即時 |
+| 2 | ✅ Polygon アンカリングをデフォルト ON → tenants.polygon_anchor_opt_out 列 (migration 20260514000001) + upload/backfill 配線 (2026-05-14) | エンジニア | 完了 |
 | 3 | ✅ Lighthouse 保険会社の決定 → **損保ジャパン** (2026-05-13) | CEO | 完了 |
 | 4 | Woven by Toyota Partner Program 応募準備 | CEO + BizDev | 1 ヶ月 |
 | 5 | 機能 ROI ボード (`/admin/platform/operations` 拡張) | エンジニア | 2 週間 |
