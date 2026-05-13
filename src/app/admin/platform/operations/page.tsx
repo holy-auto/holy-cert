@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
@@ -20,6 +21,11 @@ export default async function PlatformOperationsPage() {
         tag="運営専用"
         title="プラットフォーム運営ダッシュボード"
         description="システム監視・テナント管理・セキュリティ監査・遠隔操作を一元管理"
+        actions={
+          <Link href="/admin/platform/operations/roi-board" className="btn-secondary text-sm">
+            機能 ROI ボード →
+          </Link>
+        }
       />
       <PlatformOperationsClient />
     </div>

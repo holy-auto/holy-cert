@@ -115,10 +115,15 @@ CREATE TABLE feature_metrics_weekly (
 3. ✅ 6 機能の success/failure 集計 (cert.issue / pos / customer.portal / reservations / insurer.case_view / anchoring.polygon)
 4. ✅ **UI なし**。Supabase Studio で生データ確認 (`SELECT * FROM feature_metrics_weekly ORDER BY week_start DESC, feature_id`)
 
-### Phase 2 — ボード UI (Week 2)
-5. `/admin/platform/operations/roi-board` ページ
-6. 週次推移グラフ (recharts)
-7. CSV エクスポート (経営会議向け)
+### Phase 2 — ボード UI ✅ 実装済 (2026-05-14)
+5. ✅ `/admin/platform/operations/roi-board` ページ (platform-admin only)
+6. ✅ 週次推移インライン sparkline (依存ゼロの SVG。recharts は未導入のまま見送り)
+7. ✅ CSV エクスポート (`/api/admin/roi-board/export`、BOM 付き UTF-8)
+8. ✅ `freeze_candidate` / `watch` / `healthy` 自動分類 (§6 ルール反映)
+
+集計ロジック: `src/lib/operations/roiBoard.ts` (`getRoiBoardSnapshot` /
+`classifyFeature` / `snapshotToCsv`)。直近 4 週を default として取得し、
+feature_id ごとに success/failure を合算 + tenant 集合を計算する。
 
 ### Phase 3 — 自動アラート (Week 3+)
 8. 「ROI < 0.5 で 4 週連続」になった機能を月次レポートで経営にプッシュ

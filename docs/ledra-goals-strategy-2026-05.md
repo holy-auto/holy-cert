@@ -266,7 +266,7 @@ Q1-Q2 2027 : ARR 10 億達成
 | 2 | ✅ Polygon アンカリングをデフォルト ON → tenants.polygon_anchor_opt_out 列 (migration 20260514000001) + upload/backfill 配線 (2026-05-14) | エンジニア | 完了 |
 | 3 | ✅ Lighthouse 保険会社の決定 → **損保ジャパン** (2026-05-13) | CEO | 完了 |
 | 4 | Woven by Toyota Partner Program 応募準備 | CEO + BizDev | 1 ヶ月 |
-| 5 | 機能 ROI ボード (`/admin/platform/operations` 拡張) | エンジニア | 2 週間 |
+| 5 | ✅ 機能 ROI ボード Phase 2 → `/admin/platform/operations/roi-board` + CSV export (2026-05-14) | エンジニア | 完了 |
 | 6 | `docs/enterprise-readiness.md` 新設 | PM | 3 日 |
 | 7 | ✅ マーケット系機能 のアドオン化 → `tenant_addons` (migration 20260514000000) | 経営 + エンジニア | 完了 |
 | 8 | 3 階建て ARR 内訳での KPI 再設定 | 経営 + 投資家 | 2 週間 |
