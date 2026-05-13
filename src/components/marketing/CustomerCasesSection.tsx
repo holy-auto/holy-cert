@@ -71,22 +71,22 @@ export async function CustomerCasesSection() {
             <h3 className="mt-5 text-xl md:text-2xl font-bold text-white leading-snug">
               この場所には、あなたの店舗の名前が入ります。
             </h3>
-            <p className="mt-4 text-sm md:text-base leading-[1.9] text-slate-200">
+            <p className="mt-4 text-sm md:text-base leading-[1.9] text-white/90">
               Ledra は正式提供を開始したばかりで、まだ「歴史の最初の数社」を募集している段階です。事例化・記事化は Ledra
               側で完全に伴走するので、現場の負担なくご参加いただけます。
             </p>
 
             <dl className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
               {PLACEHOLDER_RESULTS.map((r) => (
-                <div key={r.metric} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                  <dt className="text-[0.65rem] font-medium uppercase tracking-widest text-white/70">{r.metric}</dt>
+                <div key={r.metric} className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-4">
+                  <dt className="text-[0.7rem] font-medium uppercase tracking-widest text-blue-300/90">{r.metric}</dt>
                   <dd className="mt-2 text-xl font-bold text-white">{r.value}</dd>
-                  <p className="mt-2 text-[0.65rem] leading-relaxed text-white/70">{r.note}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-white/85">{r.note}</p>
                 </div>
               ))}
             </dl>
 
-            <p className="mt-5 text-[0.65rem] text-white/70 leading-relaxed">
+            <p className="mt-5 text-xs text-white/70 leading-relaxed">
               ※ 上記は先行設計値・想定値です。実数値は事例公開時に置き換えます。
             </p>
 
