@@ -9,7 +9,7 @@ import MarketingThemeWrapper from "./MarketingThemeWrapper";
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "700"], // 500は実質400/700でブラウザ補間、リクエスト削減
   variable: "--font-noto",
   display: "swap",
   preload: true,
