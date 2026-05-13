@@ -98,7 +98,7 @@ export function InventoryWarningsBanner({ items }: Props) {
               </li>
             ))}
           </ul>
-          <div className="mt-1 text-xs text-red-300/80">
+          <div className="mt-1 text-xs text-red-300">
             このまま会計しても処理は通りますが、在庫が負の値になります。仕入を確認してください。
           </div>
         </div>

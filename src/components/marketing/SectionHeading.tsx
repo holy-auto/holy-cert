@@ -23,6 +23,7 @@ export function SectionHeading({
         </h2>
         {subtitle && (
           <p
+            style={{ color: "#ffffff" }}
             className={`mt-5 text-[0.938rem] md:text-base leading-relaxed ${subtitleColor} ${align === "center" ? "max-w-xl mx-auto" : ""}`}
           >
             {subtitle}

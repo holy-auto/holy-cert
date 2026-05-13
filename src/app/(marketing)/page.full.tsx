@@ -199,7 +199,7 @@ export default async function HomePage() {
                       <path d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <div className="text-sm text-green-400/80">改ざん防止により真正性を担保</div>
+                  <div className="text-sm text-green-400">改ざん防止により真正性を担保</div>
                 </div>
               </div>
             </div>

@@ -1,15 +1,7 @@
 import { PitchDeck, type Slide } from "../PitchDeck";
 
 // ─── Slide chrome ───────────────────────────────────────────────
-function S({
-  children,
-  n,
-  total = 6,
-}: {
-  children: React.ReactNode;
-  n: number;
-  total?: number;
-}) {
+function S({ children, n, total = 6 }: { children: React.ReactNode; n: number; total?: number }) {
   return (
     <div
       className="w-full h-full flex flex-col bg-[#060a12] overflow-hidden"
@@ -18,8 +10,10 @@ function S({
       <div className="h-[3px] w-full bg-gradient-to-r from-purple-500 to-violet-400 shrink-0" />
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">{children}</div>
       <div className="px-10 py-2.5 flex items-center justify-between border-t border-white/[0.06] shrink-0">
-        <span className="text-white/30 text-[11px] tracking-wide">Ledra — Confidential · 2026年4月</span>
-        <span className="text-white/25 text-[11px] font-mono">{n}/{total}</span>
+        <span className="text-white text-[11px] tracking-wide">Ledra — Confidential · 2026年4月</span>
+        <span className="text-white text-[11px] font-mono">
+          {n}/{total}
+        </span>
       </div>
     </div>
   );
@@ -39,7 +33,7 @@ function Chip({
         ? "border-violet-500/30 bg-violet-500/10 text-violet-300"
         : color === "green"
           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-          : "border-white/15 bg-white/5 text-white/60";
+          : "border-white/15 bg-white/5 text-white";
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${cls}`}
@@ -62,16 +56,14 @@ const S1 = (
       </div>
       <h1 className="text-4xl md:text-5xl font-extrabold leading-tight tracking-tight text-white">
         KINTO ×{" "}
-        <span className="bg-gradient-to-r from-purple-400 to-violet-300 bg-clip-text text-transparent">
-          Ledra
-        </span>
+        <span className="bg-gradient-to-r from-purple-400 to-violet-300 bg-clip-text text-transparent">Ledra</span>
       </h1>
-      <p className="text-base text-white/70 max-w-xl leading-relaxed">
+      <p className="text-base text-white max-w-xl leading-relaxed">
         安全運転証明の次は、整備・施工証明。
         <br />
         加入者のクルマへのケアを、スコアに変える。
       </p>
-      <div className="mt-2 flex gap-6 text-xs text-white/40">
+      <div className="mt-2 flex gap-6 text-xs text-white">
         <span>SBT設計思想との共鳴</span>
         <span>·</span>
         <span>施工証明 × KINTOスコア</span>
@@ -87,24 +79,30 @@ const S2 = (
     {/* Resonance with KINTO SBT */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">
-          共鳴ポイント
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">共鳴ポイント</p>
         <h2 className="text-2xl font-extrabold text-white leading-snug">
           KINTOのSBT安全運転証明と
           <br />
           同じ設計思想
         </h2>
-        <p className="text-sm text-white/55 mt-1">
+        <p className="text-sm text-white mt-1">
           2024年のSBT実証実験が証明した「行動の証明をブロックチェーンで発行する」モデルを、施工領域に拡張します。
         </p>
       </div>
       <div className="flex-1 flex items-center">
         <div className="w-full overflow-hidden rounded-xl border border-white/[0.08]">
-          <div className="grid grid-cols-3 text-xs font-semibold text-white/50 bg-white/[0.04] px-4 py-2.5 border-b border-white/[0.06] uppercase tracking-wide">
+          <div className="grid grid-cols-3 text-xs font-semibold text-white bg-white/[0.04] px-4 py-2.5 border-b border-white/[0.06] uppercase tracking-wide">
             <span></span>
-            <span className="text-center">KINTO SBT<br />安全運転証明</span>
-            <span className="text-center text-purple-400">Ledra<br />施工証明</span>
+            <span className="text-center">
+              KINTO SBT
+              <br />
+              安全運転証明
+            </span>
+            <span className="text-center text-purple-400">
+              Ledra
+              <br />
+              施工証明
+            </span>
           </div>
           {[
             { label: "証明の対象", kinto: "ドライバーの安全運転行動", ledra: "車両へのアフター施工" },
@@ -117,8 +115,8 @@ const S2 = (
               key={row.label}
               className={`grid grid-cols-3 px-4 py-2.5 text-xs border-b border-white/[0.05] last:border-0 ${i % 2 === 0 ? "bg-white/[0.01]" : ""}`}
             >
-              <span className="text-white/50">{row.label}</span>
-              <span className="text-center text-white/70">{row.kinto}</span>
+              <span className="text-white">{row.label}</span>
+              <span className="text-center text-white">{row.kinto}</span>
               <span className="text-center text-purple-300 font-semibold">{row.ledra}</span>
             </div>
           ))}
@@ -133,12 +131,8 @@ const S3 = (
     {/* Integration Flow */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">
-          連携フロー
-        </p>
-        <h2 className="text-2xl font-extrabold text-white leading-snug">
-          施工証明 → KINTOスコア反映まで
-        </h2>
+        <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">連携フロー</p>
+        <h2 className="text-2xl font-extrabold text-white leading-snug">施工証明 → KINTOスコア反映まで</h2>
       </div>
       <div className="flex-1 flex flex-col justify-center gap-3">
         {[
@@ -184,9 +178,9 @@ const S3 = (
             <div className="flex-1 rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-2.5 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-semibold text-white">{step.label}</span>
-                <p className="text-xs text-white/55 mt-0.5 leading-relaxed">{step.detail}</p>
+                <p className="text-xs text-white mt-0.5 leading-relaxed">{step.detail}</p>
               </div>
-              <span className="text-[10px] border border-white/10 rounded-full px-2 py-0.5 text-white/40 shrink-0">
+              <span className="text-[10px] border border-white/10 rounded-full px-2 py-0.5 text-white shrink-0">
                 {step.actor}
               </span>
             </div>
@@ -202,15 +196,9 @@ const S4 = (
     {/* Business Value */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">
-          ビジネス価値
-        </p>
-        <h2 className="text-2xl font-extrabold text-white leading-snug">
-          加入者リテンションと差別化
-        </h2>
-        <p className="text-sm text-white/55 mt-1">
-          施工証明の蓄積は「KINTOを使い続ける理由」になります。
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">ビジネス価値</p>
+        <h2 className="text-2xl font-extrabold text-white leading-snug">加入者リテンションと差別化</h2>
+        <p className="text-sm text-white mt-1">施工証明の蓄積は「KINTOを使い続ける理由」になります。</p>
       </div>
       <div className="grid grid-cols-3 gap-4 flex-1">
         {[
@@ -233,16 +221,13 @@ const S4 = (
             body: "「KINTOを使えば施工実績がブロックチェーンで証明される」という付加価値は他のモビリティサービスにはない独自ポジション。",
           },
         ].map((item) => (
-          <div
-            key={item.tag}
-            className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 flex flex-col gap-3"
-          >
+          <div key={item.tag} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <span className="text-2xl">{item.icon}</span>
               <Chip color="violet">{item.tag}</Chip>
             </div>
             <h3 className="text-sm font-bold text-white leading-snug">{item.title}</h3>
-            <p className="text-xs text-white/65 leading-relaxed">{item.body}</p>
+            <p className="text-xs text-white leading-relaxed">{item.body}</p>
           </div>
         ))}
       </div>
@@ -255,21 +240,13 @@ const S5 = (
     {/* PoC Proposal */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">
-          PoC提案
-        </p>
-        <h2 className="text-2xl font-extrabold text-white leading-snug">
-          KINTO加入者への施工証明特典
-        </h2>
-        <p className="text-sm text-white/55 mt-1">
-          SBT安全運転証明と同じアプローチで、施工領域のPoC。
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-purple-400 mb-2">PoC提案</p>
+        <h2 className="text-2xl font-extrabold text-white leading-snug">KINTO加入者への施工証明特典</h2>
+        <p className="text-sm text-white mt-1">SBT安全運転証明と同じアプローチで、施工領域のPoC。</p>
       </div>
       <div className="flex gap-5 flex-1">
         <div className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.03] p-5">
-          <div className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-4">
-            PoCスコープ
-          </div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-white mb-4">PoCスコープ</div>
           <div className="space-y-3">
             {[
               { label: "期間", value: "3ヶ月" },
@@ -278,11 +255,8 @@ const S5 = (
               { label: "必要書類", value: "NDA + PoC合意書（本番採用の義務なし）" },
               { label: "API連携", value: "KINTOスコアへの反映はPoC期間中に設計" },
             ].map((row) => (
-              <div
-                key={row.label}
-                className="flex gap-3 border-b border-white/[0.05] pb-3 last:border-0 last:pb-0"
-              >
-                <span className="text-xs text-white/45 w-24 shrink-0">{row.label}</span>
+              <div key={row.label} className="flex gap-3 border-b border-white/[0.05] pb-3 last:border-0 last:pb-0">
+                <span className="text-xs text-white w-24 shrink-0">{row.label}</span>
                 <span className="text-xs font-semibold text-white">{row.value}</span>
               </div>
             ))}
@@ -290,9 +264,7 @@ const S5 = (
         </div>
 
         <div className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.03] p-5">
-          <div className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-4">
-            期待される成果
-          </div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-white mb-4">期待される成果</div>
           <div className="space-y-3">
             {[
               { metric: "KINTO加入者の施工証明発行数", target: "50件以上" },
@@ -302,7 +274,7 @@ const S5 = (
               { metric: "施工店スタッフ継続率", target: "3ヶ月間継続" },
             ].map((row) => (
               <div key={row.metric} className="flex items-center justify-between gap-3">
-                <span className="text-xs text-white/70">{row.metric}</span>
+                <span className="text-xs text-white">{row.metric}</span>
                 <Chip>{row.target}</Chip>
               </div>
             ))}
@@ -318,10 +290,8 @@ const S6 = (
     {/* Next Step */}
     <div className="flex flex-col items-center justify-center flex-1 text-center px-10 gap-6">
       <Chip>Next Step</Chip>
-      <h2 className="text-3xl font-extrabold text-white leading-snug">
-        まず 15分、話しませんか
-      </h2>
-      <p className="text-sm text-white/65 max-w-lg leading-relaxed">
+      <h2 className="text-3xl font-extrabold text-white leading-snug">まず 15分、話しませんか</h2>
+      <p className="text-sm text-white max-w-lg leading-relaxed">
         SBT安全運転証明を立ち上げた事業開発の経験がある方と話したいと思っています。
         <br />
         施工証明は「その次」を作れる領域です。
@@ -337,11 +307,11 @@ const S6 = (
               {step.n}
             </div>
             <div className="text-sm font-bold text-white">{step.label}</div>
-            <div className="text-xs text-white/50">{step.sub}</div>
+            <div className="text-xs text-white">{step.sub}</div>
           </div>
         ))}
       </div>
-      <div className="mt-4 flex flex-col gap-1 text-xs text-white/40">
+      <div className="mt-4 flex flex-col gap-1 text-xs text-white">
         <span>ledra.co.jp/contact</span>
         <span>Polygon PoS · C2PA · KINTO SBT設計思想との互換 · 第三者セキュリティ監査済み</span>
       </div>

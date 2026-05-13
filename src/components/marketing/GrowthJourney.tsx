@@ -55,12 +55,12 @@ function MilestoneTrack({
         </div>
         {next ? (
           <div className="text-right">
-            <div className="text-xs font-medium uppercase tracking-widest text-blue-300/80">次のマイルストーン</div>
+            <div className="text-xs font-medium uppercase tracking-widest text-blue-300">次のマイルストーン</div>
             <div className="mt-2 text-lg font-semibold text-blue-200">{next.label}</div>
           </div>
         ) : (
           <div className="text-right">
-            <div className="text-xs font-medium uppercase tracking-widest text-blue-300/80">マイルストーン</div>
+            <div className="text-xs font-medium uppercase tracking-widest text-blue-300">マイルストーン</div>
             <div className="mt-2 text-lg font-semibold text-blue-200">全達成</div>
           </div>
         )}

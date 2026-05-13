@@ -100,8 +100,8 @@
   --border-focus: #4d9fff;
 
   --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.78);
-  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-secondary: rgba(255, 255, 255, 0.95);
+  --text-muted: rgba(255, 255, 255, 0.85);
   --text-inverse: #1d1d1f;
 
   /* Accent adjustments for dark bg */
@@ -600,62 +600,54 @@ body {
   }
 }
 
-/* Hero & scroll-reveal animations */
+/* Hero & scroll-reveal animations
+   note: opacity:0 起点だとアニメが何かの理由で固まった瞬間にテキストが
+   消えてしまうので、transform / filter のみの演出にして可視性を常時担保 */
 @keyframes hero-fade-up {
   from {
-    opacity: 0;
     transform: translateY(24px);
   }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }
 @keyframes hero-fade-in {
   from {
-    opacity: 0;
+    transform: translateY(0);
   }
   to {
-    opacity: 1;
+    transform: translateY(0);
   }
 }
 @keyframes scroll-fade-left {
   from {
-    opacity: 0;
     transform: translateX(-24px);
   }
   to {
-    opacity: 1;
     transform: translateX(0);
   }
 }
 @keyframes scroll-fade-right {
   from {
-    opacity: 0;
     transform: translateX(24px);
   }
   to {
-    opacity: 1;
     transform: translateX(0);
   }
 }
 @keyframes scroll-scale-up {
   from {
-    opacity: 0;
     transform: scale(0.92);
   }
   to {
-    opacity: 1;
     transform: scale(1);
   }
 }
 @keyframes scroll-blur-in {
   from {
-    opacity: 0;
     filter: blur(8px);
   }
   to {
-    opacity: 1;
     filter: blur(0);
   }
 }
@@ -820,4 +812,31 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ══════════════════════════════════════════════════
+   Dark theme — force white text on all body copy.
+   Tailwind の text-white が何かに上書きされていても
+   貫通させるための最終的なセーフティネット。
+   ══════════════════════════════════════════════════ */
+[data-theme="dark"] p,
+[data-theme="dark"] li,
+[data-theme="dark"] dt,
+[data-theme="dark"] dd,
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"]
+  span:not([class*="text-blue"]):not([class*="text-emerald"]):not([class*="text-amber"]):not([class*="text-red"]):not(
+    [class*="text-violet"]
+  ):not([class*="text-green"]):not([class*="text-yellow"]):not([class*="text-pink"]):not([class*="text-orange"]):not(
+    [class*="text-purple"]
+  ):not([class*="text-rose"]):not([class*="text-cyan"]):not([class*="text-sky"]):not([class*="text-indigo"]):not(
+    [class*="text-teal"]
+  ),
+[data-theme="dark"] div.text-white {
+  color: #ffffff !important;
 }
