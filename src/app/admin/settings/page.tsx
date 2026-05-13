@@ -10,6 +10,7 @@ import LineConnectSection from "./LineConnectSection";
 import NexPTGConnectSection from "./NexPTGConnectSection";
 import RestartTourButton from "./RestartTourButton";
 import BillingTimingSection from "./BillingTimingSection";
+import PolygonAnchorSection from "./PolygonAnchorSection";
 import PageHeader from "@/components/ui/PageHeader";
 import HelpTooltip from "@/components/ui/HelpTooltip";
 import { formatDate } from "@/lib/format";
@@ -122,6 +123,22 @@ export default async function AdminSettingsPage() {
   const { admin } = createTenantScopedAdmin(tenantId);
   const { error: detectErr } = await admin.from("tenants").select("contact_email").eq("id", tenantId).limit(1).single();
   const columnsExist = !detectErr || !detectErr.message.includes("does not exist");
+
+  // Polygon anchoring opt-out (added 2026-05). Defaults to "false" (= anchor)
+  // when the column hasn't been deployed yet, matching the migration default.
+  let polygonOptedOut = false;
+  try {
+    const { data: anchorRow } = await admin
+      .from("tenants")
+      .select("polygon_anchor_opt_out")
+      .eq("id", tenantId)
+      .maybeSingle();
+    if (anchorRow) {
+      polygonOptedOut = Boolean((anchorRow as { polygon_anchor_opt_out: boolean | null }).polygon_anchor_opt_out);
+    }
+  } catch {
+    // Column missing on a stale schema → treat as default (= not opted out).
+  }
 
   const hasContact = columnsExist && !!(ext.contact_email || ext.contact_phone);
   const hasAddress = columnsExist && !!ext.address;
@@ -242,6 +259,8 @@ export default async function AdminSettingsPage() {
       <section className="glass-card p-5">
         <BillingTimingSection />
       </section>
+
+      <PolygonAnchorSection tenantId={tenantId} optedOut={polygonOptedOut} />
 
       {/* Square連携 */}
       <section className="glass-card p-5">
