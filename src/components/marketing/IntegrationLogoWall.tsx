@@ -21,6 +21,7 @@ const INTEGRATIONS: Integration[] = [
   { name: "Resend", note: "トランザクションメール" },
   { name: "C2PA", note: "写真コンテンツクレデンシャル" },
   { name: "Claude", note: "車検証OCR・写真品質検証・エージェント" },
+  { name: "NexDIAG", note: "膜厚計測・コーティング検証" },
   { name: "Upstash", note: "分散レート制限・キャッシュ" },
   { name: "Supabase", note: "RLS付きデータ基盤" },
 ];
