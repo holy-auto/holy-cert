@@ -32,12 +32,14 @@ export function IntegrationLogoWall() {
         title="既にある現場の道具と、そのままつながる"
         subtitle="Ledra は業務の置き換えを強いません。今使っているPOS・決済・メッセージ・カレンダーと無理なくつなぎ、記録だけをデジタルに変えていきます。"
       />
-      <div className="mx-auto mt-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 max-w-5xl">
+      <div className="mx-auto mt-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-5 max-w-6xl">
         {INTEGRATIONS.map((item, i) => (
           <ScrollReveal key={item.name} variant="fade-up" delay={Math.floor(i / 4) * 60}>
-            <div className="group h-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-6 text-center hover:bg-white/[0.06] hover:border-white/[0.14] transition-colors">
-              <p className="text-sm md:text-base font-semibold text-white tracking-tight">{item.name}</p>
-              {item.note && <p className="mt-1.5 text-[0.688rem] leading-relaxed text-white/75">{item.note}</p>}
+            <div className="group h-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 md:p-8 text-center hover:bg-white/[0.06] hover:border-white/[0.14] transition-colors">
+              <p className="text-lg md:text-xl font-semibold text-white tracking-tight">{item.name}</p>
+              {item.note && (
+                <p className="mt-2.5 text-sm md:text-[0.95rem] leading-relaxed text-white/80">{item.note}</p>
+              )}
             </div>
           </ScrollReveal>
         ))}
