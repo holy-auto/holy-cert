@@ -47,14 +47,14 @@ export default async function NewsDetailPage({ params }: Props) {
               className="aspect-[5/2]"
             />
           </div>
-          <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-white/75">
+          <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-white">
             {entry.frontmatter.publishedAt && (
               <time dateTime={entry.frontmatter.publishedAt}>{formatDate(entry.frontmatter.publishedAt)}</time>
             )}
             {entry.frontmatter.tags?.map((t) => (
               <span
                 key={t}
-                className="inline-flex items-center rounded-full border border-white/[0.08] px-2.5 py-0.5 text-[0.688rem] font-medium text-white/80"
+                className="inline-flex items-center rounded-full border border-white/[0.08] px-2.5 py-0.5 text-[0.688rem] font-medium text-white"
               >
                 {t}
               </span>

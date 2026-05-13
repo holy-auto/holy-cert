@@ -17,8 +17,8 @@ function H2({ children }: { children: ReactNode }) {
 function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="grid grid-cols-[9rem_1fr] gap-4 border-b border-white/[0.08] py-3 text-sm last:border-0">
-      <dt className="font-medium text-white/80">{label}</dt>
-      <dd className="text-white/80">{value}</dd>
+      <dt className="font-medium text-white">{label}</dt>
+      <dd className="text-white">{value}</dd>
     </div>
   );
 }
@@ -27,7 +27,7 @@ export default function LawPage() {
   return (
     <Article>
       <h1 className="mb-2 text-3xl font-bold text-white">特定商取引法に基づく表記</h1>
-      <p className="mb-10 text-sm text-white/75">特定商取引に関する法律第11条に基づき、以下のとおり表記します。</p>
+      <p className="mb-10 text-sm text-white">特定商取引に関する法律第11条に基づき、以下のとおり表記します。</p>
 
       <dl className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-6">
         <Row label="販売事業者名" value="株式会社HOLY" />
@@ -68,7 +68,7 @@ export default function LawPage() {
       </dl>
 
       <H2>お問い合わせ</H2>
-      <p className="text-sm text-white/80">
+      <p className="text-sm text-white">
         本表記に関するお問い合わせは{" "}
         <a href={`mailto:${siteConfig.contactEmail}`} className="font-medium text-blue-400 hover:underline">
           {siteConfig.contactEmail}

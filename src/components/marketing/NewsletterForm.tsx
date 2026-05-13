@@ -20,7 +20,7 @@ export function NewsletterForm() {
 
   if (submitted) {
     return (
-      <p className="text-xs text-white/80 leading-relaxed">ご登録ありがとうございます。確認メールをお送りしました。</p>
+      <p className="text-xs text-white leading-relaxed">ご登録ありがとうございます。確認メールをお送りしました。</p>
     );
   }
 
@@ -60,7 +60,7 @@ export function NewsletterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3" noValidate>
-      <label htmlFor="nl-email" className="block text-xs font-medium text-white/80">
+      <label htmlFor="nl-email" className="block text-xs font-medium text-white">
         メルマガ登録
       </label>
       <div className="flex gap-2">
@@ -81,7 +81,7 @@ export function NewsletterForm() {
           {sending ? "..." : "登録"}
         </button>
       </div>
-      <label htmlFor="nl-consent" className="flex items-start gap-2 text-[0.688rem] text-white/75 leading-relaxed">
+      <label htmlFor="nl-consent" className="flex items-start gap-2 text-[0.688rem] text-white leading-relaxed">
         <input
           id="nl-consent"
           type="checkbox"
@@ -90,7 +90,7 @@ export function NewsletterForm() {
           className="mt-0.5 h-3.5 w-3.5 rounded border-white/20 bg-white/[0.05] text-blue-500 focus:ring-blue-500/40"
         />
         <span>
-          <Link href="/privacy" className="underline hover:text-white/70">
+          <Link href="/privacy" className="underline hover:text-white">
             プライバシーポリシー
           </Link>
           に同意

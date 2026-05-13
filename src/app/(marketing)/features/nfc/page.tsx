@@ -119,7 +119,7 @@ export default function NfcPage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -140,7 +140,7 @@ export default function NfcPage() {
               <div className="px-5 pt-6 pb-8">
                 {/* Status bar mock */}
                 <div className="flex justify-between items-center mb-5">
-                  <span className="text-[0.625rem] text-white/50 font-medium">9:41</span>
+                  <span className="text-[0.625rem] text-white font-medium">9:41</span>
                   <div className="flex gap-1.5 items-center">
                     <div className="w-3 h-1.5 rounded-sm bg-white/40" />
                     <div className="w-1 h-1.5 rounded-sm bg-white/40" />
@@ -150,9 +150,11 @@ export default function NfcPage() {
 
                 {/* Header */}
                 <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.08] p-4 mb-4">
-                  <p className="text-[0.625rem] font-semibold text-blue-300 uppercase tracking-widest">Vehicle Passport</p>
+                  <p className="text-[0.625rem] font-semibold text-blue-300 uppercase tracking-widest">
+                    Vehicle Passport
+                  </p>
                   <p className="mt-1 text-sm font-bold text-white">トヨタ アルファード</p>
-                  <p className="text-[0.688rem] text-white/50 font-mono mt-0.5">品川 300 あ 12-34</p>
+                  <p className="text-[0.688rem] text-white font-mono mt-0.5">品川 300 あ 12-34</p>
                   <div className="mt-2 flex items-center gap-1.5">
                     <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
                     <p className="text-[0.625rem] text-green-300">Polygon 検証済み</p>
@@ -160,23 +162,26 @@ export default function NfcPage() {
                 </div>
 
                 {/* Timeline */}
-                <p className="text-[0.625rem] font-semibold text-white/40 uppercase tracking-widest mb-3">施工履歴</p>
+                <p className="text-[0.625rem] font-semibold text-white uppercase tracking-widest mb-3">施工履歴</p>
                 <div className="space-y-3">
                   {vehiclePassportItems.map((item) => (
-                    <div
-                      key={item.date}
-                      className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3"
-                    >
+                    <div key={item.date} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <p className="text-[0.75rem] font-semibold text-white truncate">{item.type}</p>
-                          <p className="text-[0.625rem] text-white/50 mt-0.5 truncate">{item.shop}</p>
-                          <p className="text-[0.563rem] text-white/30 mt-0.5 font-mono">{item.date}</p>
+                          <p className="text-[0.625rem] text-white mt-0.5 truncate">{item.shop}</p>
+                          <p className="text-[0.563rem] text-white mt-0.5 font-mono">{item.date}</p>
                         </div>
                         {item.verified && (
                           <div className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-green-500/10 border border-green-500/20">
                             <svg viewBox="0 0 8 8" className="h-2 w-2 text-green-400" fill="currentColor">
-                              <path d="M1 4l2 2 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                              <path
+                                d="M1 4l2 2 4-4"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                fill="none"
+                                strokeLinecap="round"
+                              />
                             </svg>
                             <span className="text-[0.5rem] text-green-300">証明済</span>
                           </div>
@@ -187,17 +192,14 @@ export default function NfcPage() {
                 </div>
               </div>
             </div>
-            <p className="mt-4 text-center text-xs text-white/40">NFCをかざすと自動で開く車両パスポート（イメージ）</p>
+            <p className="mt-4 text-center text-xs text-white">NFCをかざすと自動で開く車両パスポート（イメージ）</p>
           </div>
         </ScrollReveal>
       </Section>
 
       {/* Tech cards */}
       <Section>
-        <SectionHeading
-          title="設計のポイント"
-          subtitle="使い手を選ばない、実用的なNFC実装です。"
-        />
+        <SectionHeading title="設計のポイント" subtitle="使い手を選ばない、実用的なNFC実装です。" />
         <FeatureGrid className="mt-10">
           {techCards.map((c, i) => (
             <FeatureCard key={c.title} title={c.title} description={c.description} delay={i * 50} />
@@ -216,9 +218,13 @@ export default function NfcPage() {
             <table className="w-full min-w-[480px] text-sm">
               <thead>
                 <tr className="border-b border-white/[0.08] bg-white/[0.04]">
-                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/60"></th>
-                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/60">QRコード</th>
-                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-blue-300">NFC</th>
+                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white"></th>
+                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white">
+                    QRコード
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-blue-300">
+                    NFC
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -230,8 +236,8 @@ export default function NfcPage() {
                   { label: "適した場面", qr: "書類での証明・メール共有", nfc: "車を売る・見せる・査定される場面" },
                 ].map((row) => (
                   <tr key={row.label} className="border-b border-white/[0.05] bg-white/[0.02]">
-                    <td className="px-5 py-3 font-medium text-white/70">{row.label}</td>
-                    <td className="px-5 py-3 text-white/60">{row.qr}</td>
+                    <td className="px-5 py-3 font-medium text-white">{row.label}</td>
+                    <td className="px-5 py-3 text-white">{row.qr}</td>
                     <td className="px-5 py-3 text-blue-300 font-medium">{row.nfc}</td>
                   </tr>
                 ))}

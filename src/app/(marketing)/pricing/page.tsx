@@ -31,10 +31,12 @@ export default function PricingPage() {
   return (
     <>
       <PricingJsonLd plans={PLAN_OFFERS} />
-      <BreadcrumbJsonLd items={[
-        { name: "ホーム", url: "/" },
-        { name: "料金プラン", url: "/pricing" },
-      ]} />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "ホーム", url: "/" },
+          { name: "料金プラン", url: "/pricing" },
+        ]}
+      />
       {/* Hero */}
       <Section bg="white">
         <SectionHeading
@@ -68,7 +70,7 @@ export default function PricingPage() {
           ))}
         </PricingCards>
 
-        <p className="mt-6 text-center text-sm text-muted">
+        <p className="mt-6 text-center text-sm text-white">
           年間契約で{ANNUAL_DISCOUNT_PERCENT}%OFF。全プラン税別価格です。
         </p>
       </Section>
@@ -81,7 +83,7 @@ export default function PricingPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border-subtle">
-                  <th className="py-3 pr-4 text-left font-medium text-muted">機能</th>
+                  <th className="py-3 pr-4 text-left font-medium text-white">機能</th>
                   {Object.values(PLANS).map((p) => (
                     <th key={p.name} className="px-4 py-3 text-center font-semibold text-primary">
                       {p.name}
@@ -92,11 +94,11 @@ export default function PricingPage() {
               <tbody>
                 {FEATURE_COMPARISON.map((row) => (
                   <tr key={row.feature} className="border-b border-border-subtle/50">
-                    <td className="py-3 pr-4 text-secondary">{row.feature}</td>
-                    <td className="px-4 py-3 text-center text-muted">{row.free}</td>
-                    <td className="px-4 py-3 text-center text-muted">{row.starter}</td>
-                    <td className="px-4 py-3 text-center text-muted">{row.standard}</td>
-                    <td className="px-4 py-3 text-center text-muted">{row.pro}</td>
+                    <td className="py-3 pr-4 text-white">{row.feature}</td>
+                    <td className="px-4 py-3 text-center text-white">{row.free}</td>
+                    <td className="px-4 py-3 text-center text-white">{row.starter}</td>
+                    <td className="px-4 py-3 text-center text-white">{row.standard}</td>
+                    <td className="px-4 py-3 text-center text-white">{row.pro}</td>
                   </tr>
                 ))}
               </tbody>
@@ -115,7 +117,7 @@ export default function PricingPage() {
                 <span className="font-medium text-primary">{opt.name}</span>
                 <span className="text-sm text-accent">
                   {opt.price}
-                  <span className="text-muted">{opt.unit}</span>
+                  <span className="text-white">{opt.unit}</span>
                 </span>
               </div>
             ))}
@@ -131,15 +133,15 @@ export default function PricingPage() {
             <ScrollReveal key={opt.name} variant="fade-up">
               <div className={`glass-card p-6 ${"recommended" in opt && opt.recommended ? "ring-1 ring-accent" : ""}`}>
                 <h3 className="text-lg font-semibold text-primary">{opt.name}</h3>
-                <p className="mt-1 text-sm text-muted">{opt.description}</p>
+                <p className="mt-1 text-sm text-white">{opt.description}</p>
                 <div className="mt-4">
                   <span className="text-2xl font-bold text-primary">{opt.price}</span>
-                  <span className="text-sm text-muted">/{opt.unit}</span>
-                  <span className="ml-3 text-sm text-muted">初期費用 {opt.setupFee}</span>
+                  <span className="text-sm text-white">/{opt.unit}</span>
+                  <span className="ml-3 text-sm text-white">初期費用 {opt.setupFee}</span>
                 </div>
                 <ul className="mt-4 space-y-2">
                   {opt.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-secondary">
+                    <li key={f} className="flex items-start gap-2 text-sm text-white">
                       <span className="mt-1 text-accent">✓</span>
                       {f}
                     </li>

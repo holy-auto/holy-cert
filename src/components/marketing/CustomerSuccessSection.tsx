@@ -99,7 +99,7 @@ export function CustomerSuccessSection() {
               <h3 className="mt-3 text-sm font-bold text-white leading-snug">{p.title}</h3>
               <ul className="mt-4 space-y-2">
                 {p.items.map((it) => (
-                  <li key={it} className="flex items-start gap-2 text-xs leading-relaxed text-white/80">
+                  <li key={it} className="flex items-start gap-2 text-xs leading-relaxed text-white">
                     <svg
                       className="w-3 h-3 mt-0.5 flex-shrink-0 text-blue-400"
                       viewBox="0 0 12 12"
@@ -119,7 +119,7 @@ export function CustomerSuccessSection() {
       </div>
 
       <ScrollReveal variant="fade-in" delay={240}>
-        <p className="mx-auto mt-6 max-w-3xl text-center text-[0.7rem] leading-relaxed text-white/50">
+        <p className="mx-auto mt-6 max-w-3xl text-center text-[0.7rem] leading-relaxed text-white">
           ※ Phase 1 のキックオフ伴走は Starter プラン以上、Phase 2〜4 のハンズオン伴走は Standard
           プラン以上が対象です。Free プランはヘルプセンター・動画チュートリアル・コミュニティをご利用いただけます。
         </p>
@@ -133,7 +133,7 @@ export function CustomerSuccessSection() {
             {SUPPORTS.map((s) => (
               <div key={s.title} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
                 <p className="text-sm font-semibold text-white">{s.title}</p>
-                <p className="mt-2 text-xs leading-relaxed text-white/80">{s.desc}</p>
+                <p className="mt-2 text-xs leading-relaxed text-white">{s.desc}</p>
               </div>
             ))}
           </div>

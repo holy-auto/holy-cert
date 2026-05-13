@@ -13,7 +13,7 @@ export function SectionHeading({
 }) {
   const alignClass = align === "center" ? "text-center" : "text-left";
   const titleColor = light ? "text-white" : "text-heading";
-  const subtitleColor = light ? "text-white" : "text-muted";
+  const subtitleColor = light ? "text-white" : "text-white";
 
   return (
     <ScrollReveal variant="blur-in">

@@ -88,7 +88,7 @@ export function FeatureCatalogSection() {
               <h3 className="text-sm font-bold text-white tracking-tight">{c.title}</h3>
               <ul className="mt-4 space-y-2">
                 {c.items.map((it) => (
-                  <li key={it} className="flex items-start gap-2 text-xs leading-relaxed text-white/80">
+                  <li key={it} className="flex items-start gap-2 text-xs leading-relaxed text-white">
                     <svg
                       className="w-3 h-3 mt-0.5 flex-shrink-0 text-blue-400"
                       viewBox="0 0 12 12"

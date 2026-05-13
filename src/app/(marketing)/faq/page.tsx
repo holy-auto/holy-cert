@@ -109,17 +109,19 @@ export default function FAQPage() {
   return (
     <>
       <FAQJsonLd items={ALL_FAQ_ITEMS} />
-      <BreadcrumbJsonLd items={[
-        { name: "ホーム", url: "/" },
-        { name: "よくある質問", url: "/faq" },
-      ]} />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "ホーム", url: "/" },
+          { name: "よくある質問", url: "/faq" },
+        ]}
+      />
 
       <Section bg="white">
         <SectionHeading title="よくある質問" subtitle="Ledraに関するよくあるご質問をまとめました。" />
 
         {FAQ_SECTIONS.map((section) => (
           <div key={section.heading} className="mx-auto mt-12 max-w-3xl">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted">{section.heading}</h3>
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">{section.heading}</h3>
             <FAQList>
               {section.items.map((item) => (
                 <FAQItem key={item.question} question={item.question} answer={item.answer} />

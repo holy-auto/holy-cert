@@ -39,7 +39,8 @@ const useCases = [
   },
   {
     title: "機密保持契約（NDA）",
-    description: "商談前のNDA締結をメール1本で完了。相手方に専用アカウントは不要で、URLと本人確認OTPだけで署名できます。",
+    description:
+      "商談前のNDA締結をメール1本で完了。相手方に専用アカウントは不要で、URLと本人確認OTPだけで署名できます。",
   },
   {
     title: "利用規約への同意記録",
@@ -127,10 +128,7 @@ export default function DigitalSignaturePage() {
 
       {/* Flow diagram */}
       <Section>
-        <SectionHeading
-          title="署名フロー"
-          subtitle="依頼から完了まで、最短5分。相手にアカウントは不要です。"
-        />
+        <SectionHeading title="署名フロー" subtitle="依頼から完了まで、最短5分。相手にアカウントは不要です。" />
         <ScrollReveal variant="fade-up">
           <div className="mx-auto mt-8 max-w-5xl rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 md:p-8">
             <SignatureFlowDiagram className="w-full h-auto" />
@@ -140,10 +138,7 @@ export default function DigitalSignaturePage() {
 
       {/* Step-by-step */}
       <Section bg="alt">
-        <SectionHeading
-          title="ステップで見る"
-          subtitle="操作は依頼者・署名者ともにシンプルです。"
-        />
+        <SectionHeading title="ステップで見る" subtitle="操作は依頼者・署名者ともにシンプルです。" />
         <div className="mx-auto mt-10 max-w-3xl space-y-4">
           {steps.map((s, i) => (
             <ScrollReveal key={s.step} variant="fade-up" delay={i * 60}>
@@ -153,7 +148,7 @@ export default function DigitalSignaturePage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -163,10 +158,7 @@ export default function DigitalSignaturePage() {
 
       {/* Use cases */}
       <Section>
-        <SectionHeading
-          title="主な利用シーン"
-          subtitle="Ledra上で扱う契約書の種類です。"
-        />
+        <SectionHeading title="主な利用シーン" subtitle="Ledra上で扱う契約書の種類です。" />
         <FeatureGrid className="mt-10">
           {useCases.map((u, i) => (
             <FeatureCard key={u.title} title={u.title} description={u.description} delay={i * 50} />
@@ -176,10 +168,7 @@ export default function DigitalSignaturePage() {
 
       {/* Tech */}
       <Section bg="alt">
-        <SectionHeading
-          title="技術的な設計"
-          subtitle="自前実装だからこそ担保できる信頼性について。"
-        />
+        <SectionHeading title="技術的な設計" subtitle="自前実装だからこそ担保できる信頼性について。" />
         <FeatureGrid className="mt-10">
           {techCards.map((c, i) => (
             <FeatureCard key={c.title} title={c.title} description={c.description} delay={i * 50} />

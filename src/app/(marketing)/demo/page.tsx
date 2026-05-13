@@ -104,7 +104,7 @@ export default function DemoPage() {
         <div className="mx-auto max-w-5xl">
           <ScrollReveal variant="fade-up">
             <h2 className="text-center text-2xl md:text-3xl font-bold text-white">サンプルデータの内容</h2>
-            <p className="mt-3 text-center text-sm text-white/70">
+            <p className="mt-3 text-center text-sm text-white">
               ログイン直後から実データに近いボリュームのサンプルが入っています
             </p>
           </ScrollReveal>
@@ -115,7 +115,7 @@ export default function DemoPage() {
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-6 text-center">
                   <div className="text-3xl font-bold text-blue-300">{item.count}</div>
                   <div className="mt-1 text-sm font-medium text-white">{item.label}</div>
-                  <div className="mt-2 text-xs leading-relaxed text-white/60">{item.description}</div>
+                  <div className="mt-2 text-xs leading-relaxed text-white">{item.description}</div>
                 </div>
               </ScrollReveal>
             ))}
@@ -143,7 +143,7 @@ export default function DemoPage() {
                     </span>
                     <div>
                       <code className="font-mono text-sm text-white">{row.title}</code>
-                      <div className="text-xs text-white/65">{row.description}</div>
+                      <div className="text-xs text-white">{row.description}</div>
                     </div>
                   </li>
                 ))}

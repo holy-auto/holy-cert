@@ -173,20 +173,20 @@ export function NarrativeTypewriter() {
   return (
     <div ref={containerRef} className="max-w-3xl mx-auto">
       {/* 導入 — 現場の課題 */}
-      <div className="space-y-5 text-[1.125rem] md:text-[1.25rem] leading-[1.85] text-white/80">
+      <div className="space-y-5 text-[1.125rem] md:text-[1.25rem] leading-[1.85] text-white">
         <p>
           <TypeLine {...lineProps(0)} />
         </p>
         <p>
           <TypeLine {...lineProps(1)} />
         </p>
-        <p className="text-white/75">
+        <p className="text-white">
           <TypeLine {...lineProps(2)} />
         </p>
       </div>
 
       {/* 転換 — 問いかけ */}
-      <div className="mt-16 md:mt-20 space-y-4 text-[1.125rem] md:text-[1.25rem] leading-[1.85] text-white/80">
+      <div className="mt-16 md:mt-20 space-y-4 text-[1.125rem] md:text-[1.25rem] leading-[1.85] text-white">
         <p>
           <TypeLine {...lineProps(3)} />
         </p>
@@ -211,7 +211,7 @@ export function NarrativeTypewriter() {
               className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-violet-400 flex-shrink-0 transition-opacity duration-500"
               style={{ opacity: activeIdx >= idx ? 1 : 0.25 }}
             />
-            <span className="text-[1.125rem] md:text-[1.25rem] font-medium text-white/70">
+            <span className="text-[1.125rem] md:text-[1.25rem] font-medium text-white">
               <TypeLine {...lineProps(idx)} />
             </span>
           </div>

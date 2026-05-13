@@ -76,13 +76,11 @@ const portalFeatures = [
   },
   {
     title: "ウォッチリスト",
-    description:
-      "気になる証明書・施工店をウォッチリストに登録。ステータス変更時に自動通知が届きます。",
+    description: "気になる証明書・施工店をウォッチリストに登録。ステータス変更時に自動通知が届きます。",
   },
   {
     title: "操作ログ・監査証跡",
-    description:
-      "誰がいつ何を照会・操作したかを完全記録。コンプライアンス・内部監査への即時対応が可能です。",
+    description: "誰がいつ何を照会・操作したかを完全記録。コンプライアンス・内部監査への即時対応が可能です。",
   },
   {
     title: "API連携",
@@ -91,13 +89,11 @@ const portalFeatures = [
   },
   {
     title: "ロール管理",
-    description:
-      "Owner / Admin / Adjuster / Viewer の4段階。チームの規模・組織に合わせたアクセス権限設定ができます。",
+    description: "Owner / Admin / Adjuster / Viewer の4段階。チームの規模・組織に合わせたアクセス権限設定ができます。",
   },
   {
     title: "分析レポート",
-    description:
-      "施工店別・施工種別・月次の証明書照会統計。査定業務のパターン分析に活用できます。",
+    description: "施工店別・施工種別・月次の証明書照会統計。査定業務のパターン分析に活用できます。",
   },
 ];
 
@@ -152,10 +148,7 @@ export default function InsurerPortalPage() {
 
       {/* Verification flow */}
       <Section>
-        <SectionHeading
-          title="証明書の確認フロー"
-          subtitle="URL受領から検証完了まで、1分かかりません。"
-        />
+        <SectionHeading title="証明書の確認フロー" subtitle="URL受領から検証完了まで、1分かかりません。" />
         <div className="mx-auto mt-10 max-w-3xl space-y-4">
           {verificationSteps.map((s, i) => (
             <ScrollReveal key={s.step} variant="fade-up" delay={i * 60}>
@@ -165,7 +158,7 @@ export default function InsurerPortalPage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -188,10 +181,7 @@ export default function InsurerPortalPage() {
 
       {/* Technical specifications */}
       <Section>
-        <SectionHeading
-          title="技術仕様"
-          subtitle="信頼の根拠を、具体的な技術で示します。"
-        />
+        <SectionHeading title="技術仕様" subtitle="信頼の根拠を、具体的な技術で示します。" />
         <ScrollReveal variant="fade-up">
           <div className="mx-auto mt-10 max-w-3xl overflow-hidden rounded-2xl border border-white/[0.08]">
             {techSpecs.map((spec, i) => (
@@ -201,8 +191,8 @@ export default function InsurerPortalPage() {
                   i % 2 === 0 ? "bg-white/[0.03]" : "bg-white/[0.015]"
                 } ${i < techSpecs.length - 1 ? "border-b border-white/[0.05]" : ""}`}
               >
-                <p className="w-40 shrink-0 text-xs font-semibold text-white/50 pt-0.5">{spec.label}</p>
-                <p className="text-sm leading-relaxed text-white/80">{spec.value}</p>
+                <p className="w-40 shrink-0 text-xs font-semibold text-white pt-0.5">{spec.label}</p>
+                <p className="text-sm leading-relaxed text-white">{spec.value}</p>
               </div>
             ))}
           </div>
@@ -219,10 +209,7 @@ export default function InsurerPortalPage() {
 
       {/* Before/After */}
       <Section bg="alt">
-        <SectionHeading
-          title="導入前後の変化"
-          subtitle="保険会社の査定業務が、どう変わるか。"
-        />
+        <SectionHeading title="導入前後の変化" subtitle="保険会社の査定業務が、どう変わるか。" />
         <div className="mx-auto mt-10 max-w-3xl space-y-4">
           {[
             { before: "施工店への電話・FAX確認", after: "Public ID 検索で数秒で照会" },
@@ -233,11 +220,16 @@ export default function InsurerPortalPage() {
             <ScrollReveal key={row.before} variant="fade-up" delay={i * 50}>
               <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-6">
                 <div>
-                  <p className="text-[0.688rem] uppercase tracking-wider text-white/50">Before</p>
-                  <p className="mt-1.5 text-[0.938rem] text-white/70 leading-relaxed">{row.before}</p>
+                  <p className="text-[0.688rem] uppercase tracking-wider text-white">Before</p>
+                  <p className="mt-1.5 text-[0.938rem] text-white leading-relaxed">{row.before}</p>
                 </div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  className="hidden md:block w-5 h-5 text-blue-300/40 shrink-0">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="hidden md:block w-5 h-5 text-blue-300/40 shrink-0"
+                >
                   <path d="M5 12h14M13 5l7 7-7 7" />
                 </svg>
                 <div>

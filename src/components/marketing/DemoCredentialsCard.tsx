@@ -25,7 +25,7 @@ function CopyButton({ value, ariaLabel }: { value: string; ariaLabel: string }) 
       type="button"
       onClick={handleCopy}
       aria-label={ariaLabel}
-      className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/85 transition hover:bg-white/[0.08]"
+      className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/[0.08]"
     >
       {copied ? (
         <>
@@ -59,7 +59,7 @@ export function DemoCredentialsCard({ email, password }: { email: string; passwo
         <span className="inline-flex items-center rounded-full bg-blue-500/15 px-2.5 py-1 text-[0.7rem] font-semibold tracking-wider text-blue-300">
           DEMO ACCOUNT
         </span>
-        <span className="text-xs text-white/60">下記のIDとパスワードでログインできます</span>
+        <span className="text-xs text-white">下記のIDとパスワードでログインできます</span>
       </div>
 
       <dl className="space-y-3">
@@ -69,7 +69,7 @@ export function DemoCredentialsCard({ email, password }: { email: string; passwo
             className="flex flex-col gap-2 rounded-lg border border-white/[0.06] bg-black/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="min-w-0">
-              <dt className="text-[0.7rem] uppercase tracking-wider text-white/55">{field.label}</dt>
+              <dt className="text-[0.7rem] uppercase tracking-wider text-white">{field.label}</dt>
               <dd className="mt-1 break-all font-mono text-sm text-white">{field.value}</dd>
             </div>
             <CopyButton value={field.value} ariaLabel={`${field.label}をコピー`} />

@@ -40,27 +40,27 @@ export function PricingCard({
 
       <div className="mb-8">
         <h3 className="text-lg font-bold text-white">{name}</h3>
-        <p className="mt-1.5 text-sm text-white/80">{description}</p>
+        <p className="mt-1.5 text-sm text-white">{description}</p>
       </div>
 
       <div className="mb-2 min-h-[3.5rem] flex items-baseline">
         <span className="text-[2.5rem] font-bold tracking-tight text-white">{price}</span>
-        {unit && <span className="text-sm ml-1.5 text-white/75">{unit.startsWith("/") ? unit : `/${unit}`}</span>}
+        {unit && <span className="text-sm ml-1.5 text-white">{unit.startsWith("/") ? unit : `/${unit}`}</span>}
       </div>
-      <div className="mb-6 min-h-[1.25rem] text-xs text-white/60">
+      <div className="mb-6 min-h-[1.25rem] text-xs text-white">
         {setupFee ? (
           <>
-            初期費用 <span className="line-through text-white/40">{setupFee}</span>{" "}
+            初期費用 <span className="line-through text-white">{setupFee}</span>{" "}
             <span className="text-amber-400 font-medium">先着100店舗まで¥0</span>
           </>
         ) : (
-          <span className="text-white/40">初期費用なし</span>
+          <span className="text-white">初期費用なし</span>
         )}
       </div>
 
       <ul className="space-y-3 mb-10 flex-1">
         {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2.5 text-[0.8125rem] leading-snug text-white/70">
+          <li key={feature} className="flex items-start gap-2.5 text-[0.8125rem] leading-snug text-white">
             <div
               className="w-5 h-5 flex-shrink-0 mt-0.5 rounded-full flex items-center justify-center"
               style={{

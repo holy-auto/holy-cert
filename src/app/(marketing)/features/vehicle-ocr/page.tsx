@@ -137,7 +137,7 @@ export default function VehicleOcrPage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -147,19 +147,24 @@ export default function VehicleOcrPage() {
 
       {/* Source comparison table */}
       <Section bg="alt">
-        <SectionHeading
-          title="3つの解析モード"
-          subtitle="車検証の状態に応じて、最適な方法が自動で選ばれます。"
-        />
+        <SectionHeading title="3つの解析モード" subtitle="車検証の状態に応じて、最適な方法が自動で選ばれます。" />
         <ScrollReveal variant="fade-up">
           <div className="mx-auto mt-10 max-w-5xl overflow-x-auto rounded-2xl border border-white/[0.08]">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-white/[0.08] bg-white/[0.04]">
-                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/60">解析モード</th>
-                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/60">精度</th>
-                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/60">速度</th>
-                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/60">取得項目</th>
+                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white">
+                    解析モード
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white">
+                    精度
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white">
+                    速度
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white">
+                    取得項目
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -170,11 +175,11 @@ export default function VehicleOcrPage() {
                   >
                     <td className="px-5 py-4">
                       <p className="font-semibold text-white">{row.source}</p>
-                      <p className="mt-0.5 text-[0.75rem] text-white/50">{row.note}</p>
+                      <p className="mt-0.5 text-[0.75rem] text-white">{row.note}</p>
                     </td>
-                    <td className="px-5 py-4 text-white/80">{row.accuracy}</td>
+                    <td className="px-5 py-4 text-white">{row.accuracy}</td>
                     <td className="px-5 py-4 font-mono text-blue-300">{row.speed}</td>
-                    <td className="px-5 py-4 text-[0.813rem] leading-relaxed text-white/70">{row.coverage}</td>
+                    <td className="px-5 py-4 text-[0.813rem] leading-relaxed text-white">{row.coverage}</td>
                   </tr>
                 ))}
               </tbody>
@@ -185,10 +190,7 @@ export default function VehicleOcrPage() {
 
       {/* Tech cards */}
       <Section>
-        <SectionHeading
-          title="設計のポイント"
-          subtitle="現場での確実な動作を優先した実装です。"
-        />
+        <SectionHeading title="設計のポイント" subtitle="現場での確実な動作を優先した実装です。" />
         <FeatureGrid className="mt-10">
           {techCards.map((c, i) => (
             <FeatureCard key={c.title} title={c.title} description={c.description} delay={i * 50} />
@@ -198,10 +200,7 @@ export default function VehicleOcrPage() {
 
       {/* Before/After numbers */}
       <Section bg="alt">
-        <SectionHeading
-          title="入力工数の削減"
-          subtitle="1台あたりの省力化が積み重なって、月間の作業量を変えます。"
-        />
+        <SectionHeading title="入力工数の削減" subtitle="1台あたりの省力化が積み重なって、月間の作業量を変えます。" />
         <div className="mx-auto mt-10 max-w-3xl grid grid-cols-1 sm:grid-cols-3 gap-5">
           {[
             { label: "手入力時間", before: "約 15 分 / 台", after: "約 1 分 / 台", unit: "確認のみ" },
@@ -210,10 +209,10 @@ export default function VehicleOcrPage() {
           ].map((item) => (
             <ScrollReveal key={item.label} variant="fade-up">
               <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
-                <p className="text-[0.75rem] font-semibold uppercase tracking-wider text-white/50">{item.label}</p>
-                <p className="mt-3 text-sm text-white/60 line-through">{item.before}</p>
+                <p className="text-[0.75rem] font-semibold uppercase tracking-wider text-white">{item.label}</p>
+                <p className="mt-3 text-sm text-white line-through">{item.before}</p>
                 <p className="mt-1 text-2xl font-bold text-blue-300">{item.after}</p>
-                <p className="mt-1 text-[0.688rem] text-white/40">{item.unit}</p>
+                <p className="mt-1 text-[0.688rem] text-white">{item.unit}</p>
               </div>
             </ScrollReveal>
           ))}

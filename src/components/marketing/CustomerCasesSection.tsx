@@ -38,11 +38,11 @@ export async function CustomerCasesSection() {
                 className="group block h-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 hover:bg-white/[0.06] hover:border-white/[0.14] hover:-translate-y-0.5 transition-all"
               >
                 {(e.frontmatter.company || e.frontmatter.industry) && (
-                  <div className="flex flex-wrap items-center gap-2 text-[0.688rem] font-medium text-white/80">
+                  <div className="flex flex-wrap items-center gap-2 text-[0.688rem] font-medium text-white">
                     {e.frontmatter.industry && <span>{String(e.frontmatter.industry)}</span>}
                     {e.frontmatter.company && (
                       <>
-                        <span className="text-white/70">•</span>
+                        <span className="text-white">•</span>
                         <span>{String(e.frontmatter.company)}</span>
                       </>
                     )}
@@ -52,7 +52,7 @@ export async function CustomerCasesSection() {
                   {e.frontmatter.title}
                 </h3>
                 {e.frontmatter.excerpt && (
-                  <p className="mt-3 text-sm leading-relaxed text-white/80">{e.frontmatter.excerpt}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-white">{e.frontmatter.excerpt}</p>
                 )}
                 <p className="mt-5 text-xs font-medium text-blue-300 group-hover:text-blue-200 transition-colors">
                   事例を読む &rarr;
@@ -81,12 +81,12 @@ export async function CustomerCasesSection() {
                 <div key={r.metric} className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-4">
                   <dt className="text-[0.7rem] font-medium uppercase tracking-widest text-blue-300/90">{r.metric}</dt>
                   <dd className="mt-2 text-xl font-bold text-white">{r.value}</dd>
-                  <p className="mt-2 text-xs leading-relaxed text-white/85">{r.note}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-white">{r.note}</p>
                 </div>
               ))}
             </dl>
 
-            <p className="mt-5 text-xs text-white/70 leading-relaxed">
+            <p className="mt-5 text-xs text-white leading-relaxed">
               ※ 上記は先行設計値・想定値です。実数値は事例公開時に置き換えます。
             </p>
 
@@ -99,7 +99,7 @@ export async function CustomerCasesSection() {
               </Link>
               <Link
                 href="/cases"
-                className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-6 py-3 border border-white/20 text-white/80 hover:text-white hover:border-white/40 transition-colors"
+                className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-6 py-3 border border-white/20 text-white hover:text-white hover:border-white/40 transition-colors"
               >
                 事例ページへ
               </Link>

@@ -164,7 +164,7 @@ export default function FinancialTransparencyPage() {
             <a
               key={b.id}
               href={`#${b.id}`}
-              className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-xs font-medium text-white/70 hover:bg-white/[0.07] hover:text-white hover:border-white/[0.14] transition-colors"
+              className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-xs font-medium text-white hover:bg-white/[0.07] hover:text-white hover:border-white/[0.14] transition-colors"
             >
               {b.title}
             </a>
@@ -180,7 +180,7 @@ export default function FinancialTransparencyPage() {
               <ScrollReveal key={item.title} variant="fade-up" delay={i * 50}>
                 <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 md:p-7">
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{item.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{item.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white">{item.desc}</p>
                 </div>
               </ScrollReveal>
             ))}
@@ -198,7 +198,7 @@ export default function FinancialTransparencyPage() {
             >
               <div>
                 <p className="text-sm font-bold text-white">{d.label}</p>
-                <p className="mt-1 text-xs text-white/80">{d.note}</p>
+                <p className="mt-1 text-xs text-white">{d.note}</p>
               </div>
               <span
                 className={`shrink-0 inline-flex items-center rounded-full px-3 py-1 text-[0.688rem] font-medium ${
@@ -206,14 +206,14 @@ export default function FinancialTransparencyPage() {
                     ? "bg-emerald-500/[0.12] text-emerald-300 border border-emerald-500/20"
                     : d.status === "in-progress"
                       ? "bg-amber-500/[0.12] text-amber-300 border border-amber-500/20"
-                      : "bg-white/[0.06] text-white/80 border border-white/[0.1]"
+                      : "bg-white/[0.06] text-white border border-white/[0.1]"
                 }`}
               >
                 {d.status === "available" ? "提供中" : d.status === "in-progress" ? "準備中" : "計画中"}
               </span>
             </div>
           ))}
-          <p className="pt-4 text-xs text-white/75 text-center leading-relaxed">
+          <p className="pt-4 text-xs text-white text-center leading-relaxed">
             開示の進捗は、本ページにて随時更新してまいります。
             <br />
             個別のご質問は{" "}

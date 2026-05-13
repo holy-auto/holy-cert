@@ -47,10 +47,10 @@ function MilestoneTrack({
     <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 md:p-8">
       <div className="flex items-baseline justify-between gap-3">
         <div>
-          <div className="text-xs font-medium uppercase tracking-widest text-white/70">いまの数字</div>
+          <div className="text-xs font-medium uppercase tracking-widest text-white">いまの数字</div>
           <div className="mt-2 text-[2.25rem] md:text-[2.75rem] font-bold leading-none text-white tracking-tight">
             {current.toLocaleString()}
-            <span className="ml-1 text-base font-medium text-white/70">{unit}</span>
+            <span className="ml-1 text-base font-medium text-white">{unit}</span>
           </div>
         </div>
         {next ? (
@@ -74,7 +74,7 @@ function MilestoneTrack({
             style={{ width: `${Math.max(progress * 100, 2)}%` }}
           />
         </div>
-        {next && <p className="mt-3 text-xs text-white/70 leading-relaxed">{next.caption}</p>}
+        {next && <p className="mt-3 text-xs text-white leading-relaxed">{next.caption}</p>}
       </div>
 
       {/* milestones list */}
@@ -92,7 +92,7 @@ function MilestoneTrack({
                     ? "border-blue-500/40 bg-blue-500/[0.12] text-blue-200"
                     : isNext
                       ? "border-violet-400/40 bg-violet-500/[0.08] text-violet-200"
-                      : "border-white/[0.08] bg-white/[0.02] text-white/70"
+                      : "border-white/[0.08] bg-white/[0.02] text-white"
                 }`}
             >
               <div className="flex items-center justify-center gap-1">
@@ -135,17 +135,17 @@ export async function GrowthJourney() {
             <span
               className={`block w-2 h-2 rounded-full ${stats.isLive ? "bg-emerald-400 animate-[pulse-soft_2s_ease-in-out_infinite]" : "bg-white/40"}`}
             />
-            <span className="text-xs font-medium text-white/80">
+            <span className="text-xs font-medium text-white">
               {stats.isLive ? "本番DBから直接集計" : "DBに到達できていません — フォールバック表示"}
             </span>
           </div>
           <span className="hidden sm:inline-block w-px h-4 bg-white/10" />
-          <div className="text-xs text-white/70 leading-relaxed">
+          <div className="text-xs text-white leading-relaxed">
             直近30日: 新規{stats.shopsLast30Days.toLocaleString()}社 / 新規
             {stats.certificatesLast30Days.toLocaleString()}件
             {fetchedDate && (
               <>
-                <span className="mx-2 text-white/30">·</span>
+                <span className="mx-2 text-white">·</span>
                 <span>{fetchedDate} 時点</span>
               </>
             )}

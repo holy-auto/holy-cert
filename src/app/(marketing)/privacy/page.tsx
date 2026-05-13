@@ -15,11 +15,11 @@ function H2({ children }: { children: ReactNode }) {
 }
 
 function P({ children }: { children: ReactNode }) {
-  return <p className="mb-4 text-sm leading-relaxed text-white/80">{children}</p>;
+  return <p className="mb-4 text-sm leading-relaxed text-white">{children}</p>;
 }
 
 function Ul({ children }: { children: ReactNode }) {
-  return <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-white/80">{children}</ul>;
+  return <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-white">{children}</ul>;
 }
 
 export default function PrivacyPage() {
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
   return (
     <Article>
       <h1 className="mb-2 text-3xl font-bold text-white">プライバシーポリシー</h1>
-      <p className="mb-10 text-sm text-white/75">最終更新日：{updated}</p>
+      <p className="mb-10 text-sm text-white">最終更新日：{updated}</p>
 
       <P>
         {siteConfig.siteName}（以下「当社」）は、お客様の個人情報の保護を重要な責務と認識し、

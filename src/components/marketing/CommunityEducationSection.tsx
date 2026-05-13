@@ -59,7 +59,7 @@ export function CommunityEducationSection() {
                 {p.badge}
               </span>
               <h3 className="mt-4 text-base font-bold text-white leading-snug">{p.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-white/80 flex-1">{p.desc}</p>
+              <p className="mt-3 text-sm leading-relaxed text-white flex-1">{p.desc}</p>
               <Link
                 href={p.href}
                 className="mt-5 inline-flex items-center gap-1 text-xs font-medium text-blue-300 hover:text-blue-200"

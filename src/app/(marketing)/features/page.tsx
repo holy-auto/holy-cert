@@ -31,7 +31,7 @@ export default function FeaturesPage() {
             <a
               key={g.id}
               href={`#${g.id}`}
-              className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-xs font-medium text-white/70 hover:bg-white/[0.07] hover:text-white hover:border-white/[0.14] transition-colors"
+              className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-xs font-medium text-white hover:bg-white/[0.07] hover:text-white hover:border-white/[0.14] transition-colors"
             >
               {g.title}
             </a>

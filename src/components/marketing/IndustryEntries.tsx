@@ -87,7 +87,7 @@ export function IndustryEntries() {
                   {e.badge}
                 </span>
                 {e.comingSoon && (
-                  <span className="inline-flex items-center rounded-full border border-white/[0.1] bg-white/[0.04] px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-widest text-white/70">
+                  <span className="inline-flex items-center rounded-full border border-white/[0.1] bg-white/[0.04] px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-widest text-white">
                     Coming soon
                   </span>
                 )}
@@ -95,7 +95,7 @@ export function IndustryEntries() {
               <h3 className="mt-4 text-base font-bold text-white group-hover:text-blue-200 transition-colors leading-snug">
                 {e.title}
               </h3>
-              <p className="mt-3 text-xs leading-relaxed text-white/80">{e.desc}</p>
+              <p className="mt-3 text-xs leading-relaxed text-white">{e.desc}</p>
               <p className="mt-5 text-xs font-medium text-blue-300 group-hover:text-blue-200 transition-colors">
                 詳しく見る &rarr;
               </p>

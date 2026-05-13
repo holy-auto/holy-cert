@@ -28,7 +28,7 @@ export function FeatureCard({
         </div>
       )}
       <h3 className="text-[1.125rem] md:text-[1.25rem] font-bold leading-[1.4] text-white mb-3">{title}</h3>
-      <p className="text-[0.938rem] leading-[1.75] text-white/80">{description}</p>
+      <p className="text-[0.938rem] leading-[1.75] text-white">{description}</p>
       {href && (
         <p className="mt-5 text-xs font-medium text-blue-300 group-hover:text-blue-200 transition-colors">
           詳細を見る →
