@@ -317,48 +317,46 @@ export async function POST(req: NextRequest) {
             : transfer.destination.id
           : (connectedAccountId ?? "");
 
-        void (async () => {
-          try {
-            const { tenantId, agentId } = await resolveReceiver(supabase, destinationAccountId);
-            if (tenantId && !isCommission) {
-              const { data: tenant } = await supabase
-                .from("tenants")
-                .select("name, contact_email")
-                .eq("id", tenantId)
-                .single();
-              if (tenant?.contact_email) {
-                await sendTransferPaidEmail({
-                  to: tenant.contact_email,
-                  recipientName: tenant.name ?? "店舗",
-                  amount: transfer.amount,
-                  currency: transfer.currency,
-                  transferId: transfer.id,
-                  isCommission: false,
-                  idempotencyKey: `transfer-paid:${event.id}`,
-                });
-              }
-            } else if (agentId) {
-              const { data: agent } = await supabase
-                .from("agents")
-                .select("name, contact_email")
-                .eq("id", agentId)
-                .single();
-              if (agent?.contact_email) {
-                await sendTransferPaidEmail({
-                  to: agent.contact_email,
-                  recipientName: agent.name ?? "代理店",
-                  amount: transfer.amount,
-                  currency: transfer.currency,
-                  transferId: transfer.id,
-                  isCommission,
-                  idempotencyKey: `transfer-paid:${event.id}`,
-                });
-              }
+        try {
+          const { tenantId, agentId } = await resolveReceiver(supabase, destinationAccountId);
+          if (tenantId && !isCommission) {
+            const { data: tenant } = await supabase
+              .from("tenants")
+              .select("name, contact_email")
+              .eq("id", tenantId)
+              .single();
+            if (tenant?.contact_email) {
+              await sendTransferPaidEmail({
+                to: tenant.contact_email,
+                recipientName: tenant.name ?? "店舗",
+                amount: transfer.amount,
+                currency: transfer.currency,
+                transferId: transfer.id,
+                isCommission: false,
+                idempotencyKey: `transfer-paid:${event.id}`,
+              });
             }
-          } catch (notifyErr) {
-            console.error("connect-webhook: transfer paid notification error:", notifyErr);
+          } else if (agentId) {
+            const { data: agent } = await supabase
+              .from("agents")
+              .select("name, contact_email")
+              .eq("id", agentId)
+              .single();
+            if (agent?.contact_email) {
+              await sendTransferPaidEmail({
+                to: agent.contact_email,
+                recipientName: agent.name ?? "代理店",
+                amount: transfer.amount,
+                currency: transfer.currency,
+                transferId: transfer.id,
+                isCommission,
+                idempotencyKey: `transfer-paid:${event.id}`,
+              });
+            }
           }
-        })();
+        } catch (notifyErr) {
+          console.error("connect-webhook: transfer paid notification error:", notifyErr);
+        }
 
         console.info("connect-webhook: transfer paid", { transferId: transfer.id });
         break;
