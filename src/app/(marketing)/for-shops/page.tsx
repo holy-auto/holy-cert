@@ -582,7 +582,7 @@ export default function ForShopsPage() {
         secondaryLabel="資料ダウンロード"
         secondaryHref="/resources"
         tertiaryLabel="デモを見る"
-        tertiaryHref="/contact?role=shop"
+        tertiaryHref="/demo"
         trackLocation="for-shops-final"
       />
     </>

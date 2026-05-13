@@ -88,7 +88,7 @@ export function Hero() {
               <CTAButton variant="white-outline" href="/resources" trackLocation="hero">
                 資料ダウンロード
               </CTAButton>
-              <CTAButton variant="white-outline" href="/contact" trackLocation="hero">
+              <CTAButton variant="white-outline" href="/demo" trackLocation="hero">
                 デモを見る
               </CTAButton>
             </div>
