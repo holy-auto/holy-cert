@@ -356,7 +356,7 @@ export default async function HomePage() {
         secondaryLabel="資料ダウンロード"
         secondaryHref="/resources"
         tertiaryLabel="デモを見る"
-        tertiaryHref="/contact"
+        tertiaryHref="/demo"
         trackLocation="home-final"
       />
     </>

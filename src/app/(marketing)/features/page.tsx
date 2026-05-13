@@ -69,7 +69,7 @@ export default function FeaturesPage() {
         primaryLabel="資料ダウンロード"
         primaryHref="/resources"
         secondaryLabel="デモを見る"
-        secondaryHref="/contact"
+        secondaryHref="/demo"
       />
     </>
   );

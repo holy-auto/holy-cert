@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import BillingGate from "./BillingGate";
 import AdminRouteGuard from "./AdminRouteGuard";
 import BillingFetchGuard from "./BillingFetchGuard";
+import DemoTenantBanner from "./DemoTenantBanner";
 import IdleAutoLogout from "./IdleAutoLogout";
 import HelpFab from "./HelpFab";
 import CommandPalette from "@/components/ui/CommandPalette";
@@ -27,6 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </Suspense>
       <BillingFetchGuard />
       <BillingGate />
+      <DemoTenantBanner />
       <IdleAutoLogout />
       <CommandPalette />
       <HelpFab />
