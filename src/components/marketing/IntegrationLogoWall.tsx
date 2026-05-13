@@ -10,6 +10,7 @@ import { ScrollReveal } from "./ScrollReveal";
 type Integration = {
   name: string;
   note?: string;
+  logoSrc?: string;
 };
 
 const INTEGRATIONS: Integration[] = [
@@ -21,7 +22,7 @@ const INTEGRATIONS: Integration[] = [
   { name: "Resend", note: "トランザクションメール" },
   { name: "C2PA", note: "写真コンテンツクレデンシャル" },
   { name: "Claude", note: "車検証OCR・写真品質検証・エージェント" },
-  { name: "NexPTG", note: "膜厚計測・コーティング検証" },
+  { name: "NexDiag", note: "膜厚計測・コーティング検証", logoSrc: "/nexdiag_logo.svg" },
   { name: "Upstash", note: "分散レート制限・キャッシュ" },
   { name: "Supabase", note: "RLS付きデータ基盤" },
 ];
@@ -37,7 +38,16 @@ export function IntegrationLogoWall() {
         {INTEGRATIONS.map((item, i) => (
           <ScrollReveal key={item.name} variant="fade-up" delay={Math.floor(i / 4) * 60}>
             <div className="group h-full rounded-2xl border border-white/[0.14] bg-white/[0.06] p-5 md:p-6 text-center hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors">
-              <p className="text-base md:text-lg font-semibold text-white tracking-tight">{item.name}</p>
+              {item.logoSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.logoSrc}
+                  alt={item.name}
+                  className="mx-auto h-7 md:h-8 w-auto object-contain"
+                />
+              ) : (
+                <p className="text-base md:text-lg font-semibold text-white tracking-tight">{item.name}</p>
+              )}
               {item.note && <p className="mt-2 text-xs leading-relaxed text-white/90">{item.note}</p>}
             </div>
           </ScrollReveal>
