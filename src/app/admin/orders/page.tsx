@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import dynamic from "next/dynamic";
+import { requireAddonOrGateView } from "@/lib/billing/addonGuard";
 
 const OrdersClient = dynamic(() => import("./OrdersClient"), {
   loading: () => (
@@ -16,6 +17,12 @@ export default async function OrdersPage() {
   const supabase = await createSupabaseServerClient();
   const { data: userRes } = await supabase.auth.getUser();
   if (!userRes?.user) redirect("/login?next=/admin/orders");
+
+  const gate = await requireAddonOrGateView("btob", {
+    feature: "案件受発注 (BtoB)",
+    href: "/admin/orders",
+  });
+  if (gate) return gate;
 
   return <OrdersClient />;
 }

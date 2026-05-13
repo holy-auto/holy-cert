@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useCurrentRole } from "@/lib/auth/useCurrentRole";
 import { ROUTE_PERMISSIONS, type Permission } from "@/lib/auth/permissions";
+import type { AddonKey } from "@/lib/billing/addons";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import StoreSelector from "@/components/ui/StoreSelector";
 import ThemeToggle from "@/lib/theme/ThemeToggle";
@@ -90,6 +91,9 @@ type NavItem = {
   requiredPermission?: Permission;
   /** Hide from sidebar — used to suppress unreleased features before launch */
   hidden?: boolean;
+  /** Hide unless the tenant has enabled this add-on. Drives the
+   *  market-vehicles / btob / orders / deals gate (see addonGuard.tsx). */
+  requireAddon?: AddonKey;
   /** Badge key used to look up dynamic badge counts */
   badgeKey?: string;
 };
@@ -429,6 +433,7 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/admin/btob",
         label: "BtoBプラットフォーム",
         requiredPermission: "market:view",
+        requireAddon: "btob",
         icon: (
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path
@@ -443,6 +448,7 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/admin/orders",
         label: "案件受発注",
         requiredPermission: "orders:view",
+        requireAddon: "btob",
         icon: (
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path
@@ -457,7 +463,7 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/admin/market-vehicles",
         label: "マーケット車両",
         requiredPermission: "market:view",
-        hidden: true,
+        requireAddon: "market_vehicles",
         icon: (
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path
@@ -472,7 +478,7 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/admin/deals",
         label: "商談管理",
         requiredPermission: "market:view",
-        hidden: true,
+        requireAddon: "deals",
         icon: (
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path
@@ -889,7 +895,7 @@ function CollapsibleGroup({
 /* ------------------------------------------------------------------ */
 export default function Sidebar() {
   const pathname = usePathname();
-  const { role, can, loading } = useCurrentRole();
+  const { role, can, hasAddon, loading } = useCurrentRole();
   const isMobile = useIsMobile();
   const badges = useSidebarBadges();
 
@@ -935,11 +941,18 @@ export default function Sidebar() {
     (items: NavItem[]) =>
       items.filter((item) => {
         if (item.hidden) return false;
+        // Add-on gate: while role/me is still loading we keep the item hidden
+        // — flashing a gated entry that then bounces to the gate page is
+        // worse UX than waiting one render for /api/admin/me.
+        if (item.requireAddon) {
+          if (loading || !role) return false;
+          if (!hasAddon(item.requireAddon)) return false;
+        }
         if (!item.requiredPermission) return true;
         if (loading || !role) return true;
         return can(item.requiredPermission);
       }),
-    [loading, role, can],
+    [loading, role, can, hasAddon],
   );
 
   const renderItem = (item: NavItem) => {
