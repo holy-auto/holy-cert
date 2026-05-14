@@ -48,6 +48,13 @@ export function IntegrationLogoWall() {
         <br className="hidden md:block" />
         現在、ロゴ使用許諾については順次交渉を進めており、許諾済みのパートナーから画像ロゴに差し替えていきます。
       </p>
+      <ul className="mx-auto mt-4 max-w-3xl space-y-1 text-center text-xs text-white/80 leading-relaxed">
+        <li>LINE、LINEのロゴは、LINEヤフー株式会社の登録商標または商標です。</li>
+        <li>Polygon は Polygon Labs UI Labs Limited およびその関連会社の商標です。</li>
+        <li>Resend は Resend, Inc. の商標です。</li>
+        <li>Upstash は Upstash, Inc. の商標です。</li>
+        <li>Supabase は Supabase Inc. の登録商標または商標です。</li>
+      </ul>
     </Section>
   );
 }
