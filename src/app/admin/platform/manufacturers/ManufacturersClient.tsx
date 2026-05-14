@@ -312,7 +312,7 @@ function ManufacturerDetailModal({
   onClose: () => void;
   onChanged: () => void;
 }) {
-  const [tab, setTab] = useState<"info" | "templates" | "certifications">("info");
+  const [tab, setTab] = useState<"info" | "templates" | "certifications" | "members">("info");
 
   return (
     <Modal title={`${manufacturer.name} — メーカー設定`} onClose={onClose} wide>
@@ -322,6 +322,7 @@ function ManufacturerDetailModal({
             ["info", "基本情報"],
             ["templates", "デザインテンプレート"],
             ["certifications", "認定施工店"],
+            ["members", "ポータルメンバー"],
           ].map(([k, label]) => (
             <button
               key={k}
@@ -340,6 +341,7 @@ function ManufacturerDetailModal({
         {tab === "info" && <ManufacturerInfoTab manufacturer={manufacturer} onChanged={onChanged} />}
         {tab === "templates" && <TemplatesTab manufacturer={manufacturer} />}
         {tab === "certifications" && <CertificationsTab manufacturer={manufacturer} />}
+        {tab === "members" && <MembersTab manufacturer={manufacturer} />}
       </div>
     </Modal>
   );
@@ -877,6 +879,166 @@ function CertificationsTab({ manufacturer }: { manufacturer: ManufacturerRow }) 
                   解除
                 </button>
               )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Members tab — manufacturer portal accounts
+// ---------------------------------------------------------------------------
+
+type ManufacturerMemberEntry = {
+  id: string;
+  user_id: string;
+  role: "admin" | "viewer";
+  display_name: string | null;
+  email: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+function MembersTab({ manufacturer }: { manufacturer: ManufacturerRow }) {
+  const [members, setMembers] = useState<ManufacturerMemberEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [role, setRole] = useState<"admin" | "viewer">("viewer");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const reload = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/platform/manufacturers/members?manufacturer_id=${manufacturer.id}`, {
+        cache: "no-store",
+      });
+      const json = await res.json();
+      if (res.ok) setMembers(json.members ?? []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manufacturer.id]);
+
+  const invite = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/platform/manufacturers/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          manufacturer_id: manufacturer.id,
+          email: email.trim(),
+          display_name: displayName.trim() || undefined,
+          role,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message ?? "招待に失敗しました。");
+      setEmail("");
+      setDisplayName("");
+      setRole("viewer");
+      setMsg("招待メールを送信しました。");
+      reload();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "招待に失敗しました。");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleActive = async (m: ManufacturerMemberEntry) => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/platform/manufacturers/members", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: m.id, is_active: !m.is_active }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message ?? "更新に失敗しました。");
+      reload();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "更新に失敗しました。");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-border-subtle bg-surface-hover p-3">
+        <div className="text-sm font-medium text-primary mb-2">担当者を招待する</div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="メールアドレス"
+            className="input-field"
+            type="email"
+          />
+          <input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="表示名 (任意)"
+            className="input-field"
+          />
+          <select value={role} onChange={(e) => setRole(e.target.value as "admin" | "viewer")} className="select-field">
+            <option value="viewer">viewer (閲覧のみ)</option>
+            <option value="admin">admin (将来の管理操作用)</option>
+          </select>
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-xs text-secondary">
+            指定アドレスに Supabase
+            の招待メールが届きます。リンクからパスワード設定後、メーカーポータルにログインできます。
+          </p>
+          <button onClick={invite} disabled={busy || !email.trim()} className="btn-primary text-xs">
+            招待を送信
+          </button>
+        </div>
+      </div>
+
+      {msg && <div className="text-sm text-secondary">{msg}</div>}
+
+      {loading ? (
+        <div className="text-sm text-secondary">読み込み中...</div>
+      ) : members.length === 0 ? (
+        <div className="rounded-md border border-border-subtle bg-surface p-4 text-sm text-secondary">
+          メンバーはまだ登録されていません。
+        </div>
+      ) : (
+        <ul className="divide-y divide-border-subtle rounded-md border border-border-subtle bg-surface">
+          {members.map((m) => (
+            <li key={m.id} className="flex items-center justify-between gap-3 px-3 py-2">
+              <div>
+                <div className="text-sm font-medium text-primary">
+                  {m.display_name ?? m.email ?? "(名称未設定)"}
+                  <span className="ml-2 text-xs text-secondary">role: {m.role}</span>
+                  {!m.is_active && (
+                    <span className="ml-2 rounded-full bg-surface-hover px-2 py-0.5 text-xs text-secondary">無効</span>
+                  )}
+                </div>
+                <div className="text-xs text-muted">
+                  {m.email ?? "メール不明"}
+                  {" · "}
+                  追加: {new Date(m.created_at).toLocaleDateString("ja-JP")}
+                </div>
+              </div>
+              <button onClick={() => toggleActive(m)} disabled={busy} className="btn-secondary text-xs">
+                {m.is_active ? "無効化" : "再有効化"}
+              </button>
             </li>
           ))}
         </ul>
