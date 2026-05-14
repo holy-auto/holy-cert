@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Section } from "./Section";
 import { SectionHeading } from "./SectionHeading";
 import { ScrollReveal } from "./ScrollReveal";
@@ -5,11 +6,14 @@ import { ScrollReveal } from "./ScrollReveal";
 /**
  * Integration logo wall — カラーロゴ使用許諾までは、ブランドテキストチップで見せる。
  * 許諾が揃い次第、各アイテムに SVG/画像ロゴを差し替える。
+ * `logo` プロパティが指定されているアイテムは画像で、それ以外はテキストで表示する。
  */
 
 type Integration = {
   name: string;
   note?: string;
+  /** `/public` 以下からのパス。指定時はテキストではなく画像でロゴを表示する。 */
+  logo?: string;
 };
 
 const INTEGRATIONS: Integration[] = [
@@ -21,7 +25,11 @@ const INTEGRATIONS: Integration[] = [
   { name: "Resend", note: "トランザクションメール" },
   { name: "C2PA", note: "写真コンテンツクレデンシャル" },
   { name: "Claude", note: "車検証OCR・写真品質検証・エージェント" },
-  { name: "NexDIAG", note: "膜厚計測・コーティング検証" },
+  {
+    name: "NexDiag",
+    note: "膜厚計測・コーティング検証",
+    logo: "/marketing/integrations/nexdiag.svg",
+  },
   { name: "Upstash", note: "分散レート制限・キャッシュ" },
   { name: "Supabase", note: "RLS付きデータ基盤" },
 ];
@@ -37,7 +45,19 @@ export function IntegrationLogoWall() {
         {INTEGRATIONS.map((item, i) => (
           <ScrollReveal key={item.name} variant="fade-up" delay={Math.floor(i / 4) * 60}>
             <div className="group h-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 md:p-8 text-center hover:bg-white/[0.06] hover:border-white/[0.14] transition-colors">
-              <p className="text-lg md:text-xl font-semibold text-white tracking-tight">{item.name}</p>
+              {item.logo ? (
+                <div className="flex h-7 md:h-8 items-center justify-center">
+                  <Image
+                    src={item.logo}
+                    alt={item.name}
+                    width={140}
+                    height={40}
+                    className="h-full w-auto object-contain"
+                  />
+                </div>
+              ) : (
+                <p className="text-lg md:text-xl font-semibold text-white tracking-tight">{item.name}</p>
+              )}
               {item.note && (
                 <p className="mt-2.5 text-sm md:text-[0.95rem] leading-relaxed text-white/80">{item.note}</p>
               )}

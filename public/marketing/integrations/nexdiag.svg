@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" role="img" aria-label="NexDiag">
+  <rect x="2" y="2" width="196" height="56" rx="8" fill="#ffffff" stroke="#e6e8eb" stroke-width="1"/>
+  <text x="100" y="38"
+        font-family="'Helvetica Neue', Arial, sans-serif"
+        font-size="22"
+        font-weight="700"
+        fill="#0b1d3a"
+        text-anchor="middle"
+        letter-spacing="-0.5">
+    <tspan fill="#0b1d3a">Nex</tspan><tspan fill="#1d6dff">Diag</tspan>
+  </text>
+</svg>
