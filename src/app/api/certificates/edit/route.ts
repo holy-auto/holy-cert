@@ -2,9 +2,17 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
-import { apiOk, apiInternalError, apiUnauthorized, apiValidationError, apiNotFound } from "@/lib/api/response";
+import {
+  apiOk,
+  apiInternalError,
+  apiUnauthorized,
+  apiValidationError,
+  apiNotFound,
+  apiForbidden,
+} from "@/lib/api/response";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { checkRateLimit } from "@/lib/api/rateLimit";
+import { resolveCertifiedTemplateForTenant } from "@/lib/manufacturers/certifiedTemplates";
 
 const certificateEditSchema = z
   .object({
@@ -61,7 +69,7 @@ export async function PUT(req: NextRequest) {
     const { data: cert, error: fetchError } = await admin
       .from("certificates")
       .select(
-        "id, tenant_id, public_id, status, customer_name, vehicle_info_json, content_free_text, expiry_type, expiry_value, expiry_date, warranty_period_end, maintenance_date, warranty_exclusions, remarks, service_type, coating_products_json, ppf_coverage_json, maintenance_json, body_repair_json, current_version",
+        "id, tenant_id, public_id, status, customer_name, vehicle_info_json, content_free_text, expiry_type, expiry_value, expiry_date, warranty_period_end, maintenance_date, warranty_exclusions, remarks, service_type, coating_products_json, ppf_coverage_json, maintenance_json, body_repair_json, current_version, manufacturer_id, manufacturer_template_id",
       )
       .eq("public_id", publicId)
       .eq("tenant_id", caller.tenantId)
@@ -82,6 +90,36 @@ export async function PUT(req: NextRequest) {
       if (!valuesEqual(oldVal, newVal)) {
         changes.push({ field, label, old: oldVal ?? null, new: newVal ?? null });
         updatePayload[field] = newVal;
+      }
+    }
+
+    // メーカー指定デザインの切替もここで扱う。null への切替は常に許可
+    // (テナント標準デザインに戻す)。値の差し替えはテナントの認定状態を
+    // application 側で再確認する。
+    if ("manufacturer_template_id" in body) {
+      const incoming = body.manufacturer_template_id;
+      if (incoming !== null && incoming !== undefined && typeof incoming !== "string") {
+        return apiValidationError("manufacturer_template_id の形式が不正です。");
+      }
+      const newTemplateId = incoming ? String(incoming) : null;
+      const oldTemplateId = (cert as Record<string, unknown>).manufacturer_template_id ?? null;
+      if (newTemplateId !== oldTemplateId) {
+        let newManufacturerId: string | null = null;
+        if (newTemplateId) {
+          const resolved = await resolveCertifiedTemplateForTenant(caller.tenantId, newTemplateId);
+          if (!resolved) {
+            return apiForbidden("このメーカーの認定施工店ではないため、指定デザインに切替できません。");
+          }
+          newManufacturerId = resolved.manufacturer.id;
+        }
+        updatePayload.manufacturer_template_id = newTemplateId;
+        updatePayload.manufacturer_id = newManufacturerId;
+        changes.push({
+          field: "manufacturer_template_id",
+          label: "メーカー指定デザイン",
+          old: oldTemplateId,
+          new: newTemplateId,
+        });
       }
     }
 
