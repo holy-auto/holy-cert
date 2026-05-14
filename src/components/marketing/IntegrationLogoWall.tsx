@@ -11,6 +11,7 @@ import { ScrollReveal } from "./ScrollReveal";
 type Integration = {
   name: string;
   note?: string;
+  href: string;
   logo?: {
     src: string;
     width: number;
@@ -19,35 +20,40 @@ type Integration = {
 };
 
 const INTEGRATIONS: Integration[] = [
-  { name: "Stripe", note: "サブスクリプション・請求書" },
-  { name: "Square", note: "POS端末決済・在庫同期" },
-  { name: "Google Calendar", note: "予約カレンダー双方向同期" },
+  { name: "Stripe", note: "サブスクリプション・請求書", href: "https://stripe.com/jp" },
+  { name: "Square", note: "POS端末決済・在庫同期", href: "https://squareup.com/jp" },
+  { name: "Google Calendar", note: "予約カレンダー双方向同期", href: "https://calendar.google.com/" },
   {
     name: "LINE",
     note: "顧客通知・リマインド",
+    href: "https://line.me/ja/",
     logo: { src: "/brands/LINE_Brand_icon.png", width: 1001, height: 1000 },
   },
   {
     name: "Polygon",
     note: "証明書アンカリング",
+    href: "https://polygon.technology/",
     logo: { src: "/brands/Polygon_Logo_HiRes.png", width: 2915, height: 802 },
   },
   {
     name: "Resend",
     note: "トランザクションメール",
+    href: "https://resend.com/",
     logo: { src: "/brands/resend-wordmark-white.svg", width: 1978, height: 420 },
   },
-  { name: "C2PA", note: "写真コンテンツクレデンシャル" },
-  { name: "Claude", note: "車検証OCR・写真品質検証・エージェント" },
-  { name: "NexPTG", note: "膜厚計測・コーティング検証" },
+  { name: "C2PA", note: "写真コンテンツクレデンシャル", href: "https://c2pa.org/" },
+  { name: "Claude", note: "車検証OCR・写真品質検証・エージェント", href: "https://claude.com/" },
+  { name: "NexPTG", note: "膜厚計測・コーティング検証", href: "https://nexdiag.com/" },
   {
     name: "Upstash",
     note: "分散レート制限・キャッシュ",
+    href: "https://upstash.com/",
     logo: { src: "/brands/upstash-dark-bg.svg", width: 1631, height: 472 },
   },
   {
     name: "Supabase",
     note: "RLS付きデータ基盤",
+    href: "https://supabase.com/",
     logo: { src: "/brands/supabase-logo-wordmark--dark.svg", width: 581, height: 113 },
   },
 ];
@@ -62,23 +68,31 @@ export function IntegrationLogoWall() {
       <div className="mx-auto mt-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 max-w-5xl">
         {INTEGRATIONS.map((item, i) => (
           <ScrollReveal key={item.name} variant="fade-up" delay={Math.floor(i / 4) * 60}>
-            <div className="group h-full rounded-2xl border border-white/[0.14] bg-white/[0.06] p-5 md:p-6 text-center hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors flex flex-col items-center justify-center">
-              {item.logo ? (
-                <div className="flex h-8 md:h-9 items-center justify-center">
-                  <Image
-                    src={item.logo.src}
-                    alt={`${item.name} logo`}
-                    width={item.logo.width}
-                    height={item.logo.height}
-                    className="h-full w-auto object-contain"
-                    sizes="(min-width: 768px) 180px, 140px"
-                  />
-                </div>
-              ) : (
-                <p className="text-base md:text-lg font-semibold text-white tracking-tight">{item.name}</p>
-              )}
-              {item.note && <p className="mt-2 text-xs leading-relaxed text-white">{item.note}</p>}
-            </div>
+            <a
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${item.name} の公式サイト（新しいタブで開く）`}
+              className="group block h-full rounded-2xl border border-white/[0.14] bg-white/[0.06] p-5 md:p-6 text-center hover:bg-white/[0.10] hover:border-white/[0.22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 transition-colors"
+            >
+              <div className="flex h-full flex-col items-center justify-center">
+                {item.logo ? (
+                  <div className="flex h-8 md:h-9 items-center justify-center">
+                    <Image
+                      src={item.logo.src}
+                      alt={`${item.name} logo`}
+                      width={item.logo.width}
+                      height={item.logo.height}
+                      className="h-full w-auto object-contain"
+                      sizes="(min-width: 768px) 180px, 140px"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-base md:text-lg font-semibold text-white tracking-tight">{item.name}</p>
+                )}
+                {item.note && <p className="mt-2 text-xs leading-relaxed text-white">{item.note}</p>}
+              </div>
+            </a>
           </ScrollReveal>
         ))}
       </div>
