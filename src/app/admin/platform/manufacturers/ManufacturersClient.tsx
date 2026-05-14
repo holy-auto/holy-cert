@@ -410,12 +410,20 @@ function ManufacturerInfoTab({ manufacturer, onChanged }: { manufacturer: Manufa
           <input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} className="input-field w-full" />
         </Field>
         <Field label="ロゴ asset path (Storage)">
-          <input
-            value={logoPath}
-            onChange={(e) => setLogoPath(e.target.value)}
-            className="input-field w-full"
-            placeholder="logos/manufacturer-foo.png"
-          />
+          <div className="flex flex-col gap-2">
+            <input
+              value={logoPath}
+              onChange={(e) => setLogoPath(e.target.value)}
+              className="input-field w-full"
+              placeholder="manufacturers/<id>/logo.png"
+            />
+            <AssetUploader
+              label="PNGをアップロード"
+              kind="manufacturer_logo"
+              manufacturerId={manufacturer.id}
+              onUploaded={setLogoPath}
+            />
+          </div>
         </Field>
         <Field label="連絡先メール">
           <input
@@ -651,11 +659,25 @@ function TemplateEditor({
           </Field>
         </div>
         <Field label="サムネイル asset path">
-          <input
-            value={thumbnailPath}
-            onChange={(e) => setThumbnailPath(e.target.value)}
-            className="input-field w-full"
-          />
+          <div className="flex flex-col gap-2">
+            <input
+              value={thumbnailPath}
+              onChange={(e) => setThumbnailPath(e.target.value)}
+              className="input-field w-full"
+              placeholder="manufacturers/<id>/templates/<template-id>/thumbnail.png"
+            />
+            {template ? (
+              <AssetUploader
+                label="サムネイルPNGをアップロード"
+                kind="manufacturer_template_thumbnail"
+                manufacturerId={manufacturerId}
+                templateId={template.id}
+                onUploaded={setThumbnailPath}
+              />
+            ) : (
+              <p className="text-xs text-secondary">テンプレートを一度保存してからサムネイルをアップロードできます。</p>
+            )}
+          </div>
         </Field>
         <Field label="config_json (renderBrandedCertificatePdf 互換)">
           <textarea
@@ -859,6 +881,71 @@ function CertificationsTab({ manufacturer }: { manufacturer: ManufacturerRow }) 
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Asset uploader (manufacturer logo / template thumbnail)
+// ---------------------------------------------------------------------------
+
+function AssetUploader({
+  label,
+  kind,
+  manufacturerId,
+  templateId,
+  onUploaded,
+}: {
+  label: string;
+  kind: "manufacturer_logo" | "manufacturer_template_thumbnail";
+  manufacturerId: string;
+  templateId?: string;
+  onUploaded: (path: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    setErr(null);
+    setOkMsg(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("kind", kind);
+      form.append("manufacturer_id", manufacturerId);
+      if (templateId) form.append("template_id", templateId);
+
+      const res = await fetch("/api/admin/platform/manufacturers/upload", {
+        method: "POST",
+        body: form,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message ?? "アップロードに失敗しました。");
+      const path = String(json.path ?? "");
+      if (!path) throw new Error("アップロードレスポンスにパスがありません。");
+      onUploaded(path);
+      setOkMsg("アップロード完了。保存ボタンで反映してください。");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "アップロードに失敗しました。");
+    } finally {
+      setBusy(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="space-y-1">
+      <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-secondary">
+        <input type="file" accept="image/png" onChange={handleChange} disabled={busy} className="text-xs" />
+        <span>{busy ? "アップロード中..." : label}</span>
+      </label>
+      <p className="text-[11px] text-muted">PNG / 2MB以下</p>
+      {err && <p className="text-xs text-danger-text">{err}</p>}
+      {okMsg && <p className="text-xs text-success-text">{okMsg}</p>}
     </div>
   );
 }

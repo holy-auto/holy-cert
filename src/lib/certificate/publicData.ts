@@ -59,6 +59,16 @@ type CertRow = {
   warranty_exclusions: string | null;
   maintenance_json: Json | null;
   body_repair_json: Json | null;
+  manufacturer_id: string | null;
+  manufacturer_template_id: string | null;
+};
+
+type ManufacturerPublicRow = {
+  id: string;
+  name: string;
+  slug: string | null;
+  logo_asset_path: string | null;
+  website_url: string | null;
 };
 
 type TenantRow = {
@@ -166,6 +176,12 @@ export type PublicCertificateData = {
     slug: string | null;
     custom_domain: string | null;
   } | null;
+  /**
+   * Active manufacturer info when the certificate was issued under a
+   * メーカー指定デザイン. The page surfaces this as a 認定施工店 badge.
+   * Null when the certificate uses the standard or tenant-branded design.
+   */
+  manufacturer: ManufacturerPublicRow | null;
   /** Normalized VIN for the vehicle passport link. Non-null only when a passport record exists. */
   passport_vin: string | null;
 };
@@ -185,7 +201,7 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
         "vehicle_info_json, content_free_text, content_preset_json, expiry_type, expiry_value, " +
         "logo_asset_path, footer_variant, current_version, service_type, ppf_coverage_json, " +
         "coating_products_json, warranty_period_end, warranty_exclusions, " +
-        "maintenance_json, body_repair_json",
+        "maintenance_json, body_repair_json, manufacturer_id, manufacturer_template_id",
     )
     .eq("public_id", pid)
     .limit(1)
@@ -280,6 +296,20 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
   const histories = histRes.data ?? [];
   const vehicle_certificates = vcRes.data ?? [];
 
+  // Manufacturer info is fetched lazily only when the certificate was
+  // issued under a manufacturer-fixed design — keeps the standard /c
+  // page from paying a query for the common case.
+  let manufacturer: ManufacturerPublicRow | null = null;
+  if (cert.manufacturer_id) {
+    const { data: mfrRow } = await supabase
+      .from("manufacturers")
+      .select("id, name, slug, logo_asset_path, website_url")
+      .eq("id", cert.manufacturer_id)
+      .eq("is_active", true)
+      .maybeSingle<ManufacturerPublicRow>();
+    manufacturer = mfrRow ?? null;
+  }
+
   // Check for an existing vehicle passport (for the "view full history" badge)
   let passportVin: string | null = null;
   const vinNormalized = vehicle?.vin_code_normalized ?? null;
@@ -371,6 +401,7 @@ export async function getPublicCertificateData(pid: string): Promise<PublicCerti
           custom_domain: tenant.custom_domain ?? null,
         }
       : null,
+    manufacturer,
     passport_vin: passportVin,
   };
 }

@@ -13,6 +13,7 @@ import PpfCoverageSection from "./PpfCoverageSection";
 import MaintenanceDetailsSection from "./MaintenanceDetailsSection";
 import BodyRepairDetailsSection from "./BodyRepairDetailsSection";
 import PhotoUploadSection, { type PhotoUploadHandle } from "./PhotoUploadSection";
+import ManufacturerTemplatePicker from "./ManufacturerTemplatePicker";
 import Button from "@/components/ui/Button";
 import HelpTooltip from "@/components/ui/HelpTooltip";
 import type { PlanTier } from "@/lib/billing/planFeatures";
@@ -433,6 +434,11 @@ export default function CertNewFormWrapper({
         <input type="hidden" name="template_name" value={selectedTemplate?.name ?? ""} />
         {defaultCustomerId && <input type="hidden" name="customer_id" value={defaultCustomerId} />}
         {serviceType && <input type="hidden" name="service_type" value={serviceType} />}
+
+        {/* ━━━ 0a. メーカー指定デザイン（認定施工店のみ表示） ━━━ */}
+        <section className="pb-6">
+          <ManufacturerTemplatePicker serviceType={serviceType} />
+        </section>
 
         {/* ━━━ 0. 施工パッケージ ━━━ */}
         <section className="pb-6">
