@@ -143,13 +143,13 @@ export async function GET(req: Request) {
     | "current_version"
     | "maintenance_json"
     | "body_repair_json"
-  > & { id: string; tenant_id: string | null };
+  > & { id: string; tenant_id: string | null; manufacturer_template_id: string | null };
 
   const adm = createServiceRoleAdmin("public certificate PDF — fetch full cert + anchors for rendering");
   const { data: fullCert } = await adm
     .from("certificates")
     .select(
-      "id, tenant_id, ppf_coverage_json, service_type, coating_products_json, warranty_period_end, warranty_exclusions, current_version, maintenance_json, body_repair_json",
+      "id, tenant_id, ppf_coverage_json, service_type, coating_products_json, warranty_period_end, warranty_exclusions, current_version, maintenance_json, body_repair_json, manufacturer_template_id",
     )
     .eq("public_id", pid)
     .limit(1)
@@ -222,6 +222,47 @@ export async function GET(req: Request) {
     tenant_custom_domain: cert.tenant_custom_domain,
     current_version: fullCert?.current_version ?? null,
   };
+
+  // ── メーカー指定デザインが選択されていればそれを最優先で描画 ──
+  // テンプレート解決チェーン:
+  //   1. 証明書 row が manufacturer_template_id を持つ
+  //      → manufacturer_templates.config_json で描画 (発行時に
+  //        certification 検証済みなのでここでは再検証しない)
+  //   2. テナントがブランドテンプレートを購読中
+  //      → tenant_template_configs.config_json で描画
+  //   3. それ以外 → 標準デザイン
+  try {
+    if (fullCert?.manufacturer_template_id) {
+      const { data: mfrTemplate } = await adm
+        .from("manufacturer_templates")
+        .select("config_json, is_active")
+        .eq("id", fullCert.manufacturer_template_id)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (mfrTemplate?.config_json) {
+        const brandedBuf = await renderBrandedCertificatePdf(
+          certRow,
+          publicUrl,
+          mfrTemplate.config_json as TemplateConfig,
+        );
+
+        return new NextResponse(new Uint8Array(brandedBuf), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `inline; filename="certificate_${cert.public_id}.pdf"`,
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+    }
+  } catch (mfrErr) {
+    // メーカーテンプレ失敗時は次の解決ステップ (テナントブランド/標準) に
+    // フォールバックする。証明書発行を完全に阻害しないことを優先。
+    console.error("manufacturer template fallback:", mfrErr instanceof Error ? mfrErr.message : mfrErr);
+  }
 
   // ── ブランドテンプレートが有効ならブランドPDFを生成 ──
   try {

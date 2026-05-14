@@ -4,6 +4,7 @@ import { createClient as createSupabaseServerClient } from "@/lib/supabase/serve
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
 import { makePublicId } from "@/lib/publicId";
 import { enqueueInsuranceCaseCreated } from "@/lib/qstash/publish";
+import { resolveCertifiedTemplateForTenant } from "@/lib/manufacturers/certifiedTemplates";
 
 export type CreateCertResult = { ok: true; public_id: string } | { ok: false; error: string };
 
@@ -127,6 +128,22 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
 
   if (!customer_name) return { ok: false, error: "customer_name_required" };
   if (!vehicle_id && !vehicle_maker && !model) return { ok: false, error: "vehicle_required" };
+
+  // メーカー指定デザインを使う場合は、認定施工店であることを必ず再確認する。
+  // クライアントから任意の id を差し込まれる可能性に備え、ここを抜くと
+  // 偽装発行の口になる。API ルートと同じ resolveCertifiedTemplateForTenant
+  // を使うことで両経路で同一のゲートを通す。
+  const manufacturer_template_id_form = String(formData.get("manufacturer_template_id") || "").trim() || null;
+  let manufacturer_id: string | null = null;
+  let manufacturer_template_id: string | null = null;
+  if (manufacturer_template_id_form) {
+    const resolved = await resolveCertifiedTemplateForTenant(tenantId, manufacturer_template_id_form);
+    if (!resolved) {
+      return { ok: false, error: "not_certified_for_manufacturer_template" };
+    }
+    manufacturer_id = resolved.manufacturer.id;
+    manufacturer_template_id = resolved.template.id;
+  }
 
   // Auto-create customer record if not linked to existing master
   // (Allows "type-to-create" — name entered freely will be registered to customer master.)
@@ -268,6 +285,8 @@ export async function createCertAction(formData: FormData): Promise<CreateCertRe
     remarks: remarks || null,
     footer_variant: "holy",
     logo_asset_path: tenantLogoPath,
+    manufacturer_id,
+    manufacturer_template_id,
     created_by: userId,
   });
 
