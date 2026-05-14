@@ -56,6 +56,20 @@ export type ManufacturerCertifiedTenantRow = {
   updated_at: string;
 };
 
+export type ManufacturerMembershipRole = "admin" | "viewer";
+
+export type ManufacturerMembershipRow = {
+  id: string;
+  manufacturer_id: string;
+  user_id: string;
+  role: ManufacturerMembershipRole;
+  display_name: string | null;
+  is_active: boolean;
+  invited_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 // ---- Display labels --------------------------------------------------------
 
 export const MANUFACTURER_SERVICE_TYPE_LABELS: Record<ManufacturerServiceType, string> = {
