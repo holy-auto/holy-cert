@@ -150,7 +150,7 @@ const CalendarView = memo(function CalendarView({ reservations, onDateClick }: C
             <div
               key={wd}
               className={`py-2 text-center text-[11px] font-bold tracking-widest ${
-                i === 0 ? "text-red-200" : i === 6 ? "text-blue-200" : "text-white/70"
+                i === 0 ? "text-red-200" : i === 6 ? "text-blue-200" : "text-white"
               }`}
             >
               {wd}

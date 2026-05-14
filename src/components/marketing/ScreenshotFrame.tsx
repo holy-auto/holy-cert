@@ -86,7 +86,7 @@ export function ScreenshotFrame({
             <span className="block w-2.5 h-2.5 rounded-full bg-rose-400/50" />
             <span className="block w-2.5 h-2.5 rounded-full bg-amber-400/50" />
             <span className="block w-2.5 h-2.5 rounded-full bg-emerald-400/50" />
-            {url && <span className="ml-3 truncate text-[0.65rem] text-white/70 font-mono">{url}</span>}
+            {url && <span className="ml-3 truncate text-[0.65rem] text-white font-mono">{url}</span>}
           </div>
         )}
         <div className={`relative ${aspect} bg-[#060a12]`}>

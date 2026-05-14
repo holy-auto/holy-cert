@@ -15,8 +15,8 @@ const notoSansJP = Noto_Sans_JP({
   preload: true,
 });
 
-// ISR: All marketing pages regenerate every 1 hour
-export const revalidate = 3600;
+// ISR: All marketing pages regenerate every 60 seconds (was 3600)
+export const revalidate = 60;
 
 export const metadata = {
   title: {

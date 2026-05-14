@@ -26,7 +26,7 @@ export default function OperationGuidePage() {
         {/* Table of contents */}
         <div className="mx-auto max-w-3xl mt-10 mb-12">
           <div className="rounded-2xl border border-border-default bg-surface p-5 shadow-sm">
-            <div className="text-xs font-semibold tracking-[0.18em] text-muted">CONTENTS</div>
+            <div className="text-xs font-semibold tracking-[0.18em] text-white">CONTENTS</div>
             <h3 className="mt-1 text-base font-bold text-primary">目次</h3>
             <div className="mt-4 space-y-4">
               {OPERATION_GUIDE_GROUPS.map((group, gi) => (
@@ -34,7 +34,7 @@ export default function OperationGuidePage() {
                   <div className="text-sm font-semibold text-primary mb-1">
                     {String(gi + 1).padStart(2, "0")}. {group.label}
                   </div>
-                  <ul className="grid gap-1 sm:grid-cols-2 text-xs text-secondary pl-4">
+                  <ul className="grid gap-1 sm:grid-cols-2 text-xs text-white pl-4">
                     {group.guides.map((g) => (
                       <li key={g.id}>
                         <a href={`#guide-${g.id}`} className="hover:text-accent hover:underline">
@@ -56,7 +56,7 @@ export default function OperationGuidePage() {
 
         <div className="mx-auto max-w-3xl mt-12 rounded-2xl border border-border-default bg-surface p-6 text-center">
           <h3 className="text-base font-bold text-primary">この資料を共有する</h3>
-          <p className="mt-1 text-sm text-muted leading-relaxed">
+          <p className="mt-1 text-sm text-white leading-relaxed">
             このページは公開されており、URL ({" "}
             <code className="rounded bg-surface-hover px-1.5 py-0.5 text-[11px]">/guide</code> ) を メール・LINE・Slack
             などでそのまま共有できます。施工店様への導入支援資料としてご活用ください。

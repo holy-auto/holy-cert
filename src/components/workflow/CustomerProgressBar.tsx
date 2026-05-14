@@ -81,21 +81,19 @@ export default function CustomerProgressBar({ tenantSlug, reservationId, pollInt
       {/* ヘッダー */}
       <div
         className={`px-5 py-4 ${
-          is_completed
-            ? "bg-gradient-to-r from-success to-success/80"
-            : "bg-gradient-to-r from-accent to-accent/80"
+          is_completed ? "bg-gradient-to-r from-success to-success/80" : "bg-gradient-to-r from-accent to-accent/80"
         }`}
       >
         <div className="text-white text-sm font-medium opacity-90">施工進捗</div>
         <div className="text-white text-2xl font-bold mt-0.5">{is_completed ? "完了！" : `${progress_pct}%`}</div>
         {!is_completed && current_step && (
-          <div className="text-white/80 text-xs mt-0.5">
+          <div className="text-white text-xs mt-0.5">
             現在: {current_step.label}
             {current_step.started_at && ` (${formatTime(current_step.started_at)}開始)`}
           </div>
         )}
         {!is_completed && estimated_completion && (
-          <div className="text-white/70 text-xs">完了予定: {estimated_completion}</div>
+          <div className="text-white text-xs">完了予定: {estimated_completion}</div>
         )}
       </div>
 
@@ -113,11 +111,7 @@ export default function CustomerProgressBar({ tenantSlug, reservationId, pollInt
           <div
             key={i}
             className={`flex items-center gap-3 rounded-xl px-3 py-2 ${
-              step.status === "in_progress"
-                ? "bg-accent-dim"
-                : step.status === "completed"
-                  ? ""
-                  : "opacity-40"
+              step.status === "in_progress" ? "bg-accent-dim" : step.status === "completed" ? "" : "opacity-40"
             }`}
           >
             <div

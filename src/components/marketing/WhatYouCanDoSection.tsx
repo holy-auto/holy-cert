@@ -154,9 +154,9 @@ function FeatureCard({
   return (
     <ScrollReveal variant="fade-up" delay={delay}>
       <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 md:p-7 hover:bg-white/[0.05] hover:border-white/[0.14] transition-all duration-300 h-full flex flex-col">
-        <div className="text-[0.688rem] font-medium uppercase tracking-widest text-blue-300/80">{eyebrow}</div>
+        <div className="text-[0.688rem] font-medium uppercase tracking-widest text-blue-300">{eyebrow}</div>
         <h3 className="mt-2 text-lg md:text-xl font-bold leading-snug text-white">{title}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-white/80">{description}</p>
+        <p className="mt-2 text-sm leading-relaxed text-white">{description}</p>
         <div className="mt-5">{children}</div>
       </div>
     </ScrollReveal>
@@ -170,7 +170,7 @@ function FeatureCard({
 function CertNewMockBody() {
   return (
     <div className="absolute inset-0 p-4 flex flex-col gap-2.5">
-      <div className="flex items-center gap-2 text-[0.6rem] text-white/70">
+      <div className="flex items-center gap-2 text-[0.6rem] text-white">
         <span className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-blue-300">施工内容</span>
         <span className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1">車両</span>
         <span className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1">材料</span>
@@ -182,13 +182,11 @@ function CertNewMockBody() {
         <Field label="施工日" value="2026.04.28" />
         <Field label="保証期間" value="5 年間" />
       </div>
-      <div className="rounded-md border border-dashed border-white/[0.12] bg-white/[0.02] p-3 text-[0.6rem] text-white/70 text-center">
+      <div className="rounded-md border border-dashed border-white/[0.12] bg-white/[0.02] p-3 text-[0.6rem] text-white text-center">
         施工写真をドラッグ&ドロップ
       </div>
       <div className="mt-auto flex justify-end gap-2">
-        <span className="rounded-md border border-white/[0.1] px-3 py-1.5 text-[0.65rem] text-white/80">
-          下書き保存
-        </span>
+        <span className="rounded-md border border-white/[0.1] px-3 py-1.5 text-[0.65rem] text-white">下書き保存</span>
         <span className="rounded-md bg-blue-500/80 px-3 py-1.5 text-[0.65rem] text-white">証明書を発行</span>
       </div>
     </div>
@@ -199,19 +197,19 @@ function CertShareMockBody() {
   return (
     <div className="absolute inset-0 p-4 grid grid-cols-5 gap-3">
       <div className="col-span-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-        <div className="text-[0.55rem] uppercase tracking-widest text-white/70">施工証明書</div>
+        <div className="text-[0.55rem] uppercase tracking-widest text-white">施工証明書</div>
         <div className="mt-1 text-[0.7rem] font-bold text-white">Toyota Alphard 2024</div>
-        <div className="mt-3 space-y-1.5 text-[0.6rem] text-white/80">
+        <div className="mt-3 space-y-1.5 text-[0.6rem] text-white">
           <div className="flex justify-between border-b border-white/[0.06] pb-1">
-            <span className="text-white/70">施工内容</span>
+            <span className="text-white">施工内容</span>
             <span>ガラスコーティング</span>
           </div>
           <div className="flex justify-between border-b border-white/[0.06] pb-1">
-            <span className="text-white/70">施工日</span>
+            <span className="text-white">施工日</span>
             <span>2026.04.28</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-white/70">保証</span>
+            <span className="text-white">保証</span>
             <span>5 年間</span>
           </div>
         </div>
@@ -222,8 +220,8 @@ function CertShareMockBody() {
             <span key={i} className="aspect-square" style={{ background: i % 3 === 0 ? "#fff" : "transparent" }} />
           ))}
         </div>
-        <div className="mt-2 text-[0.55rem] text-white/70">QR で共有</div>
-        <div className="mt-2 rounded bg-white/10 px-2 py-1 text-[0.55rem] font-mono text-white/80">ledra.app/v/...</div>
+        <div className="mt-2 text-[0.55rem] text-white">QR で共有</div>
+        <div className="mt-2 rounded bg-white/10 px-2 py-1 text-[0.55rem] font-mono text-white">ledra.app/v/...</div>
       </div>
     </div>
   );
@@ -240,7 +238,7 @@ function DashboardMockBody() {
           { label: "NPS", value: "4.8", delta: "/5.0" },
         ].map((k) => (
           <div key={k.label} className="rounded-md border border-white/[0.06] bg-white/[0.02] p-2">
-            <div className="text-[0.5rem] uppercase tracking-wider text-white/70">{k.label}</div>
+            <div className="text-[0.5rem] uppercase tracking-wider text-white">{k.label}</div>
             <div className="mt-1 flex items-baseline gap-1">
               <span className="text-[0.85rem] font-bold text-white">{k.value}</span>
               <span className="text-[0.55rem] text-emerald-300">{k.delta}</span>
@@ -278,7 +276,7 @@ function ListMockBody({ label, rows }: { label: string; rows: string[] }) {
         {rows.map((r, i) => (
           <li
             key={i}
-            className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1.5 text-[0.6rem] text-white/80 truncate"
+            className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1.5 text-[0.6rem] text-white truncate"
           >
             {r}
           </li>
@@ -291,7 +289,7 @@ function ListMockBody({ label, rows }: { label: string; rows: string[] }) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1.5">
-      <div className="text-[0.5rem] uppercase tracking-wider text-white/70">{label}</div>
+      <div className="text-[0.5rem] uppercase tracking-wider text-white">{label}</div>
       <div className="mt-0.5 text-[0.65rem] text-white">{value}</div>
     </div>
   );

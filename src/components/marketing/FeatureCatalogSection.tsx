@@ -81,14 +81,14 @@ export function FeatureCatalogSection() {
         subtitle="証明書発行は入口です。請求・電子署名・代理店・保険連携・予約・モバイル決済まで、施工店の業務を一周通して支えます。"
       />
 
-      <div className="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="mx-auto max-w-6xl grid auto-rows-fr grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {CATEGORIES.map((c, i) => (
-          <ScrollReveal key={c.title} variant="fade-up" delay={(i % 3) * 80}>
+          <ScrollReveal key={c.title} variant="fade-up" delay={(i % 3) * 80} className="h-full">
             <div className="h-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 hover:bg-white/[0.06] hover:border-white/[0.14] transition-colors">
               <h3 className="text-sm font-bold text-white tracking-tight">{c.title}</h3>
               <ul className="mt-4 space-y-2">
                 {c.items.map((it) => (
-                  <li key={it} className="flex items-start gap-2 text-xs leading-relaxed text-white/80">
+                  <li key={it} className="flex items-start gap-2 text-xs leading-relaxed text-white">
                     <svg
                       className="w-3 h-3 mt-0.5 flex-shrink-0 text-blue-400"
                       viewBox="0 0 12 12"

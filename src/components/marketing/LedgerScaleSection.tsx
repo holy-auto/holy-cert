@@ -85,14 +85,14 @@ function SplitRow({
         className={`md:col-span-5 ${copyOrder}`}
       >
         <div>
-          <span className="text-[0.688rem] font-medium uppercase tracking-widest text-blue-300/80">{eyebrow}</span>
+          <span className="text-[0.688rem] font-medium uppercase tracking-widest text-blue-300">{eyebrow}</span>
           <h3 className="mt-3 text-[1.5rem] md:text-[1.75rem] font-bold leading-[1.3] tracking-tight text-white">
             {title}
           </h3>
-          <p className="mt-4 text-[0.938rem] leading-relaxed text-white/80">{description}</p>
+          <p className="mt-4 text-[0.938rem] leading-relaxed text-white">{description}</p>
           <ul className="mt-6 space-y-3">
             {bullets.map((b) => (
-              <li key={b} className="flex items-start gap-2.5 text-sm text-white/80">
+              <li key={b} className="flex items-start gap-2.5 text-sm text-white">
                 <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
                   <path
                     fillRule="evenodd"

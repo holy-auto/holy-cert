@@ -66,8 +66,7 @@ const features = [
   },
   {
     title: "施工写真の一覧表示",
-    description:
-      "施工前後の写真をギャラリー形式で表示。ビフォーアフターが一目で分かり、施工品質を直感的に伝えます。",
+    description: "施工前後の写真をギャラリー形式で表示。ビフォーアフターが一目で分かり、施工品質を直感的に伝えます。",
   },
   {
     title: "PDF ダウンロード",
@@ -76,13 +75,11 @@ const features = [
   },
   {
     title: "複数言語対応（予定）",
-    description:
-      "外国籍のオーナーへの対応。日本語以外の言語での表示に順次対応予定です。",
+    description: "外国籍のオーナーへの対応。日本語以外の言語での表示に順次対応予定です。",
   },
   {
     title: "テナントブランディング",
-    description:
-      "施工店のロゴ・名称・連絡先を証明書ページに表示。顧客との接点でブランドを強化できます。",
+    description: "施工店のロゴ・名称・連絡先を証明書ページに表示。顧客との接点でブランドを強化できます。",
   },
 ];
 
@@ -146,7 +143,7 @@ export default function CustomerPortalPage() {
                 </div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{s.title}</h3>
-                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white/80">{s.desc}</p>
+                  <p className="mt-2 text-[0.938rem] leading-[1.85] text-white">{s.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -166,7 +163,7 @@ export default function CustomerPortalPage() {
               <div className="px-5 pt-6 pb-8 space-y-4">
                 {/* Status bar mock */}
                 <div className="flex justify-between items-center">
-                  <span className="text-[0.625rem] text-white/50 font-medium">9:41</span>
+                  <span className="text-[0.625rem] text-white font-medium">9:41</span>
                   <div className="flex gap-1.5 items-center">
                     <div className="w-3 h-1.5 rounded-sm bg-white/40" />
                     <div className="w-1 h-1.5 rounded-sm bg-white/40" />
@@ -186,14 +183,14 @@ export default function CustomerPortalPage() {
                 <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.07] p-4">
                   <p className="text-[0.625rem] text-blue-300 uppercase tracking-widest font-semibold">施工証明書</p>
                   <p className="mt-1 text-sm font-bold text-white">ガラスコーティング 5年</p>
-                  <p className="text-[0.688rem] text-white/60 mt-1">トヨタ アルファード | 品川 300 あ 12-34</p>
+                  <p className="text-[0.688rem] text-white mt-1">トヨタ アルファード | 品川 300 あ 12-34</p>
                   <div className="mt-2 flex gap-3">
                     <div>
-                      <p className="text-[0.5rem] text-white/40">施工日</p>
+                      <p className="text-[0.5rem] text-white">施工日</p>
                       <p className="text-[0.688rem] font-medium text-white">2024年11月15日</p>
                     </div>
                     <div>
-                      <p className="text-[0.5rem] text-white/40">施工店</p>
+                      <p className="text-[0.5rem] text-white">施工店</p>
                       <p className="text-[0.688rem] font-medium text-white">プレミアムコート東京</p>
                     </div>
                   </div>
@@ -201,11 +198,14 @@ export default function CustomerPortalPage() {
 
                 {/* Photos mock */}
                 <div>
-                  <p className="text-[0.625rem] text-white/40 uppercase tracking-widest mb-2">施工写真</p>
+                  <p className="text-[0.625rem] text-white uppercase tracking-widest mb-2">施工写真</p>
                   <div className="grid grid-cols-3 gap-1.5">
                     {["before", "during", "after"].map((label) => (
-                      <div key={label} className="aspect-square rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-end justify-end p-1">
-                        <span className="text-[0.5rem] text-white/30">{label}</span>
+                      <div
+                        key={label}
+                        className="aspect-square rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-end justify-end p-1"
+                      >
+                        <span className="text-[0.5rem] text-white">{label}</span>
                       </div>
                     ))}
                   </div>
@@ -217,24 +217,27 @@ export default function CustomerPortalPage() {
                     PDFをダウンロード
                   </button>
                   <button className="rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-2">
-                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4 text-white/70">
+                    <svg
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="h-4 w-4 text-white"
+                    >
                       <path d="M13.5 6H17v9H3V6h3.5M10 3v9m-3-3l3-3 3 3" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
                 </div>
               </div>
             </div>
-            <p className="mt-4 text-center text-xs text-white/40">顧客のスマートフォンで開く証明書ページ（イメージ）</p>
+            <p className="mt-4 text-center text-xs text-white">顧客のスマートフォンで開く証明書ページ（イメージ）</p>
           </div>
         </ScrollReveal>
       </Section>
 
       {/* Use cases */}
       <Section>
-        <SectionHeading
-          title="顧客が使う場面"
-          subtitle="発行から1年後、2年後に価値が証明されます。"
-        />
+        <SectionHeading title="顧客が使う場面" subtitle="発行から1年後、2年後に価値が証明されます。" />
         <div className="mx-auto mt-10 max-w-4xl grid grid-cols-1 sm:grid-cols-2 gap-5">
           {usecases.map((u, i) => (
             <ScrollReveal key={u.title} variant="fade-up" delay={i * 60}>
@@ -242,7 +245,7 @@ export default function CustomerPortalPage() {
                 <div className="text-3xl leading-none shrink-0">{u.icon}</div>
                 <div>
                   <h3 className="text-[1.063rem] font-bold text-white leading-snug">{u.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white/80">{u.desc}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-white">{u.desc}</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -252,10 +255,7 @@ export default function CustomerPortalPage() {
 
       {/* Features */}
       <Section bg="alt" id="features">
-        <SectionHeading
-          title="顧客ポータルの機能"
-          subtitle="顧客が自分で完結できる設計です。"
-        />
+        <SectionHeading title="顧客ポータルの機能" subtitle="顧客が自分で完結できる設計です。" />
         <FeatureGrid className="mt-10">
           {features.map((f, i) => (
             <FeatureCard key={f.title} title={f.title} description={f.description} delay={i * 40} />

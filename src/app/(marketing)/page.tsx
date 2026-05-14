@@ -80,7 +80,7 @@ export default async function HomePage() {
                   "発行履歴の一元管理",
                   "自社ブランドの証明書",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-white/80">
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-white">
                     <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
                       <path
                         fillRule="evenodd"
@@ -101,7 +101,7 @@ export default async function HomePage() {
                 </Link>
                 <Link
                   href="/for-shops"
-                  className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-6 py-3 border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-colors"
+                  className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-6 py-3 border border-white/20 text-white hover:text-white hover:border-white/40 transition-colors"
                 >
                   詳しく見る
                 </Link>
@@ -119,7 +119,7 @@ export default async function HomePage() {
                   "CSV一括エクスポート",
                   "既存システムとのAPI連携",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-white/80">
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-white">
                     <svg
                       className="w-4 h-4 flex-shrink-0 mt-0.5 text-violet-400"
                       viewBox="0 0 20 20"
@@ -144,7 +144,7 @@ export default async function HomePage() {
                 </Link>
                 <Link
                   href="/for-insurers"
-                  className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-6 py-3 border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-colors"
+                  className="inline-flex items-center justify-center font-medium rounded-lg text-sm px-6 py-3 border border-white/20 text-white hover:text-white hover:border-white/40 transition-colors"
                 >
                   詳しく見る
                 </Link>
@@ -156,7 +156,7 @@ export default async function HomePage() {
         {/* 代理店・オーナー向けリンク */}
         <ScrollReveal variant="fade-in" delay={300}>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center text-sm">
-            <Link href="/for-agents" className="text-white/75 hover:text-white/70 transition-colors">
+            <Link href="/for-agents" className="text-white hover:text-white transition-colors">
               代理店の方 — 信頼のネットワークを、一緒に広げる &rarr;
             </Link>
           </div>
@@ -356,7 +356,7 @@ export default async function HomePage() {
         secondaryLabel="資料ダウンロード"
         secondaryHref="/resources"
         tertiaryLabel="デモを見る"
-        tertiaryHref="/contact"
+        tertiaryHref="/demo"
         trackLocation="home-final"
       />
     </>

@@ -119,8 +119,7 @@ const features = [
   },
   {
     title: "イベント種別フィルター",
-    description:
-      "「証明書のみ」「予約のみ」「NFC操作のみ」など、見たい種別だけに絞り込んで表示できます。",
+    description: "「証明書のみ」「予約のみ」「NFC操作のみ」など、見たい種別だけに絞り込んで表示できます。",
   },
   {
     title: "クイックプレビュー",
@@ -182,7 +181,7 @@ export default function TimelinePage() {
                 </div>
                 <div>
                   <p className="text-base font-bold text-white">トヨタ アルファード</p>
-                  <p className="text-xs text-white/50 font-mono mt-0.5">品川 300 あ 12-34</p>
+                  <p className="text-xs text-white font-mono mt-0.5">品川 300 あ 12-34</p>
                 </div>
               </div>
               <div className="mt-4 flex gap-2 flex-wrap">
@@ -192,7 +191,7 @@ export default function TimelinePage() {
                     className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
                       i === 2
                         ? "border-blue-500/40 bg-blue-500/10 text-blue-300"
-                        : "border-white/[0.1] bg-white/[0.03] text-white/50"
+                        : "border-white/[0.1] bg-white/[0.03] text-white"
                     }`}
                   >
                     {label}
@@ -231,10 +230,10 @@ export default function TimelinePage() {
                             >
                               {event.label}
                             </span>
-                            <span className="text-[0.625rem] text-white/30 font-mono">{event.date}</span>
+                            <span className="text-[0.625rem] text-white font-mono">{event.date}</span>
                           </div>
                           <p className="mt-1 text-sm font-semibold text-white">{event.title}</p>
-                          <p className="mt-0.5 text-xs text-white/50">{event.detail}</p>
+                          <p className="mt-0.5 text-xs text-white">{event.detail}</p>
                         </div>
                         {event.badge && (
                           <span
@@ -254,7 +253,7 @@ export default function TimelinePage() {
               </div>
             </div>
 
-            <p className="mt-4 text-center text-xs text-white/40">車両タイムラインの表示例（イメージ）</p>
+            <p className="mt-4 text-center text-xs text-white">車両タイムラインの表示例（イメージ）</p>
           </div>
         </ScrollReveal>
       </Section>
@@ -283,7 +282,7 @@ export default function TimelinePage() {
                   />
                   <h3 className="text-sm font-bold text-white">{s.label}</h3>
                 </div>
-                <p className="text-sm leading-relaxed text-white/70">{s.desc}</p>
+                <p className="text-sm leading-relaxed text-white">{s.desc}</p>
               </div>
             </ScrollReveal>
           ))}
@@ -305,10 +304,7 @@ export default function TimelinePage() {
 
       {/* Who benefits */}
       <Section bg="alt">
-        <SectionHeading
-          title="誰が、どう使うか"
-          subtitle="施工店から保険会社まで、役割に応じた参照ができます。"
-        />
+        <SectionHeading title="誰が、どう使うか" subtitle="施工店から保険会社まで、役割に応じた参照ができます。" />
         <div className="mx-auto mt-10 max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
             {
@@ -355,7 +351,7 @@ export default function TimelinePage() {
                 </p>
                 <ul className="space-y-2">
                   {item.points.map((pt) => (
-                    <li key={pt} className="flex items-start gap-2 text-sm text-white/80">
+                    <li key={pt} className="flex items-start gap-2 text-sm text-white">
                       <span
                         className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
                         style={{ background: `${item.color}0.8)` }}

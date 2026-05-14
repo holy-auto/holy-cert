@@ -16,6 +16,7 @@ export const certificateCreateSchema = z.object({
   expiry_value: z.string().nullable().optional(),
   logo_asset_path: z.string().nullable().optional(),
   footer_variant: z.string().nullable().optional(),
+  manufacturer_template_id: z.string().uuid().nullable().optional(),
 });
 
 export const certificateVoidSchema = z.object({
@@ -38,4 +39,5 @@ export const certificateEditSchema = z.object({
   logo_asset_path: z.string().nullable().optional(),
   footer_variant: z.string().nullable().optional(),
   status: z.enum(["active", "draft", "void"]).optional(),
+  manufacturer_template_id: z.string().uuid().nullable().optional(),
 });

@@ -15,6 +15,7 @@ import { logCertificateAction } from "@/lib/audit/certificateLog";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import { createTenantScopedAdmin } from "@/lib/supabase/admin";
+import { resolveCertifiedTemplateForTenant } from "@/lib/manufacturers/certifiedTemplates";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +90,21 @@ export async function POST(req: Request) {
     const customer_phone_last4 = b.customer_phone_last4 ?? null;
     const customer_phone_last4_hash = customer_phone_last4 ? phoneLast4Hash(b.tenant_id, customer_phone_last4) : null;
 
+    // メーカー指定デザインを使う場合は、このテナントが当該メーカーの
+    // 認定施工店であることを application 側で必ず再確認する。RLS は
+    // manufacturer_templates の閲覧までしか縛れないため、ここを抜くと
+    // クライアントから任意の template_id を差し込まれて偽装発行される。
+    let manufacturerId: string | null = null;
+    let manufacturerTemplateId: string | null = null;
+    if (b.manufacturer_template_id) {
+      const resolved = await resolveCertifiedTemplateForTenant(caller.tenantId, b.manufacturer_template_id);
+      if (!resolved) {
+        return apiForbidden("このメーカーの認定施工店ではないため、指定デザインで発行できません。");
+      }
+      manufacturerId = resolved.manufacturer.id;
+      manufacturerTemplateId = resolved.template.id;
+    }
+
     const insertRow = {
       tenant_id: caller.tenantId,
       status: b.status ?? "active",
@@ -105,6 +121,8 @@ export async function POST(req: Request) {
       expiry_value: b.expiry_value ?? null,
       logo_asset_path: b.logo_asset_path ?? null,
       footer_variant: b.footer_variant ?? "holy",
+      manufacturer_id: manufacturerId,
+      manufacturer_template_id: manufacturerTemplateId,
     };
 
     const certificate = await supaInsertCertificate(caller.tenantId, insertRow);

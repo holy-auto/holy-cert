@@ -220,11 +220,11 @@ export default function StorefrontJobWorkflow({ reservation, customer, vehicle, 
                 </svg>
               </span>
               <span className="flex flex-col items-start">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80">次の操作</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white">次の操作</span>
                 <span className="text-xl font-bold leading-tight">
                   {busy ? "更新中..." : (ADVANCE_LABEL[currentStatus] ?? `${STATUS_LABEL[nextStatus]} へ進む`)}
                 </span>
-                <span className="mt-0.5 text-[12px] text-white/90">{ADVANCE_HINT[currentStatus] ?? ""}</span>
+                <span className="mt-0.5 text-[12px] text-white">{ADVANCE_HINT[currentStatus] ?? ""}</span>
               </span>
             </button>
           </div>

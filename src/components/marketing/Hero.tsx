@@ -73,11 +73,11 @@ export function Hero() {
               </span>
             </h1>
 
-            <p className="mt-7 text-base md:text-lg leading-relaxed text-white/80 max-w-xl animate-[hero-fade-up_0.8s_ease-out_0.95s_both]">
+            <p className="mt-7 text-base md:text-lg leading-relaxed text-white max-w-xl animate-[hero-fade-up_0.8s_ease-out_0.95s_both]">
               Ledraは、施工証明・履歴管理・加盟店連携・技術育成を通じて、現場の技術を可視化し、業界全体に信頼と価値を届けるプラットフォームです。
             </p>
 
-            <p className="mt-3 min-h-[1.6em] text-xs md:text-sm font-medium tracking-wide text-white/75 animate-[hero-fade-in_0.6s_ease-out_1.05s_both]">
+            <p className="mt-3 min-h-[1.6em] text-xs md:text-sm font-medium tracking-wide text-white animate-[hero-fade-in_0.6s_ease-out_1.05s_both]">
               <HeroTypewriter text="施工記録を、改ざん不可能なデジタル証明書に。" startDelay={1200} speed={48} />
             </p>
 
@@ -88,7 +88,7 @@ export function Hero() {
               <CTAButton variant="white-outline" href="/resources" trackLocation="hero">
                 資料ダウンロード
               </CTAButton>
-              <CTAButton variant="white-outline" href="/contact" trackLocation="hero">
+              <CTAButton variant="white-outline" href="/demo" trackLocation="hero">
                 デモを見る
               </CTAButton>
             </div>
@@ -98,21 +98,21 @@ export function Hero() {
                 <div className="text-xl md:text-2xl font-bold text-white">
                   無料<span className="text-blue-400">で開始</span>
                 </div>
-                <div className="text-xs text-white/75 mt-0.5">クレジットカード不要</div>
+                <div className="text-xs text-white mt-0.5">クレジットカード不要</div>
               </div>
               <div className="hidden sm:block w-px h-7 bg-white/10" />
               <div className="text-left">
                 <div className="text-xl md:text-2xl font-bold text-white">
                   5<span className="text-blue-400">分</span>
                 </div>
-                <div className="text-xs text-white/75 mt-0.5">かんたん初期設定</div>
+                <div className="text-xs text-white mt-0.5">かんたん初期設定</div>
               </div>
               <div className="hidden sm:block w-px h-7 bg-white/10" />
               <div className="text-left">
                 <div className="text-xl md:text-2xl font-bold text-white">
                   URL<span className="text-blue-400">共有</span>
                 </div>
-                <div className="text-xs text-white/75 mt-0.5">証明書をすぐに共有</div>
+                <div className="text-xs text-white mt-0.5">証明書をすぐに共有</div>
               </div>
             </div>
           </div>
@@ -135,11 +135,11 @@ export function Hero() {
 
               {/* Floating sub-card */}
               <div className="hidden md:block absolute -bottom-6 -left-6 w-[44%] max-w-[260px] rounded-xl border border-white/[0.1] bg-[#0a0f1a]/95 backdrop-blur-md p-3 shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
-                <div className="flex items-center gap-2 text-[0.65rem] text-white/70">
+                <div className="flex items-center gap-2 text-[0.65rem] text-white">
                   <span className="block w-2 h-2 rounded-full bg-emerald-400" />
                   改ざん検証 OK
                 </div>
-                <div className="mt-1.5 font-mono text-[0.65rem] text-white/80 truncate">ledra.app/v/8a4f...c2e1</div>
+                <div className="mt-1.5 font-mono text-[0.65rem] text-white truncate">ledra.app/v/8a4f...c2e1</div>
               </div>
             </div>
           </div>
@@ -155,7 +155,7 @@ function HeroDashboardMock() {
     <div className="absolute inset-0 grid grid-cols-12">
       {/* Sidebar */}
       <aside className="col-span-3 hidden md:flex flex-col border-r border-white/[0.06] bg-white/[0.02] py-3 px-3">
-        <div className="text-[0.55rem] font-bold uppercase tracking-widest text-white/70">Ledra</div>
+        <div className="text-[0.55rem] font-bold uppercase tracking-widest text-white">Ledra</div>
         <ul className="mt-3 space-y-1 text-[0.625rem]">
           {[
             ["ダッシュボード", true],
@@ -168,7 +168,7 @@ function HeroDashboardMock() {
           ].map(([label, active]) => (
             <li
               key={label as string}
-              className={`rounded px-2 py-1 ${active ? "bg-blue-500/15 text-blue-200" : "text-white/70"}`}
+              className={`rounded px-2 py-1 ${active ? "bg-blue-500/15 text-blue-200" : "text-white"}`}
             >
               {label}
             </li>
@@ -186,7 +186,7 @@ function HeroDashboardMock() {
             { label: "NPS", value: "4.8", delta: "/5.0" },
           ].map((k) => (
             <div key={k.label} className="rounded-md border border-white/[0.06] bg-white/[0.02] p-2">
-              <div className="text-[0.5rem] uppercase tracking-wider text-white/70">{k.label}</div>
+              <div className="text-[0.5rem] uppercase tracking-wider text-white">{k.label}</div>
               <div className="mt-0.5 flex items-baseline gap-1">
                 <span className="text-[0.85rem] font-bold text-white">{k.value}</span>
                 <span className="text-[0.55rem] text-emerald-300">{k.delta}</span>
@@ -198,7 +198,7 @@ function HeroDashboardMock() {
           <div className="col-span-2 rounded-md border border-white/[0.06] bg-white/[0.02] p-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[0.6rem] font-bold text-white">月次発行推移</span>
-              <span className="text-[0.5rem] text-white/70">Last 6 mo.</span>
+              <span className="text-[0.5rem] text-white">Last 6 mo.</span>
             </div>
             <svg viewBox="0 0 320 100" className="mt-1.5 w-full h-[calc(100%-1rem)]">
               <defs>
@@ -228,9 +228,9 @@ function HeroDashboardMock() {
                 <li key={r.car} className="flex items-center justify-between text-[0.55rem]">
                   <div className="min-w-0">
                     <p className="text-white font-medium truncate">{r.car}</p>
-                    <p className="text-white/70 truncate">{r.menu}</p>
+                    <p className="text-white truncate">{r.menu}</p>
                   </div>
-                  <span className="text-white/70 ml-1">{r.t}</span>
+                  <span className="text-white ml-1">{r.t}</span>
                 </li>
               ))}
             </ul>

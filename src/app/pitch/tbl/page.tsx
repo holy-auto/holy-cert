@@ -1,15 +1,7 @@
 import { PitchDeck, type Slide } from "../PitchDeck";
 
 // ─── Slide chrome ───────────────────────────────────────────────
-function S({
-  children,
-  n,
-  total = 6,
-}: {
-  children: React.ReactNode;
-  n: number;
-  total?: number;
-}) {
+function S({ children, n, total = 6 }: { children: React.ReactNode; n: number; total?: number }) {
   return (
     <div
       className="w-full h-full flex flex-col bg-[#060a12] overflow-hidden"
@@ -18,8 +10,10 @@ function S({
       <div className="h-[3px] w-full bg-gradient-to-r from-blue-500 to-indigo-400 shrink-0" />
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">{children}</div>
       <div className="px-10 py-2.5 flex items-center justify-between border-t border-white/[0.06] shrink-0">
-        <span className="text-white/30 text-[11px] tracking-wide">Ledra — Confidential · 2026年4月</span>
-        <span className="text-white/25 text-[11px] font-mono">{n}/{total}</span>
+        <span className="text-white text-[11px] tracking-wide">Ledra — Confidential · 2026年4月</span>
+        <span className="text-white text-[11px] font-mono">
+          {n}/{total}
+        </span>
       </div>
     </div>
   );
@@ -41,7 +35,7 @@ function Chip({
           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
           : color === "amber"
             ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
-            : "border-white/15 bg-white/5 text-white/60";
+            : "border-white/15 bg-white/5 text-white";
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${cls}`}
@@ -64,16 +58,14 @@ const S1 = (
       </div>
       <h1 className="text-4xl md:text-5xl font-extrabold leading-tight tracking-tight text-white">
         Toyota Blockchain Lab ×{" "}
-        <span className="bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">
-          Ledra
-        </span>
+        <span className="bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">Ledra</span>
       </h1>
-      <p className="text-base text-white/70 max-w-xl leading-relaxed">
+      <p className="text-base text-white max-w-xl leading-relaxed">
         アフターマーケット施工記録 —
         <br />
         車両ライフサイクルデータの最後の空白を埋める。
       </p>
-      <div className="mt-2 flex gap-6 text-xs text-white/40">
+      <div className="mt-2 flex gap-6 text-xs text-white">
         <span>本番稼働中</span>
         <span>·</span>
         <span>Polygon PoS Anchoring</span>
@@ -89,13 +81,10 @@ const S2 = (
     {/* The gap in vehicle lifecycle */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">
-          課題：空白地帯
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">課題：空白地帯</p>
         <h2 className="text-2xl font-extrabold text-white leading-snug">
           車両ライフサイクルのブロックチェーン記録
-          <br />
-          — アフター施工だけが未カバー
+          <br />— アフター施工だけが未カバー
         </h2>
       </div>
 
@@ -117,29 +106,23 @@ const S2 = (
                     : "border-blue-500/50 bg-blue-500/10 shadow-[0_0_24px_rgba(59,130,246,0.2)]"
                 }`}
               >
-                <div className={`text-xs font-bold ${item.covered ? "text-white/80" : "text-blue-300"}`}>
-                  {item.label}
-                </div>
+                <div className={`text-xs font-bold ${item.covered ? "text-white" : "text-blue-300"}`}>{item.label}</div>
                 <div
-                  className={`text-[10px] font-mono mt-0.5 ${item.covered ? "text-white/40" : "text-blue-400 font-semibold"}`}
+                  className={`text-[10px] font-mono mt-0.5 ${item.covered ? "text-white" : "text-blue-400 font-semibold"}`}
                 >
                   {item.who}
                 </div>
                 {!item.covered && (
-                  <div className="text-[9px] mt-1 text-blue-400 font-bold uppercase tracking-wide">
-                    ← 空白地帯
-                  </div>
+                  <div className="text-[9px] mt-1 text-blue-400 font-bold uppercase tracking-wide">← 空白地帯</div>
                 )}
               </div>
-              {i < arr.length - 1 && (
-                <span className="text-white/30 text-lg shrink-0">→</span>
-              )}
+              {i < arr.length - 1 && <span className="text-white text-lg shrink-0">→</span>}
             </div>
           ))}
         </div>
 
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
-          <p className="text-sm text-white/80 leading-relaxed">
+          <p className="text-sm text-white leading-relaxed">
             <span className="font-bold text-blue-300">TBLが描く「車両の製造〜廃棄の全履歴記録」</span>
             において、コーティング・PPF・鈑金塗装などのアフターマーケット施工は
             <span className="font-bold text-white">現在も空白のまま</span>
@@ -158,9 +141,7 @@ const S3 = (
     {/* Tech Stack */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">
-          技術スタック
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">技術スタック</p>
         <h2 className="text-2xl font-extrabold text-white leading-snug">
           C2PA + Polygon PoS
           <br />
@@ -198,16 +179,14 @@ const S3 = (
               label: "施工証明書 + QR / NFC",
               detail: "証明書PDF発行・QRコード生成・NFC書き込みまで一貫",
               color: "border-white/[0.1] bg-white/[0.03]",
-              text: "text-white/70",
+              text: "text-white",
             },
           ].map((layer) => (
             <div key={layer.layer} className={`rounded-xl border ${layer.color} px-4 py-3 flex items-center gap-4`}>
-              <span className={`text-[10px] font-mono font-bold ${layer.text} w-14 shrink-0`}>
-                {layer.layer}
-              </span>
+              <span className={`text-[10px] font-mono font-bold ${layer.text} w-14 shrink-0`}>{layer.layer}</span>
               <div className="min-w-0">
                 <div className={`text-sm font-bold ${layer.text}`}>{layer.label}</div>
-                <div className="text-xs text-white/50 mt-0.5">{layer.detail}</div>
+                <div className="text-xs text-white mt-0.5">{layer.detail}</div>
               </div>
             </div>
           ))}
@@ -215,22 +194,17 @@ const S3 = (
 
         {/* Key numbers */}
         <div className="w-[200px] shrink-0 flex flex-col gap-2">
-          <div className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
-            実装ハイライト
-          </div>
+          <div className="text-[10px] font-semibold uppercase tracking-widest text-white">実装ハイライト</div>
           {[
             { label: "ガス代", value: "約$0.001/Tx", note: "Polygon PoS" },
             { label: "PII保護", value: "ハッシュのみ", note: "PIIはオフチェーン" },
             { label: "Txスループット", value: "7,000+ TPS", note: "Polygon PoS上限" },
             { label: "互換性", value: "EVM互換", note: "Avalanche対応可能" },
           ].map((item) => (
-            <div
-              key={item.label}
-              className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2"
-            >
-              <div className="text-[10px] text-white/40">{item.label}</div>
+            <div key={item.label} className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2">
+              <div className="text-[10px] text-white">{item.label}</div>
               <div className="text-sm font-bold text-white mt-0.5">{item.value}</div>
-              <div className="text-[10px] text-white/40">{item.note}</div>
+              <div className="text-[10px] text-white">{item.note}</div>
             </div>
           ))}
         </div>
@@ -244,9 +218,7 @@ const S4 = (
     {/* Integration Scenarios */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">
-          統合シナリオ
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">統合シナリオ</p>
         <h2 className="text-2xl font-extrabold text-white leading-snug">
           TBLエコシステムへの接続
           <br />
@@ -288,9 +260,9 @@ const S4 = (
               <Chip color={item.color}>{item.phase}</Chip>
             </div>
             <h3 className="text-sm font-bold text-white leading-snug whitespace-pre-line">{item.title}</h3>
-            <p className="text-xs text-white/65 leading-relaxed flex-1">{item.body}</p>
+            <p className="text-xs text-white leading-relaxed flex-1">{item.body}</p>
             <div className="flex gap-2">
-              <span className="text-[10px] border border-white/10 rounded-full px-2 py-0.5 text-white/40">
+              <span className="text-[10px] border border-white/10 rounded-full px-2 py-0.5 text-white">
                 実装コスト: {item.effort}
               </span>
               <span className="text-[10px] border border-blue-500/20 rounded-full px-2 py-0.5 text-blue-400">
@@ -309,11 +281,10 @@ const S5 = (
     {/* Production credentials */}
     <div className="flex flex-col flex-1 px-10 pt-8 pb-2 gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">
-          稼働実績
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">稼働実績</p>
         <h2 className="text-2xl font-extrabold text-white leading-snug">
-          「面白いけど動くの？」—<br />
+          「面白いけど動くの？」—
+          <br />
           エンタープライズが求める答えを用意しています
         </h2>
       </div>
@@ -350,7 +321,7 @@ const S5 = (
           >
             <Chip color={item.color}>{item.badge}</Chip>
             <h3 className="text-sm font-bold text-white leading-snug">{item.title}</h3>
-            <p className="text-xs text-white/65 leading-relaxed">{item.body}</p>
+            <p className="text-xs text-white leading-relaxed">{item.body}</p>
           </div>
         ))}
       </div>
@@ -363,10 +334,8 @@ const S6 = (
     {/* Next Step */}
     <div className="flex flex-col items-center justify-center flex-1 text-center px-10 gap-6">
       <Chip>Next Step</Chip>
-      <h2 className="text-3xl font-extrabold text-white leading-snug">
-        まず 15分、技術者同士で話しませんか
-      </h2>
-      <p className="text-sm text-white/65 max-w-lg leading-relaxed">
+      <h2 className="text-3xl font-extrabold text-white leading-snug">まず 15分、技術者同士で話しませんか</h2>
+      <p className="text-sm text-white max-w-lg leading-relaxed">
         APIドキュメント・スマートコントラクトコード・監査レポートを持参できます。
         <br />
         TBLエコシステムへの統合シナリオを一緒に設計しましょう。
@@ -382,15 +351,13 @@ const S6 = (
               {step.n}
             </div>
             <div className="text-sm font-bold text-white">{step.label}</div>
-            <div className="text-xs text-white/50">{step.sub}</div>
+            <div className="text-xs text-white">{step.sub}</div>
           </div>
         ))}
       </div>
-      <div className="mt-4 flex flex-col gap-1 text-xs text-white/40">
+      <div className="mt-4 flex flex-col gap-1 text-xs text-white">
         <span>ledra.co.jp/contact</span>
-        <span>
-          Polygon PoS · C2PA · MOBI DID互換 · EVM互換 · Avalanche対応可 · 第三者セキュリティ監査済み
-        </span>
+        <span>Polygon PoS · C2PA · MOBI DID互換 · EVM互換 · Avalanche対応可 · 第三者セキュリティ監査済み</span>
       </div>
     </div>
   </S>

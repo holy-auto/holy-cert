@@ -30,13 +30,13 @@ export function MediaAwardsRow() {
     <Section bg="alt" id="media">
       <ScrollReveal variant="fade-up">
         <div className="text-center">
-          <span className="inline-flex items-center rounded-full border border-white/[0.1] bg-white/[0.04] px-3 py-1 text-[0.65rem] font-medium uppercase tracking-widest text-white/80">
+          <span className="inline-flex items-center rounded-full border border-white/[0.1] bg-white/[0.04] px-3 py-1 text-[0.65rem] font-medium uppercase tracking-widest text-white">
             掲載 / 評価
           </span>
           <h3 className="mt-5 text-lg md:text-xl font-bold text-white">
             業界の声を、あえてこれから書き込んでいきます。
           </h3>
-          <p className="mt-3 text-xs md:text-sm leading-relaxed text-white/75 max-w-2xl mx-auto">
+          <p className="mt-3 text-xs md:text-sm leading-relaxed text-white max-w-2xl mx-auto">
             掲載・受賞バッジは「あったように見せる」ことより、「これから一緒に作る」ほうが Ledra
             らしいと考えます。各スロットは取材・受賞が決まり次第、掲載していきます。
           </p>
@@ -53,15 +53,15 @@ export function MediaAwardsRow() {
                 className="rounded-xl border border-white/[0.1] bg-white/[0.04] p-5 text-center hover:bg-white/[0.06] transition-colors"
               >
                 <p className="text-sm font-semibold text-white">{s.name}</p>
-                <p className="mt-1.5 text-[0.65rem] text-white/70">{s.caption}</p>
+                <p className="mt-1.5 text-[0.65rem] text-white">{s.caption}</p>
               </a>
             ) : (
               <div
                 key={`open-${i}`}
                 className="rounded-xl border border-dashed border-white/[0.12] bg-white/[0.01] p-5 text-center"
               >
-                <p className="text-[0.65rem] font-medium uppercase tracking-widest text-white/70">Coming soon</p>
-                <p className="mt-2 text-xs text-white/80">{s.caption}</p>
+                <p className="text-[0.65rem] font-medium uppercase tracking-widest text-white">Coming soon</p>
+                <p className="mt-2 text-xs text-white">{s.caption}</p>
               </div>
             ),
           )}

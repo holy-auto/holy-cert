@@ -52,7 +52,7 @@ export function MobileAppSection() {
               <br />
               現場の速度で。
             </h2>
-            <p className="mt-5 text-[0.938rem] md:text-base leading-[1.85] text-white/80">
+            <p className="mt-5 text-[0.938rem] md:text-base leading-[1.85] text-white">
               施工店は現場のスマホから撮影→発行→共有まで。発行された証明書は URL
               ひとつで、顧客も保険会社もそのまま確認できます。
             </p>
@@ -74,7 +74,7 @@ export function MobileAppSection() {
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-white">{p.title}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-white/80">{p.desc}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-white">{p.desc}</p>
                   </div>
                 </li>
               ))}
@@ -120,7 +120,7 @@ function FallbackMobileMock() {
       <div className="absolute bottom-[-20%] left-[-10%] w-[260px] h-[260px] bg-violet-500/15 rounded-full blur-[70px]" />
 
       <div className="relative h-full flex flex-col px-5 pt-12 pb-6">
-        <div className="flex items-center justify-between text-[0.65rem] text-white/75 mb-6">
+        <div className="flex items-center justify-between text-[0.65rem] text-white mb-6">
           <span>10:24</span>
           <span className="flex items-center gap-1">
             <span className="block w-3 h-1 bg-white/30 rounded-sm" />
@@ -129,7 +129,7 @@ function FallbackMobileMock() {
         </div>
 
         <div className="rounded-2xl border border-white/[0.1] bg-white/[0.04] p-4 backdrop-blur-md">
-          <p className="text-[0.625rem] uppercase tracking-wider text-blue-300/80">今日の作業</p>
+          <p className="text-[0.625rem] uppercase tracking-wider text-blue-300">今日の作業</p>
           <p className="mt-2 text-sm font-bold text-white leading-snug">
             ガラスコーティング
             <br />
@@ -138,7 +138,7 @@ function FallbackMobileMock() {
           <div className="mt-3 h-1 w-full rounded-full bg-white/10 overflow-hidden">
             <div className="h-full w-3/4 bg-gradient-to-r from-blue-500 to-violet-500" />
           </div>
-          <p className="mt-2 text-[0.65rem] text-white/80">3 / 4 ステップ完了</p>
+          <p className="mt-2 text-[0.65rem] text-white">3 / 4 ステップ完了</p>
         </div>
 
         <div className="mt-5 w-full rounded-xl py-3 text-center text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-500 shadow-[0_1px_12px_rgba(59,130,246,0.3)]">
@@ -156,13 +156,13 @@ function FallbackMobileMock() {
               className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
             >
               <span className="text-sm">{r.icon}</span>
-              <span className="text-[0.7rem] text-white/80">{r.text}</span>
+              <span className="text-[0.7rem] text-white">{r.text}</span>
             </div>
           ))}
         </div>
 
         <div className="mt-auto rounded-xl border border-blue-500/25 bg-blue-500/[0.08] p-3 text-center">
-          <p className="text-[0.65rem] text-blue-200/80">URL ひとつで顧客と共有</p>
+          <p className="text-[0.65rem] text-blue-200">URL ひとつで顧客と共有</p>
           <p className="mt-0.5 text-xs font-semibold text-white">そのまま開ける公開ページ</p>
         </div>
       </div>

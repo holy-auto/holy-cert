@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Section } from "./Section";
 import { SectionHeading } from "./SectionHeading";
 import { ScrollReveal } from "./ScrollReveal";
@@ -10,21 +11,50 @@ import { ScrollReveal } from "./ScrollReveal";
 type Integration = {
   name: string;
   note?: string;
-  logoSrc?: string;
+  logo?: {
+    src: string;
+    width: number;
+    height: number;
+    lightBg?: boolean;
+  };
 };
 
 const INTEGRATIONS: Integration[] = [
   { name: "Stripe", note: "サブスクリプション・請求書" },
   { name: "Square", note: "POS端末決済・在庫同期" },
   { name: "Google Calendar", note: "予約カレンダー双方向同期" },
-  { name: "LINE", note: "顧客通知・リマインド" },
-  { name: "Polygon", note: "証明書アンカリング" },
-  { name: "Resend", note: "トランザクションメール" },
+  {
+    name: "LINE",
+    note: "顧客通知・リマインド",
+    logo: { src: "/brands/LINE_Brand_icon.png", width: 1001, height: 1000 },
+  },
+  {
+    name: "Polygon",
+    note: "証明書アンカリング",
+    logo: { src: "/brands/Polygon_Logo_HiRes.png", width: 2915, height: 802 },
+  },
+  {
+    name: "Resend",
+    note: "トランザクションメール",
+    logo: { src: "/brands/resend-wordmark-white.svg", width: 1978, height: 420 },
+  },
   { name: "C2PA", note: "写真コンテンツクレデンシャル" },
   { name: "Claude", note: "車検証OCR・写真品質検証・エージェント" },
-  { name: "NexDiag", note: "膜厚計測・コーティング検証", logoSrc: "/nexdiag_logo.svg" },
-  { name: "Upstash", note: "分散レート制限・キャッシュ" },
-  { name: "Supabase", note: "RLS付きデータ基盤" },
+  {
+    name: "NexDiag",
+    note: "膜厚計測・コーティング検証",
+    logo: { src: "/nexdiag_logo.svg", width: 1122, height: 794, lightBg: true },
+  },
+  {
+    name: "Upstash",
+    note: "分散レート制限・キャッシュ",
+    logo: { src: "/brands/upstash-dark-bg.svg", width: 1631, height: 472 },
+  },
+  {
+    name: "Supabase",
+    note: "RLS付きデータ基盤",
+    logo: { src: "/brands/supabase-logo-wordmark--dark.svg", width: 581, height: 113 },
+  },
 ];
 
 export function IntegrationLogoWall() {
@@ -37,29 +67,42 @@ export function IntegrationLogoWall() {
       <div className="mx-auto mt-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 max-w-5xl">
         {INTEGRATIONS.map((item, i) => (
           <ScrollReveal key={item.name} variant="fade-up" delay={Math.floor(i / 4) * 60}>
-            <div className="group h-full rounded-2xl border border-white/[0.14] bg-white/[0.06] p-5 md:p-6 text-center hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors">
-              {item.logoSrc ? (
-                <div className="mx-auto inline-flex items-center justify-center rounded-md bg-white px-3 py-1.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.logoSrc}
-                    alt={item.name}
-                    className="h-5 md:h-6 w-auto object-contain"
+            <div className="group h-full rounded-2xl border border-white/[0.14] bg-white/[0.06] p-5 md:p-6 text-center hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors flex flex-col items-center justify-center">
+              {item.logo ? (
+                <div
+                  className={`flex h-8 md:h-9 items-center justify-center ${
+                    item.logo.lightBg ? "rounded-md bg-white px-2.5" : ""
+                  }`}
+                >
+                  <Image
+                    src={item.logo.src}
+                    alt={`${item.name} logo`}
+                    width={item.logo.width}
+                    height={item.logo.height}
+                    className="h-full w-auto object-contain"
+                    sizes="(min-width: 768px) 180px, 140px"
                   />
                 </div>
               ) : (
                 <p className="text-base md:text-lg font-semibold text-white tracking-tight">{item.name}</p>
               )}
-              {item.note && <p className="mt-2 text-xs leading-relaxed text-white/90">{item.note}</p>}
+              {item.note && <p className="mt-2 text-xs leading-relaxed text-white">{item.note}</p>}
             </div>
           </ScrollReveal>
         ))}
       </div>
-      <p className="mt-10 text-center text-sm text-white/85 leading-relaxed">
+      <p className="mt-10 text-center text-sm text-white leading-relaxed">
         ※ 各サービス名および関連商標は、それぞれの権利者に帰属します。
         <br className="hidden md:block" />
         現在、ロゴ使用許諾については順次交渉を進めており、許諾済みのパートナーから画像ロゴに差し替えていきます。
       </p>
+      <ul className="mx-auto mt-4 max-w-3xl space-y-1 text-center text-xs text-white/80 leading-relaxed">
+        <li>LINE、LINEのロゴは、LINEヤフー株式会社の登録商標または商標です。</li>
+        <li>Polygon は Polygon Labs UI Labs Limited およびその関連会社の商標です。</li>
+        <li>Resend は Resend, Inc. の商標です。</li>
+        <li>Upstash は Upstash, Inc. の商標です。</li>
+        <li>Supabase は Supabase Inc. の登録商標または商標です。</li>
+      </ul>
     </Section>
   );
 }

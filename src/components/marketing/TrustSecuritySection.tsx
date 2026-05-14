@@ -78,12 +78,12 @@ export function TrustSecuritySection() {
           <ScrollReveal key={p.title} variant="fade-up" delay={i * 80}>
             <div className="h-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 hover:bg-white/[0.06] hover:border-white/[0.14] transition-colors">
               <h3 className="text-base font-bold text-white tracking-tight">{p.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-white/80">{p.desc}</p>
+              <p className="mt-3 text-sm leading-relaxed text-white">{p.desc}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {p.keywords.map((k) => (
                   <span
                     key={k}
-                    className="inline-flex items-center rounded-md border border-white/[0.08] bg-white/[0.02] px-2 py-0.5 text-[0.65rem] font-medium text-white/75"
+                    className="inline-flex items-center rounded-md border border-white/[0.08] bg-white/[0.02] px-2 py-0.5 text-[0.65rem] font-medium text-white"
                   >
                     {k}
                   </span>
@@ -99,7 +99,7 @@ export function TrustSecuritySection() {
         <div className="mx-auto mt-12 max-w-5xl rounded-2xl border border-white/[0.08] bg-white/[0.02]">
           <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
             <h3 className="text-sm font-bold text-white">法令・第三者認証 対応マトリクス</h3>
-            <span className="text-[0.65rem] uppercase tracking-widest text-white/70">Compliance</span>
+            <span className="text-[0.65rem] uppercase tracking-widest text-white">Compliance</span>
           </div>
           <ul className="divide-y divide-white/[0.06]">
             {COMPLIANCE.map((c) => (
@@ -108,7 +108,7 @@ export function TrustSecuritySection() {
                   <Badge status={c.status} />
                   <span className="text-sm font-medium text-white">{c.label}</span>
                 </div>
-                <span className="text-xs text-white/70 sm:text-right">{c.note}</span>
+                <span className="text-xs text-white sm:text-right">{c.note}</span>
               </li>
             ))}
           </ul>

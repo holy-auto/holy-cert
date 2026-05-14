@@ -73,7 +73,7 @@ export function ScreenshotLightboxImage({
         {/* クリックヒント (hover で表示) */}
         <span
           aria-hidden
-          className="pointer-events-none absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-black/65 backdrop-blur-sm px-2.5 py-1 text-[0.65rem] font-medium text-white/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity"
+          className="pointer-events-none absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-black/65 backdrop-blur-sm px-2.5 py-1 text-[0.65rem] font-medium text-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity"
         >
           <svg viewBox="0 0 16 16" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="1.8">
             <circle cx="7" cy="7" r="5" />
@@ -118,13 +118,13 @@ export function ScreenshotLightboxImage({
 
           {/* キャプション */}
           {url && (
-            <div className="font-mono text-xs text-white/70 select-text" onClick={(e) => e.stopPropagation()}>
+            <div className="font-mono text-xs text-white select-text" onClick={(e) => e.stopPropagation()}>
               {url}
             </div>
           )}
 
           {/* hint */}
-          <div className="text-[0.65rem] text-white/50">クリック / ESC で閉じる</div>
+          <div className="text-[0.65rem] text-white">クリック / ESC で閉じる</div>
         </div>
       )}
     </>

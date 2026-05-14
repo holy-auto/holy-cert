@@ -20,9 +20,7 @@ export function MarkdownBody({ content }: { content: string }) {
           </h2>
         ),
         h3: ({ children }) => <h3 className="mt-10 mb-4 text-lg font-bold text-white leading-snug">{children}</h3>,
-        p: ({ children }) => (
-          <p className="my-5 text-[0.938rem] md:text-base leading-[1.9] text-white/75">{children}</p>
-        ),
+        p: ({ children }) => <p className="my-5 text-[0.938rem] md:text-base leading-[1.9] text-white">{children}</p>,
         a: ({ href, children }) => (
           <a
             href={href}
@@ -34,18 +32,18 @@ export function MarkdownBody({ content }: { content: string }) {
           </a>
         ),
         ul: ({ children }) => (
-          <ul className="my-5 list-disc pl-6 space-y-2 text-[0.938rem] leading-[1.9] text-white/75 marker:text-white/70">
+          <ul className="my-5 list-disc pl-6 space-y-2 text-[0.938rem] leading-[1.9] text-white marker:text-white">
             {children}
           </ul>
         ),
         ol: ({ children }) => (
-          <ol className="my-5 list-decimal pl-6 space-y-2 text-[0.938rem] leading-[1.9] text-white/75 marker:text-white/75">
+          <ol className="my-5 list-decimal pl-6 space-y-2 text-[0.938rem] leading-[1.9] text-white marker:text-white">
             {children}
           </ol>
         ),
         li: ({ children }) => <li className="pl-1">{children}</li>,
         blockquote: ({ children }) => (
-          <blockquote className="my-6 border-l-2 border-blue-500/40 bg-blue-500/[0.04] pl-5 pr-4 py-3 text-white/70 italic">
+          <blockquote className="my-6 border-l-2 border-blue-500/40 bg-blue-500/[0.04] pl-5 pr-4 py-3 text-white italic">
             {children}
           </blockquote>
         ),
@@ -55,13 +53,13 @@ export function MarkdownBody({ content }: { content: string }) {
           </code>
         ),
         pre: ({ children }) => (
-          <pre className="my-6 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/40 p-5 text-[0.85rem] leading-relaxed text-white/85">
+          <pre className="my-6 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/40 p-5 text-[0.85rem] leading-relaxed text-white">
             {children}
           </pre>
         ),
         hr: () => <hr className="my-10 border-white/[0.08]" />,
         strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
-        em: ({ children }) => <em className="italic text-white/80">{children}</em>,
+        em: ({ children }) => <em className="italic text-white">{children}</em>,
       }}
     >
       {content}

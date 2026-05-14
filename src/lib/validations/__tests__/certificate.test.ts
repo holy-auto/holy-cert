@@ -140,6 +140,31 @@ describe("certificateCreateSchema", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  // ─── manufacturer_template_id ───
+  it("accepts valid manufacturer_template_id (UUID)", () => {
+    const result = certificateCreateSchema.safeParse({
+      ...validData,
+      manufacturer_template_id: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null manufacturer_template_id", () => {
+    const result = certificateCreateSchema.safeParse({
+      ...validData,
+      manufacturer_template_id: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects non-UUID manufacturer_template_id", () => {
+    const result = certificateCreateSchema.safeParse({
+      ...validData,
+      manufacturer_template_id: "not-a-uuid",
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 // ─── certificateVoidSchema ───
