@@ -218,6 +218,12 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
     notice === "pdf_blocked_plan";
 
   const passportVin = (data as { passport_vin?: string | null }).passport_vin ?? null;
+  const manufacturer =
+    (
+      data as {
+        manufacturer?: { name: string; logo_asset_path: string | null; website_url: string | null } | null;
+      }
+    ).manufacturer ?? null;
 
   return (
     <main className="mx-auto max-w-[980px] p-4">
@@ -267,9 +273,39 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
           >
             認証状態: {getStatusLabel(data.certificate.status)}
           </span>
+          {manufacturer ? (
+            <span className="inline-block rounded-full border border-violet-500/30 bg-[rgba(139,92,246,0.1)] px-2.5 py-1.5 text-xs font-bold text-violet-400">
+              {manufacturer.name} 認定施工店
+            </span>
+          ) : null}
           <span className="self-center text-xs text-secondary">Public ID: {data.certificate.public_id}</span>
         </div>
       </div>
+
+      {manufacturer ? (
+        <section className="glass-card mb-4 flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div>
+              <div className="text-xs font-semibold tracking-[0.18em] text-muted">CERTIFIED INSTALLER</div>
+              <div className="mt-1 text-base font-bold text-primary">{manufacturer.name} 認定施工店による発行</div>
+              <div className="mt-1 text-xs leading-5 text-secondary">
+                本証明書は {manufacturer.name} がメーカー協議のうえ定めた固定デザインで発行されています。 施工店は{" "}
+                {manufacturer.name} の認定を受けたパートナーです。
+              </div>
+            </div>
+          </div>
+          {manufacturer.website_url ? (
+            <a
+              href={manufacturer.website_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center rounded-xl border border-border-default bg-surface px-3 py-2 text-xs font-semibold text-primary no-underline hover:bg-surface-hover"
+            >
+              メーカー公式サイト
+            </a>
+          ) : null}
+        </section>
+      ) : null}
 
       {certStatus !== "active" ? (
         <div className="mb-4 rounded-xl border border-amber-500/30 bg-[rgba(245,158,11,0.1)] p-4 text-amber-400">
