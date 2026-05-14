@@ -13,7 +13,7 @@ export function SectionHeading({
 }) {
   const alignClass = align === "center" ? "text-center" : "text-left";
   const titleColor = light ? "text-white" : "text-heading";
-  const subtitleColor = light ? "text-white" : "text-white";
+  const subtitleColor = light ? "text-white/90" : "text-muted";
 
   return (
     <ScrollReveal variant="blur-in">
@@ -23,7 +23,6 @@ export function SectionHeading({
         </h2>
         {subtitle && (
           <p
-            style={{ color: "#ffffff" }}
             className={`mt-5 text-[0.938rem] md:text-base leading-relaxed ${subtitleColor} ${align === "center" ? "max-w-xl mx-auto" : ""}`}
           >
             {subtitle}

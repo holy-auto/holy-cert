@@ -15,6 +15,7 @@ type Integration = {
     src: string;
     width: number;
     height: number;
+    lightBg?: boolean;
   };
 };
 
@@ -39,7 +40,11 @@ const INTEGRATIONS: Integration[] = [
   },
   { name: "C2PA", note: "写真コンテンツクレデンシャル" },
   { name: "Claude", note: "車検証OCR・写真品質検証・エージェント" },
-  { name: "NexPTG", note: "膜厚計測・コーティング検証" },
+  {
+    name: "NexDiag",
+    note: "膜厚計測・コーティング検証",
+    logo: { src: "/nexdiag_logo.svg", width: 1122, height: 794, lightBg: true },
+  },
   {
     name: "Upstash",
     note: "分散レート制限・キャッシュ",
@@ -64,7 +69,11 @@ export function IntegrationLogoWall() {
           <ScrollReveal key={item.name} variant="fade-up" delay={Math.floor(i / 4) * 60}>
             <div className="group h-full rounded-2xl border border-white/[0.14] bg-white/[0.06] p-5 md:p-6 text-center hover:bg-white/[0.10] hover:border-white/[0.22] transition-colors flex flex-col items-center justify-center">
               {item.logo ? (
-                <div className="flex h-8 md:h-9 items-center justify-center">
+                <div
+                  className={`flex h-8 md:h-9 items-center justify-center ${
+                    item.logo.lightBg ? "rounded-md bg-white px-2.5" : ""
+                  }`}
+                >
                   <Image
                     src={item.logo.src}
                     alt={`${item.name} logo`}
