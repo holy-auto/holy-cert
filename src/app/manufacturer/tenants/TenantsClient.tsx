@@ -114,6 +114,12 @@ export default function TenantsClient() {
         </label>
         <div className="flex-1" />
         <span className="text-xs text-muted">{filtered.length} 件</span>
+        <a
+          href={`/api/manufacturer/tenants/export${includeRevoked ? "?include_revoked=1" : ""}`}
+          className="btn-secondary text-sm"
+        >
+          CSVエクスポート
+        </a>
         {isAdmin && (
           <button onClick={() => setShowGrant(true)} className="btn-primary text-sm">
             ＋ 認定を追加
