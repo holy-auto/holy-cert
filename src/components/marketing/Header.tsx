@@ -19,6 +19,7 @@ const portalItems = [
   { label: "施工店ログイン", href: "/login", description: "証明書の作成・管理" },
   { label: "代理店ポータル", href: "/agent/login", description: "紹介・コミッション管理" },
   { label: "保険会社ポータル", href: "/insurer/login", description: "証明書の確認・査定" },
+  { label: "メーカーポータル", href: "/manufacturer/login", description: "認定施工店・発行状況の確認" },
 ];
 
 export function Header() {
