@@ -199,6 +199,16 @@ export default function TenantsClient() {
                         </Link>
                       )}
                       {isAdmin && e.status === "active" && (
+                        <a
+                          href={`/api/manufacturer/certification-pdf?id=${e.certification_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-medium text-accent hover:underline"
+                        >
+                          認定証PDF
+                        </a>
+                      )}
+                      {isAdmin && e.status === "active" && (
                         <button
                           onClick={() => revoke(e)}
                           disabled={busyId === e.certification_id}
