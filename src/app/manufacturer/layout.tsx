@@ -14,6 +14,7 @@ const NAV = [
   { href: "/manufacturer/certificates", label: "発行履歴" },
   { href: "/manufacturer/quality", label: "品質チェック" },
   { href: "/manufacturer/templates", label: "デザインテンプレート" },
+  { href: "/manufacturer/audit", label: "操作ログ" },
 ];
 
 function Sidebar() {
