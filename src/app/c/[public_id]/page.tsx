@@ -240,12 +240,14 @@ export default async function CertificatePublicPage({ params, searchParams }: Pa
 
       {passportVin ? (
         <a
-          href={`/v/${encodeURIComponent(passportVin)}`}
+          href={`/v/${encodeURIComponent(passportVin)}?src=${encodeURIComponent(data.certificate.public_id)}`}
           className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-blue-500/30 bg-[rgba(59,130,246,0.07)] px-4 py-3 no-underline transition-colors hover:bg-[rgba(59,130,246,0.12)]"
         >
           <div>
-            <div className="text-sm font-semibold text-blue-400">この車両の全施工履歴を見る</div>
-            <div className="mt-0.5 text-xs text-muted">複数の施工店の記録がブロックチェーン上で集約されています</div>
+            <div className="text-sm font-semibold text-blue-400">この車両の全履歴レポート（有料）</div>
+            <div className="mt-0.5 text-xs text-muted">
+              全施工店の記録をブロックチェーン認証付きで集約。買取・査定の根拠資料に
+            </div>
           </div>
           <svg
             className="h-5 w-5 shrink-0 text-blue-400"

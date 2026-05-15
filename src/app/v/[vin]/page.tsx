@@ -1,11 +1,15 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPassportData, getServiceTypeLabel } from "@/lib/passport/getPassportData";
 import { formatDate } from "@/lib/format";
+import { findValidReportAccess, getVehicleReportSettings, reportCookieName } from "@/lib/vehicleReport/access";
+import PurchaseReportCard from "./PurchaseReportCard";
 
 type PageProps = {
   params: Promise<{ vin: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -25,11 +29,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     openGraph: { title, description, type: "article" },
     twitter: { card: "summary", title, description },
-    robots: { index: true, follow: true },
+    // Paywalled / transactional page — keep it out of search indexes.
+    robots: { index: false, follow: false },
   };
 }
 
-export default async function VehiclePassportPage({ params }: PageProps) {
+export default async function VehiclePassportPage({ params, searchParams }: PageProps) {
   const { vin } = await params;
   const data = await getPassportData(vin);
   if (!data) notFound();
@@ -37,6 +42,31 @@ export default async function VehiclePassportPage({ params }: PageProps) {
   const vehicleLabel = [data.display_maker, data.display_model, data.display_year].filter(Boolean).join(" ");
   const passportId = data.vin_code_normalized.slice(-6);
   const firstSeen = new Date(data.first_seen_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long" });
+
+  // Paywall: the trust summary (counts) stays free; the detailed
+  // cross-tenant timeline is gated behind a one-time, account-less
+  // payment. Access is granted via an httpOnly cookie set by the
+  // Stripe success handler (/api/public/vehicle-report/unlock).
+  const vinNorm = data.vin_code_normalized;
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get(reportCookieName(vinNorm))?.value ?? null;
+  const access = await findValidReportAccess(vinNorm, accessToken);
+  const isUnlocked = access !== null;
+
+  const sp = (await searchParams) ?? {};
+  const rawNotice = Array.isArray(sp.canceled)
+    ? "canceled"
+    : sp.canceled
+      ? "canceled"
+      : Array.isArray(sp.pending)
+        ? "pending"
+        : sp.pending
+          ? "pending"
+          : null;
+  const notice = rawNotice as "canceled" | "pending" | null;
+  const sourcePublicId = typeof sp.src === "string" ? sp.src : Array.isArray(sp.src) ? sp.src[0] : undefined;
+
+  const settings = isUnlocked ? null : await getVehicleReportSettings();
 
   return (
     <main className="mx-auto max-w-[860px] p-4">
@@ -83,64 +113,80 @@ export default async function VehiclePassportPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Certificate timeline */}
-      <div className="glass-card mb-4 p-5">
-        <div className="mb-4 font-bold text-primary">施工履歴（ブロックチェーン認証済み）</div>
-        <div className="relative">
-          {/* Vertical line */}
-          <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border-default" />
+      {/* Certificate timeline — gated behind the paid report */}
+      {isUnlocked ? (
+        <div className="glass-card mb-4 p-5">
+          <div className="mb-4 font-bold text-primary">施工履歴（ブロックチェーン認証済み）</div>
+          <div className="relative">
+            {/* Vertical line */}
+            <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border-default" />
 
-          <div className="flex flex-col gap-5">
-            {data.certificates.map((cert) => (
-              <div key={cert.public_id} className="relative flex gap-4">
-                {/* Timeline dot */}
-                <div className="mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-emerald-500 bg-[rgba(16,185,129,0.2)]" />
+            <div className="flex flex-col gap-5">
+              {data.certificates.map((cert) => (
+                <div key={cert.public_id} className="relative flex gap-4">
+                  {/* Timeline dot */}
+                  <div className="mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-emerald-500 bg-[rgba(16,185,129,0.2)]" />
 
-                <div className="flex-1 rounded-xl border border-border-default bg-base p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <div className="font-semibold text-primary">{getServiceTypeLabel(cert.service_type)}</div>
-                      <div className="mt-0.5 text-sm text-secondary">
-                        {cert.shop_name ?? "施工店名不明"} · {formatDate(cert.created_at)}
+                  <div className="flex-1 rounded-xl border border-border-default bg-base p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <div className="font-semibold text-primary">{getServiceTypeLabel(cert.service_type)}</div>
+                        <div className="mt-0.5 text-sm text-secondary">
+                          {cert.shop_name ?? "施工店名不明"} · {formatDate(cert.created_at)}
+                        </div>
                       </div>
+                      <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-[rgba(16,185,129,0.08)] px-2 py-0.5 text-xs text-emerald-400">
+                        画像 {cert.anchored_image_count}枚 アンカー済み
+                      </span>
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-[rgba(16,185,129,0.08)] px-2 py-0.5 text-xs text-emerald-400">
-                      画像 {cert.anchored_image_count}枚 アンカー済み
-                    </span>
-                  </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {cert.primary_explorer_url ? (
-                      <a
-                        href={cert.primary_explorer_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded-lg border border-border-default bg-surface px-2.5 py-1 text-xs text-accent hover:border-accent/50 no-underline transition-colors"
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {cert.primary_explorer_url ? (
+                        <a
+                          href={cert.primary_explorer_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-border-default bg-surface px-2.5 py-1 text-xs text-accent hover:border-accent/50 no-underline transition-colors"
+                        >
+                          <svg
+                            className="h-3 w-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
+                            />
+                          </svg>
+                          Polygon Tx
+                          {cert.primary_tx_network === "amoy" && <span className="text-muted">(testnet)</span>}
+                        </a>
+                      ) : null}
+                      <Link
+                        href={`/c/${cert.public_id}`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-border-default bg-surface px-2.5 py-1 text-xs text-secondary hover:border-accent/50 hover:text-primary no-underline transition-colors"
                       >
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
-                          />
-                        </svg>
-                        Polygon Tx
-                        {cert.primary_tx_network === "amoy" && <span className="text-muted">(testnet)</span>}
-                      </a>
-                    ) : null}
-                    <Link
-                      href={`/c/${cert.public_id}`}
-                      className="inline-flex items-center gap-1 rounded-lg border border-border-default bg-surface px-2.5 py-1 text-xs text-secondary hover:border-accent/50 hover:text-primary no-underline transition-colors"
-                    >
-                      証明書を見る →
-                    </Link>
+                        証明書を見る →
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <PurchaseReportCard
+          vin={vinNorm}
+          priceJpy={settings?.price_jpy ?? 0}
+          enabled={settings?.enabled ?? false}
+          notice={notice}
+          sourcePublicId={sourcePublicId}
+        />
+      )}
 
       <footer className="text-xs text-muted">
         このパスポートに記載された施工証明の真正性は Polygon PoS ネットワーク上で検証可能です。 各施工写真の SHA-256

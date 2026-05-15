@@ -13,6 +13,7 @@ import { sendShopOrderEmail } from "@/lib/email/shopOrderEmail";
 import { sendTemplateSubscriptionStartedEmail } from "@/lib/email/templateOrderEmail";
 import { maskEmail } from "@/lib/logger";
 import { invalidateTenantBillingCache } from "@/lib/billing/guard";
+import { REPORT_ACCESS_VALIDITY_DAYS } from "@/lib/vehicleReport/access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -587,6 +588,37 @@ export async function POST(req: NextRequest) {
           }
 
           console.info("webhook: shop order paid", { shopOrderId, tenantId });
+          break;
+        }
+
+        // ─── 車両履歴レポート checkout (mode=payment / アカウント不要) ───
+        if (session.metadata?.vehicle_report_order_id) {
+          const orderId = session.metadata.vehicle_report_order_id;
+          const paymentIntentId = asStringId(session.payment_intent);
+          const nowIso = new Date().toISOString();
+          const expiresAt = new Date(Date.now() + REPORT_ACCESS_VALIDITY_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+          // .neq("status","paid") keeps this idempotent vs the unlock
+          // route, which may have already confirmed the order (and set
+          // its own expires_at) before this webhook is delivered.
+          const { error: vrErr } = await supabase
+            .from("vehicle_report_orders")
+            .update({
+              status: "paid",
+              stripe_payment_intent_id: paymentIntentId,
+              paid_at: nowIso,
+              expires_at: expiresAt,
+              updated_at: nowIso,
+            })
+            .eq("id", orderId)
+            .neq("status", "paid");
+
+          if (vrErr) {
+            console.error("webhook: vehicle report order update failed", { orderId, error: vrErr });
+            break;
+          }
+
+          console.info("webhook: vehicle report order paid", { orderId });
           break;
         }
 
