@@ -10,6 +10,7 @@ const portalLinks = {
     { label: "代理店ポータル", href: "/agent/login" },
     { label: "保険会社ポータル", href: "/insurer/login" },
     { label: "メーカーポータル", href: "/manufacturer/login" },
+    { label: "マイページ（お客様）", href: "/my" },
     { label: "新規登録（施工店）", href: "/signup" },
     { label: "新規登録（保険会社）", href: "/join" },
   ],
