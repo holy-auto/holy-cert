@@ -5,6 +5,8 @@ import Link from "next/link";
 import { getPassportData, getServiceTypeLabel } from "@/lib/passport/getPassportData";
 import { formatDate } from "@/lib/format";
 import { findValidReportAccess, getVehicleReportSettings, reportCookieName } from "@/lib/vehicleReport/access";
+import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveCallerWithRole } from "@/lib/auth/checkRole";
 import PurchaseReportCard from "./PurchaseReportCard";
 
 type PageProps = {
@@ -51,7 +53,16 @@ export default async function VehiclePassportPage({ params, searchParams }: Page
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(reportCookieName(vinNorm))?.value ?? null;
   const access = await findValidReportAccess(vinNorm, accessToken);
-  const isUnlocked = access !== null;
+  const isPaid = access !== null;
+
+  // Logged-in Ledra member shops (any tenant member) can review the
+  // cross-tenant "which shop did what" history for free — the paywall
+  // only targets account-less third parties (e.g. 買取店).
+  const supabase = await createSupabaseServerClient();
+  const caller = await resolveCallerWithRole(supabase);
+  const isMemberFree = caller !== null;
+
+  const isUnlocked = isPaid || isMemberFree;
 
   const sp = (await searchParams) ?? {};
   const rawNotice = Array.isArray(sp.canceled)
@@ -110,6 +121,11 @@ export default async function VehiclePassportPage({ params, searchParams }: Page
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border-default px-3 py-1.5 text-xs text-muted">
             初回登録 {firstSeen}
           </span>
+          {isMemberFree && !isPaid ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-[rgba(16,185,129,0.1)] px-3 py-1.5 text-xs font-semibold text-emerald-400">
+              加盟店ログイン中 — 全履歴を無料表示
+            </span>
+          ) : null}
         </div>
       </div>
 

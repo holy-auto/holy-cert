@@ -94,6 +94,17 @@ export default function PurchaseReportCard({ vin, priceJpy, enabled, notice, sou
               : `レポートを購入して全履歴を見る（${priceLabel}）`}
         </button>
       </div>
+
+      <div className="mt-4 border-t border-border-default pt-3 text-xs text-muted">
+        Ledra 加盟店の方は{" "}
+        <a
+          href={`/login?next=${encodeURIComponent(`/v/${vin}`)}`}
+          className="font-semibold text-blue-400 hover:underline"
+        >
+          ログイン
+        </a>{" "}
+        すると、どの施工店で何を施工したかを無料でご確認いただけます。
+      </div>
     </div>
   );
 }
