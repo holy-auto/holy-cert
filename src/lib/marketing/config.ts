@@ -68,7 +68,6 @@ export const footerNavGroups = [
     links: [
       { label: "導入支援・サポート", href: "/support" },
       { label: "セキュリティ", href: "/security" },
-      { label: "透明性ダッシュボード", href: "/transparency" },
       { label: "FAQ", href: "/faq" },
       { label: "お問い合わせ", href: "/contact" },
     ],
