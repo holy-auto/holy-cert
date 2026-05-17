@@ -16,11 +16,17 @@ type Integration = {
     src: string;
     width: number;
     height: number;
+    lightBg?: boolean;
   };
 };
 
 const INTEGRATIONS: Integration[] = [
-  { name: "Stripe", note: "サブスクリプション・請求書", href: "https://stripe.com/jp" },
+  {
+    name: "Stripe",
+    note: "サブスクリプション・請求書",
+    href: "https://stripe.com/jp",
+    logo: { src: "/brands/stripe-wordmark-blurple.svg", width: 360, height: 150, lightBg: true },
+  },
   { name: "Square", note: "POS端末決済・在庫同期", href: "https://squareup.com/jp" },
   { name: "Google Calendar", note: "予約カレンダー双方向同期", href: "https://calendar.google.com/" },
   {
@@ -43,7 +49,12 @@ const INTEGRATIONS: Integration[] = [
   },
   { name: "C2PA", note: "写真コンテンツクレデンシャル", href: "https://c2pa.org/" },
   { name: "Claude", note: "車検証OCR・写真品質検証・エージェント", href: "https://claude.com/" },
-  { name: "NexPTG", note: "膜厚計測・コーティング検証", href: "https://nexdiag.com/" },
+  {
+    name: "NexDiag",
+    note: "膜厚計測・コーティング検証",
+    href: "https://nexdiag.com/",
+    logo: { src: "/nexdiag_logo.svg", width: 1122, height: 794, lightBg: true },
+  },
   {
     name: "Upstash",
     note: "分散レート制限・キャッシュ",
@@ -77,7 +88,11 @@ export function IntegrationLogoWall() {
             >
               <div className="flex h-full flex-col items-center justify-center">
                 {item.logo ? (
-                  <div className="flex h-8 md:h-9 items-center justify-center">
+                  <div
+                    className={`flex h-8 md:h-9 items-center justify-center ${
+                      item.logo.lightBg ? "rounded-md bg-white px-2.5" : ""
+                    }`}
+                  >
                     <Image
                       src={item.logo.src}
                       alt={`${item.name} logo`}
@@ -107,6 +122,7 @@ export function IntegrationLogoWall() {
         <li>Resend は Resend, Inc. の商標です。</li>
         <li>Upstash は Upstash, Inc. の商標です。</li>
         <li>Supabase は Supabase Inc. の登録商標または商標です。</li>
+        <li>Stripe は Stripe, Inc. の商標です。</li>
       </ul>
     </Section>
   );
