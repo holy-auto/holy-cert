@@ -103,7 +103,9 @@
 
 ### Funding
 
-- Status: [bootstrapped / raising [round] of [¥…] ] · Use of funds: [insurer integration + GTM]
+- Round: **Seed** (first institutional round; post-product — product is live with multiple paying tenants and recurring revenue)
+- Target size: **¥30M–¥50M (¥3,000万〜¥5,000万)** · Timing: 【要記入：想定時期】
+- Use of funds (lean seed, deliberately narrow milestone): convert a built, revenue-generating product into the insurer layer — **not a build raise**. Funds: SOC2 / ISO27001 *readiness* (not full certification), one insurer taken from intro → PoC → signed contract, one GTM hire, ~12-month founder-led lean runway. Full designated-shop-network rollout and an insurer in paid production at scale = **Series A** milestone.
 
 ### Why Plug and Play Japan — and which corporate partners we want to work with
 
@@ -146,3 +148,53 @@
 ## 4. モビリティを出すならいつか (将来メモ)
 
 `/v/[vin]` 車両パスポート実装 + Polygon デフォルト ON 完了後、かつ Woven by Toyota / タイムズモビリティ (`docs/times-mobility-followup-email.md`) が温まってから、**次バッチで Mobility に追加応募**。順序は「Insurtech で実績 → Mobility で拡張」(`docs/ledra-goals-strategy-2026-05.md` §8 推奨順序と一致)。
+
+---
+
+## 5. 初回問い合わせ本文（日本語・紹介＋資金調達）
+
+> PnP Japan への初回コンタクト／応募フォーム自由記述用のフック。面談1回を取るのが目的。
+> ラウンド種別＝**シード**（初の機関調達・ポストプロダクト）、調達額＝**¥3,000〜5,000万**で確定。想定時期のみ未確定。
+> 誇張ガードレールは §2 と同じ：保険会社は **pre-contact**（紹介・出資を求める側のトーン）。
+
+```text
+件名（フォームに件名欄がある場合）:
+Insurtech バーティカルへのご相談 — 改ざん不可な施工証明 × 損保連携、資金調達も（株式会社HOLY / Ledra）
+
+本文:
+Plug and Play Japan ご担当者様
+
+突然のご連絡失礼いたします。株式会社HOLY にて自動車アフターサービス向け
+SaaS「Ledra」を運営しております【要記入：氏名・役職】と申します。
+
+Ledra は、整備／ボディリペア／コーティング／PPF 店の施工記録を
+ブロックチェーンで改ざん不可なデジタル証明として残し、それを損害保険会社と
+つなぐ「施工店 ⇄ 保険会社」の双方向ネットワークです。記録が増えるほど
+保険側の検証価値が上がり、保険採用が指定工場ネットワークを引き込みます。
+
+プロダクトは既に稼働しており（有料テナント複数・継続課金中）、保険会社向け
+ポータル（案件・SLA・分析）とオンチェーン・アンカリングは実装済みです。
+一方で保険会社との接点はこれからで、その最初の接点づくりを当社最重要の
+経営課題と位置づけています。
+
+ご相談したい点は2つです。1つは、貴プログラムの Insurtech 領域を通じた
+損保コーポレートパートナー（SOMPO 等）へのご紹介。もう1つは資金調達で、
+現在シードラウンド（¥3,000〜5,000万、想定時期【要記入】）を準備中であり、
+Plug and Play からの出資の可能性もご相談できればと考えております。本ラウンドは
+新規開発ではなく、既に稼働するプロダクトを初回の保険成約と本番化へ
+転換するための資金と位置づけています。
+
+まずはオンラインで 15〜20 分、事業概要とデモ導線をご説明できれば幸いです。
+ピッチデックおよび資金調達資料も別途お送りいたします。ご検討のほど
+何卒よろしくお願いいたします。
+
+【要記入：氏名／役職】
+株式会社HOLY ｜ Ledra 事業部
+Mail:【要記入】 ／ Web: https://ledra.co.jp ／ App: https://app.ledra.co.jp
+```
+
+送信前チェック:
+- [ ] `【要記入：…】`（氏名・役職・メール・**想定時期**）を埋める。シード／¥3,000〜5,000万は確定値、時期のみ未定なら「時期未定」と明記
+- [ ] 保険トラクションを書いていない（「SOMPO と連携／導入済み」等は厳禁、紹介・出資を求める側のトーン維持）
+- [ ] 「転換 raise（新規開発でない）」が `docs/pitch-deck-prompt.md` の資金使途軸と一貫
+- [ ] 文字数の少ない問い合わせボックス用に、必要なら第2〜第5段落を2文へ圧縮した短縮版を用意
