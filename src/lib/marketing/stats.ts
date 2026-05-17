@@ -11,15 +11,24 @@ import { createServiceRoleAdmin } from "@/lib/supabase/admin";
  *   ナラティブを成立させるため、表示用の文字列ではなく生の数値を返す。
  */
 
+export type IssuanceMonth = {
+  /** 表示ラベル (例: "5月") */
+  label: string;
+  /** その月に発行された施工証明書数 */
+  value: number;
+};
+
 export type MarketingStats = {
   /** 有効テナント (施工店) 数 */
   shopCount: number;
-  /** 累計発行された証明書相当のレコード数 */
+  /** 累計発行された施工証明書数 (certificates, draft を除く) */
   certificateCount: number;
   /** 過去30日に追加されたテナント数 */
   shopsLast30Days: number;
-  /** 過去30日に発行された証明書相当のレコード数 */
+  /** 過去30日に発行された施工証明書数 */
   certificatesLast30Days: number;
+  /** 直近6ヶ月の月別発行数 (古い月→新しい月) */
+  issuanceByMonth: IssuanceMonth[];
   /** DB から取れたかどうか (false の場合は 0 を返している) */
   isLive: boolean;
   /** 取得時刻 (ISO) — 「いつ時点の数字か」を明示する */
@@ -31,9 +40,26 @@ const fallback: MarketingStats = {
   certificateCount: 0,
   shopsLast30Days: 0,
   certificatesLast30Days: 0,
+  issuanceByMonth: [],
   isLive: false,
   fetchedAt: new Date(0).toISOString(),
 };
+
+/** 直近6ヶ月 (当月含む) の UTC 月境界を古い順に返す */
+function lastSixMonthsUtc(): { label: string; start: string; end: string }[] {
+  const now = new Date();
+  const out: { label: string; start: string; end: string }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i + 1, 1));
+    out.push({
+      label: `${start.getUTCMonth() + 1}月`,
+      start: start.toISOString(),
+      end: end.toISOString(),
+    });
+  }
+  return out;
+}
 
 const fetchMarketingStats = unstable_cache(
   async (): Promise<MarketingStats> => {
@@ -46,16 +72,22 @@ const fetchMarketingStats = unstable_cache(
       }
 
       const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const months = lastSixMonthsUtc();
 
-      const [tenants, certs, tenants30, certs30] = await Promise.all([
+      // 施工証明書 = certificates テーブル (draft は未発行なので除外)
+      const issuedCerts = () =>
+        supabase.from("certificates").select("id", { count: "exact", head: true }).neq("status", "draft");
+
+      const [tenants, certs, tenants30, certs30, ...monthly] = await Promise.all([
         supabase.from("tenants").select("id", { count: "exact", head: true }).eq("is_active", true),
-        supabase.from("insurance_cases").select("id", { count: "exact", head: true }),
+        issuedCerts(),
         supabase
           .from("tenants")
           .select("id", { count: "exact", head: true })
           .eq("is_active", true)
           .gte("created_at", since),
-        supabase.from("insurance_cases").select("id", { count: "exact", head: true }).gte("created_at", since),
+        issuedCerts().gte("created_at", since),
+        ...months.map((m) => issuedCerts().gte("created_at", m.start).lt("created_at", m.end)),
       ]);
 
       return {
@@ -63,6 +95,7 @@ const fetchMarketingStats = unstable_cache(
         certificateCount: certs.count ?? 0,
         shopsLast30Days: tenants30.count ?? 0,
         certificatesLast30Days: certs30.count ?? 0,
+        issuanceByMonth: months.map((m, i) => ({ label: m.label, value: monthly[i]?.count ?? 0 })),
         isLive: true,
         fetchedAt: new Date().toISOString(),
       };
@@ -70,7 +103,7 @@ const fetchMarketingStats = unstable_cache(
       return fallback;
     }
   },
-  ["marketing-stats-v2"],
+  ["marketing-stats-v3"],
   { revalidate: 3600 },
 );
 

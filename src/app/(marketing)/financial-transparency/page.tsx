@@ -7,16 +7,7 @@ import { CTABanner } from "@/components/marketing/CTABanner";
 import { TransparencyMetrics, type TransparencyMetric } from "@/components/marketing/TransparencyMetrics";
 import { TransparencyChart } from "@/components/marketing/TransparencyChart";
 import { getMarketingStats } from "@/lib/marketing/stats";
-import {
-  SNAPSHOT_MONTH,
-  TRANSPARENCY_FIGURES_ARE_SAMPLE,
-  CHURN,
-  ISSUANCE_HISTORY,
-  HONEST_LEDGER,
-  ROADMAP,
-  PLEDGES,
-  type LedgerKind,
-} from "@/lib/marketing/transparency";
+import { SNAPSHOT_MONTH, CHURN, HONEST_LEDGER, ROADMAP, PLEDGES, type LedgerKind } from "@/lib/marketing/transparency";
 
 export const metadata = {
   title: "透明性ダッシュボード ── 事業数値と財務の開示",
@@ -199,6 +190,8 @@ export default async function FinancialTransparencyPage() {
     },
   ];
 
+  const hasIssuance = stats.issuanceByMonth.some((m) => m.value > 0);
+
   return (
     <>
       <PageHero
@@ -243,13 +236,19 @@ export default async function FinancialTransparencyPage() {
       <Section bg="alt" id="growth">
         <SectionHeading
           title="証明書発行数の推移"
-          subtitle={`直近6ヶ月の月間発行数。誇張のないグラフです。${
-            TRANSPARENCY_FIGURES_ARE_SAMPLE ? "（数値はサンプル）" : ""
-          }`}
+          subtitle="直近6ヶ月の月間発行数（本番DBから集計）。誇張のないグラフです。"
         />
         <ScrollReveal variant="fade-up">
           <div className="mx-auto max-w-4xl">
-            <TransparencyChart data={ISSUANCE_HISTORY} />
+            {hasIssuance ? (
+              <TransparencyChart data={stats.issuanceByMonth} />
+            ) : (
+              <p className="rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-12 text-center text-sm text-white">
+                {stats.isLive
+                  ? "この6ヶ月の発行記録はまだありません。最初の1件がここに刻まれます。"
+                  : "現在DBに到達できず、推移を表示できません。"}
+              </p>
+            )}
           </div>
         </ScrollReveal>
       </Section>
