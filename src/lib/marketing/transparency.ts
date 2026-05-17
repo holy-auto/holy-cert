@@ -21,19 +21,18 @@
 export const SNAPSHOT_MONTH = "2026年5月";
 
 export type ChurnStatus = {
-  /** 実測値をまだ出せない (会社全体の解約計測が未整備) か */
-  measuring: boolean;
-  /** 率直なコメント */
+  /** 実測不能時 (計測基盤未適用 / 母数ゼロ) に表示する率直なコメント */
   note: string;
 };
 
 /**
- * 月次解約率。会社全体の解約を継続計測する基盤が未整備のため、
- * 取り繕ったサンプル値は出さず「計測体制構築中」であることを明示する。
+ * 月次解約率は getMarketingStats().churn で実算出する
+ * (tenants.deactivated_at + marketing_churn_stats RPC)。
+ * 算出不能のときだけ、この note を「計測体制構築中」として表示する。
+ * 取り繕ったサンプル値は出さない。
  */
 export const CHURN: ChurnStatus = {
-  measuring: true,
-  note: "解約を継続計測する基盤を整備中です。整い次第、月次解約率を ── 良い月も悪い月も ── ここに同じ大きさで載せます。それまで取り繕った数値は出しません。",
+  note: "解約を継続計測する基盤を稼働開始しました。前月完了分の実測値が出るまで、取り繕った数値は出しません。",
 };
 
 export type LedgerKind = "win" | "miss" | "learn";

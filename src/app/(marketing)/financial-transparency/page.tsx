@@ -179,12 +179,22 @@ export default async function FinancialTransparencyPage() {
       delta: `直近30日 +${stats.shopsLast30Days.toLocaleString()}店`,
       note: stats.isLive ? "本番DBから直接集計しています。" : "DBに到達できていません — フォールバック表示。",
     },
-    {
-      label: "月次解約率",
-      tone: "warn",
-      measuring: CHURN.measuring,
-      note: CHURN.note,
-    },
+    stats.churn
+      ? {
+          label: "月次解約率",
+          value: stats.churn.ratePct ?? 0,
+          decimals: 1,
+          unit: "%",
+          tone: "warn",
+          delta: `${stats.churn.monthLabel} 実績`,
+          note: "前月完了分の実測（解約テナント数 ÷ 月初アクティブ数）。計測基盤の稼働以降のみ集計し、過去分は遡及していません。",
+        }
+      : {
+          label: "月次解約率",
+          tone: "warn",
+          measuring: true,
+          note: CHURN.note,
+        },
   ];
 
   const hasIssuance = stats.issuanceByMonth.some((m) => m.value > 0);
@@ -223,7 +233,9 @@ export default async function FinancialTransparencyPage() {
             </div>
             <span className="hidden sm:inline-block w-px h-4 bg-white/10" />
             <span className="text-xs text-white leading-relaxed">
-              月次解約率は計測体制を構築中です（取り繕った数値は出していません）。
+              {stats.churn
+                ? `月次解約率は前月完了分（${stats.churn.monthLabel}）を実測しています。`
+                : "月次解約率は計測基盤の稼働以降を集計します（実測値が出るまで取り繕った数値は出しません）。"}
             </span>
           </div>
         </ScrollReveal>

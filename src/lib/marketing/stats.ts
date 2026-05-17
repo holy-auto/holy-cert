@@ -18,6 +18,15 @@ export type IssuanceMonth = {
   value: number;
 };
 
+export type ChurnStats = {
+  /** 月次解約率 (%)。母数0等で算出不能なら null */
+  ratePct: number | null;
+  /** 対象月ラベル (例: "2026年4月") */
+  monthLabel: string;
+  /** 実測可能か (母数があるか) */
+  measurable: boolean;
+};
+
 export type MarketingStats = {
   /** 有効テナント (施工店) 数 */
   shopCount: number;
@@ -29,6 +38,8 @@ export type MarketingStats = {
   certificatesLast30Days: number;
   /** 直近6ヶ月の月別発行数 (古い月→新しい月) */
   issuanceByMonth: IssuanceMonth[];
+  /** 前月完了分の会社全体 月次解約率。計測基盤未適用/不能なら null */
+  churn: ChurnStats | null;
   /** DB から取れたかどうか (false の場合は 0 を返している) */
   isLive: boolean;
   /** 取得時刻 (ISO) — 「いつ時点の数字か」を明示する */
@@ -41,9 +52,21 @@ const fallback: MarketingStats = {
   shopsLast30Days: 0,
   certificatesLast30Days: 0,
   issuanceByMonth: [],
+  churn: null,
   isLive: false,
   fetchedAt: new Date(0).toISOString(),
 };
+
+/** marketing_churn_stats() RPC の戻りを安全に ChurnStats へ */
+function parseChurn(raw: unknown): ChurnStats | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const measurable = r.measurable === true;
+  const ratePct = typeof r.ratePct === "number" ? r.ratePct : null;
+  const monthLabel = typeof r.monthLabel === "string" ? r.monthLabel : "";
+  if (!measurable || ratePct === null || !monthLabel) return null;
+  return { ratePct, monthLabel, measurable };
+}
 
 /** 直近6ヶ月 (当月含む) の UTC 月境界を古い順に返す */
 function lastSixMonthsUtc(): { label: string; start: string; end: string }[] {
@@ -78,7 +101,10 @@ const fetchMarketingStats = unstable_cache(
       const issuedCerts = () =>
         supabase.from("certificates").select("id", { count: "exact", head: true }).neq("status", "draft");
 
-      const [tenants, certs, tenants30, certs30, ...monthly] = await Promise.all([
+      // churn RPC は計測基盤(マイグレーション)未適用だと error を返す。
+      // .rpc は SQL エラーで reject せず {data,error} を返すため、
+      // 他の実数値を巻き添えにせず安全に劣化する (churn=null → ページは計測中表示)。
+      const [tenants, certs, tenants30, certs30, churnRes, ...monthly] = await Promise.all([
         supabase.from("tenants").select("id", { count: "exact", head: true }).eq("is_active", true),
         issuedCerts(),
         supabase
@@ -87,6 +113,7 @@ const fetchMarketingStats = unstable_cache(
           .eq("is_active", true)
           .gte("created_at", since),
         issuedCerts().gte("created_at", since),
+        supabase.rpc("marketing_churn_stats"),
         ...months.map((m) => issuedCerts().gte("created_at", m.start).lt("created_at", m.end)),
       ]);
 
@@ -96,6 +123,7 @@ const fetchMarketingStats = unstable_cache(
         shopsLast30Days: tenants30.count ?? 0,
         certificatesLast30Days: certs30.count ?? 0,
         issuanceByMonth: months.map((m, i) => ({ label: m.label, value: monthly[i]?.count ?? 0 })),
+        churn: churnRes.error ? null : parseChurn(churnRes.data),
         isLive: true,
         fetchedAt: new Date().toISOString(),
       };

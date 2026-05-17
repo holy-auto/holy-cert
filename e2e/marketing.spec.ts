@@ -31,8 +31,10 @@ test.describe("Marketing pages", () => {
   test("financial-transparency dashboard shows honest, non-fabricated states", async ({ page }) => {
     await page.goto("/financial-transparency");
     await expect(page.locator("body")).toContainText(/透明性|正直な記録/);
-    // ねつ造しない設計: 未整備の指標はサンプルを出さず「計測体制構築中」と正直表示
-    await expect(page.locator("body")).toContainText(/計測体制構築中/);
+    // 月次解約率セクションは常にある (実測値 or「計測体制構築中」)
+    await expect(page.locator("body")).toContainText(/月次解約率/);
+    // ねつ造サンプル (旧ダミー文言) は出さない
+    await expect(page.locator("body")).not.toContainText(/目標\(3%\)未達/);
   });
 });
 
