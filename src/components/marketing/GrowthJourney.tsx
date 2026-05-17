@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Section } from "./Section";
 import { SectionHeading } from "./SectionHeading";
 import { ScrollReveal } from "./ScrollReveal";
@@ -150,6 +151,17 @@ export async function GrowthJourney() {
               </>
             )}
           </div>
+        </div>
+      </ScrollReveal>
+
+      <ScrollReveal variant="fade-in" delay={250}>
+        <div className="mt-8 text-center">
+          <Link
+            href="/financial-transparency"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            事業の数字をすべて見る ── 透明性ダッシュボード →
+          </Link>
         </div>
       </ScrollReveal>
     </Section>

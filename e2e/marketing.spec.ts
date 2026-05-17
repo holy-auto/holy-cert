@@ -27,6 +27,13 @@ test.describe("Marketing pages", () => {
     await page.goto("/faq");
     await expect(page.locator("body")).toContainText(/よくある/);
   });
+
+  test("financial-transparency page integrates the dashboard with honest record", async ({ page }) => {
+    await page.goto("/financial-transparency");
+    await expect(page.locator("body")).toContainText(/透明性|正直な記録/);
+    // しくじり (miss) を必ず載せる設計を担保
+    await expect(page.locator("body")).toContainText(/しくじった/);
+  });
 });
 
 test.describe("Login page", () => {
