@@ -82,6 +82,10 @@
     {
       "path": "/api/cron/feature-metrics-rollup",
       "schedule": "0 19 * * 0"
+    },
+    {
+      "path": "/api/cron/manufacturer-monthly-summary",
+      "schedule": "0 0 1 * *"
     }
   ]
 }

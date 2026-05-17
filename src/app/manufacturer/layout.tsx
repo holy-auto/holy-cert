@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -12,11 +12,38 @@ const NAV = [
   { href: "/manufacturer", label: "ダッシュボード", exact: true },
   { href: "/manufacturer/tenants", label: "認定施工店" },
   { href: "/manufacturer/certificates", label: "発行履歴" },
+  { href: "/manufacturer/quality", label: "品質チェック" },
   { href: "/manufacturer/templates", label: "デザインテンプレート" },
+  { href: "/manufacturer/audit", label: "操作ログ" },
 ];
+
+// admin ロールのみに表示するナビ。viewer には出さず、URL直打ち時も
+// ページ側で /manufacturer にリダイレクトされる。
+const ADMIN_NAV = [{ href: "/manufacturer/members", label: "ポータルメンバー" }];
 
 function Sidebar() {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/manufacturer/me", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!cancelled) setIsAdmin(json.role === "admin");
+      } catch {
+        /* ignore — defaults to hiding admin nav */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const items = isAdmin ? [...NAV, ...ADMIN_NAV] : NAV;
+
   const logout = async () => {
     try {
       const supabase = createClient();
@@ -37,8 +64,8 @@ function Sidebar() {
         </Link>
       </div>
       <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
-        {NAV.map((item) => {
-          const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+        {items.map((item) => {
+          const active = "exact" in item && item.exact ? pathname === item.href : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}

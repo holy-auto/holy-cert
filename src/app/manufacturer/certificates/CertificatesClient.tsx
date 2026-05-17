@@ -175,11 +175,26 @@ export default function CertificatesClient() {
         <div className="rounded-md border border-danger-border bg-danger-dim p-3 text-sm text-danger-text">{err}</div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-muted">
+      <div className="flex items-center justify-between gap-3 text-xs text-muted">
         <span>該当 {total.toLocaleString("ja-JP")} 件</span>
-        <span>
-          {page} / {lastPage} ページ
-        </span>
+        <div className="flex items-center gap-3">
+          <a
+            href={(() => {
+              const p = new URLSearchParams();
+              if (tenantId) p.set("tenant_id", tenantId);
+              if (templateId) p.set("template_id", templateId);
+              if (serviceType) p.set("service_type", serviceType);
+              const qs = p.toString();
+              return `/api/manufacturer/certificates/export${qs ? `?${qs}` : ""}`;
+            })()}
+            className="btn-secondary text-xs"
+          >
+            CSVエクスポート（絞り込み反映 / 最大5000件）
+          </a>
+          <span>
+            {page} / {lastPage} ページ
+          </span>
+        </div>
       </div>
 
       {loading ? (
