@@ -181,11 +181,8 @@ export default async function FinancialTransparencyPage() {
     },
     {
       label: "月次解約率",
-      value: CHURN.rate,
-      decimals: 1,
-      unit: "%",
       tone: "warn",
-      delta: `目標(${CHURN.target}%)未達`,
+      measuring: CHURN.measuring,
       note: CHURN.note,
     },
   ];
@@ -226,7 +223,7 @@ export default async function FinancialTransparencyPage() {
             </div>
             <span className="hidden sm:inline-block w-px h-4 bg-white/10" />
             <span className="text-xs text-white leading-relaxed">
-              解約率と推移グラフは現時点ではサンプル値です（実運用で実績へ差し替え）。
+              月次解約率は計測体制を構築中です（取り繕った数値は出していません）。
             </span>
           </div>
         </ScrollReveal>
@@ -256,29 +253,37 @@ export default async function FinancialTransparencyPage() {
       {/* 03. 今月の正直な記録 */}
       <Section id="ledger">
         <SectionHeading
-          title={`今月の正直な記録 ── ${SNAPSHOT_MONTH}`}
+          title={HONEST_LEDGER.length > 0 ? `今月の正直な記録 ── ${SNAPSHOT_MONTH}` : "今月の正直な記録"}
           subtitle="うまくいったこと、しくじったこと、学んだこと。3つとも書きます。しくじりを省いた月は作りません。"
         />
-        <div className="mx-auto max-w-3xl space-y-px rounded-2xl border border-white/[0.08] bg-white/[0.08] overflow-hidden">
-          {HONEST_LEDGER.map((entry, i) => {
-            const s = ledgerStyle[entry.kind];
-            return (
-              <ScrollReveal key={entry.title} variant="fade-up" delay={i * 60}>
-                <div className="grid grid-cols-1 sm:grid-cols-[112px_1fr] gap-3 sm:gap-6 bg-[#060a12] p-6">
-                  <span
-                    className={`justify-self-start inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-[0.625rem] font-bold uppercase tracking-wide ${s.chip}`}
-                  >
-                    {s.label}
-                  </span>
-                  <div>
-                    <h3 className="text-[0.938rem] font-bold text-white leading-snug">{entry.title}</h3>
-                    <p className="mt-1.5 text-[0.875rem] leading-relaxed text-white">{entry.body}</p>
+        {HONEST_LEDGER.length > 0 ? (
+          <div className="mx-auto max-w-3xl space-y-px rounded-2xl border border-white/[0.08] bg-white/[0.08] overflow-hidden">
+            {HONEST_LEDGER.map((entry, i) => {
+              const s = ledgerStyle[entry.kind];
+              return (
+                <ScrollReveal key={entry.title} variant="fade-up" delay={i * 60}>
+                  <div className="grid grid-cols-1 sm:grid-cols-[112px_1fr] gap-3 sm:gap-6 bg-[#060a12] p-6">
+                    <span
+                      className={`justify-self-start inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-[0.625rem] font-bold uppercase tracking-wide ${s.chip}`}
+                    >
+                      {s.label}
+                    </span>
+                    <div>
+                      <h3 className="text-[0.938rem] font-bold text-white leading-snug">{entry.title}</h3>
+                      <p className="mt-1.5 text-[0.875rem] leading-relaxed text-white">{entry.body}</p>
+                    </div>
                   </div>
-                </div>
-              </ScrollReveal>
-            );
-          })}
-        </div>
+                </ScrollReveal>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mx-auto max-w-3xl rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-12 text-center text-sm leading-relaxed text-white">
+            今月分はまだ公開していません。毎月1日に、うまくいった・しくじった・学んだを3つとも掲載します。
+            <br />
+            取り繕った記録は載せません ── 載せるときは、実際に起きたことだけを。
+          </p>
+        )}
       </Section>
 
       <Section bg="alt" className="!py-12 md:!py-16">
@@ -351,30 +356,36 @@ export default async function FinancialTransparencyPage() {
       {/* 公開ロードマップ */}
       <Section bg="alt" id="roadmap">
         <SectionHeading title="公開ロードマップ" subtitle="何を作っているか、何を後回しにしているかも隠しません。" />
-        <div className="mx-auto max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-5">
-          {ROADMAP.map((col, ci) => (
-            <ScrollReveal key={col.stage} variant="fade-up" delay={ci * 80}>
-              <div>
-                <h3 className="font-mono text-[0.688rem] uppercase tracking-wider text-white border-b-2 border-white/80 pb-2.5 mb-3.5">
-                  {col.heading}
-                </h3>
-                <ul className="space-y-2.5">
-                  {col.items.map((item) => (
-                    <li
-                      key={item}
-                      className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[0.875rem] text-white"
-                    >
-                      <span className="block font-mono text-[0.563rem] tracking-wider text-blue-300 mb-1">
-                        {col.badge}
-                      </span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </ScrollReveal>
-          ))}
-        </div>
+        {ROADMAP.length > 0 ? (
+          <div className="mx-auto max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-5">
+            {ROADMAP.map((col, ci) => (
+              <ScrollReveal key={col.stage} variant="fade-up" delay={ci * 80}>
+                <div>
+                  <h3 className="font-mono text-[0.688rem] uppercase tracking-wider text-white border-b-2 border-white/80 pb-2.5 mb-3.5">
+                    {col.heading}
+                  </h3>
+                  <ul className="space-y-2.5">
+                    {col.items.map((item) => (
+                      <li
+                        key={item}
+                        className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[0.875rem] text-white"
+                      >
+                        <span className="block font-mono text-[0.563rem] tracking-wider text-blue-300 mb-1">
+                          {col.badge}
+                        </span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        ) : (
+          <p className="mx-auto max-w-3xl rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-12 text-center text-sm leading-relaxed text-white">
+            公開ロードマップは整備中です。確定し次第、進行中・次にやる・後回し中を、憶測なしで明示します。
+          </p>
+        )}
       </Section>
 
       {/* 透明性の約束 */}

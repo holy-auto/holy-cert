@@ -28,11 +28,11 @@ test.describe("Marketing pages", () => {
     await expect(page.locator("body")).toContainText(/よくある/);
   });
 
-  test("financial-transparency page integrates the dashboard with honest record", async ({ page }) => {
+  test("financial-transparency dashboard shows honest, non-fabricated states", async ({ page }) => {
     await page.goto("/financial-transparency");
     await expect(page.locator("body")).toContainText(/透明性|正直な記録/);
-    // しくじり (miss) を必ず載せる設計を担保
-    await expect(page.locator("body")).toContainText(/しくじった/);
+    // ねつ造しない設計: 未整備の指標はサンプルを出さず「計測体制構築中」と正直表示
+    await expect(page.locator("body")).toContainText(/計測体制構築中/);
   });
 });
 

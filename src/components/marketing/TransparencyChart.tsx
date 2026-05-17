@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ChartPoint } from "@/lib/marketing/transparency";
+import type { IssuanceMonth } from "@/lib/marketing/stats";
 
 /**
  * TransparencyChart — Client Component
@@ -9,7 +9,7 @@ import type { ChartPoint } from "@/lib/marketing/transparency";
  * 直近 6 ヶ月の証明書発行数を棒グラフで表示。スクロールで視界に入った瞬間に
  * 各バーが下から伸びる。誇張しないよう、軸は最大値基準で線形にスケールする。
  */
-export function TransparencyChart({ data }: { data: ChartPoint[] }) {
+export function TransparencyChart({ data }: { data: IssuanceMonth[] }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [grown, setGrown] = useState(false);
 
