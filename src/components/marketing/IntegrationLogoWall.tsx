@@ -24,10 +24,20 @@ const INTEGRATIONS: Integration[] = [
     name: "Stripe",
     note: "サブスクリプション・請求書",
     href: "https://stripe.com/jp",
-    logo: { src: "/brands/stripe-wordmark-blurple.svg", width: 360, height: 150 },
+    logo: { src: "/brands/stripe-wordmark-white.svg", width: 360, height: 151 },
   },
-  { name: "Square", note: "POS端末決済・在庫同期", href: "https://squareup.com/jp" },
-  { name: "Google Calendar", note: "予約カレンダー双方向同期", href: "https://calendar.google.com/" },
+  {
+    name: "Square",
+    note: "POS端末決済・在庫同期",
+    href: "https://squareup.com/jp",
+    logo: { src: "/brands/Square_Logo_2025_White.svg", width: 2000, height: 501 },
+  },
+  {
+    name: "Google Calendar",
+    note: "予約カレンダー双方向同期",
+    href: "https://calendar.google.com/",
+    logo: { src: "/brands/google-color.svg", width: 24, height: 24 },
+  },
   {
     name: "LINE",
     note: "顧客通知・リマインド",
@@ -47,7 +57,12 @@ const INTEGRATIONS: Integration[] = [
     logo: { src: "/brands/resend-wordmark-white.svg", width: 1978, height: 420 },
   },
   { name: "C2PA", note: "写真コンテンツクレデンシャル", href: "https://c2pa.org/" },
-  { name: "Claude", note: "車検証OCR・写真品質検証・エージェント", href: "https://claude.com/" },
+  {
+    name: "Claude",
+    note: "車検証OCR・写真品質検証・エージェント",
+    href: "https://claude.com/",
+    logo: { src: "/brands/claude-color.svg", width: 24, height: 24 },
+  },
   {
     name: "NexDiag",
     note: "膜厚計測・コーティング検証",
@@ -118,6 +133,9 @@ export function IntegrationLogoWall() {
         <li>Upstash は Upstash, Inc. の商標です。</li>
         <li>Supabase は Supabase Inc. の登録商標または商標です。</li>
         <li>Stripe は Stripe, Inc. の商標です。</li>
+        <li>Square は Block, Inc. の商標です。</li>
+        <li>Google および Google Calendar は Google LLC の商標です。</li>
+        <li>Claude は Anthropic PBC の商標です。</li>
       </ul>
     </Section>
   );
