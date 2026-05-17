@@ -16,7 +16,6 @@ type Integration = {
     src: string;
     width: number;
     height: number;
-    lightBg?: boolean;
   };
 };
 
@@ -25,7 +24,7 @@ const INTEGRATIONS: Integration[] = [
     name: "Stripe",
     note: "サブスクリプション・請求書",
     href: "https://stripe.com/jp",
-    logo: { src: "/brands/stripe-wordmark-blurple.svg", width: 360, height: 150, lightBg: true },
+    logo: { src: "/brands/stripe-wordmark-blurple.svg", width: 360, height: 150 },
   },
   { name: "Square", note: "POS端末決済・在庫同期", href: "https://squareup.com/jp" },
   { name: "Google Calendar", note: "予約カレンダー双方向同期", href: "https://calendar.google.com/" },
@@ -53,7 +52,7 @@ const INTEGRATIONS: Integration[] = [
     name: "NexDiag",
     note: "膜厚計測・コーティング検証",
     href: "https://nexdiag.com/",
-    logo: { src: "/nexdiag_logo.svg", width: 1122, height: 794, lightBg: true },
+    logo: { src: "/nexdiag_logo.svg", width: 1122, height: 794 },
   },
   {
     name: "Upstash",
@@ -88,18 +87,14 @@ export function IntegrationLogoWall() {
             >
               <div className="flex h-full flex-col items-center justify-center">
                 {item.logo ? (
-                  <div
-                    className={`flex h-8 md:h-9 items-center justify-center ${
-                      item.logo.lightBg ? "rounded-md bg-white px-2.5" : ""
-                    }`}
-                  >
+                  <div className="flex h-11 md:h-14 items-center justify-center">
                     <Image
                       src={item.logo.src}
                       alt={`${item.name} logo`}
                       width={item.logo.width}
                       height={item.logo.height}
                       className="h-full w-auto object-contain"
-                      sizes="(min-width: 768px) 180px, 140px"
+                      sizes="(min-width: 768px) 220px, 170px"
                     />
                   </div>
                 ) : (
