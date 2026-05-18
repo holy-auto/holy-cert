@@ -48,13 +48,16 @@ export default function AgentRouteGuard({ children }: { children: ReactNode }) {
 
         if (cancelled) return;
 
-        if (error || !data?.agent_id) {
+        // get_my_agent_status() は RETURNS TABLE のため RPC 戻り値は配列。
+        const row = Array.isArray(data) ? data[0] : data;
+
+        if (error || !row?.agent_id) {
           // Not an agent user — redirect to login
           router.replace("/agent/login");
           return;
         }
 
-        const status = (data as AgentStatus).status;
+        const status = (row as AgentStatus).status;
 
         if (status === "suspended") {
           setState("suspended");

@@ -287,8 +287,9 @@ export default function AgentSidebar() {
       try {
         const supabase = createClient();
         const { data } = await supabase.rpc("get_my_agent_status");
-        if (!cancelled && data?.agent_name) {
-          setAgentName(data.agent_name);
+        const row = Array.isArray(data) ? data[0] : data;
+        if (!cancelled && row?.agent_name) {
+          setAgentName(row.agent_name);
         }
       } catch {
         // silently ignore
