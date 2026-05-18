@@ -117,7 +117,7 @@ export default function StorefrontBilling() {
           />
           <BigActionButton
             tone="neutral"
-            href="/admin/documents/new?type=estimate"
+            href="/admin/documents?create=1&type=estimate"
             title="見積書を作成"
             subtitle="施工前のお見積り"
             icon={
@@ -132,7 +132,7 @@ export default function StorefrontBilling() {
           />
           <BigActionButton
             tone="success"
-            href="/admin/documents/new?type=receipt"
+            href="/admin/documents?create=1&type=receipt"
             title="領収書を作成"
             subtitle="入金済みのお客様に"
             icon={

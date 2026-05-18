@@ -2,6 +2,7 @@
 import { parseJsonSafe } from "@/lib/api/safeJson";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import useSWR from "swr";
 import PageHeader from "@/components/ui/PageHeader";
@@ -55,6 +56,10 @@ const emptyForm = {
 };
 
 export default function CustomersClient() {
+  // 飛び込み案件画面などから ?create=1 で遷移してきたら登録フォームを自動で開く
+  const searchParams = useSearchParams();
+  const autoOpenForm = searchParams.get("create") === "1";
+
   // Search & pagination
   const [search, setSearch] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
@@ -84,7 +89,7 @@ export default function CustomersClient() {
   const err = swrError ? (swrError.message ?? "読み込みに失敗しました") : null;
 
   // Add form
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(autoOpenForm);
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ text: string; ok: boolean } | null>(null);
