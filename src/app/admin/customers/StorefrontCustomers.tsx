@@ -278,7 +278,8 @@ export default function StorefrontCustomers() {
               <button
                 type="button"
                 onClick={closeNew}
-                className="text-sm text-muted hover:text-primary"
+                disabled={saving}
+                className="text-sm text-muted hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="閉じる"
               >
                 ✕
@@ -372,7 +373,8 @@ export default function StorefrontCustomers() {
               <button
                 type="button"
                 onClick={closeNew}
-                className="flex-1 rounded-xl border border-border-subtle bg-inset px-3 py-3 text-sm font-semibold text-secondary hover:bg-surface-hover"
+                disabled={saving}
+                className="flex-1 rounded-xl border border-border-subtle bg-inset px-3 py-3 text-sm font-semibold text-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 キャンセル
               </button>
