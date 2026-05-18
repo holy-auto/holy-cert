@@ -28,7 +28,7 @@
 | 11 | `11-certificates-new-form.png` | 証明書発行フォーム上半分（車両ピッカー〜施工内容） | `/admin/certificates/new` | |
 | 12 | `12-certificates-photo-upload.png` | 同フォームの「写真アップロード」エリア | 同上、下にスクロールして | アップロード前の空状態と、何枚か入った状態の **2 枚** あるとベスト（`12-certificates-photo-upload.png` と `12b-certificates-photo-uploaded.png`） |
 | 13 | `13-certificates-success.png` | 発行完了画面（証明書番号が出ているところ） | `/admin/certificates/new/success` または発行後の遷移先 | |
-| 14 | `14-certificate-detail.png` | 発行済み証明書の詳細ページ（QR コードが見える） | `/admin/certificates/[public_id]` | QR コードを必ず入れる |
+| 14 | `14-certificate-detail.png` | 発行済み証明書の詳細ページ | `/admin/certificates/[public_id]` | QR は現在この画面には出ない（PDF 側にあり）。詳細が分かる範囲で OK |
 | 15 | `15-certificate-pdf.png` | PDF 出力をブラウザで開いた状態（または印刷プレビュー） | PDF 出力ボタンを押した結果 | |
 | 16 | `16-invoices-list.png` | 請求書一覧 | `/admin/invoices` | |
 | 17 | `17-invoices-new.png` | 新規請求書フォーム | `/admin/invoices/new` | |
