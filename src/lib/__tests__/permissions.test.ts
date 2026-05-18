@@ -243,6 +243,23 @@ describe("requiredPermissionForPath", () => {
     expect(requiredPermissionForPath("/admin/certificates/new")).toBe("certificates:view");
   });
 
+  it("exempts /admin/settings/features from the settings:view prefix (reachable by all roles)", () => {
+    // Personal feature-visibility page is for every role; exact match must
+    // win over the "/admin/settings" -> settings:view prefix.
+    const perm = requiredPermissionForPath("/admin/settings/features");
+    expect(perm).toBe("dashboard:view");
+    expect(perm).not.toBe("settings:view");
+    const roles: Role[] = ["super_admin", "owner", "admin", "staff", "viewer"];
+    for (const r of roles) {
+      expect(hasPermission(r, perm as Permission)).toBe(true);
+    }
+  });
+
+  it("still requires settings:view for the settings root and other sub-pages", () => {
+    expect(requiredPermissionForPath("/admin/settings")).toBe("settings:view");
+    expect(requiredPermissionForPath("/admin/settings/security")).toBe("settings:view");
+  });
+
   it("returns null for unknown paths", () => {
     expect(requiredPermissionForPath("/unknown/route")).toBeNull();
   });

@@ -359,6 +359,10 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/admin/inquiries": "market:view",
   "/admin/insurers": "insurers:view",
   "/admin/insurers/tenant-access": "insurers:manage",
+  // Exact match wins over the "/admin/settings" prefix below: the personal
+  // feature-visibility page is for every role (incl. staff/viewer), so it must
+  // not inherit settings:view. The tenant-gate section is gated separately.
+  "/admin/settings/features": "dashboard:view",
   "/admin/settings": "settings:view",
   "/admin/billing": "billing:view",
   "/admin/logo": "logo:manage",
