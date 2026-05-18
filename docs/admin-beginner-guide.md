@@ -353,9 +353,7 @@ Ledra は、**お店のパソコンや iPad で使える「お店の台帳」の
 - 1 枚あたり **10 MB** くらいまでが目安です。
 - 何枚でも追加できますが、**3〜5 枚** くらいがおすすめです（多すぎるとお客さまが見にくい）。
 
-![写真アップロード（空の状態）](images/admin/12-certificates-photo-upload.png)
-
-![写真アップロード（数枚アップロードした状態）](images/admin/12b-certificates-photo-uploaded.png)
+![写真アップロードのエリア](images/admin/12-certificates-photo-upload.png)
 
 ### 9.4 発行したあと
 

@@ -26,7 +26,7 @@
 | 09 | `09-reservations-form.png` | カレンダーの空き枠を押した直後の予約フォーム | 同上、モーダル/サイドパネルが開いた状態 | |
 | 10 | `10-certificates-list.png` | 証明書一覧 | `/admin/certificates` | デモ証明書 16 枚が見える |
 | 11 | `11-certificates-new-form.png` | 証明書発行フォーム上半分（車両ピッカー〜施工内容） | `/admin/certificates/new` | |
-| 12 | `12-certificates-photo-upload.png` | 同フォームの「写真アップロード」エリア | 同上、下にスクロールして | アップロード前の空状態と、何枚か入った状態の **2 枚** あるとベスト（`12-certificates-photo-upload.png` と `12b-certificates-photo-uploaded.png`） |
+| 12 | `12-certificates-photo-upload.png` | 同フォームの「写真アップロード」エリア | 同上、下にスクロールして | 1 枚で OK |
 | 13 | `13-certificates-success.png` | 発行完了画面（証明書番号が出ているところ） | `/admin/certificates/new/success` または発行後の遷移先 | |
 | 14 | `14-certificate-detail.png` | 発行済み証明書の詳細ページ | `/admin/certificates/[public_id]` | QR は現在この画面には出ない（PDF 側にあり）。詳細が分かる範囲で OK |
 | 15 | `15-certificate-pdf.png` | PDF 出力をブラウザで開いた状態（または印刷プレビュー） | PDF 出力ボタンを押した結果 | |
