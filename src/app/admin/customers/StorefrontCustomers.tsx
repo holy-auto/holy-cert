@@ -6,6 +6,7 @@ import useSWR from "swr";
 import BigActionButton from "@/components/pos/BigActionButton";
 import POSSection from "@/components/pos/POSSection";
 import { fetcher } from "@/lib/swr";
+import { parseJsonSafe } from "@/lib/api/safeJson";
 import { formatDate } from "@/lib/format";
 
 /**
@@ -14,8 +15,11 @@ import { formatDate } from "@/lib/format";
  * 店頭モードの顧客管理。
  *
  *  ① 検索バー (名前・電話で即時フィルタ)
- *  ② 巨大ボタン: 新規顧客登録 / 管理モードで詳細検索
+ *  ② 巨大ボタン: 新規顧客登録 (その場でモーダル入力) / 管理モードで詳細検索
  *  ③ 顧客カード (大きめ・電話タップで発信)
+ *
+ * 新規登録は管理モードに遷移せず、店頭モードのまま大きな入力モーダルで
+ * 完結させる (StorefrontInventory と同じ入力体験)。
  */
 
 type Customer = {
@@ -32,6 +36,16 @@ type Customer = {
 type Stats = { total: number; this_month_new: number; linked_certificates: number };
 type ApiResponse = { customers: Customer[]; stats: Stats };
 
+const emptyForm = {
+  name: "",
+  name_kana: "",
+  email: "",
+  phone: "",
+  postal_code: "",
+  address: "",
+  note: "",
+};
+
 export default function StorefrontCustomers() {
   const [search, setSearch] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
@@ -40,13 +54,55 @@ export default function StorefrontCustomers() {
     ? `/api/admin/customers?page=1&per_page=24&q=${encodeURIComponent(activeSearch)}`
     : `/api/admin/customers?page=1&per_page=24`;
 
-  const { data, isLoading } = useSWR<ApiResponse>(swrKey, fetcher, {
+  const { data, isLoading, mutate } = useSWR<ApiResponse>(swrKey, fetcher, {
     revalidateOnFocus: true,
     keepPreviousData: true,
   });
 
   const customers = data?.customers ?? [];
   const stats = data?.stats;
+
+  /* ---------- 新規登録モーダル ---------- */
+  const [showNew, setShowNew] = useState(false);
+  const [form, setForm] = useState({ ...emptyForm });
+  const [saving, setSaving] = useState(false);
+  const [formErr, setFormErr] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const openNew = () => {
+    setForm({ ...emptyForm });
+    setFormErr(null);
+    setShowNew(true);
+  };
+
+  const closeNew = () => {
+    setShowNew(false);
+    setForm({ ...emptyForm });
+    setFormErr(null);
+  };
+
+  const handleCreate = async () => {
+    if (!form.name.trim() || saving) return;
+    setSaving(true);
+    setFormErr(null);
+    try {
+      const res = await fetch("/api/admin/customers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const j = await parseJsonSafe(res);
+      if (!res.ok) throw new Error(j?.message ?? j?.error ?? `HTTP ${res.status}`);
+      closeNew();
+      setToast({ text: `${form.name.trim()} を登録しました`, ok: true });
+      window.setTimeout(() => setToast(null), 3000);
+      mutate();
+    } catch (e: unknown) {
+      setFormErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -113,7 +169,7 @@ export default function StorefrontCustomers() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <BigActionButton
             tone="primary"
-            href="/admin/customers?new=1"
+            onClick={openNew}
             title="新規顧客を登録"
             subtitle="お客様情報を新しく追加"
             icon={
@@ -144,6 +200,18 @@ export default function StorefrontCustomers() {
           />
         </div>
       </POSSection>
+
+      {toast && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+            toast.ok
+              ? "border-success/30 bg-success-dim text-success-text"
+              : "border-danger/30 bg-danger-dim text-danger-text"
+          }`}
+        >
+          {toast.text}
+        </div>
+      )}
 
       {/* ─── 顧客カード ─── */}
       <POSSection title={activeSearch ? `検索結果 (${customers.length}件)` : "最近のお客様"} compact>
@@ -197,6 +265,129 @@ export default function StorefrontCustomers() {
           </ul>
         )}
       </POSSection>
+
+      {/* ─── 新規登録モーダル ─── */}
+      {showNew && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
+          <div className="max-h-[92vh] w-full space-y-4 overflow-y-auto rounded-t-3xl border border-border-subtle bg-surface p-5 sm:max-w-lg sm:rounded-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">新規登録</div>
+                <div className="mt-1 text-lg font-bold text-primary">新規顧客登録</div>
+              </div>
+              <button
+                type="button"
+                onClick={closeNew}
+                className="text-sm text-muted hover:text-primary"
+                aria-label="閉じる"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted">
+                  お客様名 <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="w-full rounded-xl border border-border-subtle bg-inset px-3 py-3 text-base text-primary placeholder:text-muted focus:border-accent focus:outline-none"
+                  placeholder="山田 太郎"
+                  autoFocus
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted">フリガナ</label>
+                  <input
+                    type="text"
+                    value={form.name_kana}
+                    onChange={(e) => setForm({ ...form, name_kana: e.target.value })}
+                    className="w-full rounded-xl border border-border-subtle bg-inset px-3 py-3 text-base text-primary placeholder:text-muted focus:border-accent focus:outline-none"
+                    placeholder="ヤマダ タロウ"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted">電話番号</label>
+                  <input
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    className="w-full rounded-xl border border-border-subtle bg-inset px-3 py-3 text-base text-primary placeholder:text-muted focus:border-accent focus:outline-none"
+                    placeholder="090-1234-5678"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted">メールアドレス</label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    className="w-full rounded-xl border border-border-subtle bg-inset px-3 py-3 text-base text-primary placeholder:text-muted focus:border-accent focus:outline-none"
+                    placeholder="example@email.com"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted">郵便番号</label>
+                  <input
+                    type="text"
+                    value={form.postal_code}
+                    onChange={(e) => setForm({ ...form, postal_code: e.target.value })}
+                    className="w-full rounded-xl border border-border-subtle bg-inset px-3 py-3 text-base text-primary placeholder:text-muted focus:border-accent focus:outline-none"
+                    placeholder="123-4567"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted">住所</label>
+                <input
+                  type="text"
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  className="w-full rounded-xl border border-border-subtle bg-inset px-3 py-3 text-base text-primary placeholder:text-muted focus:border-accent focus:outline-none"
+                  placeholder="東京都渋谷区..."
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted">備考</label>
+                <textarea
+                  value={form.note}
+                  onChange={(e) => setForm({ ...form, note: e.target.value })}
+                  className="w-full rounded-xl border border-border-subtle bg-inset px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-accent focus:outline-none"
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            {formErr && (
+              <div className="rounded-lg border border-danger/20 bg-danger-dim px-3 py-2 text-xs text-danger-text">
+                {formErr}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={closeNew}
+                className="flex-1 rounded-xl border border-border-subtle bg-inset px-3 py-3 text-sm font-semibold text-secondary hover:bg-surface-hover"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={saving || !form.name.trim()}
+                className="flex-[2] rounded-xl bg-accent px-3 py-3 text-base font-bold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? "登録中..." : "この内容で登録"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
