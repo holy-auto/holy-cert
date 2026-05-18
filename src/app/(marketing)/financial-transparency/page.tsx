@@ -7,16 +7,7 @@ import { CTABanner } from "@/components/marketing/CTABanner";
 import { TransparencyMetrics, type TransparencyMetric } from "@/components/marketing/TransparencyMetrics";
 import { TransparencyChart } from "@/components/marketing/TransparencyChart";
 import { getMarketingStats } from "@/lib/marketing/stats";
-import {
-  SNAPSHOT_MONTH,
-  TRANSPARENCY_FIGURES_ARE_SAMPLE,
-  CHURN,
-  ISSUANCE_HISTORY,
-  HONEST_LEDGER,
-  ROADMAP,
-  PLEDGES,
-  type LedgerKind,
-} from "@/lib/marketing/transparency";
+import { SNAPSHOT_MONTH, CHURN, HONEST_LEDGER, ROADMAP, PLEDGES, type LedgerKind } from "@/lib/marketing/transparency";
 
 export const metadata = {
   title: "透明性ダッシュボード ── 事業数値と財務の開示",
@@ -188,16 +179,25 @@ export default async function FinancialTransparencyPage() {
       delta: `直近30日 +${stats.shopsLast30Days.toLocaleString()}店`,
       note: stats.isLive ? "本番DBから直接集計しています。" : "DBに到達できていません — フォールバック表示。",
     },
-    {
-      label: "月次解約率",
-      value: CHURN.rate,
-      decimals: 1,
-      unit: "%",
-      tone: "warn",
-      delta: `目標(${CHURN.target}%)未達`,
-      note: CHURN.note,
-    },
+    stats.churn
+      ? {
+          label: "月次解約率",
+          value: stats.churn.ratePct ?? 0,
+          decimals: 1,
+          unit: "%",
+          tone: "warn",
+          delta: `${stats.churn.monthLabel} 実績`,
+          note: "前月完了分の実測（解約テナント数 ÷ 月初アクティブ数）。計測基盤の稼働以降のみ集計し、過去分は遡及していません。",
+        }
+      : {
+          label: "月次解約率",
+          tone: "warn",
+          measuring: true,
+          note: CHURN.note,
+        },
   ];
+
+  const hasIssuance = stats.issuanceByMonth.some((m) => m.value > 0);
 
   return (
     <>
@@ -233,7 +233,9 @@ export default async function FinancialTransparencyPage() {
             </div>
             <span className="hidden sm:inline-block w-px h-4 bg-white/10" />
             <span className="text-xs text-white leading-relaxed">
-              解約率と推移グラフは現時点ではサンプル値です（実運用で実績へ差し替え）。
+              {stats.churn
+                ? `月次解約率は前月完了分（${stats.churn.monthLabel}）を実測しています。`
+                : "月次解約率は計測基盤の稼働以降を集計します（実測値が出るまで取り繕った数値は出しません）。"}
             </span>
           </div>
         </ScrollReveal>
@@ -243,13 +245,19 @@ export default async function FinancialTransparencyPage() {
       <Section bg="alt" id="growth">
         <SectionHeading
           title="証明書発行数の推移"
-          subtitle={`直近6ヶ月の月間発行数。誇張のないグラフです。${
-            TRANSPARENCY_FIGURES_ARE_SAMPLE ? "（数値はサンプル）" : ""
-          }`}
+          subtitle="直近6ヶ月の月間発行数（本番DBから集計）。誇張のないグラフです。"
         />
         <ScrollReveal variant="fade-up">
           <div className="mx-auto max-w-4xl">
-            <TransparencyChart data={ISSUANCE_HISTORY} />
+            {hasIssuance ? (
+              <TransparencyChart data={stats.issuanceByMonth} />
+            ) : (
+              <p className="rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-12 text-center text-sm text-white">
+                {stats.isLive
+                  ? "この6ヶ月の発行記録はまだありません。最初の1件がここに刻まれます。"
+                  : "現在DBに到達できず、推移を表示できません。"}
+              </p>
+            )}
           </div>
         </ScrollReveal>
       </Section>
@@ -257,29 +265,37 @@ export default async function FinancialTransparencyPage() {
       {/* 03. 今月の正直な記録 */}
       <Section id="ledger">
         <SectionHeading
-          title={`今月の正直な記録 ── ${SNAPSHOT_MONTH}`}
+          title={HONEST_LEDGER.length > 0 ? `今月の正直な記録 ── ${SNAPSHOT_MONTH}` : "今月の正直な記録"}
           subtitle="うまくいったこと、しくじったこと、学んだこと。3つとも書きます。しくじりを省いた月は作りません。"
         />
-        <div className="mx-auto max-w-3xl space-y-px rounded-2xl border border-white/[0.08] bg-white/[0.08] overflow-hidden">
-          {HONEST_LEDGER.map((entry, i) => {
-            const s = ledgerStyle[entry.kind];
-            return (
-              <ScrollReveal key={entry.title} variant="fade-up" delay={i * 60}>
-                <div className="grid grid-cols-1 sm:grid-cols-[112px_1fr] gap-3 sm:gap-6 bg-[#060a12] p-6">
-                  <span
-                    className={`justify-self-start inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-[0.625rem] font-bold uppercase tracking-wide ${s.chip}`}
-                  >
-                    {s.label}
-                  </span>
-                  <div>
-                    <h3 className="text-[0.938rem] font-bold text-white leading-snug">{entry.title}</h3>
-                    <p className="mt-1.5 text-[0.875rem] leading-relaxed text-white">{entry.body}</p>
+        {HONEST_LEDGER.length > 0 ? (
+          <div className="mx-auto max-w-3xl space-y-px rounded-2xl border border-white/[0.08] bg-white/[0.08] overflow-hidden">
+            {HONEST_LEDGER.map((entry, i) => {
+              const s = ledgerStyle[entry.kind];
+              return (
+                <ScrollReveal key={entry.title} variant="fade-up" delay={i * 60}>
+                  <div className="grid grid-cols-1 sm:grid-cols-[112px_1fr] gap-3 sm:gap-6 bg-[#060a12] p-6">
+                    <span
+                      className={`justify-self-start inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-[0.625rem] font-bold uppercase tracking-wide ${s.chip}`}
+                    >
+                      {s.label}
+                    </span>
+                    <div>
+                      <h3 className="text-[0.938rem] font-bold text-white leading-snug">{entry.title}</h3>
+                      <p className="mt-1.5 text-[0.875rem] leading-relaxed text-white">{entry.body}</p>
+                    </div>
                   </div>
-                </div>
-              </ScrollReveal>
-            );
-          })}
-        </div>
+                </ScrollReveal>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mx-auto max-w-3xl rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-12 text-center text-sm leading-relaxed text-white">
+            今月分はまだ公開していません。毎月1日に、うまくいった・しくじった・学んだを3つとも掲載します。
+            <br />
+            取り繕った記録は載せません ── 載せるときは、実際に起きたことだけを。
+          </p>
+        )}
       </Section>
 
       <Section bg="alt" className="!py-12 md:!py-16">
@@ -352,30 +368,36 @@ export default async function FinancialTransparencyPage() {
       {/* 公開ロードマップ */}
       <Section bg="alt" id="roadmap">
         <SectionHeading title="公開ロードマップ" subtitle="何を作っているか、何を後回しにしているかも隠しません。" />
-        <div className="mx-auto max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-5">
-          {ROADMAP.map((col, ci) => (
-            <ScrollReveal key={col.stage} variant="fade-up" delay={ci * 80}>
-              <div>
-                <h3 className="font-mono text-[0.688rem] uppercase tracking-wider text-white border-b-2 border-white/80 pb-2.5 mb-3.5">
-                  {col.heading}
-                </h3>
-                <ul className="space-y-2.5">
-                  {col.items.map((item) => (
-                    <li
-                      key={item}
-                      className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[0.875rem] text-white"
-                    >
-                      <span className="block font-mono text-[0.563rem] tracking-wider text-blue-300 mb-1">
-                        {col.badge}
-                      </span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </ScrollReveal>
-          ))}
-        </div>
+        {ROADMAP.length > 0 ? (
+          <div className="mx-auto max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-5">
+            {ROADMAP.map((col, ci) => (
+              <ScrollReveal key={col.stage} variant="fade-up" delay={ci * 80}>
+                <div>
+                  <h3 className="font-mono text-[0.688rem] uppercase tracking-wider text-white border-b-2 border-white/80 pb-2.5 mb-3.5">
+                    {col.heading}
+                  </h3>
+                  <ul className="space-y-2.5">
+                    {col.items.map((item) => (
+                      <li
+                        key={item}
+                        className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[0.875rem] text-white"
+                      >
+                        <span className="block font-mono text-[0.563rem] tracking-wider text-blue-300 mb-1">
+                          {col.badge}
+                        </span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        ) : (
+          <p className="mx-auto max-w-3xl rounded-2xl border border-white/[0.08] bg-white/[0.02] px-6 py-12 text-center text-sm leading-relaxed text-white">
+            公開ロードマップは整備中です。確定し次第、進行中・次にやる・後回し中を、憶測なしで明示します。
+          </p>
+        )}
       </Section>
 
       {/* 透明性の約束 */}

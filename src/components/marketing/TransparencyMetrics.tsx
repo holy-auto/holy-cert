@@ -7,8 +7,8 @@ type Tone = "good" | "warn";
 
 export type TransparencyMetric = {
   label: string;
-  /** 集計対象の数値 */
-  value: number;
+  /** 集計対象の数値 (measuring の場合は不要) */
+  value?: number;
   /** 小数桁数 (解約率など) */
   decimals?: number;
   /** 値の後ろに付く単位 (件 / 店 / %) */
@@ -16,9 +16,14 @@ export type TransparencyMetric = {
   /** 状態ドット・補足の色味 */
   tone: Tone;
   /** 数字の下に出す方向性コメント (前月比ではなく、隠さず率直に) */
-  delta: string;
+  delta?: string;
   /** 補足説明 */
   note: string;
+  /**
+   * 実測値をまだ出せない指標。取り繕ったサンプルを出さず
+   * 「計測体制構築中」と正直に表示する。
+   */
+  measuring?: boolean;
 };
 
 function CountUp({ target, decimals = 0 }: { target: number; decimals?: number }) {
@@ -56,16 +61,26 @@ export function TransparencyMetrics({ metrics }: { metrics: TransparencyMetric[]
             {m.label}
           </div>
 
-          <div className="mt-4 text-[2.5rem] md:text-[2.75rem] font-bold leading-none tracking-tight text-white">
-            <CountUp target={m.value} decimals={m.decimals} />
-            {m.unit && <span className="ml-1 text-base font-medium text-white">{m.unit}</span>}
-          </div>
-
-          <div
-            className={`mt-3 font-mono text-xs font-bold ${m.tone === "good" ? "text-emerald-300" : "text-amber-300"}`}
-          >
-            {m.delta}
-          </div>
+          {m.measuring ? (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/[0.1] px-3 py-1.5">
+              <span className="block w-1.5 h-1.5 rounded-full bg-amber-400 animate-[pulse-soft_2s_ease-in-out_infinite]" />
+              <span className="font-mono text-xs font-bold text-amber-300">計測体制構築中</span>
+            </div>
+          ) : (
+            <>
+              <div className="mt-4 text-[2.5rem] md:text-[2.75rem] font-bold leading-none tracking-tight text-white">
+                <CountUp target={m.value ?? 0} decimals={m.decimals} />
+                {m.unit && <span className="ml-1 text-base font-medium text-white">{m.unit}</span>}
+              </div>
+              {m.delta && (
+                <div
+                  className={`mt-3 font-mono text-xs font-bold ${m.tone === "good" ? "text-emerald-300" : "text-amber-300"}`}
+                >
+                  {m.delta}
+                </div>
+              )}
+            </>
+          )}
           <p className="mt-2 text-[0.72rem] leading-relaxed text-white">{m.note}</p>
         </div>
       ))}
