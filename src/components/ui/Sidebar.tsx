@@ -3,10 +3,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useCurrentRole } from "@/lib/auth/useCurrentRole";
 import { ROUTE_PERMISSIONS, type Permission } from "@/lib/auth/permissions";
 import { ROLE_LABELS } from "@/lib/auth/roles";
+import { FEATURE_BY_HREF, isAdvancedFeatureVisible } from "@/lib/features/catalog";
+import { useFeaturePrefs } from "@/lib/features/useFeaturePrefs";
 import StoreSelector from "@/components/ui/StoreSelector";
 import ThemeToggle from "@/lib/theme/ThemeToggle";
 import SidebarShell from "@/components/ui/SidebarShell";
@@ -904,6 +906,9 @@ function CollapsibleGroup({
 export default function Sidebar() {
   const pathname = usePathname();
   const { role, can, loading } = useCurrentRole();
+  const { tenantDisabled, userVisible, loading: prefsLoading } = useFeaturePrefs();
+  const tenantDisabledSet = useMemo(() => new Set(tenantDisabled), [tenantDisabled]);
+  const userVisibleSet = useMemo(() => new Set(userVisible), [userVisible]);
   const isMobile = useIsMobile();
   const badges = useSidebarBadges();
 
@@ -949,11 +954,25 @@ export default function Sidebar() {
     (items: NavItem[]) =>
       items.filter((item) => {
         if (item.hidden) return false;
-        if (!item.requiredPermission) return true;
-        if (loading || !role) return true;
-        return can(item.requiredPermission);
+
+        // Existing role/permission gate (optimistic while the role loads).
+        if (item.requiredPermission && !loading && role && !can(item.requiredPermission)) {
+          return false;
+        }
+
+        // Advanced-feature gate: hidden by default, shown only when the
+        // tenant allows it AND the user opted it into their sidebar.
+        const def = FEATURE_BY_HREF.get(item.href);
+        if (def?.tier === "advanced") {
+          if (prefsLoading) return false;
+          if (!isAdvancedFeatureVisible(def.key, tenantDisabledSet, userVisibleSet)) {
+            return false;
+          }
+        }
+
+        return true;
       }),
-    [loading, role, can],
+    [loading, role, can, prefsLoading, tenantDisabledSet, userVisibleSet],
   );
 
   const renderItem = (item: NavItem) => {
@@ -1047,6 +1066,23 @@ export default function Sidebar() {
             />
           </svg>
           サポート
+        </Link>
+        <Link
+          href="/admin/settings/features"
+          className={`flex items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-[13px] font-medium transition-all duration-150 mb-1 ${
+            pathname === "/admin/settings/features"
+              ? "bg-accent-dim text-accent"
+              : "text-muted hover:bg-surface-hover hover:text-primary"
+          }`}
+        >
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
+            />
+          </svg>
+          機能をカスタマイズ
         </Link>
         <div className="mb-2 px-2.5">
           <ThemeToggle />
