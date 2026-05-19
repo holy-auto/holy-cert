@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
+import { recordErrorEvent } from "@/lib/observability/errorEvents";
 
 /**
  * 統一エラーレスポンスヘルパー
@@ -298,6 +299,7 @@ export function apiInternalError(error: unknown, context?: string) {
   }
 
   captureSentryError(error);
+  recordErrorEvent({ level: "error", source: "api", message: msg, route: context ?? null });
 
   return apiError({
     code: "internal_error",

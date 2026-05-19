@@ -1,3 +1,5 @@
+import { recordErrorEvent } from "@/lib/observability/errorEvents";
+
 const RESEND_API = "https://api.resend.com/emails";
 
 /** Lazily forward to Sentry without blocking cron completion. */
@@ -27,6 +29,13 @@ export async function sendCronFailureAlert(jobName: string, error: unknown): Pro
 
   console.error(`[cron/${jobName}] FAILURE:`, message);
   captureSentry(jobName, error);
+  recordErrorEvent({
+    level: "error",
+    source: "cron",
+    message,
+    route: `cron/${jobName}`,
+    context: stack ? { stack: stack.slice(0, 2000) } : {},
+  });
 
   const apiKey = process.env.RESEND_API_KEY;
   const alertEmail = process.env.CONTACT_TO_EMAIL;
